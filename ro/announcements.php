@@ -113,7 +113,7 @@ include __DIR__ . '/../includes/header.php';
 
 .ann-stripe { height: 4px; }
 
-.ann-body { padding: 16px 20px 14px; }
+.ann-body { padding: 14px 20px 12px; }
 
 .ann-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 
@@ -123,12 +123,13 @@ include __DIR__ . '/../includes/header.php';
 }
 .ann-content {
   font-size: 13.5px; color: var(--n600); line-height: 1.7;
-  white-space: pre-wrap;
+  white-space: pre-line;
+  word-break: break-word;
 }
 .ann-foot {
   display: flex; align-items: center; gap: 14px;
   font-size: 11.5px; color: var(--n400);
-  margin-top: 12px; padding-top: 10px;
+  margin-top: 10px; padding-top: 8px;
   border-top: 1px solid var(--n100);
   flex-wrap: wrap;
 }
@@ -271,7 +272,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
 
     <div class="ann-title"><?= e($a['title']) ?></div>
-    <div class="ann-content"><?= e($a['content']) ?></div>
+    <div class="ann-content"><?= e(preg_replace('/\n{3,}/', "\n\n", trim($a['content']))) ?></div>
 
     <div class="ann-foot">
       <span><?= svgIcon('user') ?> <strong><?= e($a['full_name']) ?></strong></span>
@@ -447,7 +448,7 @@ function injectCard(ann) {
           </button>
         </div>
         <div class="ann-title">${esc(ann.title)}</div>
-        <div class="ann-content">${esc(ann.content)}</div>
+        <div class="ann-content">${esc(ann.content.trim())}</div>
         <div class="ann-foot">
           <span>${svgI('user')} <strong>${esc(ann.author)}</strong></span>
           <span>${svgI('clock')} just now</span>
