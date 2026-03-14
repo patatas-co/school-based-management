@@ -60,13 +60,12 @@ include __DIR__.'/../includes/header.php';
 <script>
 async function postAnn(){
   const r = await apiPost('announcements.php', {
-    action: 'post',
-    title: document.getElementById('a_title').value,
-    content: document.getElementById('a_body').value,
-    category: document.getElementById('a_cat').value,
-    audience: document.getElementById('a_aud').value   // ← add this
+    action:   'post',
+    title:    document.getElementById('a_title').value,
+    content:  document.getElementById('a_body').value,
+    category: document.getElementById('a_cat').value
   });
-  toast(r.msg, r.ok?'ok':'err');
+  toast(r.msg, r.ok ? 'ok' : 'err');
   if(r.ok){ closeModal('mPost'); setTimeout(()=>location.reload(),800); }
 }
 </script>

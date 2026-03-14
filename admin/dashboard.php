@@ -40,15 +40,6 @@ $recentActivity = $db->query("
   ORDER BY l.created_at DESC LIMIT 6
 ")->fetchAll();
 
-if (!function_exists('sbmMaturityLevel')) {
-    function sbmMaturityLevel(float $pct): array {
-        if ($pct >= 90) return ['label'=>'Advanced',   'color'=>'#16A34A','bg'=>'#DCFCE7'];
-        if ($pct >= 75) return ['label'=>'Proficient', 'color'=>'#2563EB','bg'=>'#DBEAFE'];
-        if ($pct >= 50) return ['label'=>'Developing', 'color'=>'#D97706','bg'=>'#FEF3C7'];
-        return                 ['label'=>'Beginning',  'color'=>'#DC2626','bg'=>'#FEE2E2'];
-    }
-}
-
 $pageTitle = 'Admin Dashboard'; $activePage = 'dashboard.php';
 include __DIR__.'/../includes/header.php';
 ?>

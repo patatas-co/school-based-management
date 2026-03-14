@@ -51,9 +51,9 @@ function timeAgo(string $dt): string {
     return $past->format('M d, Y');
 }
 function sbmMaturityLevel(float $pct): array {
-    if ($pct >= 90) return ['label'=>'Advanced',   'color'=>'#16A34A','bg'=>'#DCFCE7'];
-    if ($pct >= 75) return ['label'=>'Proficient', 'color'=>'#2563EB','bg'=>'#DBEAFE'];
-    if ($pct >= 50) return ['label'=>'Developing', 'color'=>'#D97706','bg'=>'#FEF3C7'];
+    if ($pct >= 76) return ['label'=>'Advanced',   'color'=>'#16A34A','bg'=>'#DCFCE7'];
+    if ($pct >= 51) return ['label'=>'Maturing',   'color'=>'#2563EB','bg'=>'#DBEAFE'];
+    if ($pct >= 26) return ['label'=>'Developing', 'color'=>'#D97706','bg'=>'#FEF3C7'];
     return                 ['label'=>'Beginning',  'color'=>'#DC2626','bg'=>'#FEE2E2'];
 }
 function csrfToken(): string {

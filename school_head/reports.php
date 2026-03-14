@@ -27,15 +27,6 @@ foreach($responses as $r) $grouped[$r['dimension_no']][] = $r;
 $ratingLabels = [1=>'Not Yet Manifested',2=>'Emerging',3=>'Developing',4=>'Always Manifested'];
 $ratingColors = [1=>'#DC2626',2=>'#D97706',3=>'#2563EB',4=>'#16A34A'];
 
-if (!function_exists('sbmMaturityLevel')) {
-    function sbmMaturityLevel(float $pct): array {
-        if ($pct >= 90) return ['label'=>'Advanced',   'color'=>'#16A34A','bg'=>'#DCFCE7'];
-        if ($pct >= 75) return ['label'=>'Proficient', 'color'=>'#2563EB','bg'=>'#DBEAFE'];
-        if ($pct >= 50) return ['label'=>'Developing', 'color'=>'#D97706','bg'=>'#FEF3C7'];
-        return                 ['label'=>'Beginning',  'color'=>'#DC2626','bg'=>'#FEE2E2'];
-    }
-}
-
 $pageTitle = 'Reports'; $activePage = 'reports.php';
 include __DIR__.'/../includes/header.php';
 ?>

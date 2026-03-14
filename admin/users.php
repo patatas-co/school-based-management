@@ -19,8 +19,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
                ->execute([trim($_POST['username']),password_hash($pw,PASSWORD_DEFAULT),trim($_POST['email']),trim($_POST['full_name']),$role,$_POST['status'],$_POST['school_id']?:null]);
             logActivity('create_user','users','Created user: '.trim($_POST['username']));
             $newId = $db->lastInsertId();
-$schoolName = $_POST['school_id'] ? $db->prepare("SELECT school_name FROM schools WHERE school_id=?")->execute([$_POST['school_id']]) : null;
-$schoolName = $_POST['school_id'] ? $db->query("SELECT school_name FROM schools WHERE school_id=".(int)$_POST['school_id'])->fetchColumn() : '—';
+$schoolStmt = $db->prepare("SELECT school_name FROM schools WHERE school_id=?");
+$schoolStmt->execute([$_POST['school_id'] ?: 0]);
+$schoolName = $_POST['school_id'] ? ($schoolStmt->fetchColumn() ?: '—') : '—';
 echo json_encode(['ok'=>true,'msg'=>'User created successfully.','user'=>[
     'id'        => $newId,
     'full_name' => trim($_POST['full_name']),
@@ -121,7 +122,7 @@ include __DIR__.'/../includes/header.php';
           <div class="flex-c" style="gap:5px;">
             <button class="btn btn-secondary btn-sm" onclick="editUser(<?= $u['user_id'] ?>)"><?= svgIcon('edit') ?></button>
             <?php if($u['user_id'] != $_SESSION['user_id']): ?>
-            <button class="btn btn-danger btn-sm" onclick="delUser(<?= $u['user_id'] ?>,'<?= e(addslashes($u['full_name'])) ?>')"><?= svgIcon('trash') ?></button>
+            <button class="btn btn-danger btn-sm" onclick="delUser(<?= $u['user_id'] ?>,'<?= e(addslashes($u['full_name'])) ?>',this)"><?= svgIcon('trash') ?></button>
             <?php endif; ?>
           </div>
         </td>
@@ -267,15 +268,11 @@ async function updateUser(){
   toast(r.msg,r.ok?'ok':'err');
   if(r.ok){closeModal('mEdit');setTimeout(()=>location.reload(),800);}
 }
-async function delUser(id,name){
+async function delUser(id, name, btn){
   if(!confirm(`Delete "${name}"? This cannot be undone.`)) return;
-  const r=await apiPost('users.php',{action:'delete',id});
-  toast(r.msg,r.ok?'ok':'err');
-  if(r.ok){
-    document.querySelector(`button[onclick="delUser(${id},"]`)?.closest('tr')?.remove();
-    // simpler: just remove the row by finding the button that was clicked
-    toast(r.msg,'ok');
-  }
+  const r = await apiPost('users.php', {action:'delete', id});
+  toast(r.msg, r.ok ? 'ok' : 'err');
+  if(r.ok) btn?.closest('tr')?.remove();
 }
 </script>
 <?php include __DIR__.'/../includes/footer.php'; ?>

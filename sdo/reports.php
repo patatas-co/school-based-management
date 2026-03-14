@@ -98,8 +98,11 @@ const dimColors = <?= json_encode(array_column($dimensions,'color_hex')) ?>;
 <?php
 $dimAvgs = [];
 foreach ($dimensions as $d) {
-    $st = $db->prepare("SELECT ROUND(AVG(ds.percentage),1) FROM sbm_dimension_scores ds JOIN sbm_cycles c ON ds.cycle_id=c.cycle_id JOIN schools s ON c.school_id=s.school_id WHERE ds.dimension_id=? AND c.sy_id=?".($divisionId?" AND s.division_id=$divisionId":""));
-    $st->execute([$d['dimension_id'],$syId]); $dimAvgs[] = $st->fetchColumn()?:0;
+    $dimSql = "SELECT ROUND(AVG(ds.percentage),1) FROM sbm_dimension_scores ds JOIN sbm_cycles c ON ds.cycle_id=c.cycle_id JOIN schools s ON c.school_id=s.school_id WHERE ds.dimension_id=? AND c.sy_id=?";
+$dimParams = [$d['dimension_id'], $syId];
+if ($divisionId) { $dimSql .= " AND s.division_id=?"; $dimParams[] = $divisionId; }
+$st = $db->prepare($dimSql);
+$st->execute($dimParams); $dimAvgs[] = $st->fetchColumn()?:0;
 }
 ?>
 const dimAvgs = <?= json_encode($dimAvgs) ?>;

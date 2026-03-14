@@ -471,15 +471,8 @@ $allDone = $dimDone === count($inds);
         }
       ?>
 
-      <!--
-        THE FIXED TEACHER INFO BOX
-        ─────────────────────────────────────────────────────────
-        BEFORE (broken):
-          <div style="padding:10px 14px;background:var(--blueb)...">
-            <?= svgIcon('users','','color:var(--blue);') ?>   ← NO SIZE = 100% width
-      <div class="teacher-info-box">
+        <?= svgIcon('users','','color:var(--blue);') ?>
 
-        <!-- Icon wrapper: fixed 36×36, never grows -->
         <div class="teacher-info-icon">
           <svg viewBox="0 0 24 24">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
