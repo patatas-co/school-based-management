@@ -21,6 +21,25 @@ if ($cycle) {
 }
 $dimScoreMap = array_column($dimScores, null, 'dimension_no');
 
+// ── ADD THIS BLOCK BELOW ──────────────────────────────────────
+// Cross-cycle trend data
+$allCycles = $db->prepare("
+    SELECT c.cycle_id, c.overall_score, c.status, c.created_at
+    FROM sbm_cycles c
+    WHERE c.school_id=?
+    ORDER BY c.cycle_id ASC
+");
+$allCycles->execute([$schoolId]); $allCycles = $allCycles->fetchAll();
+
+$trendData = [];
+foreach ($allCycles as $cyc) {
+    $ds = $db->prepare("SELECT d.dimension_no, ds.percentage FROM sbm_dimension_scores ds JOIN sbm_dimensions d ON ds.dimension_id=d.dimension_id WHERE ds.cycle_id=? ORDER BY d.dimension_no");
+    $ds->execute([$cyc['cycle_id']]);
+    foreach ($ds->fetchAll() as $row) {
+        $trendData[$cyc['cycle_id']][$row['dimension_no']] = $row['percentage'];
+    }
+}
+
 // Indicator completion per dimension
 $completed = [];
 if ($cycle) {
@@ -115,4 +134,48 @@ new Chart(document.getElementById('radarChart'),{
 <?php endforeach; ?>
 </div>
 <?php endif; ?>
+
+<?php if(count($allCycles) >= 2 && !empty($trendData)): ?>
+<div class="card" style="margin-top:20px;">
+  <div class="card-head">
+    <span class="card-title">Cross-Cycle Trend</span>
+    <span style="font-size:12px;color:var(--n400);"><?= count($allCycles) ?> assessment cycle(s)</span>
+  </div>
+  <div class="card-body">
+    <canvas id="trendChart" height="100"></canvas>
+  </div>
+</div>
+<script>
+const TREND_CYCLES = <?= json_encode(array_map(fn($c, $i) => 'Cycle '.($i+1).' ('.date('M Y', strtotime($c['created_at'])).')', $allCycles, array_keys($allCycles))) ?>;
+const TREND_DIMS   = <?= json_encode(array_column($dimensions, 'dimension_name')) ?>;
+const TREND_COLORS = <?= json_encode(array_column($dimensions, 'color_hex')) ?>;
+const TREND_DATA   = <?= json_encode($trendData) ?>;
+const CYCLE_IDS    = <?= json_encode(array_column($allCycles, 'cycle_id')) ?>;
+
+const datasets = TREND_DIMS.map((name, idx) => ({
+  label: 'D' + (idx+1) + ': ' + name,
+  data: CYCLE_IDS.map(cid => TREND_DATA[cid]?.[idx+1] ?? null),
+  borderColor: TREND_COLORS[idx],
+  backgroundColor: TREND_COLORS[idx] + '22',
+  tension: 0.35,
+  pointRadius: 5,
+  borderWidth: 2,
+  spanGaps: true,
+}));
+
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: { labels: TREND_CYCLES, datasets },
+  options: {
+    scales: { y: { min:0, max:100, ticks:{ callback: v => v+'%' } } },
+    plugins: {
+      legend: { position:'bottom', labels:{ font:{ family:"'DM Sans',sans-serif", size:12 }, padding:10 } },
+      tooltip: { callbacks:{ label: ctx => ' '+ctx.dataset.label+': '+ctx.raw+'%' } }
+    },
+    responsive: true
+  }
+});
+</script>
+<?php endif; ?>
+
 <?php include __DIR__.'/../includes/footer.php'; ?>

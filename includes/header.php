@@ -24,6 +24,7 @@ elseif ($__role === 'teacher') $__nav = [
 elseif ($__role === 'sdo') $__nav = [
     ['dashboard.php','grid','Dashboard'],['schools.php','home','Schools'],
     ['assessments.php','check-circle','Assessments'],['technical_assistance.php','briefcase','Technical Assistance'],
+    ['ta_requests.php','send','TA Requests'],
     ['reports.php','file-text','Reports'],['workflow.php','calendar','Workflow & Timeline'],
     ['announcements.php','bell','Announcements'],
 ];

@@ -81,7 +81,21 @@ function computeMaturity(float $pct): string {
     if ($pct >= 76) return 'Advanced'; if ($pct >= 51) return 'Maturing';
     if ($pct >= 26) return 'Developing'; return 'Beginning';
 }
-function logActivity(PDO $db, string $action, string $module='', string $details=''): void {
-    try { $db->prepare("INSERT INTO activity_log (user_id,action,module,details,ip_address) VALUES (?,?,?,?,?)")
-             ->execute([$_SESSION['user_id']??null,$action,$module,$details,$_SERVER['REMOTE_ADDR']??'']); } catch(Exception $e){}
+function logActivity(string|PDO $actionOrDb, string $actionOrModule='', string $moduleOrDetails='', string $details=''): void {
+    try {
+        // Support both: logActivity($db, $action, $module, $details)
+        //           and: logActivity($action, $module, $details)
+        if ($actionOrDb instanceof PDO) {
+            $db     = $actionOrDb;
+            $action = $actionOrModule;
+            $module = $moduleOrDetails;
+        } else {
+            $db     = getDB();
+            $action = $actionOrDb;
+            $module = $actionOrModule;
+            $details= $moduleOrDetails;
+        }
+        $db->prepare("INSERT INTO activity_log (user_id,action,module,details,ip_address) VALUES (?,?,?,?,?)")
+           ->execute([$_SESSION['user_id']??null, $action, $module, $details, $_SERVER['REMOTE_ADDR']??'']);
+    } catch(Exception $e) {}
 }
