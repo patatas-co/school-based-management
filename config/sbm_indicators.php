@@ -129,7 +129,7 @@ define('SBM_MATURITY', [
 // ── Indicators that only Teachers can answer ──────────────────
 define('TEACHER_INDICATOR_CODES', [
     '1.4','1.5','1.6','1.7','1.8',   // Dimension 1
-    '2.1','2.2','2.3','2.4','2.7',   // Dimension 2
+    '2.1','2.2','2.3','2.4','2.7', '2.10',   // Dimension 2
     '3.1','3.2','3.3','3.4',         // Dimension 3
     '4.1',                            // Dimension 4
     '5.1','5.2','5.3','5.4',         // Dimension 5

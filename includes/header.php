@@ -294,7 +294,32 @@ function svgI(n,c=''){const d=SVG_PATHS[n]||'';return `<span class="ni ${c}"><sv
 function openModal(id){document.getElementById(id)?.classList.add('open');}
 function closeModal(id){document.getElementById(id)?.classList.remove('open');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));});
-function toast(msg,type='ok'){const colors={ok:'#166534',err:'#DC2626',warning:'#D97706',info:'#2563EB'},icons={ok:'✓',err:'✕',warning:'⚠',info:'ℹ'};Toastify({text:(icons[type]||'✓')+'  '+msg,duration:3500,gravity:'top',position:'right',stopOnFocus:true,style:{background:colors[type]||colors.ok,borderRadius:'10px',fontFamily:"'DM Sans',sans-serif",fontSize:'13.5px',fontWeight:'600',padding:'12px 18px',boxShadow:'0 8px 24px rgba(0,0,0,.18)',minWidth:'260px'},close:true}).showToast();}
+function toast(msg, type='ok') {
+  const colors = {
+    ok:      '#166534',
+    err:     '#DC2626',
+    warning: '#D97706',
+    info:    '#2563EB'
+  };
+  Toastify({
+    text:     msg,
+    duration: 3500,
+    gravity:  'top',
+    position: 'right',
+    stopOnFocus: true,
+    style: {
+      background:   colors[type] || colors.ok,
+      borderRadius: '10px',
+      fontFamily:   "'DM Sans',sans-serif",
+      fontSize:     '13.5px',
+      fontWeight:   '600',
+      padding:      '12px 18px',
+      boxShadow:    '0 8px 24px rgba(0,0,0,.18)',
+      minWidth:     '260px'
+    },
+    close: false
+  }).showToast();
+}
 function filterTable(q,id){document.querySelectorAll(`#${id} tbody tr`).forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none');}
 async function apiPost(url,data){data.csrf_token='<?= csrfToken() ?>';const res=await fetch(url,{method:'POST',body:new URLSearchParams(data)});return res.json();}
 function toggleUserMenu(){
