@@ -126,6 +126,17 @@ define('SBM_MATURITY', [
     ['min'=>76, 'max'=>100, 'level'=>4, 'label'=>'Advanced',   'color'=>'#16A34A', 'bg'=>'#DCFCE7'],
 ]);
 
+// ── Indicators that only Teachers can answer ──────────────────
+define('TEACHER_INDICATOR_CODES', [
+    '1.4','1.5','1.6','1.7','1.8',   // Dimension 1
+    '2.1','2.2','2.3','2.4','2.7',   // Dimension 2
+    '3.1','3.2','3.3','3.4',         // Dimension 3
+    '4.1',                            // Dimension 4
+    '5.1','5.2','5.3','5.4',         // Dimension 5
+    '5.5','5.6','5.7',
+    '6.1','6.2','6.3','6.4','6.5',  // Dimension 6
+]);
+
 function sbmMaturity(float $pct): array {
     foreach (SBM_MATURITY as $m) {
         if ($pct >= $m['min'] && $pct <= $m['max']) return $m;
@@ -136,3 +147,4 @@ function sbmMaturity(float $pct): array {
 function sbmRatingLabel(int $r): string {
     return SBM_RATINGS[$r]['label'] ?? '—';
 }
+?>

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/../config/db.php';
+require_once __DIR__.'/../config/sbm_indicators.php';
 require_once __DIR__.'/../includes/auth.php';
 requireRole('school_head','admin');
 $db = getDB();
@@ -22,6 +23,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $rating = (int)$_POST['rating'];
         $evidence = trim($_POST['evidence'] ?? '');
         if ($rating < 1 || $rating > 4) { echo json_encode(['ok'=>false,'msg'=>'Invalid rating.']); exit; }
+
+        // ── Block school head from saving teacher-only indicators ──
+        $chk = $db->prepare("SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?");
+        $chk->execute([$indicatorId]);
+        $indicatorCode = $chk->fetchColumn();
+
+        if (in_array($indicatorCode, TEACHER_INDICATOR_CODES)) {
+            echo json_encode([
+                'ok'  => false,
+                'msg' => 'This indicator is answered by teachers. Check their inputs below.'
+            ]); exit;
+        }
 
         // Get or create cycle
         $cycle = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
@@ -48,9 +61,32 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $cycle = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
         $cycle->execute([$schoolId,$syId]); $cyc = $cycle->fetch();
         if (!$cyc) { echo json_encode(['ok'=>false,'msg'=>'No assessment to submit.']); exit; }
-        $count = $db->prepare("SELECT COUNT(*) FROM sbm_responses WHERE cycle_id=?");
-        $count->execute([$cyc['cycle_id']]); $cnt = $count->fetchColumn();
-        if ($cnt < 42) { echo json_encode(['ok'=>false,'msg'=>"Please rate all 42 indicators. ($cnt/42 done)"]); exit; }
+
+        // Count only non-teacher indicators answered in sbm_responses
+        $count = $db->prepare("
+            SELECT COUNT(*) FROM sbm_responses r
+            JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
+            WHERE r.cycle_id = ?
+              AND i.indicator_code NOT IN ('".implode("','", TEACHER_INDICATOR_CODES)."')
+        ");
+        $count->execute([$cyc['cycle_id']]);
+        $cnt = (int)$count->fetchColumn();
+
+        // Count expected non-teacher indicators
+        $expectedCount = $db->prepare("
+            SELECT COUNT(*) FROM sbm_indicators
+            WHERE is_active = 1
+              AND indicator_code NOT IN ('".implode("','", TEACHER_INDICATOR_CODES)."')
+        ");
+        $expectedCount->execute();
+        $expected = (int)$expectedCount->fetchColumn();
+
+        if ($cnt < $expected) {
+            echo json_encode([
+                'ok'  => false,
+                'msg' => "Please rate all your indicators. ($cnt/$expected done)"
+            ]); exit;
+        }
 
         // Compute overall score
         $total = $db->prepare("SELECT SUM(raw_score),SUM(max_score) FROM sbm_dimension_scores WHERE cycle_id=?");
@@ -96,60 +132,105 @@ $ratingLabels = [1=>'Not Yet Manifested',2=>'Emerging',3=>'Developing',4=>'Alway
 $ratingColors = [1=>'#DC2626',2=>'#D97706',3=>'#2563EB',4=>'#16A34A'];
 
 $isLocked = $cycle && in_array($cycle['status'],['submitted','validated']);
-$totalDone = count($responses);
+
+// Count only school-head-answerable indicators for progress
+$shIndicators = array_filter($indicators, fn($i) => !in_array($i['indicator_code'], TEACHER_INDICATOR_CODES));
+$shResponded  = count(array_filter($shIndicators, fn($i) => isset($responses[$i['indicator_id']])));
+$shTotal      = count($shIndicators);
+$totalDone    = count($responses);
 
 $pageTitle = 'SBM Self-Assessment'; $activePage = 'self_assessment.php';
 include __DIR__.'/../includes/header.php';
 ?>
+
 <div class="page-head">
   <div class="page-head-text">
     <h2>SBM Self-Assessment</h2>
-    <p>Rate all 42 indicators across 6 dimensions using the 4 Degrees of Manifestation scale.</p>
+    <p>Rate all indicators across 6 dimensions using the 4 Degrees of Manifestation scale.</p>
   </div>
   <div class="page-head-actions">
     <?php if(!$isLocked): ?>
-    <button class="btn btn-primary" onclick="submitAssessment()" <?= $totalDone < 42 ? 'title="Rate all 42 indicators first"' : '' ?>>
+    <button class="btn btn-primary" onclick="submitAssessment()">
       <?= svgIcon('check') ?> Submit Assessment
     </button>
     <?php else: ?>
-    <span class="pill pill-<?= e($cycle['status']) ?>" style="font-size:13px;padding:6px 14px;"><?= ucfirst(str_replace('_',' ',$cycle['status'])) ?></span>
+    <span class="pill pill-<?= e($cycle['status']) ?>" style="font-size:13px;padding:6px 14px;">
+      <?= ucfirst(str_replace('_',' ',$cycle['status'])) ?>
+    </span>
     <?php endif; ?>
   </div>
 </div>
 
 <?php if($isLocked): ?>
-<div class="alert alert-info mb5" style="margin-bottom:16px;"><?= svgIcon('info') ?> This assessment has been <?= e($cycle['status']) ?>. Responses are read-only.</div>
+<div class="alert alert-info" style="margin-bottom:16px;">
+  <?= svgIcon('info') ?> This assessment has been <?= e($cycle['status']) ?>. Responses are read-only.
+</div>
 <?php endif; ?>
 
 <!-- Progress summary -->
-<div class="card mb5" style="margin-bottom:18px;">
+<div class="card" style="margin-bottom:18px;">
   <div class="card-body" style="padding:14px 18px;">
-    <div class="flex-cb" style="margin-bottom:8px;">
-      <span style="font-size:14px;font-weight:700;color:var(--n800);">Progress: <?= $totalDone ?>/42 indicators rated</span>
-      <span style="font-size:14px;font-weight:800;color:var(--g700);"><?= round(($totalDone/42)*100) ?>%</span>
+
+    <!-- School Head progress -->
+    <div class="flex-cb" style="margin-bottom:6px;">
+      <span style="font-size:13.5px;font-weight:700;color:var(--n800);">
+        Your Progress (School Head Indicators)
+      </span>
+      <span style="font-size:13px;font-weight:800;color:var(--g700);">
+        <?= $shResponded ?>/<?= $shTotal ?>
+      </span>
     </div>
-    <div class="prog" style="height:10px;"><div class="prog-fill green" style="width:<?= round(($totalDone/42)*100) ?>%;"></div></div>
+    <div class="prog" style="height:10px;margin-bottom:14px;">
+      <div class="prog-fill green" 
+           style="width:<?= $shTotal > 0 ? round(($shResponded/$shTotal)*100) : 0 ?>%;"></div>
+    </div>
+
+    <!-- Overall including teacher responses -->
+    <div class="flex-cb" style="margin-bottom:6px;">
+      <span style="font-size:12.5px;font-weight:600;color:var(--n600);">
+        Total Indicators Answered (All Roles)
+      </span>
+      <span style="font-size:12px;font-weight:700;color:var(--n600);">
+        <?= $totalDone ?>/42
+      </span>
+    </div>
+    <div class="prog" style="height:6px;">
+      <div class="prog-fill" 
+           style="width:<?= round(($totalDone/42)*100) ?>%;background:var(--blue);"></div>
+    </div>
+
     <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;">
       <?php foreach([1=>'Not Yet',2=>'Emerging',3=>'Developing',4=>'Always Manifested'] as $r => $rl): ?>
       <?php $cnt = count(array_filter($responses, fn($x) => $x['rating']==$r)); ?>
-      <div style="font-size:12px;"><span style="color:<?= $ratingColors[$r] ?>;font-weight:700;"><?= $cnt ?></span> <span style="color:var(--n500);"><?= $rl ?></span></div>
+      <div style="font-size:12px;">
+        <span style="color:<?= $ratingColors[$r] ?>;font-weight:700;"><?= $cnt ?></span>
+        <span style="color:var(--n500);"> <?= $rl ?></span>
+      </div>
       <?php endforeach; ?>
     </div>
   </div>
 </div>
 
 <!-- Sticky dimension tabs -->
-<div style="display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;position:sticky;top:60px;z-index:40;background:var(--n50);padding:8px 0;">
+<div style="display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;
+            position:sticky;top:60px;z-index:40;
+            background:var(--n50);padding:8px 0;">
   <?php foreach($grouped as $dimNo => $inds): ?>
   <?php $dimDone = count(array_filter($inds, fn($i) => isset($responses[$i['indicator_id']]))); ?>
-  <a href="#dim<?= $dimNo ?>" style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;background:<?= $dimDone===count($inds)?'var(--g600)':'var(--white)' ?>;color:<?= $dimDone===count($inds)?'#fff':'var(--n600)' ?>;border:1px solid <?= $dimDone===count($inds)?'var(--g600)':'var(--n200)' ?>;text-decoration:none;">
-    D<?= $dimNo ?> <span style="opacity:.7;">(<?= $dimDone ?>/<?= count($inds) ?>)</span>
+  <a href="#dim<?= $dimNo ?>"
+     style="display:inline-flex;align-items:center;gap:5px;
+            padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;
+            background:<?= $dimDone===count($inds)?'var(--g600)':'var(--white)' ?>;
+            color:<?= $dimDone===count($inds)?'#fff':'var(--n600)' ?>;
+            border:1px solid <?= $dimDone===count($inds)?'var(--g600)':'var(--n200)' ?>;
+            text-decoration:none;">
+    D<?= $dimNo ?>
+    <span style="opacity:.7;">(<?= $dimDone ?>/<?= count($inds) ?>)</span>
   </a>
   <?php endforeach; ?>
 </div>
 
 <style>
-/* ── Collapsible dimension header ── */
 .dim-header {
   display:flex;align-items:center;gap:10px;
   padding:14px 18px;
@@ -157,55 +238,42 @@ include __DIR__.'/../includes/header.php';
   border:1px solid var(--n200);
   border-radius:var(--radius);
   box-shadow:var(--shadow);
-  cursor:pointer;
-  user-select:none;
+  cursor:pointer;user-select:none;
   transition:background .15s;
 }
 .dim-header:hover { background:var(--n50); }
 .dim-chevron {
-  margin-left:4px;
-  font-size:20px;
-  color:var(--n300);
+  font-size:20px;color:var(--n300);
   transition:transform .25s ease;
-  flex-shrink:0;
-  line-height:1;
+  flex-shrink:0;margin-left:4px;
 }
-.dim-body {
-  padding-top:8px;
-  margin-bottom:20px;
-}
+.dim-body { padding-top:8px;margin-bottom:20px; }
 .dim-body.collapsed { display:none; }
 .dim-wrap { margin-bottom:6px; }
 
-/* ── Indicator rows ── */
 .indicator-row {
-  background:var(--white);
-  border:1px solid var(--n200);
-  border-radius:var(--radius);
-  padding:14px 16px;
-  margin-bottom:8px;
-  transition:border-color .2s, background .2s;
+  background:var(--white);border:1px solid var(--n200);
+  border-radius:var(--radius);padding:14px 16px;
+  margin-bottom:8px;transition:border-color .2s,background .2s;
 }
-.indicator-row.rated {
-  border-color:#86EFAC;
-  background:#F0FDF4;
+.indicator-row.rated { border-color:#86EFAC;background:#F0FDF4; }
+.indicator-row.teacher-only {
+  border-color:#BFDBFE;background:#EFF6FF;
+  opacity:0.92;
 }
-.indicator-code { font-size:11px;font-weight:700;color:var(--n500);letter-spacing:.6px;text-transform:uppercase; }
-.indicator-text { font-size:13.5px;font-weight:600;color:var(--n900);margin:5px 0 4px;line-height:1.5; }
-.indicator-mov  { font-size:12px;color:var(--n400);margin-bottom:10px;line-height:1.5; }
+.indicator-code { font-size:11px;font-weight:700;color:var(--n500);
+                  letter-spacing:.6px;text-transform:uppercase; }
+.indicator-text { font-size:13.5px;font-weight:600;color:var(--n900);
+                  margin:5px 0 4px;line-height:1.5; }
+.indicator-mov  { font-size:12px;color:var(--n400);
+                  margin-bottom:10px;line-height:1.5; }
 
-/* ── Rating buttons ── */
 .rating-group { display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px; }
 .rating-btn {
-  padding:7px 14px;
-  border-radius:8px;
-  border:1.5px solid var(--n200);
-  background:var(--white);
-  font-size:12px;font-weight:600;
-  cursor:pointer;
-  transition:all .15s;
-  color:var(--n600);
-  white-space:nowrap;
+  padding:7px 14px;border-radius:8px;
+  border:1.5px solid var(--n200);background:var(--white);
+  font-size:12px;font-weight:600;cursor:pointer;
+  transition:all .15s;color:var(--n600);white-space:nowrap;
 }
 .rating-btn:hover:not(:disabled) { border-color:var(--n400);background:var(--n50); }
 .rating-btn:disabled { opacity:.5;cursor:not-allowed; }
@@ -213,120 +281,263 @@ include __DIR__.'/../includes/header.php';
 .rating-btn.selected-2 { background:#FEF3C7;border-color:#D97706;color:#D97706; }
 .rating-btn.selected-3 { background:#DBEAFE;border-color:#2563EB;color:#2563EB; }
 .rating-btn.selected-4 { background:#DCFCE7;border-color:#16A34A;color:#16A34A; }
+
+.teacher-badge {
+  display:inline-flex;align-items:center;gap:5px;
+  padding:2px 9px;border-radius:999px;
+  font-size:10.5px;font-weight:700;
+  background:var(--blueb);color:var(--blue);
+  border:1px solid #BFDBFE;
+}
 </style>
 
 <!-- Indicators by dimension -->
 <?php foreach($grouped as $dimNo => $inds): ?>
-<?php $dim = $inds[0]; $dimDone = count(array_filter($inds, fn($i) => isset($responses[$i['indicator_id']]))); $allDone = $dimDone === count($inds); ?>
+<?php
+$dim     = $inds[0];
+$dimDone = count(array_filter($inds, fn($i) => isset($responses[$i['indicator_id']])));
+$allDone = $dimDone === count($inds);
+?>
 <div class="dim-wrap" id="dim<?= $dimNo ?>">
 
   <!-- Clickable header -->
-  <div class="dim-header" onclick="toggleDim(<?= $dimNo ?>)" style="border-left:4px solid <?= e($dim['color_hex']) ?>;">
-    <div style="width:38px;height:38px;border-radius:9px;background:<?= e($dim['color_hex']) ?>22;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:<?= e($dim['color_hex']) ?>;flex-shrink:0;"><?= $dimNo ?></div>
-    <div style="flex:1;min-width:0;">
-      <div style="font-size:14.5px;font-weight:700;color:var(--n900);">Dimension <?= $dimNo ?>: <?= e($dim['dimension_name']) ?></div>
-      <div style="font-size:12px;color:var(--n400);margin-top:2px;" id="dim<?= $dimNo ?>Counter"><?= $dimDone ?>/<?= count($inds) ?> indicators rated</div>
+  <div class="dim-header"
+       onclick="toggleDim(<?= $dimNo ?>)"
+       style="border-left:4px solid <?= e($dim['color_hex']) ?>;">
+
+    <div style="width:38px;height:38px;border-radius:9px;
+                background:<?= e($dim['color_hex']) ?>22;
+                display:flex;align-items:center;justify-content:center;
+                font-size:15px;font-weight:800;
+                color:<?= e($dim['color_hex']) ?>;flex-shrink:0;">
+      <?= $dimNo ?>
     </div>
-    <div style="font-size:13px;font-weight:700;color:<?= e($dim['color_hex']) ?>;margin-right:6px;" id="dim<?= $dimNo ?>Score">
+
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:14.5px;font-weight:700;color:var(--n900);">
+        Dimension <?= $dimNo ?>: <?= e($dim['dimension_name']) ?>
+      </div>
+      <div style="font-size:12px;color:var(--n400);margin-top:2px;">
+        <?= $dimDone ?>/<?= count($inds) ?> indicators rated
+      </div>
+    </div>
+
+    <div style="font-size:13px;font-weight:700;
+                color:<?= e($dim['color_hex']) ?>;margin-right:6px;">
       <?php
-        $ds = $cycle ? $db->prepare("SELECT percentage FROM sbm_dimension_scores ds JOIN sbm_dimensions d ON ds.dimension_id=d.dimension_id WHERE ds.cycle_id=? AND d.dimension_no=?") : null;
-        if ($ds) { $ds->execute([$cycle['cycle_id'],$dimNo]); $pctRow = $ds->fetchColumn(); echo $pctRow ? number_format($pctRow,1).'%' : '—'; } else echo '—';
+        $ds = $cycle ? $db->prepare("
+            SELECT percentage FROM sbm_dimension_scores ds
+            JOIN sbm_dimensions d ON ds.dimension_id=d.dimension_id
+            WHERE ds.cycle_id=? AND d.dimension_no=?
+        ") : null;
+        if ($ds) {
+            $ds->execute([$cycle['cycle_id'],$dimNo]);
+            $pctRow = $ds->fetchColumn();
+            echo $pctRow ? number_format($pctRow,1).'%' : '—';
+        } else echo '—';
       ?>
     </div>
+
     <?php if($allDone): ?>
-    <span style="font-size:11px;font-weight:700;color:#16A34A;background:#DCFCE7;border:1px solid #86EFAC;border-radius:999px;padding:3px 10px;flex-shrink:0;">✓ Complete</span>
+    <span style="font-size:11px;font-weight:700;color:#16A34A;
+                 background:#DCFCE7;border:1px solid #86EFAC;
+                 border-radius:999px;padding:3px 10px;flex-shrink:0;">
+      ✓ Complete
+    </span>
     <?php else: ?>
-    <span style="font-size:11px;font-weight:600;color:var(--n500);background:var(--n100);border-radius:999px;padding:3px 10px;flex-shrink:0;" id="dim<?= $dimNo ?>LeftBadge"><?= count($inds)-$dimDone ?> left</span>
+    <span style="font-size:11px;font-weight:600;color:var(--n500);
+                 background:var(--n100);border-radius:999px;
+                 padding:3px 10px;flex-shrink:0;">
+      <?= count($inds)-$dimDone ?> left
+    </span>
     <?php endif; ?>
+
     <span class="dim-chevron" id="dimChevron<?= $dimNo ?>">▾</span>
   </div>
 
   <!-- Collapsible body -->
   <div class="dim-body" id="dimBody<?= $dimNo ?>">
     <?php foreach($inds as $ind): ?>
-    <?php $resp = $responses[$ind['indicator_id']] ?? null; $rated = $resp !== null; ?>
-    <div class="indicator-row <?= $rated?'rated':'' ?>" id="row<?= $ind['indicator_id'] ?>">
+    <?php
+    $resp       = $responses[$ind['indicator_id']] ?? null;
+    $rated      = $resp !== null;
+    $isTeacher  = in_array($ind['indicator_code'], TEACHER_INDICATOR_CODES);
+    ?>
+
+    <div class="indicator-row <?= $rated ? 'rated' : '' ?> <?= $isTeacher ? 'teacher-only' : '' ?>"
+         id="row<?= $ind['indicator_id'] ?>">
+
+      <!-- Top row -->
       <div class="flex-cb" style="margin-bottom:4px;">
-        <div class="indicator-code"><?= e($ind['indicator_code']) ?></div>
-        <?php if($rated): ?>
-        <span id="savedBadge<?= $ind['indicator_id'] ?>" style="font-size:11px;color:var(--g600);font-weight:600;">✓ Saved</span>
-        <?php else: ?>
-        <span id="savedBadge<?= $ind['indicator_id'] ?>"></span>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <div class="indicator-code"><?= e($ind['indicator_code']) ?></div>
+          <?php if($isTeacher): ?>
+          <span class="teacher-badge">
+            <?= svgIcon('users','','width:11px;height:11px;') ?>
+            Teacher Indicator
+          </span>
+          <?php endif; ?>
+        </div>
+        <?php if(!$isTeacher): ?>
+        <span id="savedBadge<?= $ind['indicator_id'] ?>"
+              style="font-size:11px;color:var(--g600);font-weight:600;">
+          <?= $rated ? '✓ Saved' : '' ?>
+        </span>
         <?php endif; ?>
       </div>
+
       <div class="indicator-text"><?= e($ind['indicator_text']) ?></div>
       <div class="indicator-mov">📎 MOV: <?= e($ind['mov_guide']) ?></div>
+
+      <?php if($isTeacher): ?>
+      <!-- ── TEACHER-ONLY: show aggregated input, no edit ── -->
+      <?php
+        $tr = $db->prepare("
+            SELECT ROUND(AVG(tr.rating),2) avg_rating,
+                   COUNT(tr.tr_id) teacher_count,
+                   GROUP_CONCAT(u.full_name SEPARATOR ', ') teachers
+            FROM teacher_responses tr
+            JOIN users u ON tr.teacher_id = u.user_id
+            WHERE tr.cycle_id = ? AND tr.indicator_id = ?
+        ");
+        if ($cycle) {
+            $tr->execute([$cycle['cycle_id'], $ind['indicator_id']]);
+            $trData = $tr->fetch();
+        } else {
+            $trData = null;
+        }
+      ?>
+      <div style="padding:10px 14px;background:var(--blueb);
+                  border-radius:8px;border:1px solid #BFDBFE;
+                  font-size:12.5px;">
+        <?= svgIcon('users','','width:14px;height:14px;') ?>
+        <?php if($trData && $trData['teacher_count'] > 0): ?>
+          <strong>Teacher Avg Rating:</strong>
+          <span style="font-size:14px;font-weight:800;color:var(--blue);">
+            <?= $trData['avg_rating'] ?>/4.00
+          </span>
+          &nbsp;·&nbsp;
+          <?= $trData['teacher_count'] ?> response(s)
+          <div style="font-size:11.5px;color:var(--n500);margin-top:4px;">
+            Answered by: <?= e($trData['teachers']) ?>
+          </div>
+        <?php else: ?>
+          <span style="color:var(--n400);">
+            No teacher input yet for this indicator.
+            Teachers must rate this in their own assessment.
+          </span>
+        <?php endif; ?>
+      </div>
+
+      <?php else: ?>
+      <!-- ── SCHOOL HEAD: editable rating ── -->
       <div class="rating-group" id="ratingGroup<?= $ind['indicator_id'] ?>">
         <?php foreach([1,2,3,4] as $r): ?>
-        <button <?= $isLocked?'disabled':'' ?> type="button"
-          class="rating-btn <?= $resp&&$resp['rating']==$r?'selected-'.$r:'' ?>"
-          data-ind="<?= $ind['indicator_id'] ?>" data-rating="<?= $r ?>"
-          onclick="selectRating(<?= $ind['indicator_id'] ?>,<?= $r ?>)">
+        <button <?= $isLocked ? 'disabled' : '' ?>
+                type="button"
+                class="rating-btn <?= $resp&&$resp['rating']==$r ? 'selected-'.$r : '' ?>"
+                data-ind="<?= $ind['indicator_id'] ?>"
+                data-rating="<?= $r ?>"
+                onclick="selectRating(<?= $ind['indicator_id'] ?>,<?= $r ?>)">
           <?= $r ?> — <?= $ratingLabels[$r] ?>
         </button>
         <?php endforeach; ?>
       </div>
-      <textarea class="fc" id="evidence<?= $ind['indicator_id'] ?>" rows="2"
-        placeholder="Describe evidence or attach MOV reference…"
-        <?= $isLocked?'disabled':'' ?>
-        onblur="saveResponse(<?= $ind['indicator_id'] ?>)"><?= e($resp['evidence_text'] ?? '') ?></textarea>
-    </div>
-    <?php endforeach; ?>
-  </div><!-- /dimBody -->
 
-</div><!-- /dim-wrap -->
+      <textarea class="fc"
+                id="evidence<?= $ind['indicator_id'] ?>"
+                rows="2"
+                placeholder="Describe evidence or attach MOV reference…"
+                <?= $isLocked ? 'disabled' : '' ?>
+                onblur="saveResponse(<?= $ind['indicator_id'] ?>)"><?= e($resp['evidence_text'] ?? '') ?></textarea>
+
+      <?php endif; ?>
+    </div>
+
+    <?php endforeach; ?>
+  </div>
+
+</div>
 <?php endforeach; ?>
 
+<!-- Submit button at bottom -->
 <div style="text-align:center;padding:20px 0;margin-top:8px;">
   <?php if(!$isLocked): ?>
-  <button class="btn btn-primary" style="padding:12px 32px;font-size:15px;" onclick="submitAssessment()">
-    <?= svgIcon('check') ?> Submit Self-Assessment (<?= $totalDone ?>/42 rated)
+  <button class="btn btn-primary"
+          style="padding:12px 32px;font-size:15px;"
+          onclick="submitAssessment()">
+    <?= svgIcon('check') ?> Submit Self-Assessment
+    (<?= $shResponded ?>/<?= $shTotal ?> your indicators rated)
   </button>
   <?php endif; ?>
 </div>
 
 <script>
-let currentRatings = <?= json_encode(array_map(fn($r)=>$r['rating'],$responses)) ?>;
+let currentRatings = <?= json_encode(
+    array_map(fn($r) => $r['rating'], $responses)
+) ?>;
 
-function selectRating(indId, rating){
-  currentRatings[indId] = rating;
-  // Update button styles
-  document.querySelectorAll(`#ratingGroup${indId} .rating-btn`).forEach(btn=>{
-    const r = parseInt(btn.dataset.rating);
-    btn.className = 'rating-btn' + (r === rating ? ` selected-${r}` : '');
-  });
-  // Auto-save
-  saveResponse(indId);
+// Teacher indicator codes — used to skip submission check
+const TEACHER_CODES = <?= json_encode(TEACHER_INDICATOR_CODES) ?>;
+
+function selectRating(indId, rating) {
+    currentRatings[indId] = rating;
+
+    document.querySelectorAll(`#ratingGroup${indId} .rating-btn`)
+        .forEach(btn => {
+            const r = parseInt(btn.dataset.rating);
+            btn.className = 'rating-btn' + (r === rating ? ` selected-${r}` : '');
+        });
+
+    saveResponse(indId);
 }
 
-async function saveResponse(indId){
-  const rating = currentRatings[indId];
-  if(!rating) return;
-  const evidence = document.getElementById(`evidence${indId}`)?.value || '';
-  const r = await apiPost('self_assessment.php',{action:'save_response',indicator_id:indId,rating,evidence});
-  if(r.ok){
-    const row = document.getElementById(`row${indId}`);
-    if(row) row.classList.add('rated');
-    const badge = document.getElementById(`savedBadge${indId}`);
-    if(badge){ badge.textContent='✓ Saved'; badge.style.color='var(--g600)'; badge.style.fontWeight='600'; badge.style.fontSize='11px'; }
-  }
+async function saveResponse(indId) {
+    const rating = currentRatings[indId];
+    if (!rating) return;
+
+    const evidence = document.getElementById(`evidence${indId}`)?.value || '';
+    const r = await apiPost('self_assessment.php', {
+        action: 'save_response',
+        indicator_id: indId,
+        rating,
+        evidence
+    });
+
+    if (r.ok) {
+        const row = document.getElementById(`row${indId}`);
+        if (row) row.classList.add('rated');
+
+        const badge = document.getElementById(`savedBadge${indId}`);
+        if (badge) {
+            badge.textContent      = '✓ Saved';
+            badge.style.color      = 'var(--g600)';
+            badge.style.fontWeight = '600';
+            badge.style.fontSize   = '11px';
+        }
+    } else {
+        toast(r.msg, 'err');
+    }
 }
 
 function toggleDim(n) {
-  const body    = document.getElementById('dimBody' + n);
-  const chevron = document.getElementById('dimChevron' + n);
-  const isOpen  = !body.classList.contains('collapsed');
-  body.classList.toggle('collapsed', isOpen);
-  chevron.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
+    const body    = document.getElementById('dimBody' + n);
+    const chevron = document.getElementById('dimChevron' + n);
+    const isOpen  = !body.classList.contains('collapsed');
+    body.classList.toggle('collapsed', isOpen);
+    chevron.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
 }
 
-async function submitAssessment(){
-  const total = Object.keys(currentRatings).length;
-  if(total < 42){ toast(`Please rate all 42 indicators. (${total}/42 done)`,'warning'); return; }
-  if(!confirm('Submit your SBM Self-Assessment to the SDO? You will not be able to edit after submission.')) return;
-  const r = await apiPost('self_assessment.php',{action:'submit'});
-  toast(r.msg, r.ok?'ok':'err');
-  if(r.ok) setTimeout(()=>location.reload(),1200);
+async function submitAssessment() {
+    if (!confirm(
+        'Submit your SBM Self-Assessment to the SDO?\n' +
+        'You will not be able to edit after submission.'
+    )) return;
+
+    const r = await apiPost('self_assessment.php', { action: 'submit' });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) setTimeout(() => location.reload(), 1200);
 }
 </script>
+
 <?php include __DIR__.'/../includes/footer.php'; ?>

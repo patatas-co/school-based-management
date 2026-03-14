@@ -19,7 +19,9 @@ elseif ($__role === 'school_head') $__nav = [
     ['reports.php','file-text','Reports'],
 ];
 elseif ($__role === 'teacher') $__nav = [
-    ['dashboard.php','grid','Dashboard'],['announcements.php','bell','Announcements'],
+    ['dashboard.php','grid','Dashboard'],
+    ['self_assessment.php','check-circle','Self-Assessment'],
+    ['announcements.php','bell','Announcements'],
 ];
 elseif ($__role === 'sdo') $__nav = [
     ['dashboard.php','grid','Dashboard'],['schools.php','home','Schools'],
