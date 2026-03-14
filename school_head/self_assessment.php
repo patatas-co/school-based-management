@@ -24,7 +24,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $evidence = trim($_POST['evidence'] ?? '');
         if ($rating < 1 || $rating > 4) { echo json_encode(['ok'=>false,'msg'=>'Invalid rating.']); exit; }
 
-        // ── Block school head from saving teacher-only indicators ──
         $chk = $db->prepare("SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?");
         $chk->execute([$indicatorId]);
         $indicatorCode = $chk->fetchColumn();
@@ -36,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             ]); exit;
         }
 
-        // Get or create cycle
         $cycle = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
         $cycle->execute([$schoolId,$syId]); $cycleRow = $cycle->fetch();
         if (!$cycleRow) {
@@ -47,11 +45,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             if ($cycleRow['status'] === 'draft') $db->prepare("UPDATE sbm_cycles SET status='in_progress',started_at=NOW() WHERE cycle_id=?")->execute([$cycleId]);
         }
 
-        // Upsert response
         $db->prepare("INSERT INTO sbm_responses (cycle_id,indicator_id,school_id,rating,evidence_text,rated_by) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE rating=VALUES(rating),evidence_text=VALUES(evidence_text),rated_by=VALUES(rated_by),rated_at=NOW()")
            ->execute([$cycleId,$indicatorId,$schoolId,$rating,$evidence,$_SESSION['user_id']]);
 
-        // Recompute dimension score
         recomputeDimScore($db, $cycleId, $indicatorId, $schoolId);
 
         echo json_encode(['ok'=>true,'msg'=>'Saved.']); exit;
@@ -62,7 +58,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $cycle->execute([$schoolId,$syId]); $cyc = $cycle->fetch();
         if (!$cyc) { echo json_encode(['ok'=>false,'msg'=>'No assessment to submit.']); exit; }
 
-        // Count only non-teacher indicators answered in sbm_responses
         $count = $db->prepare("
             SELECT COUNT(*) FROM sbm_responses r
             JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
@@ -72,7 +67,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $count->execute([$cyc['cycle_id']]);
         $cnt = (int)$count->fetchColumn();
 
-        // Count expected non-teacher indicators
         $expectedCount = $db->prepare("
             SELECT COUNT(*) FROM sbm_indicators
             WHERE is_active = 1
@@ -88,7 +82,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             ]); exit;
         }
 
-        // Compute overall score
         $total = $db->prepare("SELECT SUM(raw_score),SUM(max_score) FROM sbm_dimension_scores WHERE cycle_id=?");
         $total->execute([$cyc['cycle_id']]); [$totalRaw,$totalMax] = array_values($total->fetch(PDO::FETCH_NUM));
         $overall = $totalMax > 0 ? round(($totalRaw/$totalMax)*100,2) : 0;
@@ -133,7 +126,6 @@ $ratingColors = [1=>'#DC2626',2=>'#D97706',3=>'#2563EB',4=>'#16A34A'];
 
 $isLocked = $cycle && in_array($cycle['status'],['submitted','validated']);
 
-// Count only school-head-answerable indicators for progress
 $shIndicators = array_filter($indicators, fn($i) => !in_array($i['indicator_code'], TEACHER_INDICATOR_CODES));
 $shResponded  = count(array_filter($shIndicators, fn($i) => isset($responses[$i['indicator_id']])));
 $shTotal      = count($shIndicators);
@@ -170,8 +162,6 @@ include __DIR__.'/../includes/header.php';
 <!-- Progress summary -->
 <div class="card" style="margin-bottom:18px;">
   <div class="card-body" style="padding:14px 18px;">
-
-    <!-- School Head progress -->
     <div class="flex-cb" style="margin-bottom:6px;">
       <span style="font-size:13.5px;font-weight:700;color:var(--n800);">
         Your Progress (School Head Indicators)
@@ -184,8 +174,6 @@ include __DIR__.'/../includes/header.php';
       <div class="prog-fill green" 
            style="width:<?= $shTotal > 0 ? round(($shResponded/$shTotal)*100) : 0 ?>%;"></div>
     </div>
-
-    <!-- Overall including teacher responses -->
     <div class="flex-cb" style="margin-bottom:6px;">
       <span style="font-size:12.5px;font-weight:600;color:var(--n600);">
         Total Indicators Answered (All Roles)
@@ -198,7 +186,6 @@ include __DIR__.'/../includes/header.php';
       <div class="prog-fill" 
            style="width:<?= round(($totalDone/42)*100) ?>%;background:var(--blue);"></div>
     </div>
-
     <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;">
       <?php foreach([1=>'Not Yet',2=>'Emerging',3=>'Developing',4=>'Always Manifested'] as $r => $rl): ?>
       <?php $cnt = count(array_filter($responses, fn($x) => $x['rating']==$r)); ?>
@@ -231,6 +218,7 @@ include __DIR__.'/../includes/header.php';
 </div>
 
 <style>
+/* ── Dimension accordion ──────────────────────────────────── */
 .dim-header {
   display:flex;align-items:center;gap:10px;
   padding:14px 18px;
@@ -251,6 +239,7 @@ include __DIR__.'/../includes/header.php';
 .dim-body.collapsed { display:none; }
 .dim-wrap { margin-bottom:6px; }
 
+/* ── Indicator card ────────────────────────────────────────── */
 .indicator-row {
   background:var(--white);border:1px solid var(--n200);
   border-radius:var(--radius);padding:14px 16px;
@@ -259,15 +248,9 @@ include __DIR__.'/../includes/header.php';
 .indicator-row.rated { border-color:#86EFAC;background:#F0FDF4; }
 .indicator-row.teacher-only {
   border-color:#BFDBFE;background:#EFF6FF;
-  opacity:0.92;
 }
-.indicator-code { font-size:11px;font-weight:700;color:var(--n500);
-                  letter-spacing:.6px;text-transform:uppercase; }
-.indicator-text { font-size:13.5px;font-weight:600;color:var(--n900);
-                  margin:5px 0 4px;line-height:1.5; }
-.indicator-mov  { font-size:12px;color:var(--n400);
-                  margin-bottom:10px;line-height:1.5; }
 
+/* ── Rating buttons ────────────────────────────────────────── */
 .rating-group { display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px; }
 .rating-btn {
   padding:7px 14px;border-radius:8px;
@@ -282,12 +265,70 @@ include __DIR__.'/../includes/header.php';
 .rating-btn.selected-3 { background:#DBEAFE;border-color:#2563EB;color:#2563EB; }
 .rating-btn.selected-4 { background:#DCFCE7;border-color:#16A34A;color:#16A34A; }
 
+/* ── Teacher indicator badge ───────────────────────────────── */
 .teacher-badge {
   display:inline-flex;align-items:center;gap:5px;
   padding:2px 9px;border-radius:999px;
   font-size:10.5px;font-weight:700;
   background:var(--blueb);color:var(--blue);
   border:1px solid #BFDBFE;
+}
+
+.teacher-info-box {
+  /* Flex ROW — icon left, text right */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--blueb);
+  border: 1px solid #BFDBFE;
+  border-radius: 8px;
+  margin-top: 4px;
+}
+
+.teacher-info-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;          /* ← prevents flex from stretching it */
+  border-radius: 8px;
+  background: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* FIX 3 — The SVG itself: explicit 18×18, never width:100% */
+.teacher-info-icon svg {
+  width: 18px !important;  /* ← hard override, can't inherit */
+  height: 18px !important;
+  stroke: #fff;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;          /* removes inline whitespace gap */
+  flex-shrink: 0;
+}
+
+.teacher-info-text {
+  flex: 1;
+  min-width: 0;            /* allows text to truncate properly */
+}
+.teacher-info-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--blue);
+  margin-bottom: 3px;
+}
+.teacher-info-body {
+  font-size: 12.5px;
+  color: var(--n600);
+  line-height: 1.5;
+}
+.teacher-avg-rating {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--blue);
 }
 </style>
 
@@ -300,7 +341,6 @@ $allDone = $dimDone === count($inds);
 ?>
 <div class="dim-wrap" id="dim<?= $dimNo ?>">
 
-  <!-- Clickable header -->
   <div class="dim-header"
        onclick="toggleDim(<?= $dimNo ?>)"
        style="border-left:4px solid <?= e($dim['color_hex']) ?>;">
@@ -355,7 +395,6 @@ $allDone = $dimDone === count($inds);
     <span class="dim-chevron" id="dimChevron<?= $dimNo ?>">▾</span>
   </div>
 
-  <!-- Collapsible body -->
   <div class="dim-body" id="dimBody<?= $dimNo ?>">
     <?php foreach($inds as $ind): ?>
     <?php
@@ -367,13 +406,25 @@ $allDone = $dimDone === count($inds);
     <div class="indicator-row <?= $rated ? 'rated' : '' ?> <?= $isTeacher ? 'teacher-only' : '' ?>"
          id="row<?= $ind['indicator_id'] ?>">
 
-      <!-- Top row -->
-      <div class="flex-cb" style="margin-bottom:4px;">
+      <!-- Top row: code + badge + saved status -->
+      <div class="flex-cb" style="margin-bottom:6px;">
         <div style="display:flex;align-items:center;gap:7px;">
-          <div class="indicator-code"><?= e($ind['indicator_code']) ?></div>
+          <span style="font-family:monospace;font-size:11px;font-weight:700;
+                       color:var(--n500);letter-spacing:.5px;text-transform:uppercase;">
+            <?= e($ind['indicator_code']) ?>
+          </span>
           <?php if($isTeacher): ?>
           <span class="teacher-badge">
-            <?= svgIcon('users','','width:11px;height:11px;') ?>
+            <span style="display:inline-flex;width:12px;height:12px;flex-shrink:0;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round"
+                   style="width:12px;height:12px;">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </span>
             Teacher Indicator
           </span>
           <?php endif; ?>
@@ -386,51 +437,82 @@ $allDone = $dimDone === count($inds);
         <?php endif; ?>
       </div>
 
-      <div class="indicator-text"><?= e($ind['indicator_text']) ?></div>
-      <div class="indicator-mov">📎 MOV: <?= e($ind['mov_guide']) ?></div>
-
-      <?php if($isTeacher): ?>
-      <!-- ── TEACHER-ONLY: show aggregated input, no edit ── -->
-      <?php
-        $tr = $db->prepare("
-            SELECT ROUND(AVG(tr.rating),2) avg_rating,
-                   COUNT(tr.tr_id) teacher_count,
-                   GROUP_CONCAT(u.full_name SEPARATOR ', ') teachers
-            FROM teacher_responses tr
-            JOIN users u ON tr.teacher_id = u.user_id
-            WHERE tr.cycle_id = ? AND tr.indicator_id = ?
-        ");
-        if ($cycle) {
-            $tr->execute([$cycle['cycle_id'], $ind['indicator_id']]);
-            $trData = $tr->fetch();
-        } else {
-            $trData = null;
-        }
-      ?>
-      <div style="padding:10px 14px;background:var(--blueb);
-                  border-radius:8px;border:1px solid #BFDBFE;
-                  font-size:12.5px;">
-        <?= svgIcon('users','','width:14px;height:14px;') ?>
-        <?php if($trData && $trData['teacher_count'] > 0): ?>
-          <strong>Teacher Avg Rating:</strong>
-          <span style="font-size:14px;font-weight:800;color:var(--blue);">
-            <?= $trData['avg_rating'] ?>/4.00
-          </span>
-          &nbsp;·&nbsp;
-          <?= $trData['teacher_count'] ?> response(s)
-          <div style="font-size:11.5px;color:var(--n500);margin-top:4px;">
-            Answered by: <?= e($trData['teachers']) ?>
-          </div>
-        <?php else: ?>
-          <span style="color:var(--n400);">
-            No teacher input yet for this indicator.
-            Teachers must rate this in their own assessment.
-          </span>
-        <?php endif; ?>
+      <!-- Indicator text -->
+      <div style="font-size:13.5px;font-weight:600;color:var(--n900);
+                  margin-bottom:4px;line-height:1.5;">
+        <?= e($ind['indicator_text']) ?>
       </div>
 
+      <!-- MOV -->
+      <div style="font-size:12px;color:var(--n400);margin-bottom:12px;line-height:1.5;">
+        📎 MOV: <?= e($ind['mov_guide']) ?>
+      </div>
+
+      <?php if($isTeacher): ?>
+      <?php
+        $trData = null;
+        if ($cycle) {
+            try {
+                $tr = $db->prepare("
+                    SELECT
+                        ROUND(AVG(tr.rating), 2) avg_rating,
+                        COUNT(tr.tr_id)           teacher_count,
+                        GROUP_CONCAT(u.full_name SEPARATOR ', ') teachers
+                    FROM teacher_responses tr
+                    JOIN users u ON tr.teacher_id = u.user_id
+                    WHERE tr.cycle_id = ?
+                      AND tr.indicator_id = ?
+                ");
+                $tr->execute([$cycle['cycle_id'], $ind['indicator_id']]);
+                $trData = $tr->fetch();
+            } catch (Exception $e) {
+                $trData = null;
+            }
+        }
+      ?>
+
+      <!--
+        THE FIXED TEACHER INFO BOX
+        ─────────────────────────────────────────────────────────
+        BEFORE (broken):
+          <div style="padding:10px 14px;background:var(--blueb)...">
+            <?= svgIcon('users','','color:var(--blue);') ?>   ← NO SIZE = 100% width
+      <div class="teacher-info-box">
+
+        <!-- Icon wrapper: fixed 36×36, never grows -->
+        <div class="teacher-info-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+
+        <!-- Text content -->
+        <div class="teacher-info-text">
+          <?php if($trData && (int)$trData['teacher_count'] > 0): ?>
+            <div class="teacher-info-title">
+              Teacher Average:
+              <span class="teacher-avg-rating"><?= $trData['avg_rating'] ?>/4.00</span>
+            </div>
+            <div class="teacher-info-body">
+              <?= (int)$trData['teacher_count'] ?> response(s) &nbsp;·&nbsp;
+              <?= e($trData['teachers']) ?>
+            </div>
+          <?php else: ?>
+            <div class="teacher-info-title">Teacher Indicator</div>
+            <div class="teacher-info-body">
+              No teacher input yet for this indicator.
+              Teachers must rate this in their own assessment portal.
+            </div>
+          <?php endif; ?>
+        </div>
+
+      </div><!-- /.teacher-info-box -->
+
       <?php else: ?>
-      <!-- ── SCHOOL HEAD: editable rating ── -->
+      <!-- SCHOOL HEAD — editable rating -->
       <div class="rating-group" id="ratingGroup<?= $ind['indicator_id'] ?>">
         <?php foreach([1,2,3,4] as $r): ?>
         <button <?= $isLocked ? 'disabled' : '' ?>
@@ -452,12 +534,12 @@ $allDone = $dimDone === count($inds);
                 onblur="saveResponse(<?= $ind['indicator_id'] ?>)"><?= e($resp['evidence_text'] ?? '') ?></textarea>
 
       <?php endif; ?>
-    </div>
+    </div><!-- /.indicator-row -->
 
     <?php endforeach; ?>
-  </div>
+  </div><!-- /.dim-body -->
 
-</div>
+</div><!-- /.dim-wrap -->
 <?php endforeach; ?>
 
 <!-- Submit button at bottom -->
@@ -477,7 +559,6 @@ let currentRatings = <?= json_encode(
     array_map(fn($r) => $r['rating'], $responses)
 ) ?>;
 
-// Teacher indicator codes — used to skip submission check
 const TEACHER_CODES = <?= json_encode(TEACHER_INDICATOR_CODES) ?>;
 
 function selectRating(indId, rating) {
