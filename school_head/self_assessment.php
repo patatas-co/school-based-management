@@ -184,6 +184,15 @@ $shDoneStmt->execute(array_merge([$cyc['cycle_id']], TEACHER_INDICATOR_CODES));
         $db->prepare("UPDATE sbm_cycles SET status='submitted',submitted_at=NOW(),overall_score=?,maturity_level=? WHERE cycle_id=?")
            ->execute([$overall, $mat['label'], $cyc['cycle_id']]);
         logActivity('submit_assessment','self_assessment','Submitted SBM assessment cycle '.$cyc['cycle_id']);
+       
+       // ── Trigger ML pipeline asynchronously ────────────────────────
+// Fire-and-forget: runs in background so the HTTP response is instant.
+// Results are stored in ml_recommendations + ml_predictions tables.
+$mlCycleId  = $cyc['cycle_id'];
+$mlScript   = escapeshellarg(dirname(__DIR__) . '/ml/run_pipeline.php');
+$mlArg      = escapeshellarg((string)$mlCycleId);
+exec("php $mlScript $mlArg > /dev/null 2>&1 &");
+
         echo json_encode(['ok'=>true,'msg'=>'Assessment submitted successfully!']); exit;
     }
 
