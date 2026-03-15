@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $content = trim($_POST['content'] ?? '');
         if (!$title || !$content) { echo json_encode(['ok'=>false,'msg'=>'Title and content required.']); exit; }
         $cat = in_array($_POST['category'],['general','policy','deadline','advisory','emergency']) ? $_POST['category'] : 'general';
-        $target = in_array($_POST['target'],['all','school_head','teacher','sdo','ro']) ? $_POST['target'] : 'all';
+        $target = in_array($_POST['target'],['all','school_head','teacher','sdo','ro','external_stakeholder']) ? $_POST['target'] : 'all';
         $db->prepare("INSERT INTO announcements (posted_by,title,content,category,target_role) VALUES (?,?,?,?,?)")
            ->execute([$_SESSION['user_id'],$title,$content,$cat,$target]);
         $newId = $db->lastInsertId();
@@ -87,6 +87,7 @@ include __DIR__.'/../includes/header.php';
             <option value="teacher">Teachers</option>
             <option value="sdo">SDO</option>
             <option value="ro">RO</option>
+            <option value="external_stakeholder">External Stakeholders</option>
           </select>
         </div>
       </div>

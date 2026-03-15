@@ -17,31 +17,23 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             (int)$_POST['total_teachers'],(int)$_POST['division_id'],
         ];
         if ($id) {
+            // Guard: SDO can only edit schools in their division
+            if ($_SESSION['role'] === 'sdo' && !empty($_SESSION['division_id'])) {
+                $check = $db->prepare(
+                    "SELECT 1 FROM schools WHERE school_id=? AND division_id=?"
+                );
+                $check->execute([$id, $_SESSION['division_id']]);
+                if (!$check->fetchColumn()) {
+                    echo json_encode([
+                        'ok'  => false,
+                        'msg' => 'Access denied. School is outside your division.'
+                    ]); exit;
+                }
+            }
             $data[] = $id;
             $db->prepare("UPDATE schools SET school_name=?,school_id_deped=?,address=?,classification=?,school_head_name=?,contact_no=?,email=?,total_enrollment=?,total_teachers=?,division_id=? WHERE school_id=?")->execute($data);
             echo json_encode(['ok'=>true,'msg'=>'School updated.']); exit;
-        } 
-        
-        if ($id) {
-    // Guard: SDO can only edit schools in their division
-    if ($_SESSION['role'] === 'sdo' && !empty($_SESSION['division_id'])) {
-        $check = $db->prepare(
-            "SELECT 1 FROM schools WHERE school_id=? AND division_id=?"
-        );
-        $check->execute([$id, $_SESSION['division_id']]);
-        if (!$check->fetchColumn()) {
-            echo json_encode([
-                'ok'  => false,
-                'msg' => 'Access denied. School is outside your division.'
-            ]); exit;
-        }
-    }
-    $data[] = $id;
-    $db->prepare("UPDATE schools SET ...")->execute($data);
-    echo json_encode(['ok'=>true,'msg'=>'School updated.']); exit;
-}
-
-        else {
+        } else {
             $db->prepare("INSERT INTO schools (school_name,school_id_deped,address,classification,school_head_name,contact_no,email,total_enrollment,total_teachers,division_id) VALUES (?,?,?,?,?,?,?,?,?,?)")->execute($data);
             echo json_encode(['ok'=>true,'msg'=>'School added.']); exit;
         }
@@ -51,18 +43,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $st->execute([(int)$_POST['id']]); echo json_encode($st->fetch()); exit;
     }
     if ($_POST['action']==='delete') {
-    $id = (int)$_POST['id'];
-    // If SDO role, verify the school belongs to their division
-    if ($_SESSION['role'] === 'sdo' && !empty($_SESSION['division_id'])) {
-        $check = $db->prepare("SELECT 1 FROM schools WHERE school_id=? AND division_id=?");
-        $check->execute([$id, $_SESSION['division_id']]);
-        if (!$check->fetchColumn()) {
-            echo json_encode(['ok'=>false,'msg'=>'Access denied. School is outside your division.']); exit;
+        $id = (int)$_POST['id'];
+        // If SDO role, verify the school belongs to their division
+        if ($_SESSION['role'] === 'sdo' && !empty($_SESSION['division_id'])) {
+            $check = $db->prepare("SELECT 1 FROM schools WHERE school_id=? AND division_id=?");
+            $check->execute([$id, $_SESSION['division_id']]);
+            if (!$check->fetchColumn()) {
+                echo json_encode(['ok'=>false,'msg'=>'Access denied. School is outside your division.']); exit;
+            }
         }
+        $db->prepare("DELETE FROM schools WHERE school_id=?")->execute([$id]);
+        echo json_encode(['ok'=>true,'msg'=>'School removed.']); exit;
     }
-    $db->prepare("DELETE FROM schools WHERE school_id=?")->execute([$id]);
-    echo json_encode(['ok'=>true,'msg'=>'School removed.']); exit;
-}
     exit;
 }
 
@@ -128,16 +120,16 @@ include __DIR__.'/../includes/header.php';
         <td><span class="pill pill-active"><?= e($s['classification']) ?></span></td>
         <td style="font-size:12.5px;"><?= e($s['school_head_name']??'—') ?></td>
         <td style="font-size:13px;font-weight:600;"><?= number_format($s['total_enrollment']) ?></td>
-<td>
-  <?php if($s['cycle_status']): ?>
-    <span class="pill pill-<?= e($s['cycle_status']) ?>"><?= ucfirst(str_replace('_',' ',$s['cycle_status'])) ?></span>
-    <?php if($s['cycle_score']): ?>
-      <span style="margin-left:5px;font-size:12px;font-weight:700;color:var(--g700);"><?= $s['cycle_score'] ?>%</span>
-    <?php endif; ?>
-  <?php else: ?>
-    <span style="font-size:12px;color:var(--n400);">Not Started</span>
-  <?php endif; ?>
-</td>
+        <td>
+          <?php if($s['cycle_status']): ?>
+            <span class="pill pill-<?= e($s['cycle_status']) ?>"><?= ucfirst(str_replace('_',' ',$s['cycle_status'])) ?></span>
+            <?php if($s['cycle_score']): ?>
+              <span style="margin-left:5px;font-size:12px;font-weight:700;color:var(--g700);"><?= $s['cycle_score'] ?>%</span>
+            <?php endif; ?>
+          <?php else: ?>
+            <span style="font-size:12px;color:var(--n400);">Not Started</span>
+          <?php endif; ?>
+        </td>
         <td>
           <div class="flex-c" style="gap:5px;">
             <button class="btn btn-secondary btn-sm" onclick="editSchool(<?= $s['school_id'] ?>)"><?= svgIcon('edit') ?></button>

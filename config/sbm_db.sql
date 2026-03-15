@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 15, 2026 at 04:57 PM
+-- Generation Time: Mar 15, 2026 at 05:24 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -228,7 +228,7 @@ CREATE TABLE `announcements` (
   `posted_by` int(11) NOT NULL,
   `title` varchar(200) NOT NULL,
   `content` text NOT NULL,
-  `target_role` enum('all','school_head','teacher','sdo','ro') DEFAULT 'all',
+  `target_role` enum('all','school_head','teacher','sdo','ro','external_stakeholder') DEFAULT 'all',
   `category` enum('general','policy','deadline','advisory','emergency') DEFAULT 'general',
   `is_published` tinyint(4) DEFAULT 1,
   `region_id` int(11) DEFAULT NULL,
