@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $pw = $_POST['password'] ?? '';
         if (strlen($pw) < 8) { echo json_encode(['ok'=>false,'msg'=>'Password must be at least 8 characters.']); exit; }
         $role = $_POST['role'] ?? '';
-        if (!in_array($role, ['admin','school_head','teacher','sdo','ro'])) { echo json_encode(['ok'=>false,'msg'=>'Invalid role.']); exit; }
+        if (!in_array($role, ['admin','school_head','teacher','sdo','ro','external_stakeholder'])) { echo json_encode(['ok'=>false,'msg'=>'Invalid role.']); exit; }
         try {
             $db->prepare("INSERT INTO users (username,password,email,full_name,role,status,school_id) VALUES (?,?,?,?,?,?,?)")
                ->execute([trim($_POST['username']),password_hash($pw,PASSWORD_DEFAULT),trim($_POST['email']),trim($_POST['full_name']),$role,$_POST['status'],$_POST['school_id']?:null]);
@@ -152,7 +152,7 @@ include __DIR__.'/../includes/header.php';
       <div class="form-row">
         <div class="fg"><label>Role *</label>
           <select class="fc" id="c_role">
-            <?php foreach(['admin','school_head','teacher','sdo','ro'] as $r): ?>
+            <?php foreach(['admin','school_head','teacher','sdo','ro','external_stakeholder'] as $r): ?>
             <option value="<?= $r ?>"><?= ucfirst(str_replace('_',' ',$r)) ?></option>
             <?php endforeach; ?>
           </select>
@@ -191,7 +191,7 @@ include __DIR__.'/../includes/header.php';
       <div class="form-row">
         <div class="fg"><label>Role</label>
           <select class="fc" id="e_role">
-            <?php foreach(['admin','school_head','teacher','sdo','ro'] as $r): ?>
+            <?php foreach(['admin','school_head','teacher','sdo','ro','external_stakeholder'] as $r): ?>
             <option value="<?= $r ?>"><?= ucfirst(str_replace('_',' ',$r)) ?></option>
             <?php endforeach; ?>
           </select>

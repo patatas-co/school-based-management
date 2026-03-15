@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
                         rated_at=NOW()")
            ->execute([$cycleId,$indicatorId,$schoolId,$rating,$evidence,$_SESSION['user_id']]);
 
-        recomputeDimScore($db, $cycleId, $indicatorId, $schoolId);
+        recomputeDimScoreWithOverrides($db, $cycleId, $indicatorId, $schoolId);
         echo json_encode(['ok'=>true,'msg'=>'Saved.']); exit;
     }
 
@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $db->prepare("DELETE FROM sbm_responses WHERE cycle_id=? AND indicator_id=? AND school_id=?")
            ->execute([$cycleRow['cycle_id'], $indicatorId, $schoolId]);
 
-        recomputeDimScore($db, $cycleRow['cycle_id'], $indicatorId, $schoolId);
+        recomputeDimScoreWithOverrides($db, $cycleRow['cycle_id'], $indicatorId, $schoolId);
         echo json_encode(['ok'=>true,'msg'=>'Rating cleared.']); exit;
     }
 
@@ -250,56 +250,31 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     exit;
 }
 
-function recomputeDimScore(PDO $db, int $cycleId, int $indicatorId, int $schoolId): void {
-  function recomputeDimScoreWithOverrides(
-    PDO $db, int $cycleId, 
-    int $indicatorId, int $schoolId
-): void {
-    // Get dimension
-    $dimId = $db->prepare(
-        "SELECT dimension_id FROM sbm_indicators WHERE indicator_id=?"
-    );
-    $dimId->execute([$indicatorId]); 
+function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId, int $schoolId): void {
+    $dimId = $db->prepare("SELECT dimension_id FROM sbm_indicators WHERE indicator_id=?");
+    $dimId->execute([$indicatorId]);
     $dimId = $dimId->fetchColumn();
 
-    // Get all indicators in this dimension
-    $inds = $db->prepare("
-        SELECT indicator_id, indicator_code 
-        FROM sbm_indicators 
-        WHERE dimension_id=? AND is_active=1
-    ");
-    $inds->execute([$dimId]); 
+    $inds = $db->prepare("SELECT indicator_id, indicator_code FROM sbm_indicators WHERE dimension_id=? AND is_active=1");
+    $inds->execute([$dimId]);
     $inds = $inds->fetchAll();
 
     $rawTotal = 0;
     $maxTotal = 0;
 
     foreach ($inds as $ind) {
-        $isTeacher = in_array(
-            $ind['indicator_code'], TEACHER_INDICATOR_CODES
-        );
+        $isTeacher = in_array($ind['indicator_code'], TEACHER_INDICATOR_CODES);
 
         if ($isTeacher) {
-            // Check if SH has overridden this indicator
-            $ov = $db->prepare("
-                SELECT override_rating 
-                FROM sh_indicator_overrides 
-                WHERE cycle_id=? AND indicator_id=?
-            ");
+            $ov = $db->prepare("SELECT override_rating FROM sh_indicator_overrides WHERE cycle_id=? AND indicator_id=?");
             $ov->execute([$cycleId, $ind['indicator_id']]);
             $override = $ov->fetchColumn();
 
             if ($override !== false) {
-                // Use override rating
                 $rawTotal += (int)$override;
                 $maxTotal += 4;
             } else {
-                // Use teacher average
-                $avg = $db->prepare("
-                    SELECT AVG(rating) 
-                    FROM teacher_responses 
-                    WHERE cycle_id=? AND indicator_id=?
-                ");
+                $avg = $db->prepare("SELECT AVG(rating) FROM teacher_responses WHERE cycle_id=? AND indicator_id=?");
                 $avg->execute([$cycleId, $ind['indicator_id']]);
                 $avgVal = $avg->fetchColumn();
                 if ($avgVal !== null) {
@@ -308,11 +283,7 @@ function recomputeDimScore(PDO $db, int $cycleId, int $indicatorId, int $schoolI
                 }
             }
         } else {
-            // Use school head response
-            $shResp = $db->prepare("
-                SELECT rating FROM sbm_responses 
-                WHERE cycle_id=? AND indicator_id=?
-            ");
+            $shResp = $db->prepare("SELECT rating FROM sbm_responses WHERE cycle_id=? AND indicator_id=?");
             $shResp->execute([$cycleId, $ind['indicator_id']]);
             $rating = $shResp->fetchColumn();
             if ($rating !== false) {
@@ -322,46 +293,17 @@ function recomputeDimScore(PDO $db, int $cycleId, int $indicatorId, int $schoolI
         }
     }
 
-    $pct = $maxTotal > 0 
-        ? round(($rawTotal / $maxTotal) * 100, 2) 
-        : 0;
+    $pct = $maxTotal > 0 ? round(($rawTotal / $maxTotal) * 100, 2) : 0;
 
     $db->prepare("
-        INSERT INTO sbm_dimension_scores 
-            (cycle_id, school_id, dimension_id, 
-             raw_score, max_score, percentage)
+        INSERT INTO sbm_dimension_scores (cycle_id, school_id, dimension_id, raw_score, max_score, percentage)
         VALUES (?,?,?,?,?,?)
         ON DUPLICATE KEY UPDATE
-            raw_score  = VALUES(raw_score),
-            max_score  = VALUES(max_score),
-            percentage = VALUES(percentage),
-            computed_at= NOW()
-    ")->execute([
-        $cycleId, $schoolId, $dimId, 
-        $rawTotal, $maxTotal, $pct
-    ]);
-}
-    $dimId = $db->prepare("SELECT dimension_id FROM sbm_indicators WHERE indicator_id=?");
-    $dimId->execute([$indicatorId]); $dimId = $dimId->fetchColumn();
-
-    $scores = $db->prepare("
-        SELECT SUM(r.rating) raw, COUNT(r.response_id)*4 max_possible
-        FROM sbm_responses r
-        JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
-        WHERE r.cycle_id = ? AND i.dimension_id = ?
-    ");
-    $scores->execute([$cycleId, $dimId]);
-    [$raw, $maxP] = array_values($scores->fetch(PDO::FETCH_NUM));
-    $pct = $maxP > 0 ? round(($raw/$maxP)*100, 2) : 0;
-
-    $db->prepare("INSERT INTO sbm_dimension_scores (cycle_id,school_id,dimension_id,raw_score,max_score,percentage)
-                  VALUES (?,?,?,?,?,?)
-                  ON DUPLICATE KEY UPDATE
-                    raw_score=VALUES(raw_score),
-                    max_score=VALUES(max_score),
-                    percentage=VALUES(percentage),
-                    computed_at=NOW()")
-       ->execute([$cycleId, $schoolId, $dimId, $raw, $maxP, $pct]);
+            raw_score=VALUES(raw_score),
+            max_score=VALUES(max_score),
+            percentage=VALUES(percentage),
+            computed_at=NOW()
+    ")->execute([$cycleId, $schoolId, $dimId, $rawTotal, $maxTotal, $pct]);
 }
 
 // ── LOAD DATA ────────────────────────────────────────────────

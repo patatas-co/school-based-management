@@ -10,43 +10,6 @@ include __DIR__.'/../includes/workflow_core.php';
 
 $db = getDB();
 
-// ── CONSTANTS ────────────────────────────────────────────────
-$PHASES = [
-    1 => [
-        'label'  => 'Self-Assessment',
-        'desc'   => 'School Head & stakeholders complete the 42-indicator SBM checklist (4th Grading Period).',
-        'icon'   => 'clipboard',
-        'color'  => '#2563EB',
-        'bg'     => '#EFF6FF',
-        'border' => '#BFDBFE',
-    ],
-    2 => [
-        'label'  => 'Planning Integration',
-        'desc'   => 'SBM results integrated into the School Improvement Plan during summer vacation.',
-        'icon'   => 'trending-up',
-        'color'  => '#7C3AED',
-        'bg'     => '#F5F3FF',
-        'border' => '#DDD6FE',
-    ],
-    3 => [
-        'label'  => 'Implementation & Monitoring',
-        'desc'   => 'Interventions implemented (1st–3rd Grading). SDO conducts quarterly TA visits.',
-        'icon'   => 'bar-chart-2',
-        'color'  => '#059669',
-        'bg'     => '#ECFDF5',
-        'border' => '#A7F3D0',
-    ],
-];
-
-$CP_META = [
-    'self_assessment' => ['label' => 'Self-Assessment Submitted',    'phase' => 1, 'icon' => 'check-square'],
-    'planning'        => ['label' => 'SIP Integration Confirmed',    'phase' => 2, 'icon' => 'file-text'],
-    'q1_monitoring'   => ['label' => 'Q1 Monitoring Visit Done',     'phase' => 3, 'icon' => 'eye'],
-    'q2_monitoring'   => ['label' => 'Q2 Monitoring Visit Done',     'phase' => 3, 'icon' => 'eye'],
-    'q3_monitoring'   => ['label' => 'Q3 Monitoring Visit Done',     'phase' => 3, 'icon' => 'eye'],
-    'completion'      => ['label' => 'Cycle Completed',              'phase' => 3, 'icon' => 'award'],
-];
-
 // ── POST / AJAX HANDLERS ─────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
     header('Content-Type: application/json');

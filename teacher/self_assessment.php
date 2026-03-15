@@ -94,6 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             response_count = VALUES(response_count)
     ")->execute([$cycleId, $uid, $schoolId, $syId, $answered]);
 
+    $db->prepare("UPDATE teacher_responses SET status='submitted' WHERE cycle_id=? AND teacher_id=?")
+       ->execute([$cycleId, $uid]);
+
     logActivity(
         'teacher_submit_assessment',
         'teacher_self_assessment',

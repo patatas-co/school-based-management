@@ -46,15 +46,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
 }
 
 $q = trim($_GET['q'] ?? '');
-$sql = "SELECT s.*,d.division_name FROM schools s LEFT JOIN divisions d ON s.division_id=d.division_id";
-$p = [];
-if ($q) {
-    $qEsc = '%'.str_replace(['\\','%','_'],['\\\\','\\%','\\_'],$q).'%';
-    $sql .= " WHERE s.school_name LIKE ? OR s.school_id_deped LIKE ?";
-    $p = [$qEsc,$qEsc];
-}
-$sql .= " ORDER BY s.school_name";
-$q = trim($_GET['q'] ?? '');
 $currentSyId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 
 $sql = "SELECT s.*, d.division_name,
