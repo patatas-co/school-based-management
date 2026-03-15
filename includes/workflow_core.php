@@ -1,9 +1,5 @@
 <?php
-// ============================================================
-// admin/workflow.php — School Year Timeline & Workflow Module
-// SBM 3-Step Cycle Enforcement (DepEd Order No. 007, s. 2024)
-// ============================================================
-
+$workflowPostUrl = basename($_SERVER['PHP_SELF']);
 $db = getDB();
 
 // ── CONSTANTS ────────────────────────────────────────────────
@@ -967,8 +963,8 @@ async function doSaveConfig() {
     if (!phases.length)  { toast('Enter at least one workflow phase date range.', 'warning'); return; }
 
     const [r1, r2] = await Promise.all([
-        apiPost('workflow.php', { action:'save_periods', sy_id:WF_SY, periods_json:JSON.stringify(periods) }),
-        apiPost('workflow.php', { action:'save_phases',  sy_id:WF_SY, phases_json:JSON.stringify(phases)  }),
+        apiPost('<?= $workflowPostUrl ?>', { action:'save_periods', sy_id:WF_SY, periods_json:JSON.stringify(periods) }),
+        apiPost('<?= $workflowPostUrl ?>', { action:'save_phases',  sy_id:WF_SY, phases_json:JSON.stringify(phases)  }),
     ]);
 
     if (r1.ok && r2.ok) {
@@ -983,7 +979,7 @@ async function doSaveConfig() {
 // ── Initialize / sync checkpoints for all schools ─────────────
 async function doInitWorkflow() {
     if (!confirm('Generate checkpoints for all schools in this SY?\n(Existing completed checkpoints will not be overwritten.)')) return;
-    const r = await apiPost('workflow.php', { action:'init_workflow', sy_id:WF_SY });
+    const r = await apiPost('<?= $workflowPostUrl ?>', { action:'init_workflow', sy_id:WF_SY });
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) setTimeout(() => location.reload(), 900);
 }
@@ -991,14 +987,14 @@ async function doInitWorkflow() {
 // ── Activate a phase ──────────────────────────────────────────
 async function doActivatePhase(phNo) {
     if (!confirm(`Set Phase ${phNo} as the active phase?\nOverdue checkpoints will be flagged automatically.`)) return;
-    const r = await apiPost('workflow.php', { action:'activate_phase', sy_id:WF_SY, phase_no:phNo });
+    const r = await apiPost('<?= $workflowPostUrl ?>', { action:'activate_phase', sy_id:WF_SY, phase_no:phNo });
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) setTimeout(() => location.reload(), 700);
 }
 
 // ── Set current grading period ────────────────────────────────
 async function doSetPeriod(n) {
-    const r = await apiPost('workflow.php', { action:'set_period', sy_id:WF_SY, period_no:n });
+    const r = await apiPost('<?= $workflowPostUrl ?>', { action:'set_period', sy_id:WF_SY, period_no:n });
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) setTimeout(() => location.reload(), 600);
 }
@@ -1014,7 +1010,7 @@ function openMarkModal(cpId, schoolId, syId, label) {
 }
 
 async function doMarkDone() {
-    const r = await apiPost('workflow.php', {
+    const r = await apiPost('<?= $workflowPostUrl ?>', {
         action:    'mark_checkpoint',
         cp_id:     document.getElementById('mk_cp_id').value,
         school_id: document.getElementById('mk_school_id').value,

@@ -108,3 +108,4 @@ foreach(($responses??[]) as $r) $grouped[$r['dimension_no']][] = $r;
 
 </div><!-- #printReport -->
 <?php endif; ?>
+<?php include __DIR__.'/../includes/footer.php'; ?>
