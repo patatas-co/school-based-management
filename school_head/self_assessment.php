@@ -2,6 +2,9 @@
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../config/sbm_indicators.php';
 require_once __DIR__.'/../includes/auth.php';
+function buildInPlaceholders(array $arr): string {
+    return implode(',', array_fill(0, count($arr), '?'));
+}
 requireRole('school_head','admin');
 $db = getDB();
 

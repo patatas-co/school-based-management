@@ -1,0 +1,74 @@
+# ============================================================
+# DepEd SBM Monitoring System — .gitignore
+# ============================================================
+
+# Environment files — NEVER commit these
+.env
+ml/.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+ml/venv/
+ml/env/
+ml/__pycache__/
+ml/*.egg-info/
+ml/dist/
+ml/build/
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ML model files (can be large)
+ml/*.pkl
+ml/*.joblib
+ml/*.h5
+ml/*.model
+ml/models/
+
+# PHP / Composer
+vendor/
+composer.lock
+
+# IDE & editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+error_log
+php_errors.log
+access_log
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Uploaded user files (evidence, MOV attachments)
+uploads/
+assets/uploads/
+
+# Cache
+.cache/
+*.cache
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
