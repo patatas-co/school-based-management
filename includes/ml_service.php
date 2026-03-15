@@ -74,19 +74,27 @@ function runMLPipeline(PDO $db, int $cycleId): bool
     $indQ->execute([$cycleId]);
     $allIndicators = $indQ->fetchAll();
 
-    // Also gather teacher responses for teacher indicators
+    // Gather teacher responses — use SH override rating if present
     $teacherIndQ = $db->prepare("
-        SELECT 
+        SELECT
             i.indicator_id,
             i.indicator_code,
             i.indicator_text,
             d.dimension_no,
             d.dimension_name,
-            ROUND(AVG(tr.rating), 2) AS rating,
+            -- Use SH override if it exists, otherwise use raw teacher average (not rounded)
+            COALESCE(
+                (SELECT CAST(sho.override_rating AS DECIMAL(5,2))
+                 FROM sh_indicator_overrides sho
+                 WHERE sho.indicator_id = i.indicator_id
+                   AND sho.cycle_id = tr.cycle_id
+                 LIMIT 1),
+                AVG(tr.rating)
+            ) AS rating,
             NULL AS evidence_text
         FROM teacher_responses tr
-        JOIN sbm_indicators i ON tr.indicator_id = i.indicator_id
-        JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
+        JOIN sbm_indicators i  ON tr.indicator_id  = i.indicator_id
+        JOIN sbm_dimensions d  ON i.dimension_id   = d.dimension_id
         WHERE tr.cycle_id = ?
         GROUP BY i.indicator_id
         ORDER BY d.dimension_no, AVG(tr.rating) ASC
@@ -94,29 +102,32 @@ function runMLPipeline(PDO $db, int $cycleId): bool
     $teacherIndQ->execute([$cycleId]);
     $teacherIndicators = $teacherIndQ->fetchAll();
 
-    // Merge all indicators, teacher overrides take precedence
-    $mergedIndicators = $allIndicators;
+    // Merge: SH responses take precedence; add teacher-only indicators after
     $shIndicatorIds   = array_column($allIndicators, 'indicator_id');
+    $mergedIndicators = $allIndicators;
     foreach ($teacherIndicators as $ti) {
-        if (!in_array($ti['indicator_id'], $shIndicatorIds)) {
+        if (!in_array((int)$ti['indicator_id'], array_map('intval', $shIndicatorIds))) {
             $mergedIndicators[] = $ti;
         }
     }
 
     // 3. Group indicators by rating level for structured analysis
+    // Use floor() so 1.4 stays as rating 1 (Not Yet Manifested), not rounded up to 2
     $byRating = [1 => [], 2 => [], 3 => [], 4 => []];
     foreach ($mergedIndicators as $ind) {
-        $rating = (int)round((float)$ind['rating']);
-        if ($rating >= 1 && $rating <= 4) {
-            $byRating[$rating][] = [
-                'code'           => $ind['indicator_code'],
-                'text'           => $ind['indicator_text'],
-                'dimension_no'   => $ind['dimension_no'],
-                'dimension_name' => $ind['dimension_name'],
-                'rating'         => (float)$ind['rating'],
-                'evidence'       => $ind['evidence_text'] ?? '',
-            ];
-        }
+        $rawRating = (float)$ind['rating'];
+        // floor: 1.0-1.9 = 1, 2.0-2.9 = 2, etc.
+        $rating = (int)floor($rawRating);
+        // Clamp to valid range
+        $rating = max(1, min(4, $rating));
+        $byRating[$rating][] = [
+            'code'           => $ind['indicator_code'],
+            'text'           => $ind['indicator_text'],
+            'dimension_no'   => $ind['dimension_no'],
+            'dimension_name' => $ind['dimension_name'],
+            'rating'         => $rawRating,
+            'evidence'       => $ind['evidence_text'] ?? '',
+        ];
     }
 
     // 4. Gather ALL text remarks (teacher + stakeholder + SH evidence)

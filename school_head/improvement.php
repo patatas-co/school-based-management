@@ -69,22 +69,49 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     // ── Auto-generate plans from weak indicators ──────────────
     if ($_POST['action']==='generate_from_weak') {
         if (!$cycle) { echo json_encode(['ok'=>false,'msg'=>'No active assessment cycle.']); exit; }
-        // Get indicators rated 1 or 2 that don't already have a plan
+        // Get ALL weak indicators (SH + teacher avg) rated 1-2, without existing plans
         $weak = $db->prepare("
-            SELECT r.indicator_id, r.rating, i.indicator_text, i.indicator_code,
-                   i.dimension_id, d.dimension_name
-            FROM sbm_responses r
-            JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
-            JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
+            SELECT
+                combined.indicator_id, combined.rating,
+                combined.indicator_text, combined.indicator_code,
+                combined.dimension_id, combined.dimension_name
+            FROM (
+                -- School Head responses
+                SELECT
+                    i.indicator_id, r.rating,
+                    i.indicator_text, i.indicator_code,
+                    i.dimension_id, d.dimension_name
+                FROM sbm_responses r
+                JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
+                JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
+                WHERE r.cycle_id = ? AND r.rating <= 2
+
+                UNION ALL
+
+                -- Teacher average responses (teacher-only indicators)
+                SELECT
+                    i.indicator_id,
+                    FLOOR(AVG(tr.rating)) AS rating,
+                    i.indicator_text, i.indicator_code,
+                    i.dimension_id, d.dimension_name
+                FROM teacher_responses tr
+                JOIN sbm_indicators i  ON tr.indicator_id = i.indicator_id
+                JOIN sbm_dimensions d  ON i.dimension_id  = d.dimension_id
+                LEFT JOIN sbm_responses sr
+                    ON sr.indicator_id = i.indicator_id AND sr.cycle_id = tr.cycle_id
+                WHERE tr.cycle_id = ? AND sr.response_id IS NULL
+                GROUP BY i.indicator_id
+                HAVING FLOOR(AVG(tr.rating)) <= 2
+
+            ) AS combined
             LEFT JOIN improvement_plans ip
-                ON ip.indicator_id = r.indicator_id
-                AND ip.cycle_id = r.cycle_id
-            WHERE r.cycle_id = ?
-              AND r.rating <= 2
-              AND ip.plan_id IS NULL
-            ORDER BY r.rating ASC, d.dimension_no ASC
+                ON ip.indicator_id = combined.indicator_id
+                AND ip.cycle_id = ?
+            WHERE ip.plan_id IS NULL
+            ORDER BY combined.rating ASC, combined.dimension_name ASC
         ");
-        $weak->execute([$cycle['cycle_id']]); $weakRows = $weak->fetchAll();
+        $weak->execute([$cycle['cycle_id'], $cycle['cycle_id'], $cycle['cycle_id']]);
+        $weakRows = $weak->fetchAll();
 
         if (empty($weakRows)) {
             echo json_encode(['ok'=>false,'msg'=>'No weak indicators found without existing plans.']); exit;
@@ -93,9 +120,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $ratingLabels = [1=>'Not Yet Manifested',2=>'Emerging'];
         $generated = 0;
         foreach ($weakRows as $w) {
-            $priority = $w['rating'] === 1 ? 'High' : 'Medium';
+            $r = (int)$w['rating'];
+            $priority  = $r === 1 ? 'High' : 'Medium';
             $objective = "Improve performance on indicator {$w['indicator_code']}: {$w['indicator_text']}";
-            $strategy  = "Develop targeted interventions to address areas rated '{$ratingLabels[$w['rating']]}'. Identify root causes, allocate resources, and monitor progress.";
+            $strategy  = "Develop targeted interventions to address areas rated '{$ratingLabels[$r]}'. Identify root causes, allocate resources, and monitor progress.";
             $db->prepare("INSERT INTO improvement_plans (school_id,cycle_id,dimension_id,indicator_id,priority_level,objective,strategy,created_by) VALUES (?,?,?,?,?,?,?,?)")
                ->execute([$schoolId,$cycle['cycle_id'],$w['dimension_id'],$w['indicator_id'],$priority,$objective,$strategy,$_SESSION['user_id']]);
             $generated++;
@@ -137,17 +165,52 @@ $inds = $db->query("SELECT i.*,d.dimension_no FROM sbm_indicators i JOIN sbm_dim
 $weakCount = 0;
 $weakByDim = [];
 if ($cycle) {
+    // Combine SH responses AND teacher average responses (including teacher-only indicators)
     $wq = $db->prepare("
-        SELECT r.rating, i.indicator_code, i.indicator_text, i.dimension_id,
-               d.dimension_name, d.color_hex,
-               (SELECT COUNT(*) FROM improvement_plans ip WHERE ip.indicator_id=i.indicator_id AND ip.cycle_id=r.cycle_id) AS has_plan
-        FROM sbm_responses r
-        JOIN sbm_indicators i ON r.indicator_id=i.indicator_id
-        JOIN sbm_dimensions d ON i.dimension_id=d.dimension_id
-        WHERE r.cycle_id=? AND r.rating<=2
-        ORDER BY r.rating ASC, d.dimension_no ASC
+        SELECT
+            combined.indicator_id,
+            combined.indicator_code,
+            combined.indicator_text,
+            combined.dimension_id,
+            combined.dimension_name,
+            combined.color_hex,
+            combined.rating,
+            (SELECT COUNT(*) FROM improvement_plans ip
+             WHERE ip.indicator_id = combined.indicator_id
+               AND ip.cycle_id = ?) AS has_plan
+        FROM (
+            -- School Head direct responses
+            SELECT
+                i.indicator_id, i.indicator_code, i.indicator_text,
+                i.dimension_id, d.dimension_name, d.color_hex,
+                r.rating
+            FROM sbm_responses r
+            JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
+            JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
+            WHERE r.cycle_id = ?
+              AND r.rating <= 2
+
+            UNION ALL
+
+            -- Teacher average responses (teacher-only indicators not covered by SH)
+            SELECT
+                i.indicator_id, i.indicator_code, i.indicator_text,
+                i.dimension_id, d.dimension_name, d.color_hex,
+                FLOOR(AVG(tr.rating)) AS rating
+            FROM teacher_responses tr
+            JOIN sbm_indicators i  ON tr.indicator_id = i.indicator_id
+            JOIN sbm_dimensions d  ON i.dimension_id  = d.dimension_id
+            LEFT JOIN sbm_responses sr
+                ON sr.indicator_id = i.indicator_id AND sr.cycle_id = tr.cycle_id
+            WHERE tr.cycle_id = ?
+              AND sr.response_id IS NULL
+            GROUP BY i.indicator_id
+            HAVING FLOOR(AVG(tr.rating)) <= 2
+
+        ) AS combined
+        ORDER BY combined.rating ASC, combined.dimension_name ASC
     ");
-    $wq->execute([$cycle['cycle_id']]);
+    $wq->execute([$cycle['cycle_id'], $cycle['cycle_id'], $cycle['cycle_id']]);
     foreach ($wq->fetchAll() as $w) {
         $weakByDim[$w['dimension_name']][] = $w;
         if (!$w['has_plan']) $weakCount++;
@@ -294,8 +357,8 @@ include __DIR__.'/../includes/header.php';
       <div style="font-size:12px;font-weight:700;color:var(--n600);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;"><?= e($dimName) ?></div>
       <div>
         <?php foreach($inds as $ind): ?>
-        <span class="weak-chip rating-<?= $ind['rating'] ?>" title="<?= e($ind['indicator_text']) ?>">
-          <?= e($ind['indicator_code']) ?> — <?= $ind['rating']===1?'Not Yet':'Emerging' ?><?= $ind['has_plan'] ? ' ✓' : '' ?>
+        <span class="weak-chip rating-<?= (int)$ind['rating'] ?>" title="<?= e($ind['indicator_text']) ?>">
+          <?= e($ind['indicator_code']) ?> — <?= (int)$ind['rating']===1?'Not Yet Manifested':'Emerging' ?><?= $ind['has_plan'] ? ' ✓' : '' ?>
         </span>
         <?php endforeach; ?>
       </div>
@@ -387,125 +450,15 @@ if ($cycle) {
   <?php endif; ?>
 
   <!-- Remarks summary -->
-  <?php
-  $summaryRaw    = $sections['remarks_summary'] ?? '';
-  $summaryParsed = null;
-  if (is_array($summaryRaw)) {
-      $summaryParsed = $summaryRaw;
-  } elseif (is_string($summaryRaw) && str_starts_with(trim($summaryRaw), '{')) {
-      $summaryParsed = json_decode($summaryRaw, true);
-  }
-  $hasSummary = !empty($summaryParsed) || !empty($summaryRaw);
-  ?>
-  <?php if ($hasSummary): ?>
-  <div style="padding:18px 20px;border-bottom:1px solid var(--n100);">
-
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-      <div style="width:34px;height:34px;border-radius:9px;background:var(--n100);
-                  display:flex;align-items:center;justify-content:center;
-                  font-size:17px;flex-shrink:0;">📝</div>
-      <div>
-        <div style="font-size:14px;font-weight:700;color:var(--n900);">
-          Stakeholder Remarks Summary
-        </div>
-        <div style="font-size:11.5px;color:var(--n400);margin-top:1px;">
-          Synthesized from teacher, stakeholder, and school head feedback
-        </div>
-      </div>
+  <?php if (!empty($sections['remarks_summary'])): ?>
+  <div style="padding:14px 18px;border-bottom:1px solid var(--n100);background:var(--n50);">
+    <div style="font-size:12px;font-weight:700;color:var(--n500);
+                text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">
+      📝 Stakeholder Remarks Summary
     </div>
-
-    <?php if ($summaryParsed): ?>
-
-      <!-- Paragraph 1: Intro -->
-      <?php if (!empty($summaryParsed['intro'])): ?>
-      <p style="font-size:13.5px;color:var(--n700);line-height:1.85;margin-bottom:10px;">
-        <?= e($summaryParsed['intro']) ?>
-      </p>
-      <?php endif; ?>
-
-      <!-- Paragraph 2: Sentiment tone -->
-      <?php if (!empty($summaryParsed['sentiment'])): ?>
-      <p style="font-size:13.5px;color:var(--n700);line-height:1.85;margin-bottom:10px;">
-        <?= e($summaryParsed['sentiment']) ?>
-      </p>
-      <?php endif; ?>
-
-      <!-- Paragraph 3: Topics -->
-      <?php if (!empty($summaryParsed['topics'])): ?>
-      <p style="font-size:13.5px;color:var(--n700);line-height:1.85;margin-bottom:16px;">
-        <?= e($summaryParsed['topics']) ?>
-      </p>
-      <?php endif; ?>
-
-      <!-- Concerns -->
-      <?php if (!empty($summaryParsed['concerns'])): ?>
-      <div style="margin-bottom:14px;">
-        <div style="font-size:11.5px;font-weight:700;color:var(--red);
-                    text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">
-          ⚠ Concerns Raised
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <?php foreach ($summaryParsed['concerns'] as $c): ?>
-          <div style="background:#FFF5F5;border:1px solid #FECACA;
-                      border-left:3px solid var(--red);
-                      border-radius:8px;padding:10px 14px;">
-            <div style="font-size:11px;font-weight:700;color:var(--red);
-                        text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">
-              <?= e($c['source']) ?>
-              <?php if (!empty($c['dimension'])): ?>
-              <span style="font-weight:500;color:var(--n500);
-                           text-transform:none;margin-left:6px;">
-                · <?= e($c['dimension']) ?>
-              </span>
-              <?php endif; ?>
-              <?php if (!empty($c['indicator'])): ?>
-              <span style="font-weight:500;color:var(--n400);
-                           text-transform:none;margin-left:4px;font-family:monospace;">
-                [<?= e($c['indicator']) ?>]
-              </span>
-              <?php endif; ?>
-            </div>
-            <div style="font-size:13.5px;color:var(--n800);line-height:1.7;font-style:italic;">
-              "<?= e($c['text']) ?>"
-            </div>
-          </div>
-          <?php endforeach; ?>
-        </div>
-      </div>
-      <?php endif; ?>
-
-      <!-- Positives -->
-      <?php if (!empty($summaryParsed['positives'])): ?>
-      <div>
-        <div style="font-size:11.5px;font-weight:700;color:var(--g600);
-                    text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">
-          ✓ Positive Feedback
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <?php foreach ($summaryParsed['positives'] as $p): ?>
-          <div style="background:var(--g50);border:1px solid var(--g200);
-                      border-left:3px solid var(--g500);
-                      border-radius:8px;padding:10px 14px;">
-            <div style="font-size:11px;font-weight:700;color:var(--g600);
-                        text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">
-              <?= e($p['source']) ?>
-            </div>
-            <div style="font-size:13.5px;color:var(--n800);line-height:1.7;font-style:italic;">
-              "<?= e($p['text']) ?>"
-            </div>
-          </div>
-          <?php endforeach; ?>
-        </div>
-      </div>
-      <?php endif; ?>
-
-    <?php else: ?>
-      <!-- Fallback: plain text for old format -->
-      <div style="font-size:13.5px;color:var(--n700);line-height:1.85;white-space:pre-line;">
-        <?= nl2br(e(is_string($summaryRaw) ? $summaryRaw : '')) ?>
-      </div>
-    <?php endif; ?>
-
+    <div style="font-size:13px;color:var(--n700);line-height:1.8;white-space:pre-line;">
+      <?= nl2br(e($sections['remarks_summary'])) ?>
+    </div>
   </div>
   <?php endif; ?>
 
@@ -1107,11 +1060,7 @@ function parseRecommendationSections(string $text): array {
     }
 
     saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction);
-    $rawSummary = implode("\n", $remarkLines);
-    $decoded    = json_decode($rawSummary, true);
-    $sections['remarks_summary'] = ($decoded !== null && is_array($decoded))
-        ? $decoded
-        : $rawSummary;
+    $sections['remarks_summary'] = implode("\n", $remarkLines);
     return $sections;
 }
 

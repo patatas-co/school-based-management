@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 15, 2026 at 02:37 AM
+-- Generation Time: Mar 15, 2026 at 04:57 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -135,7 +135,87 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (91, 5, 'submit_assessment', 'self_assessment', 'Submitted SBM assessment cycle 4', '::1', '2026-03-14 23:34:39'),
 (92, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-15 00:01:41'),
 (93, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 00:02:04'),
-(94, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-15 00:35:24');
+(94, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-15 00:35:24'),
+(95, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-15 02:07:11'),
+(96, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 02:07:18'),
+(97, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-15 02:47:09'),
+(98, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 02:47:18'),
+(99, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-15 02:47:39'),
+(100, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 10:07:58'),
+(101, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 10:08:16'),
+(102, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-15 10:56:25'),
+(103, 2, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 2 submitted for cycle 5', '::1', '2026-03-15 10:57:09'),
+(104, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 10:57:16'),
+(105, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 10:58:34'),
+(106, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 10:58:52'),
+(107, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 11:11:59'),
+(108, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 11:12:52'),
+(109, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 11:18:37'),
+(110, 1, 'create_user', 'users', 'Created user: Julia', '::1', '2026-03-15 11:19:35'),
+(111, 1, 'create_user', 'users', 'Created user: Juan', '::1', '2026-03-15 11:20:09'),
+(112, 1, 'create_user', 'users', 'Created user: Justine', '::1', '2026-03-15 11:20:53'),
+(113, 1, 'create_user', 'users', 'Created user: Axl', '::1', '2026-03-15 11:21:39'),
+(114, 12, 'login', 'auth', 'User logged in', '::1', '2026-03-15 11:21:54'),
+(115, 14, 'login', 'auth', 'User logged in', '::1', '2026-03-15 11:22:14'),
+(116, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 11:22:43'),
+(117, 1, 'update_user', 'users', 'Updated user ID: 13', '::1', '2026-03-15 11:22:58'),
+(118, 13, 'login', 'auth', 'User logged in', '::1', '2026-03-15 11:23:06'),
+(119, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 11:23:29'),
+(120, 15, 'login', 'auth', 'User logged in', '::1', '2026-03-15 11:23:45'),
+(121, 15, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 15 submitted for cycle 5', '::1', '2026-03-15 11:24:44'),
+(122, 12, 'login', 'auth', 'User logged in', '::1', '2026-03-15 11:24:53'),
+(123, 12, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 12 submitted for cycle 5', '::1', '2026-03-15 11:26:13'),
+(124, 13, 'login', 'auth', 'User logged in', '::1', '2026-03-15 11:26:21'),
+(125, 13, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 13 submitted for cycle 5', '::1', '2026-03-15 11:27:06'),
+(126, 14, 'login', 'auth', 'User logged in', '::1', '2026-03-15 11:27:12'),
+(127, 14, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 14 submitted for cycle 5', '::1', '2026-03-15 11:28:24'),
+(128, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 11:28:30'),
+(129, 5, 'submit_assessment', 'self_assessment', 'Submitted SBM assessment cycle 5', '::1', '2026-03-15 11:51:52'),
+(130, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 12:11:41'),
+(131, 1, 'validate_assessment', 'assessment', 'Validated cycle ID:5', '::1', '2026-03-15 12:11:49'),
+(132, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 12:12:04'),
+(133, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 12:29:16'),
+(134, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-15 12:29:30'),
+(135, 2, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 2 submitted for cycle 6', '::1', '2026-03-15 12:31:56'),
+(136, 14, 'login', 'auth', 'User logged in', '::1', '2026-03-15 12:32:03'),
+(137, 14, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 14 submitted for cycle 6', '::1', '2026-03-15 12:32:49'),
+(138, 15, 'login', 'auth', 'User logged in', '::1', '2026-03-15 12:32:55'),
+(139, 15, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 15 submitted for cycle 6', '::1', '2026-03-15 12:33:34'),
+(140, 12, 'login', 'auth', 'User logged in', '::1', '2026-03-15 12:33:40'),
+(141, 12, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 12 submitted for cycle 6', '::1', '2026-03-15 12:34:30'),
+(142, 13, 'login', 'auth', 'User logged in', '::1', '2026-03-15 12:34:37'),
+(143, 13, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 13 submitted for cycle 6', '::1', '2026-03-15 12:35:58'),
+(144, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 12:36:05'),
+(145, 5, 'submit_assessment', 'self_assessment', 'Submitted SBM assessment cycle 6', '::1', '2026-03-15 12:37:33'),
+(146, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 13:02:01'),
+(147, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 13:02:27'),
+(148, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-15 13:02:48'),
+(149, 2, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 2 submitted for cycle 7', '::1', '2026-03-15 13:04:31'),
+(150, 15, 'login', 'auth', 'User logged in', '::1', '2026-03-15 13:04:38'),
+(151, 15, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 15 submitted for cycle 7', '::1', '2026-03-15 13:05:29'),
+(152, 12, 'login', 'auth', 'User logged in', '::1', '2026-03-15 13:05:38'),
+(153, 12, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 12 submitted for cycle 7', '::1', '2026-03-15 13:06:24'),
+(154, 13, 'login', 'auth', 'User logged in', '::1', '2026-03-15 13:06:36'),
+(155, 13, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 13 submitted for cycle 7', '::1', '2026-03-15 13:07:32'),
+(156, 14, 'login', 'auth', 'User logged in', '::1', '2026-03-15 13:07:39'),
+(157, 14, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 14 submitted for cycle 7', '::1', '2026-03-15 13:08:16'),
+(158, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 13:08:23'),
+(159, 5, 'submit_assessment', 'self_assessment', 'Submitted SBM assessment cycle 7', '::1', '2026-03-15 13:09:01'),
+(160, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:16:01'),
+(161, 15, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:16:50'),
+(162, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:17:26'),
+(163, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:17:36'),
+(164, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:41:16'),
+(165, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:42:53'),
+(166, 1, 'update_user', 'users', 'Updated user ID: 10', '::1', '2026-03-15 14:43:09'),
+(167, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:43:21'),
+(168, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:43:39'),
+(169, 1, 'validate_assessment', 'view_assessment', 'Validated cycle ID:7', '::1', '2026-03-15 14:44:12'),
+(170, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:44:58'),
+(171, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:45:44'),
+(172, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:46:20'),
+(173, 1, 'update_user', 'users', 'Updated user ID: 8', '::1', '2026-03-15 14:46:42'),
+(174, 8, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:46:51');
 
 -- --------------------------------------------------------
 
@@ -239,16 +319,54 @@ CREATE TABLE `improvement_plans` (
 --
 
 INSERT INTO `improvement_plans` (`plan_id`, `school_id`, `cycle_id`, `dimension_id`, `indicator_id`, `priority_level`, `objective`, `strategy`, `person_responsible`, `target_date`, `resources_needed`, `expected_output`, `status`, `remarks`, `created_by`, `created_at`) VALUES
-(3, 1, 4, 1, 3, 'Medium', 'Improve performance on indicator 1.3: Learner proficiency rate in Grade 10 meets or exceeds the national target.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-14 23:35:02');
+(8, 1, 7, 1, 3, 'Medium', 'Improve performance on indicator 1.3: Learner proficiency rate in Grade 10 meets or exceeds the national target.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 13:09:13'),
+(9, 1, 7, 2, 14, 'Medium', 'Improve performance on indicator 2.6: A Disaster Risk Reduction and Management (DRRM) plan is formulated, practiced, and updated.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 13:09:13'),
+(10, 1, 7, 2, 17, 'Medium', 'Improve performance on indicator 2.9: Safe school environment audit is conducted and findings are addressed.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 13:09:13'),
+(11, 1, 7, 4, 25, 'Medium', 'Improve performance on indicator 4.3: Stakeholder partnerships (LGU, NGO, alumni, private sector) are documented and active.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 13:09:13'),
+(12, 1, 7, 4, 27, 'Medium', 'Improve performance on indicator 4.5: Stakeholder satisfaction survey is conducted and results are used for improvement.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 13:09:13'),
+(13, 1, 7, 6, 41, 'Medium', 'Improve performance on indicator 6.6: MOOE utilization rate reaches 100% with proper documentation.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 13:09:13'),
+(14, 1, 7, 2, 9, 'High', 'Improve performance on indicator 2.1: The school has a zero-bullying policy that is implemented, monitored, and updated regularly.', 'Develop targeted interventions to address areas rated \'Not Yet Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(15, 1, 7, 4, 23, 'Medium', 'Improve performance on indicator 4.1: School Governance Council (SGC) records are complete, updated, and actions are documented.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(16, 1, 7, 1, 5, 'Medium', 'Improve performance on indicator 1.5: Results of NAT/PEPT/ALS A&E are analyzed and used to improve instructional programs.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(17, 1, 7, 6, 37, 'Medium', 'Improve performance on indicator 6.2: Infrastructure maintenance plan is implemented and documented.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(18, 1, 7, 6, 40, 'Medium', 'Improve performance on indicator 6.5: Laboratory equipment is functional, adequate, and used for instruction.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(19, 1, 7, 5, 29, 'Medium', 'Improve performance on indicator 5.1: All teaching and non-teaching personnel accomplish IPCR/OPCR on time.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(20, 1, 7, 5, 31, 'Medium', 'Improve performance on indicator 5.3: Teachers participate in professional development activities (trainings, seminars, scholarships).', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(21, 1, 7, 5, 32, 'Medium', 'Improve performance on indicator 5.4: Employee recognition programs are implemented to motivate and reward outstanding performance.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(22, 1, 7, 5, 34, 'Medium', 'Improve performance on indicator 5.6: HR development programs for non-teaching staff are implemented.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(23, 1, 7, 5, 35, 'Medium', 'Improve performance on indicator 5.7: Succession planning and talent management practices are in place.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(24, 1, 7, 3, 20, 'Medium', 'Improve performance on indicator 3.2: A school-community planning team is established and functional.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(25, 1, 7, 3, 22, 'Medium', 'Improve performance on indicator 3.4: The school head implements innovations in frontline service delivery.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(26, 1, 7, 2, 10, 'Medium', 'Improve performance on indicator 2.2: Dropout rate is within the national target, with active early warning and intervention systems.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(27, 1, 7, 2, 15, 'Medium', 'Improve performance on indicator 2.7: Mental wellness programs for learners are implemented and monitored.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16'),
+(28, 1, 7, 2, 18, 'Medium', 'Improve performance on indicator 2.10: Learners actively participate in school governance through SSG/SPG and other bodies.', 'Develop targeted interventions to address areas rated \'Emerging\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 5, '2026-03-15 14:29:16');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `ml_comment_analysis`
+--
+
+CREATE TABLE `ml_comment_analysis` (
+  `analysis_id` int(11) NOT NULL,
+  `cycle_id` int(11) NOT NULL,
+  `indicator_id` int(11) DEFAULT NULL,
+  `dimension_id` int(11) DEFAULT NULL,
+  `comment_count` int(11) DEFAULT 0,
+  `sentiment_pos` int(11) DEFAULT 0,
+  `sentiment_neg` int(11) DEFAULT 0,
+  `sentiment_neu` int(11) DEFAULT 0,
+  `top_topics` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`top_topics`)),
+  `has_urgent` tinyint(1) DEFAULT 0,
+  `urgency_details` text DEFAULT NULL,
+  `generated_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
 --
 -- Table structure for table `ml_predictions`
 --
-
--- ⚠️  ml_predictions: Schema placeholder for future ML integration.
--- No application code currently reads or writes this table.
 
 CREATE TABLE `ml_predictions` (
   `pred_id` int(11) NOT NULL,
@@ -263,6 +381,30 @@ CREATE TABLE `ml_predictions` (
   `confidence_score` decimal(4,3) DEFAULT 0.000,
   `generated_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `ml_recommendations`
+--
+
+CREATE TABLE `ml_recommendations` (
+  `rec_id` int(11) NOT NULL,
+  `cycle_id` int(11) NOT NULL,
+  `recommendation_text` text NOT NULL,
+  `generated_by` varchar(60) DEFAULT 'rule_based',
+  `top_topics` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`top_topics`)),
+  `has_urgent` tinyint(1) DEFAULT 0,
+  `sentiment_summary` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`sentiment_summary`)),
+  `generated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `ml_recommendations`
+--
+
+INSERT INTO `ml_recommendations` (`rec_id`, `cycle_id`, `recommendation_text`, `generated_by`, `top_topics`, `has_urgent`, `sentiment_summary`, `generated_at`) VALUES
+(20, 7, 'SCHOOL IMPROVEMENT PLAN RECOMMENDATIONS\nSchool: Dasmariñas Integrated High School | SY: 2024-2025\nOverall SBM Score: 71.29% | Maturity Level: Maturing\n────────────────────────────────────────────────────────────\n\n📊 ASSESSMENT OVERVIEW\nTotal Indicators Rated: 42\n  ▪ Not Yet Manifested (1): 1 indicator(s) — Requires immediate action\n  ▪ Emerging (2):           20 indicator(s) — Needs focused intervention\n  ▪ Developing (3):         16 indicator(s) — Continue and strengthen\n  ▪ Always Manifested (4):  5 indicator(s) — Sustain and document\n\n📝 STAKEHOLDER REMARKS SUMMARY\nA total of 4 remarks were collected for this assessment cycle, coming from 4 teachers.\nThe overall tone of the feedback was mostly neutral or observational in nature. Of the 4 remarks, 0 were positive, 1 raised concerns, and 3 were neutral or descriptive.\nThe most frequently mentioned topic in the feedback was Bullying.\n\nConcerns raised:\n  • (Teacher [Learning Environment]): \"none, but according to the last meeting it will be conduct later this year\"\n\n🔴 PRIORITY 1 — NOT YET MANIFESTED (Immediate Action Required)\nThese 1 indicator(s) have not been demonstrated and need urgent attention:\n\n  📌 Learning Environment:\n     [2.1] The school has a zero-bullying policy that is implemented, monitored, and updated regularly.\n     → RECOMMENDED ACTION: Establish a baseline program immediately. Assign a point person,\n       set a 30-day implementation target, and document all initial steps taken.\n\n🟡 PRIORITY 2 — EMERGING (Focused Intervention Needed)\nThese 20 indicator(s) show early signs but need structured support:\n\n  📌 Curriculum and Teaching:\n     [1.3] Learner proficiency rate in Grade 10 meets or exceeds the national target.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [1.5] Results of NAT/PEPT/ALS A&E are analyzed and used to improve instructional programs.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n\n  📌 Learning Environment:\n     [2.6] A Disaster Risk Reduction and Management (DRRM) plan is formulated, practiced, and updated.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [2.9] Safe school environment audit is conducted and findings are addressed.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [2.2] Dropout rate is within the national target, with active early warning and intervention systems.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [2.10] Learners actively participate in school governance through SSG/SPG and other bodies.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [2.7] Mental wellness programs for learners are implemented and monitored.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n\n  📌 Accountability and Continuous Improvement:\n     [4.3] Stakeholder partnerships (LGU, NGO, alumni, private sector) are documented and active.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [4.5] Stakeholder satisfaction survey is conducted and results are used for improvement.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [4.1] School Governance Council (SGC) records are complete, updated, and actions are documented.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n\n  📌 Finance and Resource Management:\n     [6.6] MOOE utilization rate reaches 100% with proper documentation.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [6.2] Infrastructure maintenance plan is implemented and documented.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [6.5] Laboratory equipment is functional, adequate, and used for instruction.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n\n  📌 Leadership and Governance:\n     [3.4] The school head implements innovations in frontline service delivery.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [3.2] A school-community planning team is established and functional.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n\n  📌 Human Resource Development:\n     [5.1] All teaching and non-teaching personnel accomplish IPCR/OPCR on time.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [5.3] Teachers participate in professional development activities (trainings, seminars, scholarships).\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [5.4] Employee recognition programs are implemented to motivate and reward outstanding performance.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [5.7] Succession planning and talent management practices are in place.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n     [5.6] HR development programs for non-teaching staff are implemented.\n     → RECOMMENDED ACTION: Develop a structured action plan with clear milestones.\n       Conduct LAC sessions, identify resource gaps, and monitor progress quarterly.\n\n🔵 PRIORITY 3 — DEVELOPING (Continue & Strengthen)\nThese 16 indicator(s) show good progress and should be maintained:\n\n  📌 Curriculum and Teaching:\n     [1.2] Learner proficiency rate in Grade 6 meets or exceeds the national target.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n     [1.4] Learner proficiency rate in Grade 12 or ALS completion rate meets or exceeds the national target.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n     [1.8] TLE/TVL programs have active industry partnerships and produce certified graduates.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n     [1.7] Remediation, enhancement, and intervention programs are implemented for at-risk learners.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n     [1.6] Contextualized and localized learning materials are developed and used by teachers.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n\n  📌 Accountability and Continuous Improvement:\n     [4.4] Monitoring and evaluation of school programs is conducted regularly with documented results.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n\n  📌 Finance and Resource Management:\n     [6.7] Liquidation reports are submitted on time and complete.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n     [6.4] Library resources are adequate, updated, and accessible to all learners.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n     [6.1] School facilities inventory is updated and submitted on time.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n     [6.3] Water, electricity, and internet utilities are functional and adequate.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n\n  📌 Learning Environment:\n     [2.3] Out-of-School Youth (OSY) re-entry programs and ALS are actively implemented.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n     [2.4] School activities are culture-sensitive, inclusive, and respectful of learner diversity.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n\n  📌 Leadership and Governance:\n     [3.3] SSG/SPG is organized, trained, and actively implements programs.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n     [3.1] The School Improvement Plan (SIP) is developed collaboratively with all stakeholders and implemented.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n\n  📌 Human Resource Development:\n     [5.2] Learning Action Cells (LAC) sessions are conducted regularly with documented outcomes.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n     [5.5] Teacher workload is within prescribed limits and fairly distributed.\n     → RECOMMENDED ACTION: Scale current practices. Document best practices,\n       share with other schools, and target transition to \'Always Manifested\' next cycle.\n\n🟢 SUSTAINED PRACTICES — ALWAYS MANIFESTED\nThese 5 indicator(s) are consistently implemented — keep it up:\n\n  📌 Curriculum and Teaching:\n     [1.1] Learner proficiency rate in Grade 3 (Literacy and Numeracy) meets or exceeds the national target.\n     → Continue current practices. Document these as best practices in the SIP.\n       Consider sharing these with neighboring schools as models.\n\n  📌 Learning Environment:\n     [2.5] The Child Protection Committee (CPC) is organized, functional, and conducts regular activities.\n     → Continue current practices. Document these as best practices in the SIP.\n       Consider sharing these with neighboring schools as models.\n     [2.8] School facilities are accessible for learners with disabilities (SPED/PWD compliance).\n     → Continue current practices. Document these as best practices in the SIP.\n       Consider sharing these with neighboring schools as models.\n\n  📌 Accountability and Continuous Improvement:\n     [4.2] PTA is organized and actively engaged in school planning and monitoring.\n     → Continue current practices. Document these as best practices in the SIP.\n       Consider sharing these with neighboring schools as models.\n     [4.6] Transparency board and public financial disclosures are updated and accessible.\n     → Continue current practices. Document these as best practices in the SIP.\n       Consider sharing these with neighboring schools as models.\n\n📐 DIMENSION-LEVEL PRIORITY ACTIONS\n\n  Finance and Resource Management (67.86% — Maturing):\n  → Good progress noted. Focus on the remaining weak indicators to reach the\n    Advanced level. Current gap from average: 3.7%.\n\n  Learning Environment (68% — Maturing):\n  → Good progress noted. Focus on the remaining weak indicators to reach the\n    Advanced level. Current gap from average: 3.6%.\n\n  Accountability and Continuous Improvement (74.17% — Maturing):\n  → Good progress noted. Focus on the remaining weak indicators to reach the\n    Advanced level. Current gap from average: -2.6%.\n\n💬 RECOMMENDATIONS FROM STAKEHOLDER REMARKS\n\n  [Bullying]\n  → Strengthen the anti-bullying program. Ensure the Child Protection Committee (CPC) is active, conducts quarterly sessions, and all incidents are documented and resolved.\n\n────────────────────────────────────────────────────────────\nNOTE: These recommendations are generated based on the SBM self-assessment data\nsubmitted by Dasmariñas Integrated High School for SY 2024-2025. All action plans should be\nintegrated into the School Improvement Plan (SIP) and monitored quarterly by the SDO.\nFor dimensions rated \'Beginning\' or \'Developing\', SDO technical assistance is strongly advised.', 'rule_based', '[\"bullying\"]', 0, '{\"positive\":0,\"negative\":1,\"neutral\":3}', '2026-03-15 14:45:23');
 
 -- --------------------------------------------------------
 
@@ -309,7 +451,7 @@ CREATE TABLE `sbm_cycles` (
 --
 
 INSERT INTO `sbm_cycles` (`cycle_id`, `sy_id`, `school_id`, `status`, `overall_score`, `maturity_level`, `started_at`, `submitted_at`, `validated_by`, `validated_at`, `validator_remarks`, `created_at`) VALUES
-(4, 1, 1, 'submitted', 85.71, 'Advanced', '2026-03-14 19:23:12', '2026-03-15 07:34:39', NULL, NULL, NULL, '2026-03-14 11:23:12');
+(7, 1, 1, 'validated', 71.29, 'Maturing', '2026-03-15 21:02:54', '2026-03-15 21:09:01', 1, '2026-03-15 22:44:12', 'need improvement', '2026-03-15 13:02:54');
 
 -- --------------------------------------------------------
 
@@ -361,10 +503,10 @@ CREATE TABLE `sbm_dimension_scores` (
 --
 
 INSERT INTO `sbm_dimension_scores` (`score_id`, `cycle_id`, `school_id`, `dimension_id`, `raw_score`, `max_score`, `percentage`, `computed_at`) VALUES
-(105, 4, 1, 1, 9.00, 12.00, 75.00, '2026-03-14 23:34:00'),
-(133, 4, 1, 2, 14.00, 16.00, 87.50, '2026-03-14 23:34:17'),
-(137, 4, 1, 4, 19.00, 20.00, 95.00, '2026-03-14 23:34:23'),
-(142, 4, 1, 6, 6.00, 8.00, 75.00, '2026-03-14 23:34:27');
+(174, 7, 1, 1, 24.40, 32.00, 76.25, '2026-03-15 13:08:47'),
+(177, 7, 1, 2, 27.20, 40.00, 68.00, '2026-03-15 13:08:51'),
+(181, 7, 1, 4, 17.80, 24.00, 74.17, '2026-03-15 13:08:58'),
+(186, 7, 1, 6, 19.00, 28.00, 67.86, '2026-03-15 13:09:00');
 
 -- --------------------------------------------------------
 
@@ -453,20 +595,20 @@ CREATE TABLE `sbm_responses` (
 --
 
 INSERT INTO `sbm_responses` (`response_id`, `cycle_id`, `indicator_id`, `school_id`, `rating`, `evidence_text`, `file_path`, `rated_by`, `rated_at`) VALUES
-(121, 4, 1, 1, 3, '', NULL, 5, '2026-03-14 23:33:57'),
-(122, 4, 2, 1, 4, '', NULL, 5, '2026-03-14 23:33:59'),
-(123, 4, 3, 1, 2, '', NULL, 5, '2026-03-14 23:34:00'),
-(124, 4, 13, 1, 4, '', NULL, 5, '2026-03-14 23:34:14'),
-(125, 4, 14, 1, 4, '', NULL, 5, '2026-03-14 23:34:15'),
-(126, 4, 17, 1, 3, '', NULL, 5, '2026-03-14 23:34:16'),
-(127, 4, 16, 1, 3, '', NULL, 5, '2026-03-14 23:34:17'),
-(128, 4, 24, 1, 4, '', NULL, 5, '2026-03-14 23:34:18'),
-(129, 4, 25, 1, 4, '', NULL, 5, '2026-03-14 23:34:21'),
-(130, 4, 26, 1, 3, '', NULL, 5, '2026-03-14 23:34:21'),
-(131, 4, 28, 1, 4, '', NULL, 5, '2026-03-14 23:34:23'),
-(132, 4, 27, 1, 4, '', NULL, 5, '2026-03-14 23:34:23'),
-(133, 4, 41, 1, 3, '', NULL, 5, '2026-03-14 23:34:26'),
-(134, 4, 42, 1, 3, '', NULL, 5, '2026-03-14 23:34:27');
+(165, 7, 1, 1, 4, '', NULL, 5, '2026-03-15 13:08:44'),
+(166, 7, 2, 1, 3, '', NULL, 5, '2026-03-15 13:08:46'),
+(167, 7, 3, 1, 2, '', NULL, 5, '2026-03-15 13:08:47'),
+(168, 7, 13, 1, 4, '', NULL, 5, '2026-03-15 13:08:48'),
+(169, 7, 14, 1, 2, '', NULL, 5, '2026-03-15 13:08:49'),
+(170, 7, 16, 1, 4, '', NULL, 5, '2026-03-15 13:08:50'),
+(171, 7, 17, 1, 2, '', NULL, 5, '2026-03-15 13:08:51'),
+(172, 7, 24, 1, 4, '', NULL, 5, '2026-03-15 13:08:52'),
+(173, 7, 25, 1, 2, '', NULL, 5, '2026-03-15 13:08:54'),
+(174, 7, 26, 1, 3, '', NULL, 5, '2026-03-15 13:08:55'),
+(175, 7, 27, 1, 2, '', NULL, 5, '2026-03-15 13:08:56'),
+(176, 7, 28, 1, 4, '', NULL, 5, '2026-03-15 13:08:58'),
+(177, 7, 41, 1, 2, '', NULL, 5, '2026-03-15 13:08:59'),
+(178, 7, 42, 1, 3, '', NULL, 5, '2026-03-15 13:09:00');
 
 -- --------------------------------------------------------
 
@@ -547,13 +689,6 @@ CREATE TABLE `school_workflow_status` (
   `remarks` text DEFAULT NULL,
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `school_workflow_status`
---
-
-INSERT INTO `school_workflow_status` (`wf_id`, `school_id`, `sy_id`, `current_phase`, `phase1_started_at`, `phase1_done_at`, `phase2_started_at`, `phase2_done_at`, `phase3_started_at`, `q1_monitored_at`, `q2_monitored_at`, `q3_monitored_at`, `phase3_done_at`, `overall_status`, `remarks`, `updated_at`) VALUES
-(1, 1, 1, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'not_started', NULL, '2026-03-12 11:57:51');
 
 -- --------------------------------------------------------
 
@@ -677,34 +812,146 @@ CREATE TABLE `teacher_responses` (
 --
 
 INSERT INTO `teacher_responses` (`tr_id`, `cycle_id`, `indicator_id`, `school_id`, `teacher_id`, `rating`, `remarks`, `status`, `created_at`, `updated_at`) VALUES
-(78, 4, 4, 1, 2, 4, '', 'draft', '2026-03-14 23:32:46', '2026-03-14 23:32:46'),
-(79, 4, 5, 1, 2, 3, '', 'draft', '2026-03-14 23:32:49', '2026-03-14 23:32:49'),
-(80, 4, 6, 1, 2, 4, '', 'draft', '2026-03-14 23:32:51', '2026-03-14 23:32:51'),
-(81, 4, 7, 1, 2, 2, '', 'draft', '2026-03-14 23:32:52', '2026-03-14 23:32:52'),
-(82, 4, 8, 1, 2, 4, '', 'draft', '2026-03-14 23:32:54', '2026-03-14 23:32:54'),
-(83, 4, 9, 1, 2, 2, '', 'draft', '2026-03-14 23:32:56', '2026-03-14 23:32:56'),
-(84, 4, 10, 1, 2, 4, '', 'draft', '2026-03-14 23:32:57', '2026-03-14 23:32:57'),
-(85, 4, 11, 1, 2, 3, '', 'draft', '2026-03-14 23:32:58', '2026-03-14 23:32:58'),
-(86, 4, 12, 1, 2, 4, '', 'draft', '2026-03-14 23:32:59', '2026-03-14 23:32:59'),
-(87, 4, 15, 1, 2, 2, '', 'draft', '2026-03-14 23:33:00', '2026-03-14 23:33:00'),
-(88, 4, 18, 1, 2, 3, '', 'draft', '2026-03-14 23:33:01', '2026-03-14 23:33:01'),
-(89, 4, 19, 1, 2, 4, '', 'draft', '2026-03-14 23:33:02', '2026-03-14 23:33:02'),
-(90, 4, 20, 1, 2, 4, '', 'draft', '2026-03-14 23:33:03', '2026-03-14 23:33:03'),
-(91, 4, 21, 1, 2, 3, '', 'draft', '2026-03-14 23:33:05', '2026-03-14 23:33:05'),
-(92, 4, 22, 1, 2, 3, '', 'draft', '2026-03-14 23:33:06', '2026-03-14 23:33:06'),
-(93, 4, 23, 1, 2, 4, '', 'draft', '2026-03-14 23:33:07', '2026-03-14 23:33:07'),
-(94, 4, 29, 1, 2, 3, '', 'draft', '2026-03-14 23:33:08', '2026-03-14 23:33:08'),
-(95, 4, 30, 1, 2, 4, '', 'draft', '2026-03-14 23:33:09', '2026-03-14 23:33:09'),
-(96, 4, 31, 1, 2, 3, '', 'draft', '2026-03-14 23:33:10', '2026-03-14 23:33:10'),
-(97, 4, 32, 1, 2, 4, '', 'draft', '2026-03-14 23:33:12', '2026-03-14 23:33:12'),
-(98, 4, 33, 1, 2, 3, '', 'draft', '2026-03-14 23:33:12', '2026-03-14 23:33:12'),
-(99, 4, 34, 1, 2, 4, '', 'draft', '2026-03-14 23:33:14', '2026-03-14 23:33:14'),
-(100, 4, 35, 1, 2, 3, '', 'draft', '2026-03-14 23:33:15', '2026-03-14 23:33:15'),
-(101, 4, 36, 1, 2, 4, '', 'draft', '2026-03-14 23:33:16', '2026-03-14 23:33:16'),
-(102, 4, 37, 1, 2, 3, '', 'draft', '2026-03-14 23:33:17', '2026-03-14 23:33:17'),
-(103, 4, 38, 1, 2, 4, '', 'draft', '2026-03-14 23:33:19', '2026-03-14 23:33:19'),
-(104, 4, 39, 1, 2, 3, '', 'draft', '2026-03-14 23:33:19', '2026-03-14 23:33:19'),
-(105, 4, 40, 1, 2, 4, '', 'draft', '2026-03-14 23:33:21', '2026-03-14 23:33:21');
+(406, 7, 4, 1, 2, 3, '', 'submitted', '2026-03-15 13:02:54', '2026-03-15 13:04:31'),
+(407, 7, 5, 1, 2, 4, '', 'submitted', '2026-03-15 13:02:55', '2026-03-15 13:04:31'),
+(408, 7, 6, 1, 2, 3, '', 'submitted', '2026-03-15 13:02:56', '2026-03-15 13:04:31'),
+(409, 7, 7, 1, 2, 4, '', 'submitted', '2026-03-15 13:02:57', '2026-03-15 13:04:31'),
+(410, 7, 8, 1, 2, 3, '', 'submitted', '2026-03-15 13:02:58', '2026-03-15 13:04:31'),
+(411, 7, 9, 1, 2, 1, 'none, but according to the last meeting it will be conduct later this year', 'submitted', '2026-03-15 13:03:11', '2026-03-15 13:04:31'),
+(413, 7, 10, 1, 2, 1, 'marami pa rin cases of dropouts within the institution', 'submitted', '2026-03-15 13:03:37', '2026-03-15 13:04:31'),
+(417, 7, 11, 1, 2, 2, '', 'submitted', '2026-03-15 13:04:03', '2026-03-15 13:04:31'),
+(418, 7, 12, 1, 2, 4, '', 'submitted', '2026-03-15 13:04:04', '2026-03-15 13:04:31'),
+(420, 7, 15, 1, 2, 2, '', 'submitted', '2026-03-15 13:04:07', '2026-03-15 13:04:31'),
+(421, 7, 18, 1, 2, 1, '', 'submitted', '2026-03-15 13:04:09', '2026-03-15 13:04:31'),
+(422, 7, 19, 1, 2, 4, '', 'submitted', '2026-03-15 13:04:10', '2026-03-15 13:04:31'),
+(423, 7, 20, 1, 2, 2, '', 'submitted', '2026-03-15 13:04:11', '2026-03-15 13:04:31'),
+(424, 7, 21, 1, 2, 3, '', 'submitted', '2026-03-15 13:04:12', '2026-03-15 13:04:31'),
+(425, 7, 22, 1, 2, 2, '', 'submitted', '2026-03-15 13:04:14', '2026-03-15 13:04:31'),
+(426, 7, 23, 1, 2, 4, '', 'submitted', '2026-03-15 13:04:15', '2026-03-15 13:04:31'),
+(427, 7, 29, 1, 2, 2, '', 'submitted', '2026-03-15 13:04:16', '2026-03-15 13:04:31'),
+(428, 7, 30, 1, 2, 3, '', 'submitted', '2026-03-15 13:04:17', '2026-03-15 13:04:31'),
+(429, 7, 31, 1, 2, 2, '', 'submitted', '2026-03-15 13:04:18', '2026-03-15 13:04:31'),
+(430, 7, 32, 1, 2, 3, '', 'submitted', '2026-03-15 13:04:19', '2026-03-15 13:04:31'),
+(431, 7, 33, 1, 2, 2, '', 'submitted', '2026-03-15 13:04:20', '2026-03-15 13:04:31'),
+(432, 7, 34, 1, 2, 3, '', 'submitted', '2026-03-15 13:04:21', '2026-03-15 13:04:31'),
+(433, 7, 35, 1, 2, 2, '', 'submitted', '2026-03-15 13:04:22', '2026-03-15 13:04:31'),
+(434, 7, 36, 1, 2, 3, '', 'submitted', '2026-03-15 13:04:24', '2026-03-15 13:04:31'),
+(435, 7, 37, 1, 2, 1, '', 'submitted', '2026-03-15 13:04:25', '2026-03-15 13:04:31'),
+(436, 7, 38, 1, 2, 4, '', 'submitted', '2026-03-15 13:04:26', '2026-03-15 13:04:31'),
+(437, 7, 39, 1, 2, 2, '', 'submitted', '2026-03-15 13:04:28', '2026-03-15 13:04:31'),
+(438, 7, 40, 1, 2, 3, '', 'submitted', '2026-03-15 13:04:29', '2026-03-15 13:04:31'),
+(439, 7, 4, 1, 15, 2, '', 'submitted', '2026-03-15 13:04:41', '2026-03-15 13:05:29'),
+(440, 7, 5, 1, 15, 3, '', 'submitted', '2026-03-15 13:04:42', '2026-03-15 13:05:29'),
+(441, 7, 6, 1, 15, 3, '', 'submitted', '2026-03-15 13:04:43', '2026-03-15 13:05:29'),
+(442, 7, 7, 1, 15, 2, '', 'submitted', '2026-03-15 13:04:45', '2026-03-15 13:05:29'),
+(443, 7, 8, 1, 15, 4, '', 'submitted', '2026-03-15 13:04:47', '2026-03-15 13:05:29'),
+(444, 7, 9, 1, 15, 1, 'marami pa rin cases of bullying', 'submitted', '2026-03-15 13:05:00', '2026-03-15 13:05:29'),
+(445, 7, 10, 1, 15, 3, '', 'submitted', '2026-03-15 13:05:02', '2026-03-15 13:05:29'),
+(446, 7, 11, 1, 15, 3, '', 'submitted', '2026-03-15 13:05:02', '2026-03-15 13:05:29'),
+(447, 7, 12, 1, 15, 2, '', 'submitted', '2026-03-15 13:05:04', '2026-03-15 13:05:29'),
+(448, 7, 15, 1, 15, 4, '', 'submitted', '2026-03-15 13:05:05', '2026-03-15 13:05:29'),
+(449, 7, 18, 1, 15, 3, '', 'submitted', '2026-03-15 13:05:06', '2026-03-15 13:05:29'),
+(450, 7, 19, 1, 15, 2, '', 'submitted', '2026-03-15 13:05:08', '2026-03-15 13:05:29'),
+(451, 7, 20, 1, 15, 3, '', 'submitted', '2026-03-15 13:05:09', '2026-03-15 13:05:29'),
+(452, 7, 21, 1, 15, 3, '', 'submitted', '2026-03-15 13:05:10', '2026-03-15 13:05:29'),
+(453, 7, 22, 1, 15, 2, '', 'submitted', '2026-03-15 13:05:11', '2026-03-15 13:05:29'),
+(454, 7, 23, 1, 15, 4, '', 'submitted', '2026-03-15 13:05:12', '2026-03-15 13:05:29'),
+(455, 7, 29, 1, 15, 2, '', 'submitted', '2026-03-15 13:05:13', '2026-03-15 13:05:29'),
+(457, 7, 30, 1, 15, 3, '', 'submitted', '2026-03-15 13:05:16', '2026-03-15 13:05:29'),
+(458, 7, 31, 1, 15, 2, '', 'submitted', '2026-03-15 13:05:17', '2026-03-15 13:05:29'),
+(459, 7, 32, 1, 15, 1, '', 'submitted', '2026-03-15 13:05:18', '2026-03-15 13:05:29'),
+(460, 7, 33, 1, 15, 4, '', 'submitted', '2026-03-15 13:05:19', '2026-03-15 13:05:29'),
+(461, 7, 34, 1, 15, 2, '', 'submitted', '2026-03-15 13:05:20', '2026-03-15 13:05:29'),
+(462, 7, 35, 1, 15, 3, '', 'submitted', '2026-03-15 13:05:21', '2026-03-15 13:05:29'),
+(463, 7, 36, 1, 15, 2, '', 'submitted', '2026-03-15 13:05:23', '2026-03-15 13:05:29'),
+(464, 7, 37, 1, 15, 4, '', 'submitted', '2026-03-15 13:05:24', '2026-03-15 13:05:29'),
+(465, 7, 38, 1, 15, 2, '', 'submitted', '2026-03-15 13:05:25', '2026-03-15 13:05:29'),
+(466, 7, 39, 1, 15, 3, '', 'submitted', '2026-03-15 13:05:26', '2026-03-15 13:05:29'),
+(467, 7, 40, 1, 15, 3, '', 'submitted', '2026-03-15 13:05:27', '2026-03-15 13:05:29'),
+(468, 7, 4, 1, 12, 3, '', 'submitted', '2026-03-15 13:05:41', '2026-03-15 13:06:24'),
+(469, 7, 5, 1, 12, 2, '', 'submitted', '2026-03-15 13:05:42', '2026-03-15 13:06:24'),
+(470, 7, 6, 1, 12, 3, '', 'submitted', '2026-03-15 13:05:43', '2026-03-15 13:06:24'),
+(471, 7, 7, 1, 12, 4, '', 'submitted', '2026-03-15 13:05:45', '2026-03-15 13:06:24'),
+(472, 7, 8, 1, 12, 2, '', 'submitted', '2026-03-15 13:05:46', '2026-03-15 13:06:24'),
+(473, 7, 9, 1, 12, 3, '', 'submitted', '2026-03-15 13:05:49', '2026-03-15 13:06:24'),
+(474, 7, 10, 1, 12, 2, '', 'submitted', '2026-03-15 13:05:51', '2026-03-15 13:06:24'),
+(475, 7, 11, 1, 12, 3, '', 'submitted', '2026-03-15 13:05:52', '2026-03-15 13:06:24'),
+(476, 7, 12, 1, 12, 4, '', 'submitted', '2026-03-15 13:05:53', '2026-03-15 13:06:24'),
+(477, 7, 15, 1, 12, 2, '', 'submitted', '2026-03-15 13:05:54', '2026-03-15 13:06:24'),
+(478, 7, 18, 1, 12, 1, '', 'submitted', '2026-03-15 13:05:55', '2026-03-15 13:06:24'),
+(479, 7, 19, 1, 12, 4, '', 'submitted', '2026-03-15 13:05:57', '2026-03-15 13:06:24'),
+(480, 7, 20, 1, 12, 2, '', 'submitted', '2026-03-15 13:05:59', '2026-03-15 13:06:24'),
+(481, 7, 21, 1, 12, 3, '', 'submitted', '2026-03-15 13:06:00', '2026-03-15 13:06:24'),
+(482, 7, 22, 1, 12, 2, '', 'submitted', '2026-03-15 13:06:01', '2026-03-15 13:06:24'),
+(483, 7, 23, 1, 12, 1, '', 'submitted', '2026-03-15 13:06:02', '2026-03-15 13:06:24'),
+(484, 7, 29, 1, 12, 4, '', 'submitted', '2026-03-15 13:06:03', '2026-03-15 13:06:24'),
+(485, 7, 30, 1, 12, 3, '', 'submitted', '2026-03-15 13:06:04', '2026-03-15 13:06:24'),
+(486, 7, 31, 1, 12, 2, '', 'submitted', '2026-03-15 13:06:06', '2026-03-15 13:06:24'),
+(487, 7, 32, 1, 12, 3, '', 'submitted', '2026-03-15 13:06:06', '2026-03-15 13:06:24'),
+(488, 7, 33, 1, 12, 3, '', 'submitted', '2026-03-15 13:06:07', '2026-03-15 13:06:24'),
+(489, 7, 34, 1, 12, 2, '', 'submitted', '2026-03-15 13:06:08', '2026-03-15 13:06:24'),
+(490, 7, 35, 1, 12, 4, '', 'submitted', '2026-03-15 13:06:09', '2026-03-15 13:06:24'),
+(491, 7, 36, 1, 12, 4, '', 'submitted', '2026-03-15 13:06:10', '2026-03-15 13:06:24'),
+(493, 7, 37, 1, 12, 2, '', 'submitted', '2026-03-15 13:06:13', '2026-03-15 13:06:24'),
+(494, 7, 38, 1, 12, 4, '', 'submitted', '2026-03-15 13:06:14', '2026-03-15 13:06:24'),
+(495, 7, 39, 1, 12, 3, '', 'submitted', '2026-03-15 13:06:15', '2026-03-15 13:06:24'),
+(496, 7, 40, 1, 12, 2, '', 'submitted', '2026-03-15 13:06:16', '2026-03-15 13:06:24'),
+(497, 7, 4, 1, 13, 4, '', 'submitted', '2026-03-15 13:06:39', '2026-03-15 13:07:32'),
+(498, 7, 5, 1, 13, 3, '', 'submitted', '2026-03-15 13:06:40', '2026-03-15 13:07:32'),
+(499, 7, 6, 1, 13, 4, '', 'submitted', '2026-03-15 13:06:41', '2026-03-15 13:07:32'),
+(500, 7, 7, 1, 13, 2, '', 'submitted', '2026-03-15 13:06:43', '2026-03-15 13:07:32'),
+(501, 7, 8, 1, 13, 3, '', 'submitted', '2026-03-15 13:06:44', '2026-03-15 13:07:32'),
+(502, 7, 9, 1, 13, 3, '', 'submitted', '2026-03-15 13:06:45', '2026-03-15 13:07:32'),
+(503, 7, 10, 1, 13, 1, 'marami pa rin dropout students here', 'submitted', '2026-03-15 13:06:46', '2026-03-15 13:07:32'),
+(504, 7, 11, 1, 13, 4, '', 'submitted', '2026-03-15 13:06:47', '2026-03-15 13:07:32'),
+(507, 7, 12, 1, 13, 3, '', 'submitted', '2026-03-15 13:07:08', '2026-03-15 13:07:32'),
+(508, 7, 15, 1, 13, 2, '', 'submitted', '2026-03-15 13:07:09', '2026-03-15 13:07:32'),
+(509, 7, 18, 1, 13, 4, '', 'submitted', '2026-03-15 13:07:10', '2026-03-15 13:07:32'),
+(510, 7, 19, 1, 13, 2, '', 'submitted', '2026-03-15 13:07:12', '2026-03-15 13:07:32'),
+(511, 7, 20, 1, 13, 3, '', 'submitted', '2026-03-15 13:07:13', '2026-03-15 13:07:32'),
+(512, 7, 21, 1, 13, 2, '', 'submitted', '2026-03-15 13:07:13', '2026-03-15 13:07:32'),
+(513, 7, 22, 1, 13, 4, '', 'submitted', '2026-03-15 13:07:15', '2026-03-15 13:07:32'),
+(514, 7, 23, 1, 13, 2, '', 'submitted', '2026-03-15 13:07:16', '2026-03-15 13:07:32'),
+(515, 7, 29, 1, 13, 1, '', 'submitted', '2026-03-15 13:07:17', '2026-03-15 13:07:32'),
+(516, 7, 30, 1, 13, 3, '', 'submitted', '2026-03-15 13:07:18', '2026-03-15 13:07:32'),
+(517, 7, 31, 1, 13, 2, '', 'submitted', '2026-03-15 13:07:19', '2026-03-15 13:07:32'),
+(518, 7, 32, 1, 13, 3, '', 'submitted', '2026-03-15 13:07:20', '2026-03-15 13:07:32'),
+(519, 7, 33, 1, 13, 2, '', 'submitted', '2026-03-15 13:07:21', '2026-03-15 13:07:32'),
+(520, 7, 34, 1, 13, 4, '', 'submitted', '2026-03-15 13:07:22', '2026-03-15 13:07:32'),
+(521, 7, 35, 1, 13, 2, '', 'submitted', '2026-03-15 13:07:23', '2026-03-15 13:07:32'),
+(522, 7, 36, 1, 13, 3, '', 'submitted', '2026-03-15 13:07:25', '2026-03-15 13:07:32'),
+(523, 7, 37, 1, 13, 1, '', 'submitted', '2026-03-15 13:07:27', '2026-03-15 13:07:32'),
+(524, 7, 38, 1, 13, 4, '', 'submitted', '2026-03-15 13:07:28', '2026-03-15 13:07:32'),
+(525, 7, 39, 1, 13, 3, '', 'submitted', '2026-03-15 13:07:29', '2026-03-15 13:07:32'),
+(526, 7, 40, 1, 13, 2, '', 'submitted', '2026-03-15 13:07:30', '2026-03-15 13:07:32'),
+(527, 7, 4, 1, 14, 3, '', 'submitted', '2026-03-15 13:07:41', '2026-03-15 13:08:16'),
+(528, 7, 5, 1, 14, 2, '', 'submitted', '2026-03-15 13:07:42', '2026-03-15 13:08:16'),
+(529, 7, 6, 1, 14, 4, '', 'submitted', '2026-03-15 13:07:43', '2026-03-15 13:08:16'),
+(530, 7, 7, 1, 14, 4, '', 'submitted', '2026-03-15 13:07:44', '2026-03-15 13:08:16'),
+(531, 7, 8, 1, 14, 3, '', 'submitted', '2026-03-15 13:07:45', '2026-03-15 13:08:16'),
+(532, 7, 9, 1, 14, 1, '', 'submitted', '2026-03-15 13:07:46', '2026-03-15 13:08:16'),
+(534, 7, 10, 1, 14, 4, '', 'submitted', '2026-03-15 13:07:49', '2026-03-15 13:08:16'),
+(535, 7, 11, 1, 14, 3, '', 'submitted', '2026-03-15 13:07:50', '2026-03-15 13:08:16'),
+(536, 7, 12, 1, 14, 3, '', 'submitted', '2026-03-15 13:07:51', '2026-03-15 13:08:16'),
+(537, 7, 15, 1, 14, 4, '', 'submitted', '2026-03-15 13:07:52', '2026-03-15 13:08:16'),
+(538, 7, 18, 1, 14, 2, '', 'submitted', '2026-03-15 13:07:53', '2026-03-15 13:08:16'),
+(539, 7, 19, 1, 14, 4, '', 'submitted', '2026-03-15 13:07:54', '2026-03-15 13:08:16'),
+(540, 7, 20, 1, 14, 3, '', 'submitted', '2026-03-15 13:07:55', '2026-03-15 13:08:16'),
+(541, 7, 21, 1, 14, 4, '', 'submitted', '2026-03-15 13:07:56', '2026-03-15 13:08:16'),
+(542, 7, 22, 1, 14, 2, '', 'submitted', '2026-03-15 13:07:57', '2026-03-15 13:08:16'),
+(543, 7, 23, 1, 14, 3, '', 'submitted', '2026-03-15 13:07:59', '2026-03-15 13:08:16'),
+(544, 7, 29, 1, 14, 2, '', 'submitted', '2026-03-15 13:08:01', '2026-03-15 13:08:16'),
+(545, 7, 30, 1, 14, 3, '', 'submitted', '2026-03-15 13:08:01', '2026-03-15 13:08:16'),
+(546, 7, 31, 1, 14, 3, '', 'submitted', '2026-03-15 13:08:02', '2026-03-15 13:08:16'),
+(547, 7, 32, 1, 14, 2, '', 'submitted', '2026-03-15 13:08:04', '2026-03-15 13:08:16'),
+(548, 7, 33, 1, 14, 4, '', 'submitted', '2026-03-15 13:08:05', '2026-03-15 13:08:16'),
+(549, 7, 34, 1, 14, 2, '', 'submitted', '2026-03-15 13:08:07', '2026-03-15 13:08:16'),
+(550, 7, 35, 1, 14, 1, '', 'submitted', '2026-03-15 13:08:08', '2026-03-15 13:08:16'),
+(551, 7, 36, 1, 14, 4, '', 'submitted', '2026-03-15 13:08:10', '2026-03-15 13:08:16'),
+(552, 7, 37, 1, 14, 3, '', 'submitted', '2026-03-15 13:08:11', '2026-03-15 13:08:16'),
+(553, 7, 38, 1, 14, 2, '', 'submitted', '2026-03-15 13:08:11', '2026-03-15 13:08:16'),
+(554, 7, 39, 1, 14, 4, '', 'submitted', '2026-03-15 13:08:13', '2026-03-15 13:08:16'),
+(555, 7, 40, 1, 14, 2, '', 'submitted', '2026-03-15 13:08:13', '2026-03-15 13:08:16');
 
 -- --------------------------------------------------------
 
@@ -722,6 +969,17 @@ CREATE TABLE `teacher_submissions` (
   `submitted_at` datetime DEFAULT NULL,
   `response_count` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `teacher_submissions`
+--
+
+INSERT INTO `teacher_submissions` (`submission_id`, `cycle_id`, `school_id`, `sy_id`, `teacher_id`, `status`, `submitted_at`, `response_count`) VALUES
+(11, 7, 1, 1, 2, 'submitted', '2026-03-15 21:04:31', 28),
+(12, 7, 1, 1, 15, 'submitted', '2026-03-15 21:05:29', 28),
+(13, 7, 1, 1, 12, 'submitted', '2026-03-15 21:06:24', 28),
+(14, 7, 1, 1, 13, 'submitted', '2026-03-15 21:07:32', 28),
+(15, 7, 1, 1, 14, 'submitted', '2026-03-15 21:08:16', 28);
 
 -- --------------------------------------------------------
 
@@ -772,11 +1030,15 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `division_id`, `region_id`, `last_login`, `created_at`) VALUES
-(1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@sbm.edu.ph', 'System Administrator', 'admin', 'active', NULL, NULL, NULL, '2026-03-15 07:33:33', '2026-03-11 16:18:35'),
-(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, NULL, '2026-03-15 08:35:24', '2026-03-11 16:31:59'),
-(5, 'Ryza E.', '$2y$10$uNsxRtmZILkMBaV3EfXdtuIfTTvSp0ZCctNKLtjeoZ9N9MNEjvrV6', 'rmevangelio@dihs.edu.ph', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, NULL, '2026-03-15 08:02:04', '2026-03-11 16:35:49'),
-(8, 'Rolito Billones', '$2y$10$o.BOPmRTDvS9vK8jV2RVluCDlY6grCd969TseIoECHgsKTztLsxu.', 'rbillones@dihs.edu.ph', 'Rolito Villones', 'sdo', 'active', 1, NULL, NULL, '2026-03-14 14:23:09', '2026-03-11 17:49:46'),
-(10, 'Charles', '$2y$10$i0qO24wRCGQIyiSFz.xR/Oz6dIXZJR1.rRK71zDoIGdAKU2Y3XfqS', 'cpmarias@dihs.edu.com', 'Charles Patrick Arias', 'ro', 'active', 1, NULL, NULL, '2026-03-15 07:32:17', '2026-03-11 17:52:19');
+(1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@sbm.edu.ph', 'System Administrator', 'admin', 'active', NULL, NULL, NULL, '2026-03-15 22:46:20', '2026-03-11 16:18:35'),
+(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, NULL, '2026-03-15 22:45:44', '2026-03-11 16:31:59'),
+(5, 'Ryza E.', '$2y$10$uNsxRtmZILkMBaV3EfXdtuIfTTvSp0ZCctNKLtjeoZ9N9MNEjvrV6', 'rmevangelio@dihs.edu.ph', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, NULL, '2026-03-15 22:44:58', '2026-03-11 16:35:49'),
+(8, 'Rolito Billones', '$2y$10$vE5eBX3jCDELcBxYFpzEyu2xZI7j4WmKBisnmALaEJoBlauG1wMby', 'rbillones@dihs.edu.ph', 'Rolito Villones', 'sdo', 'active', 1, NULL, NULL, '2026-03-15 22:46:51', '2026-03-11 17:49:46'),
+(10, 'Charles', '$2y$10$QAAo3OtJ1AEEj3tltB3hteEmz6xYbZNL19jeADIS2dLHg26vTe/Je', 'cpmarias@dihs.edu.com', 'Charles Patrick Arias', 'ro', 'active', 1, NULL, NULL, '2026-03-15 22:43:21', '2026-03-11 17:52:19'),
+(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, NULL, '2026-03-15 21:05:38', '2026-03-15 11:19:35'),
+(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, NULL, '2026-03-15 21:06:36', '2026-03-15 11:20:09'),
+(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, NULL, '2026-03-15 21:07:39', '2026-03-15 11:20:53'),
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, NULL, '2026-03-15 22:16:50', '2026-03-15 11:21:39');
 
 -- --------------------------------------------------------
 
@@ -798,18 +1060,6 @@ CREATE TABLE `workflow_checkpoints` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `workflow_checkpoints`
---
-
-INSERT INTO `workflow_checkpoints` (`cp_id`, `school_id`, `sy_id`, `phase_no`, `grading_period`, `cp_type`, `status`, `due_date`, `completed_at`, `completed_by`, `notes`, `created_at`) VALUES
-(1, 1, 1, 1, NULL, 'self_assessment', 'overdue', '2025-04-04', NULL, NULL, NULL, '2026-03-12 11:57:51'),
-(2, 1, 1, 2, NULL, 'planning', 'overdue', '2025-05-30', NULL, NULL, NULL, '2026-03-12 11:57:51'),
-(3, 1, 1, 3, 1, 'q1_monitoring', 'overdue', '2025-10-17', NULL, NULL, NULL, '2026-03-12 11:57:51'),
-(4, 1, 1, 3, 2, 'q2_monitoring', 'overdue', '2026-01-02', NULL, NULL, NULL, '2026-03-12 11:57:51'),
-(5, 1, 1, 3, 3, 'q3_monitoring', 'pending', '2026-03-21', NULL, NULL, NULL, '2026-03-12 11:57:51'),
-(6, 1, 1, 3, NULL, 'completion', 'pending', '2026-03-21', NULL, NULL, NULL, '2026-03-12 11:57:51');
 
 --
 -- Indexes for dumped tables
@@ -855,6 +1105,15 @@ ALTER TABLE `improvement_plans`
   ADD KEY `created_by` (`created_by`);
 
 --
+-- Indexes for table `ml_comment_analysis`
+--
+ALTER TABLE `ml_comment_analysis`
+  ADD PRIMARY KEY (`analysis_id`),
+  ADD UNIQUE KEY `uq_cycle_dim` (`cycle_id`,`dimension_id`),
+  ADD KEY `cycle_id` (`cycle_id`),
+  ADD KEY `indicator_id` (`indicator_id`);
+
+--
 -- Indexes for table `ml_predictions`
 --
 ALTER TABLE `ml_predictions`
@@ -863,6 +1122,13 @@ ALTER TABLE `ml_predictions`
   ADD KEY `cycle_id` (`cycle_id`),
   ADD KEY `dimension_id` (`dimension_id`),
   ADD KEY `indicator_id` (`indicator_id`);
+
+--
+-- Indexes for table `ml_recommendations`
+--
+ALTER TABLE `ml_recommendations`
+  ADD PRIMARY KEY (`rec_id`),
+  ADD UNIQUE KEY `cycle_id` (`cycle_id`);
 
 --
 -- Indexes for table `regions`
@@ -1036,7 +1302,7 @@ ALTER TABLE `workflow_checkpoints`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=175;
 
 --
 -- AUTO_INCREMENT for table `announcements`
@@ -1060,13 +1326,25 @@ ALTER TABLE `grading_periods`
 -- AUTO_INCREMENT for table `improvement_plans`
 --
 ALTER TABLE `improvement_plans`
-  MODIFY `plan_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `plan_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+
+--
+-- AUTO_INCREMENT for table `ml_comment_analysis`
+--
+ALTER TABLE `ml_comment_analysis`
+  MODIFY `analysis_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `ml_predictions`
 --
 ALTER TABLE `ml_predictions`
   MODIFY `pred_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `ml_recommendations`
+--
+ALTER TABLE `ml_recommendations`
+  MODIFY `rec_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `regions`
@@ -1078,7 +1356,7 @@ ALTER TABLE `regions`
 -- AUTO_INCREMENT for table `sbm_cycles`
 --
 ALTER TABLE `sbm_cycles`
-  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `sbm_dimensions`
@@ -1090,7 +1368,7 @@ ALTER TABLE `sbm_dimensions`
 -- AUTO_INCREMENT for table `sbm_dimension_scores`
 --
 ALTER TABLE `sbm_dimension_scores`
-  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=144;
+  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=188;
 
 --
 -- AUTO_INCREMENT for table `sbm_indicators`
@@ -1102,7 +1380,7 @@ ALTER TABLE `sbm_indicators`
 -- AUTO_INCREMENT for table `sbm_responses`
 --
 ALTER TABLE `sbm_responses`
-  MODIFY `response_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=135;
+  MODIFY `response_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=179;
 
 --
 -- AUTO_INCREMENT for table `sbm_workflow_phases`
@@ -1156,13 +1434,13 @@ ALTER TABLE `ta_requests`
 -- AUTO_INCREMENT for table `teacher_responses`
 --
 ALTER TABLE `teacher_responses`
-  MODIFY `tr_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=106;
+  MODIFY `tr_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=556;
 
 --
 -- AUTO_INCREMENT for table `teacher_submissions`
 --
 ALTER TABLE `teacher_submissions`
-  MODIFY `submission_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `submission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `technical_assistance`
@@ -1174,7 +1452,7 @@ ALTER TABLE `technical_assistance`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `workflow_checkpoints`
@@ -1221,6 +1499,12 @@ ALTER TABLE `improvement_plans`
   ADD CONSTRAINT `improvement_plans_ibfk_5` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`);
 
 --
+-- Constraints for table `ml_comment_analysis`
+--
+ALTER TABLE `ml_comment_analysis`
+  ADD CONSTRAINT `mlca_cycle_fk` FOREIGN KEY (`cycle_id`) REFERENCES `sbm_cycles` (`cycle_id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `ml_predictions`
 --
 ALTER TABLE `ml_predictions`
@@ -1228,6 +1512,12 @@ ALTER TABLE `ml_predictions`
   ADD CONSTRAINT `ml_predictions_ibfk_2` FOREIGN KEY (`cycle_id`) REFERENCES `sbm_cycles` (`cycle_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `ml_predictions_ibfk_3` FOREIGN KEY (`dimension_id`) REFERENCES `sbm_dimensions` (`dimension_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `ml_predictions_ibfk_4` FOREIGN KEY (`indicator_id`) REFERENCES `sbm_indicators` (`indicator_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `ml_recommendations`
+--
+ALTER TABLE `ml_recommendations`
+  ADD CONSTRAINT `ml_recommendations_ibfk_1` FOREIGN KEY (`cycle_id`) REFERENCES `sbm_cycles` (`cycle_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `sbm_cycles`
