@@ -64,7 +64,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'clear_response') {
         $indicatorId = (int)$_POST['indicator_id'];
 
-        // Block clearing teacher indicators
         $chk = $db->prepare("SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?");
         $chk->execute([$indicatorId]);
         $indicatorCode = $chk->fetchColumn();
@@ -72,7 +71,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             echo json_encode(['ok'=>false,'msg'=>'Cannot clear a teacher indicator.']); exit;
         }
 
-        // Block clearing if assessment is locked
         $cycleRow = $db->prepare("SELECT cycle_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?");
         $cycleRow->execute([$schoolId,$syId]); $cycleRow = $cycleRow->fetch();
         if (!$cycleRow) { echo json_encode(['ok'=>false,'msg'=>'No active cycle.']); exit; }
@@ -97,7 +95,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             echo json_encode(['ok'=>false,'msg'=>'Assessment is locked.']); exit;
         }
 
-        // Delete all SH responses in this dimension
         $db->prepare("
             DELETE r FROM sbm_responses r
             JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
@@ -106,12 +103,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
               AND i.indicator_code NOT IN ('".implode("','", TEACHER_INDICATOR_CODES)."')
         ")->execute([$cycleRow['cycle_id'], $dimId]);
 
-        // Recompute dim score — now zero
         $db->prepare("UPDATE sbm_dimension_scores SET raw_score=0,max_score=0,percentage=0,computed_at=NOW()
                       WHERE cycle_id=? AND dimension_id=?")
            ->execute([$cycleRow['cycle_id'], $dimId]);
 
-        // Get indicator ids in this dim for response
         $indIds = $db->prepare("SELECT indicator_id FROM sbm_indicators WHERE dimension_id=? AND is_active=1");
         $indIds->execute([$dimId]);
         $indIds = $indIds->fetchAll(PDO::FETCH_COLUMN);
@@ -119,247 +114,28 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         echo json_encode(['ok'=>true,'msg'=>'All ratings cleared for this dimension.','indicator_ids'=>$indIds]); exit;
     }
 
-      if ($_POST['action'] === 'submit') {
-    $cyc = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
-    $cyc->execute([$schoolId,$syId]); $cyc = $cyc->fetch();
-    if (!$cyc) { echo json_encode(['ok'=>false,'msg'=>'No assessment to submit.']); exit; }
+    if ($_POST['action'] === 'submit') {
+        $cyc = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+        $cyc->execute([$schoolId,$syId]); $cyc = $cyc->fetch();
+        if (!$cyc) { echo json_encode(['ok'=>false,'msg'=>'No assessment to submit.']); exit; }
 
-    // ── NEW: Check all active teachers have submitted ──
-    $totalTeachersQ = $db->prepare("
-        SELECT COUNT(*) FROM users 
-        WHERE school_id=? AND role='teacher' AND status='active'
-    ");
-    $totalTeachersQ->execute([$schoolId]);
-    $totalTeachers = (int) $totalTeachersQ->fetchColumn();
+        // Check all active teachers have submitted
+        $totalTeachersQ = $db->prepare("SELECT COUNT(*) FROM users WHERE school_id=? AND role='teacher' AND status='active'");
+        $totalTeachersQ->execute([$schoolId]);
+        $totalTeachers = (int)$totalTeachersQ->fetchColumn();
 
-    $submittedTeachersQ = $db->prepare("
-        SELECT COUNT(*) FROM teacher_submissions 
-        WHERE cycle_id=? AND status='submitted'
-    ");
-    $submittedTeachersQ->execute([$cyc['cycle_id']]);
-    $submittedTeachers = (int) $submittedTeachersQ->fetchColumn();
+        $submittedTeachersQ = $db->prepare("SELECT COUNT(*) FROM teacher_submissions WHERE cycle_id=? AND status='submitted'");
+        $submittedTeachersQ->execute([$cyc['cycle_id']]);
+        $submittedTeachers = (int)$submittedTeachersQ->fetchColumn();
 
-    if ($submittedTeachers < $totalTeachers) {
-        echo json_encode([
-            'ok'  => false,
-            'msg' => "Cannot submit yet. Only $submittedTeachers of $totalTeachers teachers have submitted their portion. Please wait for all teachers to complete their assessment."
-        ]); exit;
-      }
-      // ── INSERT HERE ──
-    if ($_POST['action'] === 'override_teacher_indicator') {
-        $indicatorId    = (int)$_POST['indicator_id'];
-        $overrideRating = (int)$_POST['rating'];
-        $reason         = trim($_POST['reason'] ?? '');
-
-        if ($overrideRating < 1 || $overrideRating > 4) {
-            echo json_encode(['ok'=>false,'msg'=>'Invalid rating.']); exit;
-        }
-
-        $chk = $db->prepare(
-            "SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?"
-        );
-        $chk->execute([$indicatorId]);
-        $code = $chk->fetchColumn();
-
-        if (!in_array($code, TEACHER_INDICATOR_CODES)) {
+        if ($submittedTeachers < $totalTeachers) {
             echo json_encode([
                 'ok'  => false,
-                'msg' => 'This indicator is not a teacher indicator.'
+                'msg' => "Cannot submit yet. Only $submittedTeachers of $totalTeachers teachers have submitted their portion. Please wait for all teachers to complete their assessment."
             ]); exit;
         }
 
-        $cycleRow = $db->prepare(
-            "SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?"
-        );
-        $cycleRow->execute([$schoolId, $syId]);
-        $cycleId = $cycleRow->fetchColumn();
-
-        if (!$cycleId) {
-            echo json_encode(['ok'=>false,'msg'=>'No active cycle.']); exit;
-        }
-
-        $avgStmt = $db->prepare("
-            SELECT ROUND(AVG(rating), 2) 
-            FROM teacher_responses 
-            WHERE cycle_id=? AND indicator_id=?
-        ");
-        $avgStmt->execute([$cycleId, $indicatorId]);
-        $originalAvg = $avgStmt->fetchColumn();
-
-        $db->prepare("
-            INSERT INTO sh_indicator_overrides 
-                (cycle_id, indicator_id, school_id, original_avg,
-                 override_rating, override_reason, overridden_by)
-            VALUES (?,?,?,?,?,?,?)
-            ON DUPLICATE KEY UPDATE
-                original_avg     = VALUES(original_avg),
-                override_rating  = VALUES(override_rating),
-                override_reason  = VALUES(override_reason),
-                overridden_by    = VALUES(overridden_by),
-                overridden_at    = NOW()
-        ")->execute([
-            $cycleId, $indicatorId, $schoolId,
-            $originalAvg, $overrideRating, $reason,
-            $_SESSION['user_id']
-        ]);
-
-        recomputeDimScoreWithOverrides(
-            $db, $cycleId, $indicatorId, $schoolId
-        );
-
-        logActivity(
-            'sh_override_indicator',
-            'self_assessment',
-            "SH overrode indicator $code from avg $originalAvg to $overrideRating in cycle $cycleId"
-        );
-
-        echo json_encode([
-            'ok'           => true,
-            'msg'          => 'Override saved. Dimension score updated.',
-            'original_avg' => $originalAvg,
-            'override_rating' => $overrideRating
-        ]); exit;
-    }
-
-    if ($_POST['action'] === 'clear_override') {
-        $indicatorId = (int)$_POST['indicator_id'];
-
-        $cycleRow = $db->prepare(
-            "SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?"
-        );
-        $cycleRow->execute([$schoolId, $syId]);
-        $cycleId = $cycleRow->fetchColumn();
-
-        if (!$cycleId) {
-            echo json_encode(['ok'=>false,'msg'=>'No active cycle.']); exit;
-        }
-
-        $db->prepare("
-            DELETE FROM sh_indicator_overrides 
-            WHERE cycle_id=? AND indicator_id=?
-        ")->execute([$cycleId, $indicatorId]);
-
-        recomputeDimScoreWithOverrides(
-            $db, $cycleId, $indicatorId, $schoolId
-        );
-
-        echo json_encode([
-            'ok'  => true,
-            'msg' => 'Override cleared. Score reverted to teacher average.'
-        ]); exit;
-    }
-
-        if ($_POST['action'] === 'override_teacher_indicator') {
-    $indicatorId    = (int)$_POST['indicator_id'];
-    $overrideRating = (int)$_POST['rating'];
-    $reason         = trim($_POST['reason'] ?? '');
-
-    if ($overrideRating < 1 || $overrideRating > 4) {
-        echo json_encode(['ok'=>false,'msg'=>'Invalid rating.']); exit;
-    }
-
-    // Must be a teacher indicator
-    $chk = $db->prepare(
-        "SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?"
-    );
-    $chk->execute([$indicatorId]);
-    $code = $chk->fetchColumn();
-
-    if (!in_array($code, TEACHER_INDICATOR_CODES)) {
-        echo json_encode([
-            'ok'  => false,
-            'msg' => 'This indicator is not a teacher indicator.'
-        ]); exit;
-    }
-
-    // Get cycle
-    $cycleRow = $db->prepare(
-        "SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?"
-    );
-    $cycleRow->execute([$schoolId, $syId]);
-    $cycleId = $cycleRow->fetchColumn();
-
-    if (!$cycleId) {
-        echo json_encode(['ok'=>false,'msg'=>'No active cycle.']); exit;
-    }
-
-    // Get current teacher average for logging
-    $avgStmt = $db->prepare("
-        SELECT ROUND(AVG(rating), 2) 
-        FROM teacher_responses 
-        WHERE cycle_id=? AND indicator_id=?
-    ");
-    $avgStmt->execute([$cycleId, $indicatorId]);
-    $originalAvg = $avgStmt->fetchColumn();
-
-    // Save override
-    $db->prepare("
-        INSERT INTO sh_indicator_overrides 
-            (cycle_id, indicator_id, school_id, original_avg,
-             override_rating, override_reason, overridden_by)
-        VALUES (?,?,?,?,?,?,?)
-        ON DUPLICATE KEY UPDATE
-            original_avg     = VALUES(original_avg),
-            override_rating  = VALUES(override_rating),
-            override_reason  = VALUES(override_reason),
-            overridden_by    = VALUES(overridden_by),
-            overridden_at    = NOW()
-    ")->execute([
-        $cycleId, $indicatorId, $schoolId,
-        $originalAvg, $overrideRating, $reason,
-        $_SESSION['user_id']
-    ]);
-
-    // Recompute dimension score using overrides
-    recomputeDimScoreWithOverrides(
-        $db, $cycleId, $indicatorId, $schoolId
-    );
-
-    logActivity(
-        'sh_override_indicator',
-        'self_assessment',
-        "SH overrode indicator $code from avg $originalAvg 
-         to $overrideRating in cycle $cycleId"
-    );
-
-    echo json_encode([
-        'ok'  => true,
-        'msg' => 'Override saved. Dimension score updated.',
-        'original_avg'   => $originalAvg,
-        'override_rating'=> $overrideRating
-    ]); exit;
-}
-
-if ($_POST['action'] === 'clear_override') {
-    $indicatorId = (int)$_POST['indicator_id'];
-
-    $cycleRow = $db->prepare(
-        "SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?"
-    );
-    $cycleRow->execute([$schoolId, $syId]);
-    $cycleId = $cycleRow->fetchColumn();
-
-    if (!$cycleId) {
-        echo json_encode(['ok'=>false,'msg'=>'No active cycle.']); exit;
-    }
-
-    $db->prepare("
-        DELETE FROM sh_indicator_overrides 
-        WHERE cycle_id=? AND indicator_id=?
-    ")->execute([$cycleId, $indicatorId]);
-
-    recomputeDimScoreWithOverrides(
-        $db, $cycleId, $indicatorId, $schoolId
-    );
-
-    echo json_encode([
-        'ok'  => true,
-        'msg' => 'Override cleared. Score reverted to teacher average.'
-    ]); exit;
-}
-    }
-
-        // Count SH-only indicators (active, not in teacher list)
+        // Count SH-only indicators
         $shOnlyStmt = $db->prepare("
             SELECT COUNT(*) FROM sbm_indicators
             WHERE is_active = 1
@@ -368,7 +144,6 @@ if ($_POST['action'] === 'clear_override') {
         $shOnlyStmt->execute();
         $expected = (int)$shOnlyStmt->fetchColumn();
 
-        // Count SH-only responses already saved (same filter, must match exactly)
         $shDoneStmt = $db->prepare("
             SELECT COUNT(*) FROM sbm_responses r
             JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
@@ -397,10 +172,84 @@ if ($_POST['action'] === 'clear_override') {
         logActivity('submit_assessment','self_assessment','Submitted SBM assessment cycle '.$cyc['cycle_id']);
         echo json_encode(['ok'=>true,'msg'=>'Assessment submitted successfully!']); exit;
     }
+
+    if ($_POST['action'] === 'override_teacher_indicator') {
+        $indicatorId    = (int)$_POST['indicator_id'];
+        $overrideRating = (int)$_POST['rating'];
+        $reason         = trim($_POST['reason'] ?? '');
+
+        if ($overrideRating < 1 || $overrideRating > 4) {
+            echo json_encode(['ok'=>false,'msg'=>'Invalid rating.']); exit;
+        }
+
+        $chk = $db->prepare("SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?");
+        $chk->execute([$indicatorId]);
+        $code = $chk->fetchColumn();
+
+        if (!in_array($code, TEACHER_INDICATOR_CODES)) {
+            echo json_encode(['ok'=>false,'msg'=>'This indicator is not a teacher indicator.']); exit;
+        }
+
+        $cycleRow = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+        $cycleRow->execute([$schoolId, $syId]);
+        $cycleId = $cycleRow->fetchColumn();
+
+        if (!$cycleId) {
+            echo json_encode(['ok'=>false,'msg'=>'No active cycle.']); exit;
+        }
+
+        $avgStmt = $db->prepare("SELECT ROUND(AVG(rating), 2) FROM teacher_responses WHERE cycle_id=? AND indicator_id=?");
+        $avgStmt->execute([$cycleId, $indicatorId]);
+        $originalAvg = $avgStmt->fetchColumn();
+
+        $db->prepare("
+            INSERT INTO sh_indicator_overrides
+                (cycle_id, indicator_id, school_id, original_avg,
+                 override_rating, override_reason, overridden_by)
+            VALUES (?,?,?,?,?,?,?)
+            ON DUPLICATE KEY UPDATE
+                original_avg     = VALUES(original_avg),
+                override_rating  = VALUES(override_rating),
+                override_reason  = VALUES(override_reason),
+                overridden_by    = VALUES(overridden_by),
+                overridden_at    = NOW()
+        ")->execute([$cycleId, $indicatorId, $schoolId, $originalAvg, $overrideRating, $reason, $_SESSION['user_id']]);
+
+        recomputeDimScoreWithOverrides($db, $cycleId, $indicatorId, $schoolId);
+
+        logActivity('sh_override_indicator','self_assessment',
+            "SH overrode indicator $code from avg $originalAvg to $overrideRating in cycle $cycleId");
+
+        echo json_encode([
+            'ok'              => true,
+            'msg'             => 'Override saved. Dimension score updated.',
+            'original_avg'    => $originalAvg,
+            'override_rating' => $overrideRating
+        ]); exit;
+    }
+
+    if ($_POST['action'] === 'clear_override') {
+        $indicatorId = (int)$_POST['indicator_id'];
+
+        $cycleRow = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+        $cycleRow->execute([$schoolId, $syId]);
+        $cycleId = $cycleRow->fetchColumn();
+
+        if (!$cycleId) {
+            echo json_encode(['ok'=>false,'msg'=>'No active cycle.']); exit;
+        }
+
+        $db->prepare("DELETE FROM sh_indicator_overrides WHERE cycle_id=? AND indicator_id=?")
+           ->execute([$cycleId, $indicatorId]);
+
+        recomputeDimScoreWithOverrides($db, $cycleId, $indicatorId, $schoolId);
+
+        echo json_encode(['ok'=>true,'msg'=>'Override cleared. Score reverted to teacher average.']); exit;
+    }
+
     exit;
 }
 
-// ── HELPERS ──────────────────────────────────────────────────
 function recomputeDimScore(PDO $db, int $cycleId, int $indicatorId, int $schoolId): void {
   function recomputeDimScoreWithOverrides(
     PDO $db, int $cycleId, 
