@@ -16,11 +16,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$uname, $uname]);
         $row  = $stmt->fetch();
         if ($row && password_verify($pass, $row['password'])) {
-    $_SESSION['user_id']   = $row['user_id'];
-    $_SESSION['username']  = $row['username'];
-    $_SESSION['full_name'] = $row['full_name'];
-    $_SESSION['role']      = $row['role'];
-    $_SESSION['school_id'] = $row['school_id'];
+    $_SESSION['user_id']    = $row['user_id'];
+$_SESSION['username']   = $row['username'];
+$_SESSION['full_name']  = $row['full_name'];
+$_SESSION['role']       = $row['role'];
+$_SESSION['school_id']  = $row['school_id'];
+$_SESSION['division_id'] = $row['division_id'];  // ADD THIS
+$_SESSION['region_id']   = $row['region_id'];    // ADD THIS
 
     // Rehash password if PHP default algorithm has changed
     if (password_needs_rehash($row['password'], PASSWORD_DEFAULT)) {

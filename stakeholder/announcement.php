@@ -9,7 +9,7 @@ $anns = $db->query("
     FROM announcements a 
     JOIN users u ON a.posted_by=u.user_id 
     WHERE a.is_published=1 
-      AND a.target_role IN('all','school_head')
+  AND a.target_role IN('all','school_head','external_stakeholder')
     ORDER BY a.created_at DESC
 ")->fetchAll();
 

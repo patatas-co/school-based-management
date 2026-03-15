@@ -58,13 +58,26 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])){
         $cycleRow = $cycleRow->fetch();
 
         if (!$cycleRow) {
-            $db->prepare("
-                INSERT INTO sbm_cycles 
-                    (sy_id,school_id,status,started_at) 
-                VALUES (?,?,'in_progress',NOW())
-            ")->execute([$syId,$schoolId]);
-            $cycleId = $db->lastInsertId();
+    try {
+        $db->prepare("
+            INSERT INTO sbm_cycles 
+                (sy_id,school_id,status,started_at) 
+            VALUES (?,?,'in_progress',NOW())
+        ")->execute([$syId,$schoolId]);
+        $cycleId = $db->lastInsertId();
+    } catch (\PDOException $e) {
+        if ($e->getCode() === '23000') {
+            $retry = $db->prepare(
+                "SELECT cycle_id FROM sbm_cycles 
+                 WHERE school_id=? AND sy_id=?"
+            );
+            $retry->execute([$schoolId, $syId]);
+            $cycleId = $retry->fetchColumn();
         } else {
+            throw $e;
+        }
+    }
+} else {
             $cycleId = $cycleRow['cycle_id'];
             if (in_array($cycleRow['status'], 
                          ['submitted','validated'])) {

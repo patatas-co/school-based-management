@@ -190,6 +190,24 @@ $shDoneStmt->execute(array_merge([$cyc['cycle_id']], TEACHER_INDICATOR_CODES));
         $overall = $totalMax > 0 ? round(($totalRaw/$totalMax)*100, 2) : 0;
         $mat = sbmMaturityLevel($overall);
 
+// Recompute all dimensions before finalizing score
+$allDims = $db->query("SELECT dimension_id FROM sbm_dimensions WHERE 1")->fetchAll(PDO::FETCH_COLUMN);
+foreach ($allDims as $dimId) {
+    // Get any indicator in this dimension to trigger recompute
+    $anyInd = $db->prepare("SELECT indicator_id FROM sbm_indicators WHERE dimension_id=? AND is_active=1 LIMIT 1");
+    $anyInd->execute([$dimId]);
+    $anyIndId = $anyInd->fetchColumn();
+    if ($anyIndId) {
+        recomputeDimScoreWithOverrides($db, $cyc['cycle_id'], $anyIndId, $schoolId);
+    }
+$total = $db->prepare("SELECT SUM(raw_score), SUM(max_score) FROM sbm_dimension_scores WHERE cycle_id=?");
+$total->execute([$cyc['cycle_id']]);
+[$totalRaw, $totalMax] = array_values($total->fetch(PDO::FETCH_NUM));
+$overall = $totalMax > 0 ? round(($totalRaw/$totalMax)*100, 2) : 0;
+$mat = sbmMaturityLevel($overall);
+  }
+
+
         $db->prepare("UPDATE sbm_cycles SET status='submitted',submitted_at=NOW(),overall_score=?,maturity_level=? WHERE cycle_id=?")
            ->execute([$overall, $mat['label'], $cyc['cycle_id']]);
         logActivity('submit_assessment','self_assessment','Submitted SBM assessment cycle '.$cyc['cycle_id']);

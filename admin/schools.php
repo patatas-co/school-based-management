@@ -20,7 +20,28 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             $data[] = $id;
             $db->prepare("UPDATE schools SET school_name=?,school_id_deped=?,address=?,classification=?,school_head_name=?,contact_no=?,email=?,total_enrollment=?,total_teachers=?,division_id=? WHERE school_id=?")->execute($data);
             echo json_encode(['ok'=>true,'msg'=>'School updated.']); exit;
-        } else {
+        } 
+        
+        if ($id) {
+    // Guard: SDO can only edit schools in their division
+    if ($_SESSION['role'] === 'sdo' && !empty($_SESSION['division_id'])) {
+        $check = $db->prepare(
+            "SELECT 1 FROM schools WHERE school_id=? AND division_id=?"
+        );
+        $check->execute([$id, $_SESSION['division_id']]);
+        if (!$check->fetchColumn()) {
+            echo json_encode([
+                'ok'  => false,
+                'msg' => 'Access denied. School is outside your division.'
+            ]); exit;
+        }
+    }
+    $data[] = $id;
+    $db->prepare("UPDATE schools SET ...")->execute($data);
+    echo json_encode(['ok'=>true,'msg'=>'School updated.']); exit;
+}
+
+        else {
             $db->prepare("INSERT INTO schools (school_name,school_id_deped,address,classification,school_head_name,contact_no,email,total_enrollment,total_teachers,division_id) VALUES (?,?,?,?,?,?,?,?,?,?)")->execute($data);
             echo json_encode(['ok'=>true,'msg'=>'School added.']); exit;
         }

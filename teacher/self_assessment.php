@@ -51,11 +51,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $cycleId = $cycleRow->fetchColumn();
 
     if (!$cycleId) {
-        echo json_encode([
-            'ok'  => false,
-            'msg' => 'No active assessment cycle exists yet.'
-        ]); exit;
-    }
+    echo json_encode([
+        'ok'  => false,
+        'msg' => 'No active assessment cycle exists yet. Please wait for the School Head to start the assessment.'
+    ]); exit;
+}
+
+// Add this check that is currently missing
+$cycleStatus = $db->prepare(
+    "SELECT status FROM sbm_cycles WHERE cycle_id=?"
+);
+$cycleStatus->execute([$cycleId]);
+$status = $cycleStatus->fetchColumn();
+if (in_array($status, ['submitted', 'validated'])) {
+    echo json_encode([
+        'ok'  => false,
+        'msg' => 'This assessment has already been submitted. Your responses are locked.'
+    ]); exit;
+}
 
     // Count how many teacher indicators this teacher has answered
     $placeholders = implode(
