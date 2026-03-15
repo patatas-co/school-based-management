@@ -89,9 +89,14 @@ include __DIR__.'/../includes/header.php';
       <div class="search"><span class="si"><?= svgIcon('search') ?></span><input type="text" name="q" placeholder="Search users…" value="<?= e($q) ?>"></div>
       <select name="role" class="fc" style="width:160px;">
         <option value="">All Roles</option>
-        <?php foreach(['admin','school_head','teacher','sdo','ro'] as $r): ?>
-        <option value="<?= $r ?>" <?= $rf===$r?'selected':'' ?>><?= ucfirst(str_replace('_',' ',$r)) ?></option>
-        <?php endforeach; ?>
+        <?php foreach([
+    'admin','school_head','teacher',
+    'sdo','ro','external_stakeholder'
+] as $r): ?>
+<option value="<?= $r ?>">
+    <?= ucfirst(str_replace('_',' ',$r)) ?>
+</option>
+<?php endforeach; ?>
       </select>
       <button type="submit" class="btn btn-primary btn-sm">Filter</button>
       <a href="users.php" class="btn btn-secondary btn-sm">Reset</a>

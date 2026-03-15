@@ -34,6 +34,12 @@ elseif ($__role === 'ro') $__nav = [
     ['dashboard.php','grid','Dashboard'],['reports.php','file-text','Reports'],
     ['announcements.php','bell','Announcements'],
 ];
+
+elseif ($__role === 'external_stakeholder') $__nav = [
+    ['dashboard.php','grid','Dashboard'],
+    ['self_assessment.php','check-circle','Self-Assessment'],
+    ['announcements.php','bell','Announcements'],
+];
 $__initials = strtoupper(implode('', array_map(fn($w)=>$w[0], array_slice(explode(' ', trim($__me['name'])), 0, 2))));
 ?>
 <!DOCTYPE html><html lang="en"><head>

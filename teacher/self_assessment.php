@@ -43,8 +43,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     if ($_POST['action'] === 'submit') {
-        echo json_encode(['ok'=>false,'msg'=>'Only the School Head can submit the assessment.']); exit;
+    // Get or create cycle
+    $cycleRow = $db->prepare(
+        "SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?"
+    );
+    $cycleRow->execute([$schoolId, $syId]);
+    $cycleId = $cycleRow->fetchColumn();
+
+    if (!$cycleId) {
+        echo json_encode([
+            'ok'  => false,
+            'msg' => 'No active assessment cycle exists yet.'
+        ]); exit;
     }
+
+    // Count how many teacher indicators this teacher has answered
+    $placeholders = implode(
+        ',', array_fill(0, count(TEACHER_INDICATOR_CODES), '?')
+    );
+    $countStmt = $db->prepare("
+        SELECT COUNT(*) FROM teacher_responses tr
+        JOIN sbm_indicators i ON tr.indicator_id = i.indicator_id
+        WHERE tr.cycle_id  = ?
+          AND tr.teacher_id = ?
+          AND i.indicator_code IN ($placeholders)
+    ");
+    $countStmt->execute(
+        array_merge([$cycleId, $uid], TEACHER_INDICATOR_CODES)
+    );
+    $answered = (int) $countStmt->fetchColumn();
+    $required = count(TEACHER_INDICATOR_CODES);
+
+    if ($answered < $required) {
+        echo json_encode([
+            'ok'  => false,
+            'msg' => "Please rate all your indicators before submitting. 
+                      ($answered/$required done)"
+        ]); exit;
+    }
+
+    // Upsert submission record
+    $db->prepare("
+        INSERT INTO teacher_submissions 
+            (cycle_id, teacher_id, school_id, sy_id, status, 
+             submitted_at, response_count)
+        VALUES (?, ?, ?, ?, 'submitted', NOW(), ?)
+        ON DUPLICATE KEY UPDATE
+            status         = 'submitted',
+            submitted_at   = NOW(),
+            response_count = VALUES(response_count)
+    ")->execute([$cycleId, $uid, $schoolId, $syId, $answered]);
+
+    logActivity(
+        'teacher_submit_assessment',
+        'teacher_self_assessment',
+        "Teacher ID $uid submitted for cycle $cycleId"
+    );
+
+    echo json_encode([
+        'ok'  => true,
+        'msg' => 'Your assessment has been submitted to the School Head.'
+    ]); exit;
+}
 
     if ($_POST['action'] === 'save_response') {
         $indicatorId = (int)$_POST['indicator_id'];
@@ -121,7 +181,22 @@ $ratingLabels = [1=>'Not Yet Manifested', 2=>'Emerging', 3=>'Developing', 4=>'Al
 $ratingColors = [1=>'#DC2626', 2=>'#D97706', 3=>'#2563EB', 4=>'#16A34A'];
 $ratingBgs    = [1=>'#FEE2E2', 2=>'#FEF3C7', 3=>'#DBEAFE', 4=>'#DCFCE7'];
 
-$isLocked  = $cycle && in_array($cycle['status'], ['submitted','validated']);
+// Lock if cycle is submitted/validated OR if this teacher already submitted
+$cycleIsLocked = $cycle && in_array(
+    $cycle['status'], ['submitted', 'validated']
+);
+
+$mySubCheck = null;
+if ($cycle) {
+    $subQ = $db->prepare("
+        SELECT status FROM teacher_submissions 
+        WHERE cycle_id=? AND teacher_id=?
+    ");
+    $subQ->execute([$cycle['cycle_id'], $uid]);
+    $mySubCheck = $subQ->fetchColumn();
+}
+
+$isLocked = $cycleIsLocked || ($mySubCheck === 'submitted');
 $totalDone = count($responses);
 $totalInds = count($indicators);
 $progress  = $totalInds > 0 ? round(($totalDone/$totalInds)*100) : 0;
@@ -438,12 +513,65 @@ include __DIR__ . '/../includes/header.php';
 </div>
 <?php endforeach; ?>
 
-<!-- ── BOTTOM NOTICE ── -->
-<div style="text-align:center;padding:24px 0;">
-    <p style="font-size:13px;color:var(--n500);">
-        Your responses are saved automatically when you select a rating.<br>
-        Notify your <strong>School Head</strong> once you are done.
+<!-- ── BOTTOM SUBMIT ── -->
+<div style="text-align:center;padding:24px 0 32px;">
+    <?php
+    // Check if already submitted
+    $subCheck = $db->prepare("
+        SELECT status, submitted_at 
+        FROM teacher_submissions 
+        WHERE cycle_id=? AND teacher_id=?
+    ");
+    $subCheck->execute([$cycle['cycle_id'] ?? 0, $uid]);
+    $mySubmission = $subCheck->fetch();
+    ?>
+
+    <?php if ($mySubmission && $mySubmission['status'] === 'submitted'): ?>
+    <div style="display:inline-flex;align-items:center;gap:10px;
+                padding:14px 24px;border-radius:10px;
+                background:var(--g50);border:1.5px solid var(--g200);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" 
+             stroke-width="2.5" stroke-linecap="round" 
+             stroke-linejoin="round" 
+             style="width:20px;height:20px;flex-shrink:0;">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <div style="text-align:left;">
+            <div style="font-size:14px;font-weight:700;color:var(--g700);">
+                Assessment Submitted
+            </div>
+            <div style="font-size:12px;color:var(--n500);margin-top:2px;">
+                Submitted on 
+                <?= date('F d, Y g:i A', 
+                    strtotime($mySubmission['submitted_at'])) ?>
+            </div>
+        </div>
+    </div>
+
+    <?php elseif (!$isLocked): ?>
+    <button class="btn btn-primary"
+            style="padding:12px 36px;font-size:15px;"
+            id="submitBtn"
+            onclick="submitMyAssessment()">
+        <?= svgIcon('check') ?> Submit to School Head
+        <span id="submitCount" 
+              style="font-size:12px;opacity:.8;margin-left:4px;">
+            (<?= $totalDone ?>/<?= $totalInds ?> rated)
+        </span>
+    </button>
+    <p style="font-size:12px;color:var(--n400);margin-top:10px;">
+        Once submitted, your responses will be locked.<br>
+        Make sure all <?= $totalInds ?> indicators are rated first.
     </p>
+
+    <?php else: ?>
+    <p style="font-size:13px;color:var(--n500);">
+        This assessment cycle is 
+        <strong><?= e($cycle['status'] ?? '') ?></strong>.
+        Your responses are read-only.
+    </p>
+    <?php endif; ?>
 </div>
 
 <script>
@@ -670,6 +798,28 @@ function toggleDim(n) {
     const isOpen  = !body.classList.contains('collapsed');
     body.classList.toggle('collapsed', isOpen);
     chevron.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
+}
+
+async function submitMyAssessment() {
+    if (!confirm(
+        'Submit your assessment to the School Head?\n\n' +
+        'Once submitted, you will not be able to edit your responses.'
+    )) return;
+
+    const btn = document.getElementById('submitBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+
+    const r = await apiPost('self_assessment.php', { action: 'submit' });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+
+    if (r.ok) {
+        setTimeout(() => location.reload(), 1000);
+    } else {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `${svgI('check')} Submit to School Head`;
+        }
+    }
 }
 </script>
 

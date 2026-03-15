@@ -34,8 +34,14 @@ function baseUrl(): string {
     return $proto . '://' . $host . $dir;
 }
 function roleHome(string $role): string {
-    return ['admin'=>'admin/dashboard.php','school_head'=>'school_head/dashboard.php',
-            'teacher'=>'teacher/dashboard.php','sdo'=>'sdo/dashboard.php','ro'=>'ro/dashboard.php'][$role] ?? 'index.php';
+    return [
+        'admin'                =>'admin/dashboard.php',
+        'school_head'          =>'school_head/dashboard.php',
+        'teacher'              =>'teacher/dashboard.php',
+        'sdo'                  =>'sdo/dashboard.php',
+        'ro'                   =>'ro/dashboard.php',
+        'external_stakeholder' =>'stakeholder/dashboard.php'
+    ][$role] ?? 'index.php';
 }
 function e(?string $s): string { return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8'); }
 function timeAgo(string $dt): string {

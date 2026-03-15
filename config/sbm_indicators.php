@@ -137,6 +137,14 @@ define('TEACHER_INDICATOR_CODES', [
     '6.1','6.2','6.3','6.4','6.5',  // Dimension 6
 ]);
 
+define('STAKEHOLDER_INDICATOR_CODES', [
+    '1.8',                                          // Dimension 1
+    '2.1','2.2','2.3','2.4','2.5','2.6','2.8',     // Dimension 2
+    '3.1','3.2','3.4',                              // Dimension 3
+    '4.1','4.2','4.3','4.4',                        // Dimension 4
+    '6.1','6.2','6.3','6.4','6.5','6.6','6.7',     // Dimension 6
+]);
+
 function sbmMaturity(float $pct): array {
     foreach (SBM_MATURITY as $m) {
         if ($pct >= $m['min'] && $pct <= $m['max']) return $m;

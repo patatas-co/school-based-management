@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/../config/db.php';
+require_once __DIR__.'/../config/sbm_indicators.php';
 require_once __DIR__.'/../includes/auth.php';
 requireRole('school_head','admin');
 $db = getDB();
@@ -80,6 +81,142 @@ include __DIR__.'/../includes/header.php';
   <div class="stat"><div class="stat-ic green"><?= svgIcon('layers') ?></div><div class="stat-data"><div class="stat-val"><?= count($dimScores) ?></div><div class="stat-lbl">Dimensions Scored</div></div></div>
   <div class="stat"><div class="stat-ic gold"><?= svgIcon('trending-up') ?></div><div class="stat-data"><div class="stat-val" style="font-size:14px;line-height:1.3;"><?= $cycle&&$cycle['maturity_level'] ? sbmMaturityBadge($cycle['maturity_level']) : '—' ?></div><div class="stat-lbl">Maturity Level</div></div></div>
 </div>
+
+<!-- ── TEACHER SUBMISSION STATUS CARD ── -->
+<?php
+$teachers = $db->prepare("
+    SELECT u.user_id, u.full_name,
+        ts.status        sub_status,
+        ts.submitted_at,
+        ts.response_count,
+        (SELECT COUNT(*) FROM teacher_responses tr 
+         WHERE tr.cycle_id  = ? 
+           AND tr.teacher_id = u.user_id) live_count
+    FROM users u
+    LEFT JOIN teacher_submissions ts 
+        ON ts.teacher_id = u.user_id 
+       AND ts.cycle_id   = ?
+    WHERE u.school_id = ?
+      AND u.role      = 'teacher'
+      AND u.status    = 'active'
+    ORDER BY ts.status DESC, u.full_name ASC
+");
+$cycleIdForTeachers = $cycle['cycle_id'] ?? 0;
+$teachers->execute([
+    $cycleIdForTeachers, 
+    $cycleIdForTeachers, 
+    $schoolId
+]);
+$teacherList = $teachers->fetchAll();
+
+$submittedCount = count(array_filter(
+    $teacherList, fn($t) => $t['sub_status'] === 'submitted'
+));
+$totalTeachers  = count($teacherList);
+?>
+
+<?php if ($teacherList): ?>
+<div class="card" style="margin-bottom:18px;">
+    <div class="card-head">
+        <span class="card-title">
+            Teacher Submissions
+        </span>
+        <span style="font-size:13px;font-weight:700;
+                     color:<?= $submittedCount===$totalTeachers
+                               ?'var(--g600)':'var(--gold)' ?>;">
+            <?= $submittedCount ?>/<?= $totalTeachers ?> Submitted
+        </span>
+    </div>
+    <div class="card-body" style="padding:0;">
+        <?php foreach ($teacherList as $t):
+            $done    = $t['sub_status'] === 'submitted';
+            $inProg  = !$done && $t['live_count'] > 0;
+            $notYet  = !$done && $t['live_count'] === 0;
+            $pct     = count(TEACHER_INDICATOR_CODES) > 0
+                ? round(($t['live_count'] / 
+                  count(TEACHER_INDICATOR_CODES)) * 100)
+                : 0;
+        ?>
+        <div style="display:flex;align-items:center;gap:12px;
+                    padding:11px 18px;
+                    border-bottom:1px solid var(--n100);">
+
+            <!-- Avatar -->
+            <div style="width:34px;height:34px;border-radius:8px;
+                        background:<?= $done?'var(--g100)':
+                            ($inProg?'var(--blueb)':'var(--n100)') ?>;
+                        color:<?= $done?'var(--g700)':
+                            ($inProg?'var(--blue)':'var(--n400)') ?>;
+                        font-size:12px;font-weight:700;
+                        display:flex;align-items:center;
+                        justify-content:center;flex-shrink:0;">
+                <?= strtoupper(substr($t['full_name'], 0, 1)) ?>
+            </div>
+
+            <!-- Name + progress -->
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;
+                            color:var(--n900);">
+                    <?= e($t['full_name']) ?>
+                </div>
+                <?php if (!$done): ?>
+                <div style="margin-top:4px;">
+                    <div style="height:5px;background:var(--n100);
+                                border-radius:999px;overflow:hidden;
+                                width:180px;">
+                        <div style="height:100%;
+                                    background:var(--blue);
+                                    border-radius:999px;
+                                    width:<?= $pct ?>%;"></div>
+                    </div>
+                    <div style="font-size:11px;color:var(--n400);
+                                margin-top:2px;">
+                        <?= $t['live_count'] ?>/<?= count(TEACHER_INDICATOR_CODES) ?> 
+                        indicators rated
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Status badge -->
+            <div>
+                <?php if ($done): ?>
+                <span style="display:inline-flex;align-items:center;
+                             gap:5px;padding:4px 12px;
+                             border-radius:999px;font-size:12px;
+                             font-weight:700;background:var(--g100);
+                             color:var(--g700);
+                             border:1px solid var(--g200);">
+                    ✓ Submitted
+                    <span style="font-size:11px;font-weight:400;
+                                 opacity:.7;">
+                        <?= date('M d', 
+                            strtotime($t['submitted_at'])) ?>
+                    </span>
+                </span>
+                <?php elseif ($inProg): ?>
+                <span style="display:inline-flex;padding:4px 12px;
+                             border-radius:999px;font-size:12px;
+                             font-weight:700;background:var(--blueb);
+                             color:var(--blue);
+                             border:1px solid #BFDBFE;">
+                    In Progress
+                </span>
+                <?php else: ?>
+                <span style="display:inline-flex;padding:4px 12px;
+                             border-radius:999px;font-size:12px;
+                             font-weight:700;background:var(--n100);
+                             color:var(--n500);">
+                    Not Started
+                </span>
+                <?php endif; ?>
+            </div>
+
+        </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Progress bar -->
 <div class="card mb5" style="margin-bottom:18px;">

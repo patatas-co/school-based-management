@@ -119,10 +119,245 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         echo json_encode(['ok'=>true,'msg'=>'All ratings cleared for this dimension.','indicator_ids'=>$indIds]); exit;
     }
 
-    if ($_POST['action'] === 'submit') {
-        $cyc = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
-        $cyc->execute([$schoolId,$syId]); $cyc = $cyc->fetch();
-        if (!$cyc) { echo json_encode(['ok'=>false,'msg'=>'No assessment to submit.']); exit; }
+      if ($_POST['action'] === 'submit') {
+    $cyc = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+    $cyc->execute([$schoolId,$syId]); $cyc = $cyc->fetch();
+    if (!$cyc) { echo json_encode(['ok'=>false,'msg'=>'No assessment to submit.']); exit; }
+
+    // ── NEW: Check all active teachers have submitted ──
+    $totalTeachersQ = $db->prepare("
+        SELECT COUNT(*) FROM users 
+        WHERE school_id=? AND role='teacher' AND status='active'
+    ");
+    $totalTeachersQ->execute([$schoolId]);
+    $totalTeachers = (int) $totalTeachersQ->fetchColumn();
+
+    $submittedTeachersQ = $db->prepare("
+        SELECT COUNT(*) FROM teacher_submissions 
+        WHERE cycle_id=? AND status='submitted'
+    ");
+    $submittedTeachersQ->execute([$cyc['cycle_id']]);
+    $submittedTeachers = (int) $submittedTeachersQ->fetchColumn();
+
+    if ($submittedTeachers < $totalTeachers) {
+        echo json_encode([
+            'ok'  => false,
+            'msg' => "Cannot submit yet. Only $submittedTeachers of $totalTeachers teachers have submitted their portion. Please wait for all teachers to complete their assessment."
+        ]); exit;
+      }
+      // ── INSERT HERE ──
+    if ($_POST['action'] === 'override_teacher_indicator') {
+        $indicatorId    = (int)$_POST['indicator_id'];
+        $overrideRating = (int)$_POST['rating'];
+        $reason         = trim($_POST['reason'] ?? '');
+
+        if ($overrideRating < 1 || $overrideRating > 4) {
+            echo json_encode(['ok'=>false,'msg'=>'Invalid rating.']); exit;
+        }
+
+        $chk = $db->prepare(
+            "SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?"
+        );
+        $chk->execute([$indicatorId]);
+        $code = $chk->fetchColumn();
+
+        if (!in_array($code, TEACHER_INDICATOR_CODES)) {
+            echo json_encode([
+                'ok'  => false,
+                'msg' => 'This indicator is not a teacher indicator.'
+            ]); exit;
+        }
+
+        $cycleRow = $db->prepare(
+            "SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?"
+        );
+        $cycleRow->execute([$schoolId, $syId]);
+        $cycleId = $cycleRow->fetchColumn();
+
+        if (!$cycleId) {
+            echo json_encode(['ok'=>false,'msg'=>'No active cycle.']); exit;
+        }
+
+        $avgStmt = $db->prepare("
+            SELECT ROUND(AVG(rating), 2) 
+            FROM teacher_responses 
+            WHERE cycle_id=? AND indicator_id=?
+        ");
+        $avgStmt->execute([$cycleId, $indicatorId]);
+        $originalAvg = $avgStmt->fetchColumn();
+
+        $db->prepare("
+            INSERT INTO sh_indicator_overrides 
+                (cycle_id, indicator_id, school_id, original_avg,
+                 override_rating, override_reason, overridden_by)
+            VALUES (?,?,?,?,?,?,?)
+            ON DUPLICATE KEY UPDATE
+                original_avg     = VALUES(original_avg),
+                override_rating  = VALUES(override_rating),
+                override_reason  = VALUES(override_reason),
+                overridden_by    = VALUES(overridden_by),
+                overridden_at    = NOW()
+        ")->execute([
+            $cycleId, $indicatorId, $schoolId,
+            $originalAvg, $overrideRating, $reason,
+            $_SESSION['user_id']
+        ]);
+
+        recomputeDimScoreWithOverrides(
+            $db, $cycleId, $indicatorId, $schoolId
+        );
+
+        logActivity(
+            'sh_override_indicator',
+            'self_assessment',
+            "SH overrode indicator $code from avg $originalAvg to $overrideRating in cycle $cycleId"
+        );
+
+        echo json_encode([
+            'ok'           => true,
+            'msg'          => 'Override saved. Dimension score updated.',
+            'original_avg' => $originalAvg,
+            'override_rating' => $overrideRating
+        ]); exit;
+    }
+
+    if ($_POST['action'] === 'clear_override') {
+        $indicatorId = (int)$_POST['indicator_id'];
+
+        $cycleRow = $db->prepare(
+            "SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?"
+        );
+        $cycleRow->execute([$schoolId, $syId]);
+        $cycleId = $cycleRow->fetchColumn();
+
+        if (!$cycleId) {
+            echo json_encode(['ok'=>false,'msg'=>'No active cycle.']); exit;
+        }
+
+        $db->prepare("
+            DELETE FROM sh_indicator_overrides 
+            WHERE cycle_id=? AND indicator_id=?
+        ")->execute([$cycleId, $indicatorId]);
+
+        recomputeDimScoreWithOverrides(
+            $db, $cycleId, $indicatorId, $schoolId
+        );
+
+        echo json_encode([
+            'ok'  => true,
+            'msg' => 'Override cleared. Score reverted to teacher average.'
+        ]); exit;
+    }
+
+        if ($_POST['action'] === 'override_teacher_indicator') {
+    $indicatorId    = (int)$_POST['indicator_id'];
+    $overrideRating = (int)$_POST['rating'];
+    $reason         = trim($_POST['reason'] ?? '');
+
+    if ($overrideRating < 1 || $overrideRating > 4) {
+        echo json_encode(['ok'=>false,'msg'=>'Invalid rating.']); exit;
+    }
+
+    // Must be a teacher indicator
+    $chk = $db->prepare(
+        "SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?"
+    );
+    $chk->execute([$indicatorId]);
+    $code = $chk->fetchColumn();
+
+    if (!in_array($code, TEACHER_INDICATOR_CODES)) {
+        echo json_encode([
+            'ok'  => false,
+            'msg' => 'This indicator is not a teacher indicator.'
+        ]); exit;
+    }
+
+    // Get cycle
+    $cycleRow = $db->prepare(
+        "SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?"
+    );
+    $cycleRow->execute([$schoolId, $syId]);
+    $cycleId = $cycleRow->fetchColumn();
+
+    if (!$cycleId) {
+        echo json_encode(['ok'=>false,'msg'=>'No active cycle.']); exit;
+    }
+
+    // Get current teacher average for logging
+    $avgStmt = $db->prepare("
+        SELECT ROUND(AVG(rating), 2) 
+        FROM teacher_responses 
+        WHERE cycle_id=? AND indicator_id=?
+    ");
+    $avgStmt->execute([$cycleId, $indicatorId]);
+    $originalAvg = $avgStmt->fetchColumn();
+
+    // Save override
+    $db->prepare("
+        INSERT INTO sh_indicator_overrides 
+            (cycle_id, indicator_id, school_id, original_avg,
+             override_rating, override_reason, overridden_by)
+        VALUES (?,?,?,?,?,?,?)
+        ON DUPLICATE KEY UPDATE
+            original_avg     = VALUES(original_avg),
+            override_rating  = VALUES(override_rating),
+            override_reason  = VALUES(override_reason),
+            overridden_by    = VALUES(overridden_by),
+            overridden_at    = NOW()
+    ")->execute([
+        $cycleId, $indicatorId, $schoolId,
+        $originalAvg, $overrideRating, $reason,
+        $_SESSION['user_id']
+    ]);
+
+    // Recompute dimension score using overrides
+    recomputeDimScoreWithOverrides(
+        $db, $cycleId, $indicatorId, $schoolId
+    );
+
+    logActivity(
+        'sh_override_indicator',
+        'self_assessment',
+        "SH overrode indicator $code from avg $originalAvg 
+         to $overrideRating in cycle $cycleId"
+    );
+
+    echo json_encode([
+        'ok'  => true,
+        'msg' => 'Override saved. Dimension score updated.',
+        'original_avg'   => $originalAvg,
+        'override_rating'=> $overrideRating
+    ]); exit;
+}
+
+if ($_POST['action'] === 'clear_override') {
+    $indicatorId = (int)$_POST['indicator_id'];
+
+    $cycleRow = $db->prepare(
+        "SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?"
+    );
+    $cycleRow->execute([$schoolId, $syId]);
+    $cycleId = $cycleRow->fetchColumn();
+
+    if (!$cycleId) {
+        echo json_encode(['ok'=>false,'msg'=>'No active cycle.']); exit;
+    }
+
+    $db->prepare("
+        DELETE FROM sh_indicator_overrides 
+        WHERE cycle_id=? AND indicator_id=?
+    ")->execute([$cycleId, $indicatorId]);
+
+    recomputeDimScoreWithOverrides(
+        $db, $cycleId, $indicatorId, $schoolId
+    );
+
+    echo json_encode([
+        'ok'  => true,
+        'msg' => 'Override cleared. Score reverted to teacher average.'
+    ]); exit;
+}
+    }
 
         // Count SH-only indicators (active, not in teacher list)
         $shOnlyStmt = $db->prepare("
@@ -167,6 +402,96 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
 
 // ── HELPERS ──────────────────────────────────────────────────
 function recomputeDimScore(PDO $db, int $cycleId, int $indicatorId, int $schoolId): void {
+  function recomputeDimScoreWithOverrides(
+    PDO $db, int $cycleId, 
+    int $indicatorId, int $schoolId
+): void {
+    // Get dimension
+    $dimId = $db->prepare(
+        "SELECT dimension_id FROM sbm_indicators WHERE indicator_id=?"
+    );
+    $dimId->execute([$indicatorId]); 
+    $dimId = $dimId->fetchColumn();
+
+    // Get all indicators in this dimension
+    $inds = $db->prepare("
+        SELECT indicator_id, indicator_code 
+        FROM sbm_indicators 
+        WHERE dimension_id=? AND is_active=1
+    ");
+    $inds->execute([$dimId]); 
+    $inds = $inds->fetchAll();
+
+    $rawTotal = 0;
+    $maxTotal = 0;
+
+    foreach ($inds as $ind) {
+        $isTeacher = in_array(
+            $ind['indicator_code'], TEACHER_INDICATOR_CODES
+        );
+
+        if ($isTeacher) {
+            // Check if SH has overridden this indicator
+            $ov = $db->prepare("
+                SELECT override_rating 
+                FROM sh_indicator_overrides 
+                WHERE cycle_id=? AND indicator_id=?
+            ");
+            $ov->execute([$cycleId, $ind['indicator_id']]);
+            $override = $ov->fetchColumn();
+
+            if ($override !== false) {
+                // Use override rating
+                $rawTotal += (int)$override;
+                $maxTotal += 4;
+            } else {
+                // Use teacher average
+                $avg = $db->prepare("
+                    SELECT AVG(rating) 
+                    FROM teacher_responses 
+                    WHERE cycle_id=? AND indicator_id=?
+                ");
+                $avg->execute([$cycleId, $ind['indicator_id']]);
+                $avgVal = $avg->fetchColumn();
+                if ($avgVal !== null) {
+                    $rawTotal += floatval($avgVal);
+                    $maxTotal += 4;
+                }
+            }
+        } else {
+            // Use school head response
+            $shResp = $db->prepare("
+                SELECT rating FROM sbm_responses 
+                WHERE cycle_id=? AND indicator_id=?
+            ");
+            $shResp->execute([$cycleId, $ind['indicator_id']]);
+            $rating = $shResp->fetchColumn();
+            if ($rating !== false) {
+                $rawTotal += (int)$rating;
+                $maxTotal += 4;
+            }
+        }
+    }
+
+    $pct = $maxTotal > 0 
+        ? round(($rawTotal / $maxTotal) * 100, 2) 
+        : 0;
+
+    $db->prepare("
+        INSERT INTO sbm_dimension_scores 
+            (cycle_id, school_id, dimension_id, 
+             raw_score, max_score, percentage)
+        VALUES (?,?,?,?,?,?)
+        ON DUPLICATE KEY UPDATE
+            raw_score  = VALUES(raw_score),
+            max_score  = VALUES(max_score),
+            percentage = VALUES(percentage),
+            computed_at= NOW()
+    ")->execute([
+        $cycleId, $schoolId, $dimId, 
+        $rawTotal, $maxTotal, $pct
+    ]);
+}
     $dimId = $db->prepare("SELECT dimension_id FROM sbm_indicators WHERE indicator_id=?");
     $dimId->execute([$indicatorId]); $dimId = $dimId->fetchColumn();
 
@@ -207,6 +532,17 @@ if ($cycle) {
     $r = $db->prepare("SELECT * FROM sbm_responses WHERE cycle_id=?");
     $r->execute([$cycle['cycle_id']]);
     foreach ($r->fetchAll() as $row) $responses[$row['indicator_id']] = $row;
+}
+
+// Load SH overrides for teacher indicators
+$overrides = [];
+if ($cycle) {
+    $ov = $db->prepare("
+        SELECT * FROM sh_indicator_overrides WHERE cycle_id=?
+    ");
+    $ov->execute([$cycle['cycle_id']]);
+    foreach ($ov->fetchAll() as $row)
+        $overrides[$row['indicator_id']] = $row;
 }
 
 $grouped = [];
@@ -881,31 +1217,107 @@ $dimTchCount = count($inds) - $dimShCount;
       </div>
 
       <?php if($isTeacher): ?>
-      <!-- TEACHER INFO BOX -->
-      <div class="teacher-info-box">
-        <div class="teacher-info-icon">
-          <svg viewBox="0 0 24 24">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+<?php 
+$hasOverride = isset($overrides[$ind['indicator_id']]);
+$ovData      = $hasOverride 
+    ? $overrides[$ind['indicator_id']] 
+    : null;
+?>
+
+<!-- TEACHER INFO BOX WITH OVERRIDE -->
+<div class="teacher-info-box" 
+     style="<?= $hasOverride 
+                ? 'background:var(--goldb);border-color:#FDE68A;' 
+                : '' ?>">
+    <div class="teacher-info-icon"
+         style="<?= $hasOverride 
+                    ? 'background:var(--gold);' 
+                    : '' ?>">
+        <svg viewBox="0 0 24 24">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 
+                     0-4 4v2"/>
             <circle cx="9" cy="7" r="4"/>
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
+        </svg>
+    </div>
+    <div class="teacher-info-text" style="flex:1;">
+        <?php if($trData && (int)$trData['teacher_count'] > 0): ?>
+        <div class="teacher-info-title">
+            Teacher Average: 
+            <span class="teacher-avg-rating"
+                  style="<?= $hasOverride 
+                             ? 'text-decoration:line-through;
+                                opacity:.5;color:var(--n500);' 
+                             : '' ?>">
+                <?= $trData['avg_rating'] ?>/4.00
+            </span>
+            <?php if($hasOverride): ?>
+            <span style="margin-left:8px;color:var(--gold);
+                         font-weight:800;">
+                → Overridden: <?= $ovData['override_rating'] ?>/4
+            </span>
+            <?php endif; ?>
         </div>
-        <div class="teacher-info-text">
-          <?php if($trData && (int)$trData['teacher_count'] > 0): ?>
-            <div class="teacher-info-title">
-              Teacher Average:
-              <span class="teacher-avg-rating"><?= $trData['avg_rating'] ?>/4.00</span>
-            </div>
-            <div class="teacher-info-body">
-              <?= (int)$trData['teacher_count'] ?> response(s) &nbsp;·&nbsp; <?= e($trData['teachers']) ?>
-            </div>
-          <?php else: ?>
-            <div class="teacher-info-title">Teacher Indicator</div>
-            <div class="teacher-info-body">No teacher input yet. Teachers rate this in their own portal.</div>
-          <?php endif; ?>
+        <div class="teacher-info-body">
+            <?= (int)$trData['teacher_count'] ?> teacher response(s)
+            &nbsp;·&nbsp; <?= e($trData['teachers']) ?>
         </div>
-      </div>
+        <?php else: ?>
+        <div class="teacher-info-title">Teacher Indicator</div>
+        <div class="teacher-info-body">
+            No teacher input yet. Teachers rate this in their portal.
+        </div>
+        <?php endif; ?>
+
+        <?php if(!$isLocked && $trData && 
+                 (int)$trData['teacher_count'] > 0): ?>
+        <!-- Override controls -->
+        <div style="margin-top:10px;padding-top:10px;
+                    border-top:1px solid rgba(0,0,0,.08);">
+            <?php if(!$hasOverride): ?>
+            <button class="btn btn-secondary btn-sm"
+                    onclick="openOverride(
+                        <?= $ind['indicator_id'] ?>,
+                        '<?= e($ind['indicator_code']) ?>',
+                        <?= $trData['avg_rating'] ?>
+                    )">
+                Override Rating
+            </button>
+            <span style="font-size:11px;color:var(--n400);
+                         margin-left:8px;">
+                Use if teacher average needs correction
+            </span>
+            <?php else: ?>
+            <button class="btn btn-sm"
+                    style="background:var(--goldb);
+                           color:var(--gold);
+                           border:1px solid #FDE68A;"
+                    onclick="openOverride(
+                        <?= $ind['indicator_id'] ?>,
+                        '<?= e($ind['indicator_code']) ?>',
+                        <?= $trData['avg_rating'] ?>,
+                        <?= $ovData['override_rating'] ?>,
+                        `<?= e(addslashes($ovData['override_reason'] ?? '')) ?>`
+                    )">
+                Edit Override
+            </button>
+            <button class="btn btn-danger btn-sm"
+                    style="margin-left:6px;"
+                    onclick="clearOverride(<?= $ind['indicator_id'] ?>)">
+                Clear Override
+            </button>
+            <?php if($ovData['override_reason']): ?>
+            <div style="font-size:11.5px;color:var(--n600);
+                        margin-top:5px;font-style:italic;">
+                Reason: <?= e($ovData['override_reason']) ?>
+            </div>
+            <?php endif; ?>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
 
       <?php else: ?>
       <!-- SCHOOL HEAD RATING -->
@@ -1428,6 +1840,150 @@ async function submitAssessment() {
   const saved = sessionStorage.getItem('sbmFilter');
   if (saved && saved !== 'all') setFilter(saved);
 })();
+
+// ── Override functions ─────────────────────────────────────
+function openOverride(indId, code, avgRating, 
+                      currentOverride, currentReason) {
+    $v('ov_ind_id', indId);
+    $v('ov_code', code);
+    $v('ov_avg', avgRating);
+    $v('ov_rating', currentOverride || '');
+    $v('ov_reason', currentReason  || '');
+
+    document.getElementById('mOverrideTitle').textContent =
+        `Override Indicator ${code}`;
+    document.getElementById('ovAvgDisplay').textContent =
+        `Teacher average: ${avgRating}/4.00`;
+
+    // Pre-select the current override rating if editing
+    document.querySelectorAll('.ov-rating-btn').forEach(btn => {
+        const r = parseInt(btn.dataset.rating);
+        btn.className = 'rating-btn' + 
+            (r === parseInt(currentOverride) 
+                ? ` selected-${r}` 
+                : '');
+    });
+
+    openModal('mOverride');
+}
+
+function selectOverrideRating(r) {
+    $v('ov_rating', r);
+    document.querySelectorAll('.ov-rating-btn').forEach(btn => {
+        const bv = parseInt(btn.dataset.rating);
+        btn.className = 'rating-btn' + 
+            (bv === r ? ` selected-${r}` : '');
+    });
+}
+
+async function submitOverride() {
+    const indId  = $('ov_ind_id');
+    const rating = parseInt($('ov_rating'));
+    const reason = document.getElementById('ov_reason').value.trim();
+
+    if (!rating || rating < 1 || rating > 4) {
+        toast('Please select a rating.', 'warning'); 
+        return;
+    }
+    if (!reason) {
+        toast('Please provide a reason for the override.', 'warning');
+        return;
+    }
+
+    const r = await apiPost('self_assessment.php', {
+        action:       'override_teacher_indicator',
+        indicator_id: indId,
+        rating,
+        reason
+    });
+
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) {
+        closeModal('mOverride');
+        setTimeout(() => location.reload(), 800);
+    }
+}
+
+async function clearOverride(indId) {
+    if (!confirm(
+        'Clear this override? The score will revert to ' +
+        'the teacher average.'
+    )) return;
+
+    const r = await apiPost('self_assessment.php', {
+        action:       'clear_override',
+        indicator_id: indId
+    });
+
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) setTimeout(() => location.reload(), 800);
+}
+
 </script>
+
+<!-- Override Modal -->
+<div class="overlay" id="mOverride">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <span class="modal-title" id="mOverrideTitle">
+          Override Indicator
+      </span>
+      <button class="modal-close" onclick="closeModal('mOverride')">
+          <?= svgIcon('x') ?>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ov_ind_id">
+      <input type="hidden" id="ov_code">
+      <input type="hidden" id="ov_avg">
+      <input type="hidden" id="ov_rating">
+
+      <div class="alert alert-warning" style="margin-bottom:16px;">
+          <?= svgIcon('alert-circle') ?>
+          <span>
+              Overriding replaces the teacher average for 
+              score computation. Use only when necessary 
+              (e.g., data entry error, teacher on leave).
+          </span>
+      </div>
+
+      <div style="font-size:13px;color:var(--n500);
+                  margin-bottom:14px;" id="ovAvgDisplay">
+      </div>
+
+      <div class="fg">
+          <label>Override Rating *</label>
+          <div class="rating-group">
+              <?php foreach([1,2,3,4] as $r): ?>
+              <button type="button"
+                      class="rating-btn ov-rating-btn"
+                      data-rating="<?= $r ?>"
+                      onclick="selectOverrideRating(<?= $r ?>)">
+                  <?= $r ?> — <?= $ratingLabels[$r] ?>
+              </button>
+              <?php endforeach; ?>
+          </div>
+      </div>
+
+      <div class="fg">
+          <label>Reason for Override *</label>
+          <textarea class="fc" id="ov_reason" rows="3"
+              placeholder="Explain why you are overriding the 
+                           teacher average (e.g., teacher was on 
+                           leave, data entry error)…">
+          </textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" 
+              onclick="closeModal('mOverride')">
+          Cancel
+      </button>
+      <button class="btn btn-primary" onclick="submitOverride()">
+          Save Override
+      </button>
+    </div>
+  </div>
+</div>
 
 <?php include __DIR__.'/../includes/footer.php'; ?>
