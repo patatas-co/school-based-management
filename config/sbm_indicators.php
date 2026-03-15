@@ -145,13 +145,6 @@ define('STAKEHOLDER_INDICATOR_CODES', [
     '6.1','6.2','6.3','6.4','6.5','6.6','6.7',     // Dimension 6
 ]);
 
-function sbmMaturity(float $pct): array {
-    foreach (SBM_MATURITY as $m) {
-        if ($pct >= $m['min'] && $pct <= $m['max']) return $m;
-    }
-    return SBM_MATURITY[0];
-}
-
 function sbmRatingLabel(int $r): string {
     return SBM_RATINGS[$r]['label'] ?? '—';
 }

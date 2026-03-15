@@ -139,6 +139,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])){
             ]); exit;
         }
 
+        $cycleInfo = $db->prepare("SELECT school_id, sy_id FROM sbm_cycles WHERE cycle_id=?");
+$cycleInfo->execute([$cycleId]); $cycleInfo = $cycleInfo->fetch();
         $db->prepare("
             INSERT INTO stakeholder_submissions
                 (cycle_id,stakeholder_id,school_id,sy_id,
@@ -148,9 +150,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])){
                 status         = 'submitted',
                 submitted_at   = NOW(),
                 response_count = VALUES(response_count)
-        ")->execute([
-            $cycleId,$uid,$schoolId,$syId,$answered
-        ]);
+        ")->execute([$cycleId, $uid, $cycleInfo['school_id'], $cycleInfo['sy_id'], $answered]);
 
         echo json_encode([
             'ok'  => true,

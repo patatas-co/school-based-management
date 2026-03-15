@@ -1,8 +1,43 @@
 <?php
+// ============================================================
+// includes/workflow_core.php
+// Orchestrator for the SBM Workflow & Timeline module.
+// Included by admin/workflow.php and sdo/workflow.php.
+// ============================================================
+
 $workflowPostUrl = basename($_SERVER['PHP_SELF']);
 $db = getDB();
 
-// ── CONSTANTS ────────────────────────────────────────────────
+// Pull in helpers and POST handler (no output, no side effects)
+require_once __DIR__ . '/workflow_actions.php';
+require_once __DIR__ . '/workflow_data.php';
+
+// Handle any POST request and exit before any output
+handleWorkflowPost($db);
+
+// Load all view data into local variables
+$_wd = loadWorkflowData($db);
+$syId            = $_wd['syId'];
+$syRow           = $_wd['syRow'];
+$syears          = $_wd['syears'];
+$dbPhases        = $_wd['dbPhases'];
+$activePhaseNo   = $_wd['activePhaseNo'];
+$dbPeriods       = $_wd['dbPeriods'];
+$currentPeriodNo = $_wd['currentPeriodNo'];
+$schools         = $_wd['schools'];
+$selId           = $_wd['selId'];
+$selSchool       = $_wd['selSchool'];
+$selCps          = $_wd['selCps'];
+unset($_wd);
+
+// Compute summary stats for the stat cards
+$totalSch   = count($schools);
+$notStarted = count(array_filter($schools, fn($s) => !$s['overall_status'] || $s['overall_status'] === 'not_started'));
+$inProgress = count(array_filter($schools, fn($s) => $s['overall_status'] === 'in_progress'));
+$completed  = count(array_filter($schools, fn($s) => $s['overall_status'] === 'completed'));
+$overdueSch = count(array_filter($schools, fn($s) => (int)($s['cp_overdue'] ?? 0) > 0));
+
+// Phase display metadata (used only in the view)
 $PHASES = [
     1 => [
         'label'  => 'Self-Assessment',
@@ -31,204 +66,13 @@ $PHASES = [
 ];
 
 $CP_META = [
-    'self_assessment' => ['label' => 'Self-Assessment Submitted',    'phase' => 1, 'icon' => 'check-square'],
-    'planning'        => ['label' => 'SIP Integration Confirmed',    'phase' => 2, 'icon' => 'file-text'],
-    'q1_monitoring'   => ['label' => 'Q1 Monitoring Visit Done',     'phase' => 3, 'icon' => 'eye'],
-    'q2_monitoring'   => ['label' => 'Q2 Monitoring Visit Done',     'phase' => 3, 'icon' => 'eye'],
-    'q3_monitoring'   => ['label' => 'Q3 Monitoring Visit Done',     'phase' => 3, 'icon' => 'eye'],
-    'completion'      => ['label' => 'Cycle Completed',              'phase' => 3, 'icon' => 'award'],
+    'self_assessment' => ['label' => 'Self-Assessment Submitted',  'phase' => 1, 'icon' => 'check-square'],
+    'planning'        => ['label' => 'SIP Integration Confirmed',  'phase' => 2, 'icon' => 'file-text'],
+    'q1_monitoring'   => ['label' => 'Q1 Monitoring Visit Done',   'phase' => 3, 'icon' => 'eye'],
+    'q2_monitoring'   => ['label' => 'Q2 Monitoring Visit Done',   'phase' => 3, 'icon' => 'eye'],
+    'q3_monitoring'   => ['label' => 'Q3 Monitoring Visit Done',   'phase' => 3, 'icon' => 'eye'],
+    'completion'      => ['label' => 'Cycle Completed',            'phase' => 3, 'icon' => 'award'],
 ];
-
-// ── POST / AJAX HANDLERS ─────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
-    header('Content-Type: application/json');
-    if (function_exists('verifyCsrf')) verifyCsrf();
-
-    $action = $_POST['action'];
-    $syId   = (int) ($_POST['sy_id'] ?? 0);
-
-    // ── Save grading periods ──────────────────────────────────
-    if ($action === 'save_periods') {
-        $periods = json_decode($_POST['periods_json'] ?? '[]', true);
-        // Clear existing current flag
-        $db->prepare("UPDATE grading_periods SET is_current=0 WHERE sy_id=?")->execute([$syId]);
-        foreach ($periods as $p) {
-            $db->prepare("INSERT INTO grading_periods (sy_id,period_no,period_name,date_start,date_end,is_current)
-                          VALUES (?,?,?,?,?,?)
-                          ON DUPLICATE KEY UPDATE
-                            period_name=VALUES(period_name),date_start=VALUES(date_start),
-                            date_end=VALUES(date_end),is_current=VALUES(is_current)")
-               ->execute([$syId, (int)$p['no'], trim($p['name']), $p['start'], $p['end'], (int)($p['current']??0)]);
-        }
-        echo json_encode(['ok' => true, 'msg' => 'Grading periods saved.']); exit;
-    }
-
-    // ── Save workflow phases ──────────────────────────────────
-    if ($action === 'save_phases') {
-        $phases = json_decode($_POST['phases_json'] ?? '[]', true);
-        foreach ($phases as $p) {
-            $db->prepare("INSERT INTO sbm_workflow_phases (sy_id,phase_no,phase_name,description,date_start,date_end,is_active)
-                          VALUES (?,?,?,?,?,?,?)
-                          ON DUPLICATE KEY UPDATE
-                            phase_name=VALUES(phase_name),description=VALUES(description),
-                            date_start=VALUES(date_start),date_end=VALUES(date_end),is_active=VALUES(is_active)")
-               ->execute([$syId,(int)$p['no'],trim($p['name']),trim($p['desc']),$p['start'],$p['end'],(int)($p['active']??0)]);
-        }
-        fnAutoGenerateCheckpoints($db, $syId, $phases, false);
-        echo json_encode(['ok' => true, 'msg' => 'Workflow phases saved and checkpoints generated.']); exit;
-    }
-
-    // ── Initialize workflow for all schools ──────────────────
-    if ($action === 'init_workflow') {
-        $schools = $db->query("SELECT school_id FROM schools")->fetchAll(PDO::FETCH_COLUMN);
-        $inserted = 0;
-        foreach ($schools as $sid) {
-            $chk = $db->prepare("SELECT 1 FROM school_workflow_status WHERE school_id=? AND sy_id=?");
-            $chk->execute([$sid, $syId]);
-            if (!$chk->fetchColumn()) {
-                $db->prepare("INSERT INTO school_workflow_status (school_id,sy_id,current_phase,overall_status) VALUES (?,?,1,'not_started')")
-                   ->execute([$sid, $syId]);
-                $inserted++;
-            }
-        }
-        // Re-generate checkpoints from DB phases
-        $phQ = $db->prepare("SELECT * FROM sbm_workflow_phases WHERE sy_id=? ORDER BY phase_no");
-        $phQ->execute([$syId]); $phArr = $phQ->fetchAll();
-        fnAutoGenerateCheckpoints($db, $syId, $phArr, true);
-        echo json_encode(['ok' => true, 'msg' => "Workflow initialized for {$inserted} new schools."]); exit;
-    }
-
-    // ── Activate a phase ─────────────────────────────────────
-    if ($action === 'activate_phase') {
-        $phaseNo = (int) $_POST['phase_no'];
-        $db->prepare("UPDATE sbm_workflow_phases SET is_active=0 WHERE sy_id=?")->execute([$syId]);
-        $db->prepare("UPDATE sbm_workflow_phases SET is_active=1 WHERE sy_id=? AND phase_no=?")->execute([$syId, $phaseNo]);
-        // Mark overdue
-        $db->prepare("UPDATE workflow_checkpoints SET status='overdue' WHERE sy_id=? AND status='pending' AND due_date < CURDATE()")->execute([$syId]);
-        echo json_encode(['ok' => true, 'msg' => "Phase {$phaseNo} is now active."]); exit;
-    }
-
-    // ── Set current grading period ────────────────────────────
-    if ($action === 'set_period') {
-        $periodNo = (int) $_POST['period_no'];
-        $db->prepare("UPDATE grading_periods SET is_current=0 WHERE sy_id=?")->execute([$syId]);
-        $db->prepare("UPDATE grading_periods SET is_current=1 WHERE sy_id=? AND period_no=?")->execute([$syId, $periodNo]);
-        echo json_encode(['ok' => true, 'msg' => "Current grading period updated."]); exit;
-    }
-
-    // ── Mark checkpoint done ──────────────────────────────────
-    if ($action === 'mark_checkpoint') {
-        $cpId     = (int) $_POST['cp_id'];
-        $schoolId = (int) $_POST['school_id'];
-        $notes    = trim($_POST['notes'] ?? '');
-        $db->prepare("UPDATE workflow_checkpoints SET status='done',completed_at=NOW(),completed_by=?,notes=? WHERE cp_id=?")
-           ->execute([$_SESSION['user_id'], $notes, $cpId]);
-        fnUpdateSchoolStatus($db, $schoolId, $syId);
-        echo json_encode(['ok' => true, 'msg' => 'Checkpoint marked as done.']); exit;
-    }
-
-    exit;
-}
-
-// ── HELPER: auto-generate checkpoints ─────────────────────────
-function fnAutoGenerateCheckpoints(PDO $db, int $syId, array $phases, bool $fromDB): void {
-    $schools = $db->query("SELECT school_id FROM schools")->fetchAll(PDO::FETCH_COLUMN);
-    $typeMap = [
-        1 => [['self_assessment', null]],
-        2 => [['planning', null]],
-        3 => [['q1_monitoring',1],['q2_monitoring',2],['q3_monitoring',3],['completion',null]],
-    ];
-    foreach ($phases as $p) {
-        $phNo  = $fromDB ? (int)$p['phase_no'] : (int)$p['no'];
-        $pStart= $fromDB ? $p['date_start']    : $p['start'];
-        $pEnd  = $fromDB ? $p['date_end']      : $p['end'];
-        foreach ($schools as $sid) {
-            foreach (($typeMap[$phNo] ?? []) as [$ctype, $qno]) {
-                $due = $pEnd;
-                if ($phNo === 3 && $qno) {
-                    $span = (strtotime($pEnd) - strtotime($pStart)) / 3;
-                    $due  = date('Y-m-d', strtotime($pStart) + $span * $qno);
-                }
-                $ex = $db->prepare("SELECT 1 FROM workflow_checkpoints WHERE school_id=? AND sy_id=? AND cp_type=?");
-                $ex->execute([$sid, $syId, $ctype]);
-                if (!$ex->fetchColumn()) {
-                    $db->prepare("INSERT INTO workflow_checkpoints (school_id,sy_id,phase_no,grading_period,cp_type,status,due_date) VALUES (?,?,?,?,?,'pending',?)")
-                       ->execute([$sid, $syId, $phNo, $qno, $ctype, $due]);
-                }
-            }
-        }
-    }
-}
-
-// ── HELPER: recalc school's overall workflow status ────────────
-function fnUpdateSchoolStatus(PDO $db, int $schoolId, int $syId): void {
-    $cps = $db->prepare("SELECT cp_type,status FROM workflow_checkpoints WHERE school_id=? AND sy_id=?");
-    $cps->execute([$schoolId, $syId]);
-    $byType = array_column($cps->fetchAll(), 'status', 'cp_type');
-
-    $p1done = ($byType['self_assessment'] ?? '') === 'done';
-    $p2done = ($byType['planning']        ?? '') === 'done';
-    $p3done = ($byType['completion']      ?? '') === 'done';
-
-    $curPhase = 1;
-    if ($p1done) $curPhase = 2;
-    if ($p2done) $curPhase = 3;
-
-    $overall = 'not_started';
-    if ($p1done || in_array('done', array_values($byType))) $overall = 'in_progress';
-    if ($p3done) $overall = 'completed';
-
-    $db->prepare("INSERT INTO school_workflow_status (school_id,sy_id,current_phase,overall_status)
-                  VALUES (?,?,?,?)
-                  ON DUPLICATE KEY UPDATE current_phase=VALUES(current_phase),overall_status=VALUES(overall_status),updated_at=NOW()")
-       ->execute([$schoolId, $syId, $curPhase, $overall]);
-}
-
-// ── LOAD DATA ─────────────────────────────────────────────────
-$syears  = $db->query("SELECT * FROM school_years ORDER BY sy_id DESC")->fetchAll();
-$syId    = (int)($_GET['sy'] ?? ($db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn() ?: ($syears[0]['sy_id'] ?? 0)));
-$syRow   = $db->prepare("SELECT * FROM school_years WHERE sy_id=?"); $syRow->execute([$syId]); $syRow = $syRow->fetch();
-
-$dbPhases  = $db->prepare("SELECT * FROM sbm_workflow_phases WHERE sy_id=? ORDER BY phase_no");
-$dbPhases->execute([$syId]); $dbPhases = $dbPhases->fetchAll();
-$activePhaseNo = 0;
-foreach ($dbPhases as $ph) { if ($ph['is_active']) $activePhaseNo = (int)$ph['phase_no']; }
-
-$dbPeriods = $db->prepare("SELECT * FROM grading_periods WHERE sy_id=? ORDER BY period_no");
-$dbPeriods->execute([$syId]); $dbPeriods = $dbPeriods->fetchAll();
-$currentPeriodNo = 0;
-foreach ($dbPeriods as $p) { if ($p['is_current']) $currentPeriodNo = (int)$p['period_no']; }
-
-// Schools with workflow snapshot
-$schoolSQL = "
-  SELECT s.school_id, s.school_name, s.classification,
-    ws.current_phase, ws.overall_status,
-    (SELECT COUNT(*) FROM workflow_checkpoints wc WHERE wc.school_id=s.school_id AND wc.sy_id=? AND wc.status='done')    AS cp_done,
-    (SELECT COUNT(*) FROM workflow_checkpoints wc WHERE wc.school_id=s.school_id AND wc.sy_id=?)                          AS cp_total,
-    (SELECT COUNT(*) FROM workflow_checkpoints wc WHERE wc.school_id=s.school_id AND wc.sy_id=? AND wc.status='overdue') AS cp_overdue,
-    sc.overall_score, sc.maturity_level
-  FROM schools s
-  LEFT JOIN school_workflow_status ws ON ws.school_id=s.school_id AND ws.sy_id=?
-  LEFT JOIN sbm_cycles sc ON sc.school_id=s.school_id AND sc.sy_id=?
-  ORDER BY s.school_name";
-$sStmt = $db->prepare($schoolSQL);
-$sStmt->execute([$syId,$syId,$syId,$syId,$syId]);
-$schools = $sStmt->fetchAll();
-
-$totalSch   = count($schools);
-$notStarted = count(array_filter($schools, fn($s) => !$s['overall_status'] || $s['overall_status'] === 'not_started'));
-$inProgress = count(array_filter($schools, fn($s) => $s['overall_status'] === 'in_progress'));
-$completed  = count(array_filter($schools, fn($s) => $s['overall_status'] === 'completed'));
-$overdueSch = count(array_filter($schools, fn($s) => (int)($s['cp_overdue'] ?? 0) > 0));
-
-// Per-school checkpoint detail
-$selId = (int)($_GET['school'] ?? 0);
-$selSchool = null; $selCps = [];
-if ($selId) {
-    $q = $db->prepare("SELECT * FROM schools WHERE school_id=?"); $q->execute([$selId]); $selSchool = $q->fetch();
-    $q2 = $db->prepare("SELECT wc.*, u.full_name AS done_by_name FROM workflow_checkpoints wc LEFT JOIN users u ON wc.completed_by=u.user_id WHERE wc.school_id=? AND wc.sy_id=? ORDER BY wc.phase_no, wc.grading_period");
-    $q2->execute([$selId, $syId]); $selCps = $q2->fetchAll();
-}
 
 $pageTitle  = 'Workflow & Timeline';
 $activePage = 'workflow.php';

@@ -81,18 +81,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                       ($answered/$required done)"
         ]); exit;
     }
+    // Derive school_id and sy_id from the cycle record to avoid denormalization bugs
+$cycleInfo = $db->prepare("SELECT school_id, sy_id FROM sbm_cycles WHERE cycle_id=?");
+$cycleInfo->execute([$cycleId]); $cycleInfo = $cycleInfo->fetch();
 
-    // Upsert submission record
-    $db->prepare("
-        INSERT INTO teacher_submissions 
-            (cycle_id, teacher_id, school_id, sy_id, status, 
-             submitted_at, response_count)
-        VALUES (?, ?, ?, ?, 'submitted', NOW(), ?)
-        ON DUPLICATE KEY UPDATE
-            status         = 'submitted',
-            submitted_at   = NOW(),
-            response_count = VALUES(response_count)
-    ")->execute([$cycleId, $uid, $schoolId, $syId, $answered]);
+$db->prepare("
+    INSERT INTO teacher_submissions 
+        (cycle_id, teacher_id, school_id, sy_id, status, 
+         submitted_at, response_count)
+    VALUES (?, ?, ?, ?, 'submitted', NOW(), ?)
+    ON DUPLICATE KEY UPDATE
+        status         = 'submitted',
+        submitted_at   = NOW(),
+        response_count = VALUES(response_count)
+")->execute([$cycleId, $uid, $cycleInfo['school_id'], $cycleInfo['sy_id'], $answered]);
 
     $db->prepare("UPDATE teacher_responses SET status='submitted' WHERE cycle_id=? AND teacher_id=?")
        ->execute([$cycleId, $uid]);

@@ -48,6 +48,7 @@ $__initials = strtoupper(implode('', array_map(fn($w)=>$w[0], array_slice(explod
 <link rel="icon" type="image/png" sizes="32x32" href="<?= $__base ?>/favicon/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="<?= $__base ?>/favicon/favicon-16x16.png">
 <title><?= e($pageTitle??'Dashboard') ?> — <?= e(SITE_NAME) ?></title>
+<meta name="csrf-token" content="<?= csrfToken() ?>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
@@ -330,7 +331,8 @@ function toast(msg, type='ok') {
   }).showToast();
 }
 function filterTable(q,id){document.querySelectorAll(`#${id} tbody tr`).forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none');}
-async function apiPost(url,data){data.csrf_token='<?= csrfToken() ?>';const res=await fetch(url,{method:'POST',body:new URLSearchParams(data)});return res.json();}
+const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+async function apiPost(url,data){data.csrf_token=_csrfToken;const res=await fetch(url,{method:'POST',body:new URLSearchParams(data)});return res.json();}
 function toggleUserMenu(){
   const sb = document.getElementById('sidebar');
   const popup = document.getElementById('userPopup');

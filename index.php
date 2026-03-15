@@ -24,10 +24,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Rehash password if PHP default algorithm has changed
     if (password_needs_rehash($row['password'], PASSWORD_DEFAULT)) {
+    try {
         $newHash = password_hash($pass, PASSWORD_DEFAULT);
         $db->prepare("UPDATE users SET password=? WHERE user_id=?")
            ->execute([$newHash, $row['user_id']]);
+    } catch (\Exception $e) {
+        // Non-fatal — user is authenticated, rehash can happen next login
+        error_log('Password rehash failed for user '.$row['user_id'].': '.$e->getMessage());
     }
+}
 
     $db->prepare("UPDATE users SET last_login=NOW() WHERE user_id=?")->execute([$row['user_id']]);
     logActivity('login', 'auth', 'User logged in');

@@ -247,6 +247,9 @@ INSERT INTO `improvement_plans` (`plan_id`, `school_id`, `cycle_id`, `dimension_
 -- Table structure for table `ml_predictions`
 --
 
+-- ⚠️  ml_predictions: Schema placeholder for future ML integration.
+-- No application code currently reads or writes this table.
+
 CREATE TABLE `ml_predictions` (
   `pred_id` int(11) NOT NULL,
   `school_id` int(11) NOT NULL,

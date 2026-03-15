@@ -2,6 +2,13 @@
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
 
+// Explicit auth check — poll.php must never return data to unauthenticated users
+if (empty($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode([]);
+    exit;
+}
+
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
 

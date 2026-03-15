@@ -19,8 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (!$title || !$content) {
             echo json_encode(['ok' => false, 'msg' => 'Title and content are required.']); exit;
         }
-        $cat    = in_array($_POST['category'], ['general','policy','directive','advisory','emergency'])
-                  ? $_POST['category'] : 'general';
+        $cat    = in_array($_POST['category'], ['general','policy','deadline','advisory','emergency'])
+          ? $_POST['category'] : 'general';
         $target = in_array($_POST['target'], ['all','school_head','teacher','sdo','ro'])
                   ? $_POST['target'] : 'all';
 
@@ -298,10 +298,10 @@ include __DIR__ . '/../includes/header.php';
           <label>Category <span style="color:var(--red)">*</span></label>
           <select class="fc" id="fCat" onchange="onCatChange(this.value)">
             <option value="general">General</option>
-            <option value="policy">Policy</option>
-            <option value="directive">Directive</option>
-            <option value="advisory">Advisory</option>
-            <option value="emergency">🚨 Emergency</option>
+<option value="policy">Policy</option>
+<option value="deadline">Deadline</option>
+<option value="advisory">Advisory</option>
+<option value="emergency">🚨 Emergency</option>
           </select>
         </div>
         <div class="fg">

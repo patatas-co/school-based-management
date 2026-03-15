@@ -39,9 +39,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $cycleRow->execute([$schoolId,$syId]); $cycleRow = $cycleRow->fetch();
 
         if (!$cycleRow) {
-            $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")->execute([$syId,$schoolId]);
-            $cycleId = $db->lastInsertId();
+    try {
+        $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")->execute([$syId,$schoolId]);
+        $cycleId = $db->lastInsertId();
+    } catch (\PDOException $e) {
+        if ($e->getCode() === '23000') {
+            // Duplicate key — cycle was created by a concurrent request, fetch it
+            $retry = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+            $retry->execute([$schoolId, $syId]);
+            $cycleId = $retry->fetchColumn();
         } else {
+            throw $e;
+        }
+    }
+} else {
             $cycleId = $cycleRow['cycle_id'];
             if ($cycleRow['status'] === 'draft') {
                 $db->prepare("UPDATE sbm_cycles SET status='in_progress',started_at=NOW() WHERE cycle_id=?")->execute([$cycleId]);
@@ -95,13 +106,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             echo json_encode(['ok'=>false,'msg'=>'Assessment is locked.']); exit;
         }
 
-        $db->prepare("
-            DELETE r FROM sbm_responses r
-            JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
-            WHERE r.cycle_id = ?
-              AND i.dimension_id = ?
-              AND i.indicator_code NOT IN ('".implode("','", TEACHER_INDICATOR_CODES)."')
-        ")->execute([$cycleRow['cycle_id'], $dimId]);
+        $ph = buildInPlaceholders(TEACHER_INDICATOR_CODES);
+$db->prepare("
+    DELETE r FROM sbm_responses r
+    JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
+    WHERE r.cycle_id = ?
+      AND i.dimension_id = ?
+      AND i.indicator_code NOT IN ($ph)
+")->execute(array_merge([$cycleRow['cycle_id'], $dimId], TEACHER_INDICATOR_CODES));
 
         $db->prepare("UPDATE sbm_dimension_scores SET raw_score=0,max_score=0,percentage=0,computed_at=NOW()
                       WHERE cycle_id=? AND dimension_id=?")
@@ -136,22 +148,24 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         }
 
         // Count SH-only indicators
-        $shOnlyStmt = $db->prepare("
-            SELECT COUNT(*) FROM sbm_indicators
-            WHERE is_active = 1
-              AND indicator_code NOT IN ('".implode("','", TEACHER_INDICATOR_CODES)."')
-        ");
-        $shOnlyStmt->execute();
+        $ph = buildInPlaceholders(TEACHER_INDICATOR_CODES);
+$shOnlyStmt = $db->prepare("
+    SELECT COUNT(*) FROM sbm_indicators
+    WHERE is_active = 1
+      AND indicator_code NOT IN ($ph)
+");
+$shOnlyStmt->execute(TEACHER_INDICATOR_CODES);
         $expected = (int)$shOnlyStmt->fetchColumn();
 
-        $shDoneStmt = $db->prepare("
-            SELECT COUNT(*) FROM sbm_responses r
-            JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
-            WHERE r.cycle_id = ?
-              AND i.is_active = 1
-              AND i.indicator_code NOT IN ('".implode("','", TEACHER_INDICATOR_CODES)."')
-        ");
-        $shDoneStmt->execute([$cyc['cycle_id']]);
+        $ph = buildInPlaceholders(TEACHER_INDICATOR_CODES);
+$shDoneStmt = $db->prepare("
+    SELECT COUNT(*) FROM sbm_responses r
+    JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
+    WHERE r.cycle_id = ?
+      AND i.is_active = 1
+      AND i.indicator_code NOT IN ($ph)
+");
+$shDoneStmt->execute(array_merge([$cyc['cycle_id']], TEACHER_INDICATOR_CODES));
         $cnt = (int)$shDoneStmt->fetchColumn();
 
         if ($cnt < $expected) {

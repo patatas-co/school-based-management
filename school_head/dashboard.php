@@ -38,15 +38,6 @@ $anns = $db->query("SELECT a.*,u.full_name FROM announcements a JOIN users u ON 
 $plans = $cycle ? $db->prepare("SELECT ip.*,d.dimension_name FROM improvement_plans ip JOIN sbm_dimensions d ON ip.dimension_id=d.dimension_id WHERE ip.cycle_id=? ORDER BY ip.priority_level,ip.created_at DESC LIMIT 5") : null;
 if ($plans) { $plans->execute([$cycle['cycle_id']]); $plans = $plans->fetchAll(); }
 
-if (!function_exists('sbmMaturityLevel')) {
-    function sbmMaturityLevel(float $pct): array {
-        if ($pct >= 90) return ['label'=>'Advanced',   'color'=>'#16A34A','bg'=>'#DCFCE7'];
-        if ($pct >= 75) return ['label'=>'Proficient', 'color'=>'#2563EB','bg'=>'#DBEAFE'];
-        if ($pct >= 50) return ['label'=>'Developing', 'color'=>'#D97706','bg'=>'#FEF3C7'];
-        return                 ['label'=>'Beginning',  'color'=>'#DC2626','bg'=>'#FEE2E2'];
-    }
-}
-
 $pageTitle = 'Dashboard'; $activePage = 'dashboard.php';
 
 $pageTitle = 'Dashboard'; $activePage = 'dashboard.php';
