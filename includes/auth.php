@@ -56,6 +56,16 @@ function sbmMaturityLevel(float $pct): array {
     if ($pct >= 26) return ['label'=>'Developing', 'color'=>'#D97706','bg'=>'#FEF3C7'];
     return                 ['label'=>'Beginning',  'color'=>'#DC2626','bg'=>'#FEE2E2'];
 }
+function sbmMaturityBadge(string $level): string {
+    $map = [
+        'Beginning'  => ['#FEE2E2','#DC2626','#FECACA'],
+        'Developing' => ['#FEF3C7','#D97706','#FDE68A'],
+        'Maturing'   => ['#DBEAFE','#2563EB','#BFDBFE'],
+        'Advanced'   => ['#DCFCE7','#16A34A','#BBF7D0'],
+    ];
+    [$bg,$c,$br] = $map[$level] ?? ['#F3F4F6','#6B7280','#E5E7EB'];
+    return "<span style=\"display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;background:$bg;color:$c;border:1px solid $br;\">$level</span>";
+}
 function csrfToken(): string {
     if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     return $_SESSION['csrf_token'];
@@ -71,31 +81,20 @@ function sbmRatingBadge(int $r): string {
     [$l,$bg,$c,$br] = $map[$r] ?? ['—','#F3F4F6','#6B7280','#E5E7EB'];
     return "<span style=\"display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;background:$bg;color:$c;border:1px solid $br;\">$l</span>";
 }
-function sbmMaturityBadge(string $level): string {
-    $map = ['Beginning'=>['#FEE2E2','#DC2626','#FECACA'],'Developing'=>['#FEF3C7','#D97706','#FDE68A'],
-            'Maturing'=>['#DBEAFE','#2563EB','#BFDBFE'],'Advanced'=>['#DCFCE7','#16A34A','#BBF7D0']];
-    [$bg,$c,$br] = $map[$level] ?? ['#F3F4F6','#6B7280','#E5E7EB'];
-    return "<span style=\"display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;background:$bg;color:$c;border:1px solid $br;\">$level</span>";
-}
 function computeMaturity(float $pct): string {
     if ($pct >= 76) return 'Advanced'; if ($pct >= 51) return 'Maturing';
     if ($pct >= 26) return 'Developing'; return 'Beginning';
 }
-function logActivity(string|PDO $actionOrDb, string $actionOrModule='', string $moduleOrDetails='', string $details=''): void {
+function logActivity(string $action, string $module = '', string $details = ''): void {
     try {
-        // Support both: logActivity($db, $action, $module, $details)
-        //           and: logActivity($action, $module, $details)
-        if ($actionOrDb instanceof PDO) {
-            $db     = $actionOrDb;
-            $action = $actionOrModule;
-            $module = $moduleOrDetails;
-        } else {
-            $db     = getDB();
-            $action = $actionOrDb;
-            $module = $actionOrModule;
-            $details= $moduleOrDetails;
-        }
-        $db->prepare("INSERT INTO activity_log (user_id,action,module,details,ip_address) VALUES (?,?,?,?,?)")
-           ->execute([$_SESSION['user_id']??null, $action, $module, $details, $_SERVER['REMOTE_ADDR']??'']);
-    } catch(Exception $e) {}
+        $db = getDB();
+        $db->prepare("INSERT INTO activity_log (user_id, action, module, details, ip_address) VALUES (?,?,?,?,?)")
+           ->execute([
+               $_SESSION['user_id'] ?? null,
+               $action,
+               $module,
+               $details,
+               $_SERVER['REMOTE_ADDR'] ?? ''
+           ]);
+    } catch (Exception $e) {}
 }

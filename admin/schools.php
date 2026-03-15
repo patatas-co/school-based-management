@@ -30,9 +30,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $st->execute([(int)$_POST['id']]); echo json_encode($st->fetch()); exit;
     }
     if ($_POST['action']==='delete') {
-        $db->prepare("DELETE FROM schools WHERE school_id=?")->execute([(int)$_POST['id']]);
-        echo json_encode(['ok'=>true,'msg'=>'School removed.']); exit;
+    $id = (int)$_POST['id'];
+    // If SDO role, verify the school belongs to their division
+    if ($_SESSION['role'] === 'sdo' && !empty($_SESSION['division_id'])) {
+        $check = $db->prepare("SELECT 1 FROM schools WHERE school_id=? AND division_id=?");
+        $check->execute([$id, $_SESSION['division_id']]);
+        if (!$check->fetchColumn()) {
+            echo json_encode(['ok'=>false,'msg'=>'Access denied. School is outside your division.']); exit;
+        }
     }
+    $db->prepare("DELETE FROM schools WHERE school_id=?")->execute([$id]);
+    echo json_encode(['ok'=>true,'msg'=>'School removed.']); exit;
+}
     exit;
 }
 
@@ -43,6 +52,27 @@ if ($q) {
     $qEsc = '%'.str_replace(['\\','%','_'],['\\\\','\\%','\\_'],$q).'%';
     $sql .= " WHERE s.school_name LIKE ? OR s.school_id_deped LIKE ?";
     $p = [$qEsc,$qEsc];
+}
+$sql .= " ORDER BY s.school_name";
+$q = trim($_GET['q'] ?? '');
+$currentSyId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
+
+$sql = "SELECT s.*, d.division_name,
+        c.status AS cycle_status,
+        c.overall_score AS cycle_score,
+        c.maturity_level AS cycle_maturity
+        FROM schools s
+        LEFT JOIN divisions d ON s.division_id = d.division_id
+        LEFT JOIN sbm_cycles c
+            ON c.school_id = s.school_id
+            AND c.sy_id = ?";
+$p = [$currentSyId];
+
+if ($q) {
+    $qEsc = '%'.str_replace(['\\','%','_'],['\\\\','\\%','\\_'],$q).'%';
+    $sql .= " WHERE s.school_name LIKE ? OR s.school_id_deped LIKE ?";
+    $p[] = $qEsc;
+    $p[] = $qEsc;
 }
 $sql .= " ORDER BY s.school_name";
 $stmt = $db->prepare($sql); $stmt->execute($p); $schools = $stmt->fetchAll();
@@ -75,10 +105,6 @@ include __DIR__.'/../includes/header.php';
       <thead><tr><th>School</th><th>School ID</th><th>Division</th><th>Classification</th><th>Head</th><th>Enrollment</th><th>SBM Status</th><th></th></tr></thead>
       <tbody>
       <?php foreach($schools as $s): ?>
-      <?php
-        $cycle = $db->prepare("SELECT status,overall_score,maturity_level FROM sbm_cycles c JOIN school_years sy ON c.sy_id=sy.sy_id WHERE c.school_id=? AND sy.is_current=1 LIMIT 1");
-        $cycle->execute([$s['school_id']]); $cyc = $cycle->fetch();
-      ?>
       <tr>
         <td>
           <div><strong style="font-size:13px;"><?= e($s['school_name']) ?></strong>
@@ -90,14 +116,16 @@ include __DIR__.'/../includes/header.php';
         <td><span class="pill pill-active"><?= e($s['classification']) ?></span></td>
         <td style="font-size:12.5px;"><?= e($s['school_head_name']??'—') ?></td>
         <td style="font-size:13px;font-weight:600;"><?= number_format($s['total_enrollment']) ?></td>
-        <td>
-          <?php if($cyc): ?>
-            <span class="pill pill-<?= e($cyc['status']) ?>"><?= ucfirst(str_replace('_',' ',$cyc['status'])) ?></span>
-            <?php if($cyc['overall_score']): ?><span style="margin-left:5px;font-size:12px;font-weight:700;color:var(--g700);"><?= $cyc['overall_score'] ?>%</span><?php endif; ?>
-          <?php else: ?>
-            <span style="font-size:12px;color:var(--n400);">Not Started</span>
-          <?php endif; ?>
-        </td>
+<td>
+  <?php if($s['cycle_status']): ?>
+    <span class="pill pill-<?= e($s['cycle_status']) ?>"><?= ucfirst(str_replace('_',' ',$s['cycle_status'])) ?></span>
+    <?php if($s['cycle_score']): ?>
+      <span style="margin-left:5px;font-size:12px;font-weight:700;color:var(--g700);"><?= $s['cycle_score'] ?>%</span>
+    <?php endif; ?>
+  <?php else: ?>
+    <span style="font-size:12px;color:var(--n400);">Not Started</span>
+  <?php endif; ?>
+</td>
         <td>
           <div class="flex-c" style="gap:5px;">
             <button class="btn btn-secondary btn-sm" onclick="editSchool(<?= $s['school_id'] ?>)"><?= svgIcon('edit') ?></button>

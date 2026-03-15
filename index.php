@@ -16,15 +16,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$uname, $uname]);
         $row  = $stmt->fetch();
         if ($row && password_verify($pass, $row['password'])) {
-            $_SESSION['user_id']   = $row['user_id'];
-            $_SESSION['username']  = $row['username'];
-            $_SESSION['full_name'] = $row['full_name'];
-            $_SESSION['role']      = $row['role'];
-            $_SESSION['school_id'] = $row['school_id'];
-            $db->prepare("UPDATE users SET last_login=NOW() WHERE user_id=?")->execute([$row['user_id']]);
-            logActivity($db, 'login', 'auth', 'User logged in');
-            header('Location: ' . roleHome($row['role'])); exit;
-        }
+    $_SESSION['user_id']   = $row['user_id'];
+    $_SESSION['username']  = $row['username'];
+    $_SESSION['full_name'] = $row['full_name'];
+    $_SESSION['role']      = $row['role'];
+    $_SESSION['school_id'] = $row['school_id'];
+
+    // Rehash password if PHP default algorithm has changed
+    if (password_needs_rehash($row['password'], PASSWORD_DEFAULT)) {
+        $newHash = password_hash($pass, PASSWORD_DEFAULT);
+        $db->prepare("UPDATE users SET password=? WHERE user_id=?")
+           ->execute([$newHash, $row['user_id']]);
+    }
+
+    $db->prepare("UPDATE users SET last_login=NOW() WHERE user_id=?")->execute([$row['user_id']]);
+    logActivity('login', 'auth', 'User logged in');
+    header('Location: ' . roleHome($row['role'])); exit;
+}
         $error = 'Incorrect username or password.';
     } else {
         $error = 'Please enter your username and password.';
@@ -36,6 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
 <title>Sign In — <?= e(SITE_NAME) ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">

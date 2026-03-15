@@ -112,4 +112,5 @@ new Chart(document.getElementById('dimChart'),{
   options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}}
 });
 </script>
+<?php include __DIR__.'/../includes/report_annex_a.php'; ?>
 <?php include __DIR__.'/../includes/footer.php'; ?>

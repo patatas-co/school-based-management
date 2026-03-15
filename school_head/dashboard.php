@@ -78,7 +78,7 @@ include __DIR__.'/../includes/header.php';
   <div class="stat"><div class="stat-ic <?= $progress>=100?'green':'blue' ?>"><?= svgIcon('check-circle') ?></div><div class="stat-data"><div class="stat-val"><?= $progress ?>%</div><div class="stat-lbl">Assessment Progress</div><div class="stat-sub"><?= $totalResponded ?>/42 indicators rated</div></div></div>
   <div class="stat"><div class="stat-ic <?= !$cycle ? 'dark' : (['draft'=>'dark','in_progress'=>'blue','submitted'=>'gold','validated'=>'green','returned'=>'red'][$cycle['status']] ?: 'dark') ?>"><?= svgIcon('bar-chart-2') ?></div><div class="stat-data"><div class="stat-val"><?= $cycle ? ($cycle['overall_score'] ? $cycle['overall_score'].'%' : '—') : '—' ?></div><div class="stat-lbl">Overall SBM Score</div></div></div>
   <div class="stat"><div class="stat-ic green"><?= svgIcon('layers') ?></div><div class="stat-data"><div class="stat-val"><?= count($dimScores) ?></div><div class="stat-lbl">Dimensions Scored</div></div></div>
-  <div class="stat"><div class="stat-ic gold"><?= svgIcon('trending-up') ?></div><div class="stat-data"><div class="stat-val"><?= $cycle?($cycle['maturity_level']??'—'):'—' ?></div><div class="stat-lbl">Maturity Level</div></div></div>
+  <div class="stat"><div class="stat-ic gold"><?= svgIcon('trending-up') ?></div><div class="stat-data"><div class="stat-val" style="font-size:14px;line-height:1.3;"><?= $cycle&&$cycle['maturity_level'] ? sbmMaturityBadge($cycle['maturity_level']) : '—' ?></div><div class="stat-lbl">Maturity Level</div></div></div>
 </div>
 
 <!-- Progress bar -->
