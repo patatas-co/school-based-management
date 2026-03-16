@@ -3,6 +3,7 @@ app.py  —  SBM ML microservice
 Run: python app.py   (defaults to port 5000)
 """
 import os, json, logging
+from pathlib import Path
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 
@@ -10,12 +11,17 @@ from comment_analyzer      import batch_analyze, analyze_comment
 from score_analyzer        import full_analysis
 from recommendation_engine import generate_recommendations
 
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent
+# Load local ml/.env first, then optional project-root .env.
+# This makes local dev less error-prone when the server is started
+# from a different working directory.
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR.parent / ".env")
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 ML_SECRET = os.getenv("ML_SECRET", "sbm-ml-secret-change-in-production")
-LLM_BACKEND = os.getenv("LLM_BACKEND", "rule_based")  # or "ollama" / "openai"
+LLM_BACKEND = os.getenv("LLM_BACKEND", "rule_based")  # "rule_based" / "ollama" / "openai" / "groq"
 
 
 def auth(req) -> bool:
@@ -24,7 +30,11 @@ def auth(req) -> bool:
 
 @app.route("/health")
 def health():
-    return jsonify({"status": "ok", "backend": LLM_BACKEND})
+    return jsonify({
+        "status": "ok",
+        "backend": LLM_BACKEND,
+        "groq_key_present": bool(os.getenv("GROQ_API_KEY")),
+    })
 
 
 @app.route("/api/analyze/comments", methods=["POST"])

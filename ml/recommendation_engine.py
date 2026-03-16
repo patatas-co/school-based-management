@@ -126,12 +126,19 @@ def _call_openai(prompt: str, model: str = "gpt-4o-mini") -> str:
 def _call_groq(prompt: str) -> str:
     """Call Groq API using OpenAI-compatible SDK."""
     from openai import OpenAI
+
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY is missing. Set it in the ML service environment.")
+
+    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
     client = OpenAI(
-        api_key=os.getenv("GROQ_API_KEY"),
+        api_key=api_key,
         base_url="https://api.groq.com/openai/v1"
     )
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=model,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.4,
         max_tokens=800
@@ -196,6 +203,10 @@ def generate_recommendations(
         else:
             text = _rule_based_fallback(analysis)
     except Exception as e:
+        import logging
+        import traceback
+        logging.error(f"Error generating recommendations ({backend}): {e}")
+        traceback.print_exc()
         error = str(e)
         text  = _rule_based_fallback(analysis)  # always fall back
         backend = "rule_based_fallback"
