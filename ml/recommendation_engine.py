@@ -62,6 +62,18 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
         f"  - {d['dimension_name']} ({d['score']}%, {d['maturity']})"
         for d in weakest_dims[:3]
     )
+    
+    # Detail weak indicators (Priority 1 & 2)
+    weak_ind_list = []
+    by_dim = weak.get("by_dimension", {})
+    for dim_no, inds in by_dim.items():
+        # Get dim name from analysis or mapping
+        dim_name = DIMENSION_NAMES.get(int(dim_no), f"Dimension {dim_no}")
+        for ind in inds[:2]: # Top 2 per dim to keep it concise
+            weak_ind_list.append(f"  - [{ind['code']}] {ind['text']} (Rating: {ind['rating']})")
+    
+    weak_ind_lines = "\n".join(weak_ind_list[:6]) # Max 6 total
+
     topic_line = ", ".join(top_topics[:5]) if top_topics else "none identified"
     trend_line = (
         f"Trend: {forecast.get('trend','unknown')} "
@@ -73,28 +85,39 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     You are an educational improvement specialist helping a Philippine
     public school prepare its School Improvement Plan (SIP) per
     DepEd Order No. 007, s. 2024.
-
+    
     School: {school_name}
     School Year: {sy_label}
     Overall SBM Score: {gap.get('average_score', 'N/A')}%
     Maturity Level: {gap.get('overall_maturity', 'N/A')}
     {trend_line}
 
-    Top 3 weakest dimensions:
-    {dim_lines if dim_lines else "  (none — all dimensions performing well)"}
+    Weakest Dimensions:
+    {dim_lines if dim_lines else "  (none identified)"}
 
-    Key themes from stakeholder comments: {topic_line}
-    Urgent issues flagged: {"YES — immediate action required" if urgent else "none"}
+    Specific Weak Indicators (Rated 1-2):
+    {weak_ind_lines if weak_ind_lines else "  (none identified)"}
+
+    Key Stakeholder Themes: {topic_line}
+    Urgent Issues: {"YES" if urgent else "None"}
 
     Write 3 to 5 specific, actionable recommendations for the School Head.
-    Each recommendation must:
-    1. Reference a specific weak dimension or stakeholder concern
-    2. Name a concrete action (program, partnership, LAC session, etc.)
-    3. Be aligned with DepEd's continuous improvement framework
-    4. Be achievable within one school year
+    
+    Instructions:
+    1. Focus on addressing the weak indicators and weakest dimensions.
+    2. Suggest concrete actions (e.g., LAC sessions, LGU partnerships, specific programs).
+    3. Use a clear format with headers and numbered points.
+    
+    Format:
+    [Assessment Overview]
+    (Brief 1-sentence summary)
 
-    Format: numbered list. Be concise (2-3 sentences each).
-    Do not use generic phrases like "improve performance".
+    [Priority Recommendations]
+    1. (Actionable step...)
+    2. (Actionable step...)
+    
+    [Stakeholder Focus]
+    (Recommendation based on stakeholder themes)
     """).strip()
 
     return prompt

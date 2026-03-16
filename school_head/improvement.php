@@ -387,7 +387,7 @@ if ($cycle) {
 }
 ?>
 
-<?php if ($mlRec): ?>
+<?php if ($mlRec) { ?>
 <div class="card" style="margin-bottom:18px;border-left:4px solid var(--purple);">
 
   <div class="card-head" style="background:var(--purpb);">
@@ -415,6 +415,7 @@ if ($cycle) {
   $sections = parseRecommendationSections($recText);
   ?>
 
+  <?php if ($sections['is_structured']) { ?>
   <!-- Overview counts -->
   <?php if (!empty($sections['counts'])): ?>
   <div style="padding:14px 18px;border-bottom:1px solid var(--n100);">
@@ -603,6 +604,13 @@ if ($cycle) {
 
   </div><!-- #recFullContent -->
 
+  <?php } else { ?>
+    <!-- Raw text fallback for non-structured LLM output (Groq/OpenAI) -->
+    <div style="padding:16px 18px; font-size:14px; color:var(--n800); line-height:1.7; white-space:pre-line;">
+      <?= nl2br(e($recText)) ?>
+    </div>
+  <?php } ?>
+
   <!-- Topic pills -->
   <?php
   $topics = json_decode($mlRec['top_topics'] ?? '[]', true);
@@ -632,7 +640,7 @@ function toggleRecFull() {
 }
 </script>
 
-<?php endif; ?>
+<?php } ?>
 
 <!-- ── IMPROVEMENT PLANS SUMMARY ───────────────────────────── -->
 <?php if($plans): ?>
@@ -1002,6 +1010,7 @@ function parseRecommendationSections(string $text): array {
         'overview' => '', 'remarks_summary' => '',
         'rating_1' => [], 'rating_2' => [], 'rating_3' => [], 'rating_4' => [],
         'topic_recs' => [], 'counts' => [],
+        'is_structured' => false,
     ];
     if (empty($text)) return $sections;
 
@@ -1061,6 +1070,14 @@ function parseRecommendationSections(string $text): array {
 
     saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction);
     $sections['remarks_summary'] = implode("\n", $remarkLines);
+
+    // Flag as structured if we found at least one rating section, topic, or summary
+    if (!empty($sections['rating_1']) || !empty($sections['rating_2']) || 
+        !empty($sections['rating_3']) || !empty($sections['rating_4']) || 
+        !empty($sections['topic_recs']) || !empty($sections['remarks_summary'])) {
+        $sections['is_structured'] = true;
+    }
+
     return $sections;
 }
 
