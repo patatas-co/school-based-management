@@ -123,7 +123,7 @@ def _call_openai(prompt: str, model: str = "gpt-4o-mini") -> str:
     )
     return response.choices[0].message.content.strip()
 
-    def _call_groq(prompt: str) -> str:
+def _call_groq(prompt: str) -> str:
     """Call Groq API using OpenAI-compatible SDK."""
     from openai import OpenAI
     client = OpenAI(
