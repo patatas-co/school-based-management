@@ -855,7 +855,7 @@ function saveMLResults(PDO $db, int $cycleId, array $result): void
     $comms   = $result['comment_analysis']                   ?? [];
     $recs    = $result['recommendations']['recommendations'] ?? '';
 
-    // Save to ml_predictions for weak/critical dimensions
+    // ── 1. Save ml_predictions for weak/critical dimensions ──
     if (!empty($gap['weakest_dimensions'])) {
         foreach ($gap['weakest_dimensions'] as $wd) {
             if (($wd['priority'] ?? 'low') === 'low') continue;
@@ -884,7 +884,109 @@ function saveMLResults(PDO $db, int $cycleId, array $result): void
         }
     }
 
-    // Save main recommendations
+    // ── 2. Save ml_comment_analysis per dimension ─────────────
+    if (!empty($comms['individual'])) {
+        // Group individual comment results by dimension
+        $byDimension = [];
+        foreach ($comms['individual'] as $item) {
+            $dim = $item['dimension'] ?? 'General';
+            if (!isset($byDimension[$dim])) {
+                $byDimension[$dim] = [
+                    'positive'        => 0,
+                    'negative'        => 0,
+                    'neutral'         => 0,
+                    'topics'          => [],
+                    'has_urgent'      => false,
+                    'urgency_details' => [],
+                    'count'           => 0,
+                ];
+            }
+            $sentiment = $item['sentiment'] ?? 'neutral';
+            $byDimension[$dim][$sentiment]++;
+            $byDimension[$dim]['count']++;
+
+            // Collect topics per dimension
+            if (!empty($item['topics'])) {
+                foreach ($item['topics'] as $t) {
+                    $byDimension[$dim]['topics'][] = $t;
+                }
+            }
+
+            // Flag urgency
+            if (!empty($item['urgency_level']) && $item['urgency_level'] === 'high') {
+                $byDimension[$dim]['has_urgent'] = true;
+                if (!empty($item['text'])) {
+                    $byDimension[$dim]['urgency_details'][] = $item['text'];
+                }
+            }
+        }
+
+        // Also save one aggregate row (dimension_id = NULL) for the full cycle
+        $byDimension['__cycle__'] = [
+            'positive'        => $comms['sentiment_counts']['positive'] ?? 0,
+            'negative'        => $comms['sentiment_counts']['negative'] ?? 0,
+            'neutral'         => $comms['sentiment_counts']['neutral']  ?? 0,
+            'topics'          => $comms['top_topics'] ?? [],
+            'has_urgent'      => $comms['has_urgent'] ?? false,
+            'urgency_details' => [],
+            'count'           => $comms['total'] ?? 0,
+            '__is_cycle__'    => true,
+        ];
+
+        // Look up dimension_id from dimension_name
+        $dimLookup = $db->query(
+            "SELECT dimension_id, dimension_name FROM sbm_dimensions"
+        )->fetchAll(PDO::FETCH_KEY_PAIR);
+        // flip: name => id
+        $dimNameToId = array_flip($dimLookup);
+
+        foreach ($byDimension as $dimName => $data) {
+            $isCycleRow = !empty($data['__is_cycle__']);
+            $dimId      = $isCycleRow ? null : ($dimNameToId[$dimName] ?? null);
+
+            // Deduplicate topics and take top 5
+            $topTopics = array_slice(
+                array_unique($data['topics']),
+                0, 5
+            );
+            $urgencyText = !empty($data['urgency_details'])
+                ? implode(' | ', array_slice($data['urgency_details'], 0, 3))
+                : null;
+
+            try {
+                $db->prepare("
+                    INSERT INTO ml_comment_analysis
+                        (cycle_id, dimension_id, comment_count,
+                         sentiment_pos, sentiment_neg, sentiment_neu,
+                         top_topics, has_urgent, urgency_details, generated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                    ON DUPLICATE KEY UPDATE
+                        comment_count    = VALUES(comment_count),
+                        sentiment_pos    = VALUES(sentiment_pos),
+                        sentiment_neg    = VALUES(sentiment_neg),
+                        sentiment_neu    = VALUES(sentiment_neu),
+                        top_topics       = VALUES(top_topics),
+                        has_urgent       = VALUES(has_urgent),
+                        urgency_details  = VALUES(urgency_details),
+                        generated_at     = NOW()
+                ")->execute([
+                    $cycleId,
+                    $dimId,
+                    $data['count'],
+                    $data['positive'],
+                    $data['negative'],
+                    $data['neutral'],
+                    json_encode($topTopics),
+                    $data['has_urgent'] ? 1 : 0,
+                    $urgencyText,
+                ]);
+            } catch (Exception $e) {
+                error_log("ML comment analysis save error: " . $e->getMessage());
+            }
+        }
+    }
+
+    // ── 3. Save ml_recommendations ────────────────────────────
     if ($recs) {
         try {
             $db->prepare("

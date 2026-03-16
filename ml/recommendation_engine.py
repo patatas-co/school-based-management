@@ -123,6 +123,21 @@ def _call_openai(prompt: str, model: str = "gpt-4o-mini") -> str:
     )
     return response.choices[0].message.content.strip()
 
+    def _call_groq(prompt: str) -> str:
+    """Call Groq API using OpenAI-compatible SDK."""
+    from openai import OpenAI
+    client = OpenAI(
+        api_key=os.getenv("GROQ_API_KEY"),
+        base_url="https://api.groq.com/openai/v1"
+    )
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4,
+        max_tokens=800
+    )
+    return response.choices[0].message.content.strip()
+
 
 def _rule_based_fallback(analysis: dict) -> str:
     """
@@ -176,6 +191,8 @@ def generate_recommendations(
             text = _call_ollama(prompt)
         elif backend == "openai":
             text = _call_openai(prompt)
+        elif backend == "groq":              # ← ADD THIS
+            text = _call_groq(prompt)        # ← ADD THIS
         else:
             text = _rule_based_fallback(analysis)
     except Exception as e:

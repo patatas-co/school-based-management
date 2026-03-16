@@ -19,6 +19,7 @@ $schoolPerf = $db->prepare("SELECT s.school_name,c.overall_score,c.maturity_leve
 $schoolPerf->execute([$syId]); $schoolPerf = $schoolPerf->fetchAll();
 
 $pageTitle = 'SDO Dashboard'; $activePage = 'dashboard.php';
+
 include __DIR__.'/../includes/header.php';
 ?>
 <div class="page-head">
