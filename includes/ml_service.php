@@ -247,9 +247,9 @@ function runMLPipeline(PDO $db, int $cycleId): bool
 
     // 8. Try ML service first, fall back to rule-based
     $result = null;
-    if (defined('ML_SERVICE_URL') && ML_SERVICE_URL !== 'http://127.0.0.1:5000') {
-        $result = ml_post('/api/full_pipeline', $payload);
-    }
+    if (defined('ML_SERVICE_URL') && !empty(ML_SERVICE_URL)) {
+    $result = ml_post('/api/full_pipeline', $payload);
+}
 
     // If ML service unavailable or not configured, use built-in rule-based engine
     if (!$result) {
