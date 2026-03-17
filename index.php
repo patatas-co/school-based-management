@@ -1,176 +1,844 @@
 <?php
-session_start();
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/auth.php';
 
-if (!empty($_SESSION['user_id'])) {
-    header('Location: ' . roleHome($_SESSION['role'])); exit;
-}
-$error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $uname = trim($_POST['username'] ?? '');
-    $pass  = $_POST['password'] ?? '';
-    if ($uname && $pass) {
-        $db   = getDB();
-        $stmt = $db->prepare("SELECT * FROM users WHERE (username=? OR email=?) AND status='active' LIMIT 1");
-        $stmt->execute([$uname, $uname]);
-        $row  = $stmt->fetch();
-        if ($row && password_verify($pass, $row['password'])) {
-    $_SESSION['user_id']    = $row['user_id'];
-$_SESSION['username']   = $row['username'];
-$_SESSION['full_name']  = $row['full_name'];
-$_SESSION['role']       = $row['role'];
-$_SESSION['school_id']  = $row['school_id'];
-$_SESSION['division_id'] = $row['division_id'];  // ADD THIS
-$_SESSION['region_id']   = $row['region_id'];    // ADD THIS
+$db = getDB();
+// Fetch stats
+$total_indicators = $db->query("SELECT COUNT(*) FROM sbm_indicators WHERE is_active=1")->fetchColumn();
+$total_dimensions = $db->query("SELECT COUNT(*) FROM sbm_dimensions")->fetchColumn();
+$total_schools    = $db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
+$validated_cycles = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='validated'")->fetchColumn();
 
-    // Rehash password if PHP default algorithm has changed
-    if (password_needs_rehash($row['password'], PASSWORD_DEFAULT)) {
-    try {
-        $newHash = password_hash($pass, PASSWORD_DEFAULT);
-        $db->prepare("UPDATE users SET password=? WHERE user_id=?")
-           ->execute([$newHash, $row['user_id']]);
-    } catch (\Exception $e) {
-        // Non-fatal — user is authenticated, rehash can happen next login
-        error_log('Password rehash failed for user '.$row['user_id'].': '.$e->getMessage());
-    }
-}
-
-    $db->prepare("UPDATE users SET last_login=NOW() WHERE user_id=?")->execute([$row['user_id']]);
-    logActivity('login', 'auth', 'User logged in');
-    header('Location: ' . roleHome($row['role'])); exit;
-}
-        $error = 'Incorrect username or password.';
-    } else {
-        $error = 'Please enter your username and password.';
-    }
-}
+$is_logged_in = !empty($_SESSION['user_id']);
+$dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
-<title>Sign In — <?= e(SITE_NAME) ?></title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-:root{
-  --g900:#0A2E1A;--g800:#0F4A2B;--g700:#166534;--g600:#15803D;--g500:#16A34A;--g400:#22C55E;--g300:#86EFAC;--g200:#BBF7D0;--g100:#DCFCE7;
-  --n900:#111827;--n700:#374151;--n600:#4B5563;--n500:#6B7280;--n400:#9CA3AF;--n200:#E5E7EB;--n100:#F3F4F6;--n50:#F9FAFB;--white:#fff;
-  --red:#DC2626;--redb:#FEE2E2;--redc:#FECACA;
-  --font:'DM Sans',sans-serif;
-}
-body{font-family:var(--font);min-height:100vh;display:flex;align-items:stretch;background:var(--white);-webkit-font-smoothing:antialiased;}
-body::before{content:'';position:fixed;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#166534 0%,#22C55E 40%,#FFD700 70%,#CE1126 100%);z-index:999;}
-.left{flex:0 0 52%;background:var(--g800);background-image:radial-gradient(ellipse at 0% 0%,rgba(34,197,94,.2) 0%,transparent 55%),radial-gradient(ellipse at 100% 100%,rgba(15,74,43,.8) 0%,transparent 60%);display:flex;flex-direction:column;justify-content:space-between;padding:52px 56px;position:relative;overflow:hidden;}
-.left::before{content:'';position:absolute;width:420px;height:420px;border-radius:50%;border:1px solid rgba(255,255,255,.06);top:-100px;right:-100px;}
-.seal-wrap{display:flex;align-items:center;gap:14px;margin-bottom:52px;}
-.seal-img{width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
-.seal-img img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
-.seal-label{color:rgba(255,255,255,.65);font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;line-height:1.4;}
-.headline{font-size:38px;font-weight:700;color:#fff;line-height:1.15;letter-spacing:-.02em;margin-bottom:16px;}
-.headline em{font-style:normal;color:var(--g300);}
-.sub{font-size:14.5px;color:rgba(255,255,255,.48);line-height:1.7;max-width:340px;}
-.left-stats{display:flex;gap:0;border-top:1px solid rgba(255,255,255,.08);padding-top:28px;margin-top:48px;}
-.si{flex:1;padding-right:24px;}
-.si+.si{padding-left:24px;padding-right:0;border-left:1px solid rgba(255,255,255,.08);}
-.sn{font-size:26px;font-weight:700;color:#fff;line-height:1;margin-bottom:4px;}
-.sl{font-size:11px;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.06em;}
-.foot{font-size:11px;color:rgba(255,255,255,.2);margin-top:28px;}
-.right{flex:1;display:flex;align-items:center;justify-content:center;padding:52px 56px;background:var(--white);}
-.form-box{width:100%;max-width:380px;}
-.eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:28px;}
-.edot{width:8px;height:8px;border-radius:50%;background:var(--g500);}
-.etxt{font-size:11.5px;font-weight:700;color:var(--g600);letter-spacing:.07em;text-transform:uppercase;}
-.ftitle{font-size:28px;font-weight:700;color:var(--n900);letter-spacing:-.02em;margin-bottom:6px;line-height:1.2;}
-.fsub{font-size:14px;color:var(--n500);margin-bottom:36px;line-height:1.5;}
-.alert-err{display:flex;align-items:flex-start;gap:10px;background:var(--redb);border:1px solid var(--redc);color:var(--red);border-radius:9px;padding:11px 13px;font-size:13.5px;margin-bottom:22px;line-height:1.5;}
-.alert-err svg{width:15px;height:15px;flex-shrink:0;margin-top:2px;}
-.field{margin-bottom:18px;}
-.field label{display:block;font-size:13px;font-weight:600;color:var(--n700);margin-bottom:6px;}
-.field-wrap{position:relative;}
-.fi{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--n400);display:flex;align-items:center;}
-.fi svg{width:16px;height:16px;}
-.fc{width:100%;padding:10px 12px 10px 38px;border:1.5px solid var(--n200);border-radius:9px;background:var(--n50);font-family:var(--font);font-size:14px;color:var(--n900);outline:none;transition:border-color .15s,box-shadow .15s,background .15s;}
-.fc::placeholder{color:var(--n400);}
-.fc:focus{border-color:var(--g500);background:var(--white);box-shadow:0 0 0 3px rgba(22,163,74,.1);}
-.btn-login{width:100%;padding:11px;border-radius:9px;border:none;background:var(--g600);color:#fff;font-family:var(--font);font-size:14.5px;font-weight:600;cursor:pointer;transition:background .15s,transform .1s;margin-top:6px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 4px 12px rgba(22,163,74,.25);}
-.btn-login:hover{background:var(--g700);transform:translateY(-1px);}
-.roles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:28px;}
-.role-item{background:var(--n50);border:1px solid var(--n200);border-radius:8px;padding:10px;text-align:center;}
-.role-item strong{display:block;font-size:11.5px;font-weight:700;color:var(--n700);}
-.role-item span{font-size:10.5px;color:var(--n400);}
-.ffooter{text-align:center;margin-top:22px;font-size:11.5px;color:var(--n400);}
-@media(max-width:768px){body{flex-direction:column;}.left{flex:0 0 auto;padding:36px 28px;}.headline{font-size:26px;}.left-stats{display:none;}.right{padding:36px 28px;}}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><?= e(SITE_NAME) ?></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #FFFFFF;
+      --page-bg: #F9FAFB;
+      --text-dark: #111827;
+      --text-mid: #4B5563;
+      --navy: #15803D; /* DepEd Green */
+      --blue: #16A34A; /* Success Green */
+      --radius-btn: 8px; /* Matching login buttons */
+      --radius-img: 12px;
+    }
+
+    html {
+      background: var(--page-bg);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text-dark);
+      max-width: 100%;
+      margin: 0;
+      padding: 0 96px;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 100px;
+      opacity: 0;
+      transform: translateY(-12px);
+      animation: fadeUp 0.6s ease forwards;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--text-dark);
+      letter-spacing: -0.5px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 48px;
+    }
+
+    nav a {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text-dark);
+      text-decoration: none;
+      transition: opacity 0.2s ease;
+    }
+
+    nav a:hover {
+      opacity: 0.55;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 64px;
+    }
+
+    .hero-text {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 1100px;
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 24px;
+      opacity: 0;
+      animation: fadeUp 0.6s 0.15s ease forwards;
+    }
+
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 1px;
+      background: var(--blue);
+      opacity: 0.5;
+    }
+
+    h1 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(52px, 7.5vw, 96px);
+      font-weight: 400;
+      color: var(--text-dark);
+      line-height: 1.05;
+      letter-spacing: -2px;
+      margin-bottom: 32px;
+      opacity: 0;
+      animation: fadeUp 0.7s 0.25s ease forwards;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--navy);
+    }
+
+    .hero-sub {
+      font-size: 20px;
+      font-weight: 300;
+      color: var(--text-mid);
+      line-height: 1.65;
+      max-width: 620px;
+      text-align: center;
+      margin-bottom: 40px;
+      opacity: 0;
+      animation: fadeUp 0.7s 0.35s ease forwards;
+    }
+
+    /* ── Buttons ── */
+    .btn-row {
+      display: flex;
+      flex-direction: row;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 64px;
+      opacity: 0;
+      animation: fadeUp 0.7s 0.45s ease forwards;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 56px;
+      padding: 0 32px;
+      border-radius: var(--radius-btn);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 17px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--navy);
+      color: #fff;
+      border: 2px solid var(--navy);
+    }
+
+    .btn-primary:hover {
+      background: #162e4d;
+      border-color: #162e4d;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(30,58,95,0.22);
+    }
+
+    .btn-primary .arrow {
+      display: inline-flex;
+      align-items: center;
+      transition: transform 0.22s ease;
+    }
+
+    .btn-primary:hover .arrow {
+      transform: translateX(3px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--navy);
+      border: 2px solid var(--navy);
+    }
+
+    .btn-secondary:hover {
+      background: var(--navy);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    /* ── Hero Image ── */
+    .hero-image-wrap {
+      width: 100%;
+      max-width: 100%;
+      border-radius: var(--radius-img) var(--radius-img) 0 0;
+      overflow: hidden;
+      height: 380px;
+      position: relative;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeUp 0.9s 0.55s ease forwards;
+      background: linear-gradient(135deg, #dbe4f0 0%, #c2d0e6 100%);
+    }
+
+    .hero-image-wrap.img-failed {
+      display: none;
+    }
+
+    /* Subtle gradient overlay at the bottom to blend into white */
+    .hero-image-wrap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 55%, rgba(255,255,255,0.18) 100%);
+      pointer-events: none;
+    }
+
+    .hero-image-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+    }
+
+    /* Unsplash placeholder: modern office */
+    .hero-img-placeholder {
+      width: 100%;
+      height: 100%;
+      background:
+        linear-gradient(160deg, #e8e4de 0%, #d6cfc4 40%, #c8bfb0 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative office scene drawn with CSS */
+    .office-scene {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+    }
+
+    /* ── Section Shared ── */
+    .section {
+      padding: 112px 0;
+      border-top: 1px solid #EBEBEB;
+    }
+
+    .section-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 20px;
+    }
+
+    .section-eyebrow::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--blue);
+      opacity: 0.5;
+    }
+
+    .section-heading {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(36px, 3.5vw, 52px);
+      font-weight: 400;
+      color: var(--text-dark);
+      line-height: 1.1;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+
+    .section-heading em {
+      font-style: italic;
+      color: var(--navy);
+    }
+
+    .section-sub {
+      font-size: 17px;
+      font-weight: 300;
+      color: var(--text-mid);
+      line-height: 1.65;
+      max-width: 520px;
+    }
+
+    /* Scroll reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+
+    /* ── Services Section ── */
+    .services-header {
+      margin-bottom: 64px;
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      background: #EBEBEB;
+      border: 1px solid #EBEBEB;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .service-card {
+      background: #fff;
+      padding: 40px 36px 44px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: background 0.2s ease;
+    }
+
+    .service-card:hover {
+      background: #FAFBFF;
+    }
+
+    .service-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #EEF4FF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+      flex-shrink: 0;
+    }
+
+    .service-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: var(--blue);
+    }
+
+    .service-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-dark);
+      letter-spacing: -0.3px;
+    }
+
+    .service-desc {
+      font-size: 15px;
+      font-weight: 300;
+      color: var(--text-mid);
+      line-height: 1.65;
+    }
+
+    .service-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--navy);
+      text-decoration: none;
+      margin-top: auto;
+      padding-top: 8px;
+      transition: gap 0.2s ease;
+    }
+
+    .service-link:hover {
+      gap: 10px;
+    }
+
+    /* ── Case Studies Section ── */
+    .work-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 48px;
+    }
+
+    .work-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .case-card {
+      border-radius: 16px;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid #EBEBEB;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .case-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(10,22,40,0.09);
+    }
+
+    .case-img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+      background: #E8EDF3;
+    }
+
+    .case-body {
+      padding: 28px 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .case-tag {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--blue);
+    }
+
+    .case-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--text-dark);
+      line-height: 1.3;
+      letter-spacing: -0.3px;
+    }
+
+    .case-desc {
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--text-mid);
+      line-height: 1.6;
+      margin-top: 2px;
+    }
+
+    .case-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid #F0F0F0;
+    }
+
+    .case-meta-label {
+      font-size: 13px;
+      color: var(--text-mid);
+      font-weight: 300;
+    }
+
+    .case-result {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+
+    /* ── About Section ── */
+    .about-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+
+    .about-image-wrap {
+      border-radius: 16px;
+      overflow: hidden;
+      aspect-ratio: 4/3;
+      background: #E8EDF3;
+    }
+
+    .about-image-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .about-content {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .about-body {
+      font-size: 17px;
+      font-weight: 300;
+      color: var(--text-mid);
+      line-height: 1.75;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      padding-top: 8px;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-top: 20px;
+      border-top: 2px solid #EBEBEB;
+    }
+
+    .stat-number {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 38px;
+      font-weight: 400;
+      color: var(--text-dark);
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+
+    .stat-number span {
+      color: var(--blue);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text-mid);
+    }
+
+    /* ── Responsive additions ── */
+    @media (max-width: 900px) {
+      .services-grid { grid-template-columns: 1fr; }
+      .work-grid { grid-template-columns: 1fr; }
+      .about-inner { grid-template-columns: 1fr; gap: 40px; }
+      .work-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .section { padding: 80px 0; }
+    }
+
+    @media (max-width: 600px) {
+      .services-grid { grid-template-columns: 1fr; }
+      .work-grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .section { padding: 64px 0; }
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      body { padding: 0 32px; }
+      h1 { font-size: 52px; letter-spacing: -1px; }
+      .hero-image-wrap { width: 100%; }
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 0 16px; }
+      header { height: 72px; }
+      nav { gap: 24px; }
+      nav a { font-size: 15px; }
+      h1 { font-size: 38px; letter-spacing: -0.5px; }
+      .hero-sub { font-size: 17px; }
+      .btn-row { flex-direction: column; align-items: center; }
+      .btn { width: 100%; justify-content: center; }
+    }
+  </style>
 </head>
 <body>
-<div class="left">
-  <div>
-    <div class="seal-wrap">
-      <div class="seal-img">
-        <?php if (file_exists(__DIR__.'/assets/seal.png')): ?>
-          <img src="assets/seal.png" alt="Seal">
-        <?php else: ?>
-          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        <?php endif; ?>
+
+  <!-- Header -->
+  <header>
+    <a class="logo" href="#">
+      <!-- Circular "C" SVG icon -->
+      <span class="logo-text"><?= e(SITE_SHORT) ?></span>
+    </a>
+
+    <nav>
+      <a href="#services">Features</a>
+      <a href="#work">Impact</a>
+      <a href="<?= $dashboard_url ?>" class="btn btn-primary" style="height: 40px; padding: 0 20px; font-size: 14px;">
+        <?= $is_logged_in ? 'Go to Dashboard' : 'Sign In' ?>
+      </a>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-text">
+      <span class="hero-eyebrow"><?= e(SITE_NAME) ?></span>
+
+      <h1>Governance for<br><em>Quality Education</em></h1>
+
+      <p class="hero-sub">
+        A digital platform for School-Based Management self-assessment, monitoring, and governance aligned with DepEd Order No. 007, s. 2024.
+      </p>
+
+      <div class="btn-row">
+        <a href="<?= $dashboard_url ?>" class="btn btn-primary">
+          <?= $is_logged_in ? 'Go to Dashboard' : 'Get Started' ?>
+          <span class="arrow">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
+        <a href="#services" class="btn btn-secondary">Learn More</a>
       </div>
-      <span class="seal-label">Republic of the Philippines<br>Department of Education</span>
     </div>
-    <h1 class="headline">School-Based<br>Management<br><em>Monitoring System</em></h1>
-    <p class="sub">Digital platform for SBM self-assessment, monitoring, and governance aligned with DepEd Order No. 007, s. 2024.</p>
-    <div class="left-stats">
-      <div class="si"><div class="sn">42</div><div class="sl">Indicators</div></div>
-      <div class="si"><div class="sn">6</div><div class="sl">Dimensions</div></div>
-      <div class="si"><div class="sn">4</div><div class="sl">Maturity Levels</div></div>
+
+  </section>
+
+  <!-- ══════════════════════════════════
+       SERVICES SECTION
+  ══════════════════════════════════ -->
+  <section class="section" id="services">
+    <div class="services-header reveal">
+      <span class="section-eyebrow">Key Features</span>
+      <h2 class="section-heading">Built for DepEd<br><em>SBM compliance</em></h2>
     </div>
-  </div>
-  <p class="foot">DepEd Order No. 007, s. 2024 &nbsp;·&nbsp; <?= date('Y') ?></p>
-</div>
 
-<div class="right">
-  <div class="form-box">
-    <div class="eyebrow"><span class="edot"></span><span class="etxt">Secure Portal Access</span></div>
-    <h2 class="ftitle">Welcome back</h2>
-    <p class="fsub">Sign in with your DepEd credentials.</p>
+    <div class="services-grid">
 
-    <?php if ($error): ?>
-    <div class="alert-err">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <?= e($error) ?>
+      <div class="service-card reveal reveal-delay-1">
+        <div class="service-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div class="service-title">Self-Assessment</div>
+        <p class="service-desc">Complete the 42-indicator SBM checklist aligned with DO 007, s. 2024. Track your school's maturity level in real-time.</p>
+      </div>
+
+      <div class="service-card reveal reveal-delay-2">
+        <div class="service-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <div class="service-title">Automated Reporting</div>
+        <p class="service-desc">Generate SIP-ready reports and executive summaries instantly. No more manual consolidation of teacher feedback.</p>
+      </div>
+
+      <div class="service-card reveal reveal-delay-3">
+        <div class="service-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div class="service-title">ML Suggestions</div>
+        <p class="service-desc">Receive AI-powered recommendations for school improvement based on your current assessment scores and stakeholder remarks.</p>
+      </div>
+
     </div>
-    <?php endif; ?>
+  </section>
 
-    <form method="post" autocomplete="off">
-      <div class="field">
-        <label>Username or Email</label>
-        <div class="field-wrap">
-          <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-          <input class="fc" type="text" name="username" value="<?= e($_POST['username'] ?? '') ?>" placeholder="Enter username or email" required autofocus>
+  <!-- ══════════════════════════════════
+       CASE STUDIES SECTION
+  ══════════════════════════════════ -->
+  <section class="section" id="work">
+    <div class="work-header">
+      <div class="reveal">
+        <span class="section-eyebrow">System Impact</span>
+        <h2 class="section-heading">Transforming<br><em>school governance</em></h2>
+      </div>
+    </div>
+
+    <div class="work-grid">
+
+      <div class="case-card reveal reveal-delay-1">
+        <div class="case-body">
+          <span class="case-tag">Efficiency</span>
+          <div class="case-title">Zero Paperwork Assessment</div>
+          <p class="case-desc">Moving from manual consolidation to digital submission saves school heads an average of 15 hours per assessment cycle.</p>
+          <div class="case-meta">
+            <span class="case-meta-label">Impact:</span>
+            <span class="case-result">100% Digital Workflow</span>
+          </div>
         </div>
       </div>
-      <div class="field">
-        <label>Password</label>
-        <div class="field-wrap">
-          <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-          <input class="fc" type="password" name="password" placeholder="Enter your password" required>
+
+      <div class="case-card reveal reveal-delay-2">
+        <div class="case-body">
+          <span class="case-tag">Compliance</span>
+          <div class="case-title">DO 007, s. 2024 Aligned</div>
+          <p class="case-desc">Every indicator and dimension is mapped directly to the latest DepEd orders, ensuring your school is always audit-ready.</p>
+          <div class="case-meta">
+            <span class="case-meta-label">Status:</span>
+            <span class="case-result">Fully Compliant</span>
+          </div>
         </div>
       </div>
-      <button class="btn-login" type="submit">Sign In</button>
-    </form>
 
-    <div class="roles">
-      <div class="role-item"><strong>Admin</strong><span>System Admin</span></div>
-      <div class="role-item"><strong>School Head</strong><span>SBM Coordinator</span></div>
-      <div class="role-item"><strong>SDO / RO</strong><span>Monitoring</span></div>
+      <div class="case-card reveal reveal-delay-3">
+        <div class="case-body">
+          <span class="case-tag">Intelligence</span>
+          <div class="case-title">Data-Driven SIP</div>
+          <p class="case-desc">Automatically translate assessment gaps into actionable strategies for your School Improvement Plan using our ML engine.</p>
+          <div class="case-meta">
+            <span class="case-meta-label">Feature:</span>
+            <span class="case-result">Smart Recommendations</span>
+          </div>
+        </div>
+      </div>
+
     </div>
-    <p class="ffooter"><?= e(SITE_NAME) ?> &nbsp;·&nbsp; <?= date('Y') ?></p>
-  </div>
-</div>
+  </section>
+
+  <!-- ══════════════════════════════════
+       ABOUT SECTION
+  ══════════════════════════════════ -->
+  <section class="section" id="about">
+    <div class="about-inner">
+
+      <div class="about-image-wrap reveal">
+        <img
+          src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=900&q=80&auto=format&fit=crop"
+          alt="The Clearpath team collaborating"
+          loading="lazy"
+        />
+      </div>
+
+      <div class="about-content">
+        <div class="reveal">
+          <span class="section-eyebrow">Our Vision</span>
+          <h2 class="section-heading">Empowering schools through<br><em>data-driven governance</em></h2>
+        </div>
+        <p class="about-body reveal reveal-delay-1">
+          The SBM Monitoring System is designed to streamline the self-assessment process for Philippine schools. By digitizing DepEd Order No. 007, s. 2024, we enable school heads and stakeholders to focus on what truly matters: improving learner outcomes.
+        </p>
+        <p class="about-body reveal reveal-delay-2">
+          Our platform provides a transparent, efficient, and evidence-based approach to school management, ensuring that every decision is backed by solid data and aligned with national standards.
+        </p>
+        <div class="stats-row reveal reveal-delay-3">
+          <div class="stat">
+            <div class="stat-number"><?= number_format($total_indicators) ?></div>
+            <div class="stat-label">Critical Indicators</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number"><?= number_format($total_dimensions) ?></div>
+            <div class="stat-label">SBM Dimensions</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number"><?= number_format($total_schools) ?></div>
+            <div class="stat-label">Registered Schools</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number"><?= number_format($validated_cycles) ?></div>
+            <div class="stat-label">Validated Cycles</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+    // Scroll-triggered reveal
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    reveals.forEach(el => observer.observe(el));
+  </script>
+
 </body>
 </html>

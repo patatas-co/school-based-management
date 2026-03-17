@@ -7,13 +7,13 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 function requireLogin(): void {
     if (session_status() === PHP_SESSION_NONE) session_start();
     if (empty($_SESSION['user_id'])) {
-        header('Location: ' . baseUrl() . '/index.php'); exit;
+        header('Location: ' . baseUrl() . '/login.php'); exit;
     }
 }
 function requireRole(string ...$roles): void {
     requireLogin();
     if (!in_array($_SESSION['role'], $roles, true)) {
-        header('Location: ' . baseUrl() . '/index.php?err=access'); exit;
+        header('Location: ' . baseUrl() . '/login.php?err=access'); exit;
     }
 }
 function me(): array {
@@ -41,7 +41,7 @@ function roleHome(string $role): string {
         'sdo'                  =>'sdo/dashboard.php',
         'ro'                   =>'ro/dashboard.php',
         'external_stakeholder' =>'stakeholder/dashboard.php'
-    ][$role] ?? 'index.php';
+    ][$role] ?? 'login.php';
 }
 function e(?string $s): string { return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8'); }
 function timeAgo(string $dt): string {
