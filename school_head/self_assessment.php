@@ -42,19 +42,22 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
 $cycleRow->execute([$schoolId,$syId]); $cycleRow = $cycleRow->fetch();
 
         if (!$cycleRow) {
-    try {
-        $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")->execute([$syId,$schoolId]);
-        $cycleId = $db->lastInsertId();
-    } catch (\PDOException $e) {
-        if ($e->getCode() === '23000') {
-            // Duplicate key — cycle was created by a concurrent request, fetch it
-            $retry = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
-            $retry->execute([$schoolId, $syId]);
-            $cycleId = $retry->fetchColumn();
-        } else {
-            throw $e;
-        }
-    }
+            try {
+                $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")->execute([$syId,$schoolId]);
+                $cycleId = $db->lastInsertId();
+            } catch (\PDOException $e) {
+                if ($e->getCode() === '23000') {
+                    $retry = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+                    $retry->execute([$schoolId, $syId]);
+                    $cycleId = $retry->fetchColumn();
+                } else {
+                    throw $e;
+                }
+            }
+            if (!$cycleId) {
+                echo json_encode(['ok'=>false,'msg'=>'Failed to initialize assessment cycle. Please refresh and try again.']);
+                exit;
+            }
 } else {
             $cycleId = $cycleRow['cycle_id'];
             if ((int)$cycleRow['school_id'] !== (int)$schoolId) {
@@ -992,6 +995,7 @@ $dimTchCount = count($inds) - $dimShCount;
 ?>
 <div class="dim-wrap" id="dim<?= $dimNo ?>"
      data-dim="<?= $dimNo ?>"
+     data-dim-db-id="<?= $dim['dimension_id'] ?>"
      data-sh-count="<?= $dimShCount ?>"
      data-teacher-count="<?= $dimTchCount ?>">
 
@@ -1565,21 +1569,15 @@ async function clearDimension(dimNo) {
   const dimWrap = document.getElementById('dim' + dimNo);
   if (!dimWrap) return;
 
-  // Get dimension_id from first SH indicator in this dim
-  const firstSHRow = dimWrap.querySelector('.indicator-row[data-role="sh"]');
-  if (!firstSHRow) { toast('No school head indicators in this dimension.', 'warning'); return; }
-
-  // Get indicator_id to look up dimension
-  const firstIndId = firstSHRow.id.replace('row','');
-  // We need dimension_id — pass dimNo and resolve server-side
+  const dimensionDbId = dimWrap.dataset.dimDbId || dimNo;
   const r = await apiPost('self_assessment.php', {
     action: 'clear_dimension',
-    dimension_id: dimNo  // server resolves via JOIN
+    dimension_id: dimensionDbId
   });
 
   if (!r.ok) { toast(r.msg, 'err'); return; }
 
-  // Reset every SH card in this dimension
+  // Reset each SH card's UI only — no progress calls yet
   dimWrap.querySelectorAll('.indicator-row[data-role="sh"]').forEach(row => {
     const indId = row.id.replace('row','');
     if (!row.classList.contains('rated')) return;
@@ -1596,14 +1594,16 @@ async function clearDimension(dimNo) {
     const badge = document.getElementById('savedBadge' + indId);
     if (badge) badge.textContent = '';
 
-    // Update progress state
+    // Accumulate progress changes (no DOM updates here)
     progress.shDone  = Math.max(0, progress.shDone - 1);
     progress.allDone = Math.max(0, progress.allDone - 1);
-    if (prevRating) progress.ratings[prevRating] = Math.max(0, (progress.ratings[prevRating]||1) - 1);
+    if (prevRating) {
+      progress.ratings[prevRating] = Math.max(0, (progress.ratings[prevRating]||1) - 1);
+    }
     delete progress.prevRatings[indId];
   });
 
-  // Re-render all progress UI at once
+  // Now do ONE single DOM update pass for all progress UI
   const shPct = progress.shTotal > 0 ? Math.round((progress.shDone/progress.shTotal)*100) : 0;
   const shBar = document.getElementById('shProgBar');
   if (shBar) { shBar.style.width = shPct+'%'; shBar.classList.remove('prog-complete'); }
@@ -1624,19 +1624,30 @@ async function clearDimension(dimNo) {
     const el = document.getElementById('ratingCnt'+rv);
     if (el) el.textContent = progress.ratings[rv]||0;
   });
+
   const submitCount = document.getElementById('submitCount');
   if (submitCount) submitCount.textContent = `(${progress.shDone}/${progress.shTotal} your indicators rated)`;
 
-  // Un-green dim tab
+  // Update dim tab ONCE
+  const allCards   = dimWrap.querySelectorAll('.indicator-row');
+  const ratedCards = dimWrap.querySelectorAll('.indicator-row.rated');
+  const done  = ratedCards.length;
+  const total = allCards.length;
+
   const tab = document.getElementById('dimTab'+dimNo);
   if (tab) { tab.style.background='var(--white)'; tab.style.color='var(--n600)'; tab.style.borderColor='var(--n200)'; }
   const tabCount = document.getElementById('dimTabCount'+dimNo);
-  if (tabCount) tabCount.textContent = `(0/${dimWrap.querySelectorAll('.indicator-row').length})`;
+  if (tabCount) tabCount.textContent = `(${done}/${total})`;
   const subtitle = document.getElementById('dimSubtitle'+dimNo);
-  const total = dimWrap.querySelectorAll('.indicator-row').length;
-  if (subtitle) subtitle.textContent = `0/${total} indicators rated`;
+  if (subtitle) subtitle.textContent = `${done}/${total} indicators rated`;
   const leftBadge = document.getElementById('dimLeft'+dimNo);
-  if (leftBadge) { leftBadge.textContent=`${total} left`; leftBadge.style.color='var(--n500)'; leftBadge.style.background='var(--n100)'; leftBadge.style.border=''; }
+  if (leftBadge) {
+    leftBadge.textContent = `${total-done} left`;
+    leftBadge.style.color = 'var(--n500)';
+    leftBadge.style.background = 'var(--n100)';
+    leftBadge.style.border = '';
+    leftBadge.style.fontWeight = '600';
+  }
   const clearDimBtn = document.getElementById('clearDimBtn'+dimNo);
   if (clearDimBtn) clearDimBtn.style.display = 'none';
 

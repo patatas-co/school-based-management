@@ -105,15 +105,35 @@ include __DIR__.'/../includes/header.php';
 const ANN_COLORS = {general:'var(--g400)',policy:'var(--purple)',deadline:'var(--red)',advisory:'var(--gold)',emergency:'var(--red)'};
 
 function annCard(a){
-  const color = ANN_COLORS[a.category] || 'var(--g400)';
-  const cat   = a.category.charAt(0).toUpperCase() + a.category.slice(1);
-  const tgt   = a.target.replace(/_/g,' ');
-  const tgtCap= tgt.charAt(0).toUpperCase() + tgt.slice(1);
-  // Escape content for safe HTML insertion
-  const safeTitle   = a.title.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const safeContent = a.content.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-  const safeAuthor  = a.author.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  return `<div class="card" id="ann${a.id}" style="border-left:4px solid ${color};">
+  const _esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  // Sanitize class-safe values (only allow alphanumeric, underscore, hyphen)
+  const safecat = String(a.category||'general').replace(/[^a-z0-9_-]/g,'');
+  const safetgt = String(a.target||'all').replace(/[^a-z0-9_-]/g,'');
+  const safeId  = parseInt(a.id) || 0;
+  const color   = ANN_COLORS[safecat] || 'var(--brand-600)';
+  const cat     = safecat.charAt(0).toUpperCase() + safecat.slice(1);
+  const tgt     = safetgt.replace(/_/g,' ');
+  const tgtCap  = tgt.charAt(0).toUpperCase() + tgt.slice(1);
+  const safeTitle   = _esc(a.title);
+  const safeContent = _esc(a.content).replace(/\n/g,'<br>');
+  const safeAuthor  = _esc(a.author);
+  return `<div class="card" id="ann${safeId}" style="border-left:4px solid ${color};">
+    <div class="card-body" style="padding:16px 18px;">
+      <div class="flex-cb">
+        <div class="flex-c" style="gap:8px;">
+          <span class="pill pill-${safecat}">${cat}</span>
+          <span class="pill pill-${safetgt}" style="font-size:10.5px;">${tgtCap}</span>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="delAnn(${safeId},this)">${svgI('trash')}</button>
+      </div>
+      <h3 style="font-size:15px;font-weight:700;color:var(--n900);margin:10px 0 6px;">${safeTitle}</h3>
+      <p style="font-size:13.5px;color:var(--n600);line-height:1.65;">${safeContent}</p>
+      <div style="font-size:11.5px;color:var(--n400);margin-top:10px;padding-top:9px;border-top:1px solid var(--n100);">
+        Posted by <strong>${safeAuthor}</strong> · <span class="ann-time">just now</span>
+      </div>
+    </div>
+  </div>`;
+}
     <div class="card-body" style="padding:16px 18px;">
       <div class="flex-cb">
         <div class="flex-c" style="gap:8px;">

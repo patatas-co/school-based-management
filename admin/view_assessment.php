@@ -218,8 +218,18 @@ function toggleDim(n){
   const chevron = document.getElementById('dimChevron'+n);
   const isOpen  = !body.classList.contains('collapsed');
   body.classList.toggle('collapsed', isOpen);
-  chevron.style.transform = isOpen ? 'rotate(-90deg)' : '';
+  chevron.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
 }
+
+// Set all sections to collapsed on load for cleaner initial view
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.dim-body').forEach(body => {
+    body.classList.add('collapsed');
+  });
+  document.querySelectorAll('.dim-chevron').forEach(chevron => {
+    chevron.style.transform = 'rotate(-90deg)';
+  });
+});
 
 // Validate/Return modal
 function openAction(action){

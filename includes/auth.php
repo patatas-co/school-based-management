@@ -47,11 +47,18 @@ function e(?string $s): string { return htmlspecialchars($s ?? '', ENT_QUOTES, '
 function timeAgo(string $dt): string {
     $tz   = new DateTimeZone('Asia/Manila');
     $now  = new DateTime('now', $tz);
-    $past = new DateTime($dt, $tz);
+    // MySQL timestamps are stored in server local time (Asia/Manila via SET time_zone)
+    // so parse them directly in Manila timezone
+    try {
+        $past = new DateTime($dt, $tz);
+    } catch (\Exception $e) {
+        return '—';
+    }
     $diff = $now->getTimestamp() - $past->getTimestamp();
-    if ($diff <  10)    return 'just now';
-    if ($diff <  60)    return $diff . 's ago';
-    if ($diff <  3600)  return floor($diff / 60) . 'm ago';
+    if ($diff < 0)    return 'just now';
+    if ($diff <  10)  return 'just now';
+    if ($diff <  60)  return $diff . 's ago';
+    if ($diff <  3600) return floor($diff / 60) . 'm ago';
     if ($diff <  86400) return floor($diff / 3600) . 'h ago';
     if ($diff <  604800) return floor($diff / 86400) . 'd ago';
     return $past->format('M d, Y');

@@ -15,7 +15,7 @@ header('Cache-Control: no-store');
 // Only poll once every 8s per session — if client sends If-Modified-Since, check it
 $lastPoll = $_SESSION['last_poll'] ?? 0;
 $now = time();
-if ($now - $lastPoll < 7) {
+if ($now - $lastPoll < 5) {
     http_response_code(204); // No Content — client uses its cached data
     exit;
 }

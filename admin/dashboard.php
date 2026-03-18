@@ -53,7 +53,6 @@ include __DIR__.'/../includes/header.php';
 ?>
 
 <style>
-/* Dashboard-specific refinements */
 .dim-bar-item { margin-bottom: 16px; }
 .dim-bar-item:last-child { margin-bottom: 0; }
 .dim-label {
@@ -65,7 +64,7 @@ include __DIR__.'/../includes/header.php';
 .dim-label-name {
   font-size: 13px;
   font-weight: 600;
-  color: var(--n-800);
+  color: var(--n900);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -76,17 +75,16 @@ include __DIR__.'/../includes/header.php';
   flex-shrink: 0;
 }
 .dim-label-score { font-size: 13px; font-weight: 700; }
-.dim-prog { height: 8px; background: var(--n-100); border-radius: 999px; overflow: hidden; }
+.dim-prog { height: 8px; background: var(--n100); border-radius: 999px; overflow: hidden; }
 .dim-fill { height: 100%; border-radius: 999px; transition: width .6s cubic-bezier(.4,0,.2,1); }
-.dim-mat  { font-size: 11px; color: var(--n-400); margin-top: 3px; }
+.dim-mat  { font-size: 11px; color: var(--n400); margin-top: 3px; }
 
-/* Activity feed item */
 .act-item {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 9px 0;
-  border-bottom: 1px solid var(--n-100);
+  border-bottom: 1px solid var(--n100);
 }
 .act-item:last-child { border-bottom: none; }
 .act-dot {
@@ -96,12 +94,11 @@ include __DIR__.'/../includes/header.php';
   flex-shrink: 0;
   margin-top: 5px;
 }
-.act-text  { font-size: 12.5px; color: var(--n-700); line-height: 1.4; }
-.act-who   { font-weight: 600; color: var(--n-900); }
-.act-action{ color: var(--n-500); }
-.act-time  { font-size: 11px; color: var(--n-400); margin-top: 2px; }
+.act-text  { font-size: 12.5px; color: var(--n700); line-height: 1.4; }
+.act-who   { font-weight: 600; color: var(--n900); }
+.act-action{ color: var(--n500); }
+.act-time  { font-size: 11px; color: var(--n400); margin-top: 2px; }
 
-/* Welcome banner */
 .welcome-banner {
   background: linear-gradient(135deg, var(--brand-800) 0%, var(--brand-700) 60%, #1a7a4a 100%);
   border-radius: var(--radius-lg);
@@ -172,14 +169,6 @@ include __DIR__.'/../includes/header.php';
   border: 1px solid rgba(255,255,255,.15);
 }
 .welcome-btn-secondary:hover { background: rgba(255,255,255,.15); }
-
-/* Completion ring */
-.ring-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
 </style>
 
 <!-- Welcome banner -->

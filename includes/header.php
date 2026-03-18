@@ -235,6 +235,42 @@ $__roleColor = [
   /* Transition */
   --ease: cubic-bezier(.4,0,.2,1);
   --dur:  150ms;
+
+  /* ── Shorthand aliases (used by page files) ── */
+  --n50:  var(--n-50);
+  --n100: var(--n-100);
+  --n200: var(--n-200);
+  --n300: var(--n-300);
+  --n400: var(--n-400);
+  --n500: var(--n-500);
+  --n600: var(--n-600);
+  --n700: var(--n-700);
+  --n800: var(--n-800);
+  --n900: var(--n-900);
+
+  /* Brand / green shorthands */
+  --g50:  var(--brand-50);
+  --g100: var(--brand-100);
+  --g200: var(--brand-200);
+  --g300: var(--brand-400);
+  --g400: var(--brand-400);
+  --g500: var(--brand-500);
+  --g600: var(--brand-600);
+  --g700: var(--brand-700);
+  --g800: var(--brand-800);
+
+  /* Semantic color shorthands */
+  --gold:   var(--amber);
+  --goldb:  var(--amber-bg);
+  --blueb:  var(--blue-bg);
+  --purpb:  var(--purple-bg);
+  --redb:   var(--red-bg);
+
+  /* Misc */
+  --white:     #ffffff;
+  --shadow:    var(--shadow-xs);
+  --shadow-md: var(--shadow-md);
+  --trans:     150ms cubic-bezier(.4,0,.2,1);
 }
 
 /* ── Reset ───────────────────────────────────────────────── */
@@ -463,18 +499,65 @@ body {
 .sb-child.active::before { background: var(--brand-500); }
 
 /* Collapsed tooltips */
-.sb.collapsed .sb-item { justify-content: center; padding: 9px; }
-.sb.collapsed .sb-label,
-.sb.collapsed .sb-badge,
-.sb.collapsed .sb-chevron { display: none; }
-.sb.collapsed .sb-icon { width: 22px; height: 22px; }
-.sb.collapsed .sb-icon svg { width: 19px; height: 19px; }
+/* ── Collapsed sidebar overrides ── */
+.sb.collapsed {
+  overflow: hidden;
+}
+
+.sb.collapsed .sb-nav {
+  padding: 12px 0;
+  overflow-x: hidden;
+}
+
+.sb.collapsed .sb-section {
+  margin-bottom: 0;
+}
+
+.sb.collapsed .sb-section-label {
+  display: none;
+}
+
+.sb.collapsed .sb-item .sb-label,
+.sb.collapsed .sb-item .sb-badge,
+.sb.collapsed .sb-item .sb-chevron {
+  display: none !important;
+  width: 0 !important;
+  overflow: hidden !important;
+}
+
+.sb.collapsed .sb-child {
+  display: none !important;
+}
+
+.sb.collapsed .sb-children {
+  display: none !important;
+  max-height: 0 !important;
+}
+
+.sb.collapsed .sb-icon {
+  width: 22px;
+  height: 22px;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.sb.collapsed .sb-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Tooltip on hover */
+.sb.collapsed .sb-item {
+  position: relative;
+}
+
 .sb.collapsed .sb-item::after {
   content: attr(data-label);
-  position: absolute;
-  left: 72px; top: 50%;
-  transform: translateY(-50%);
-  background: var(--n-900);
+  position: fixed;
+  left: calc(var(--sidebar-mini) + 8px);
+  top: var(--tooltip-top, 50%);
+  transform: none;
+  background: var(--n900);
   color: #fff;
   padding: 5px 12px;
   border-radius: 7px;
@@ -487,6 +570,41 @@ body {
   transition: opacity 120ms var(--ease);
   z-index: 999;
 }
+
+.sb.collapsed .sb-item:hover::after {
+  opacity: 1;
+}
+
+/* User tile collapsed */
+.sb.collapsed .sb-user-tile {
+  justify-content: center;
+  padding: 10px 0;
+  width: var(--sidebar-mini);
+}
+
+.sb.collapsed .sb-user-info,
+.sb.collapsed .sb-user-more {
+  display: none !important;
+}
+
+.sb.collapsed .sb-avatar {
+  margin: 0 auto;
+}
+
+/* Brand area collapsed */
+.sb.collapsed .sb-brand {
+  padding: 18px 0 16px;
+  justify-content: center;
+}
+
+.sb.collapsed .sb-brand-text {
+  display: none !important;
+}
+
+.sb.collapsed .sb-logo {
+  margin: 0 auto;
+}
+
 .sb.collapsed .sb-item:hover::after { opacity: 1; }
 .sb.collapsed .sb-children { display: none; }
 .sb.collapsed .sb-section-label { opacity: 0; }
@@ -822,6 +940,26 @@ body {
   line-height: 1.4;
 }
 .btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.btn .sb-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.btn .sb-icon svg {
+  width: 14px;
+  height: 14px;
+}
+.btn-sm .sb-icon {
+  width: 13px;
+  height: 13px;
+}
+.btn-sm .sb-icon svg {
+  width: 13px;
+  height: 13px;
+}
 .btn-primary { background: var(--brand-700); color: #fff; box-shadow: 0 1px 2px rgba(21,128,61,.25); }
 .btn-primary:hover { background: var(--brand-800); }
 .btn-secondary { background: var(--n-100); color: var(--n-700); border: 1px solid var(--n-200); }
@@ -1056,6 +1194,10 @@ tbody tr:hover td { background: var(--brand-50); }
 .sb.collapsed ~ .main-wrap,
 .main-wrap.expanded {
   margin-left: var(--sidebar-mini) !important;
+  transition: margin-left 220ms var(--ease);
+}
+.main-wrap {
+  transition: margin-left 220ms var(--ease);
 }
 </style>
 </head>
@@ -1119,6 +1261,11 @@ tbody tr:hover td { background: var(--brand-50); }
 'percent'       => '<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
 'award'         => '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
 'arrow-left'    => '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+'clipboard'     => '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>',
+'clipboard-check'=> '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2"/>',
+'filter'        => '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
+'link'          => '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+'grid-2'        => '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
 'check-square'  => '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
 'bar-chart-2'   => '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
 'clock'         => '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
@@ -1148,11 +1295,11 @@ tbody tr:hover td { background: var(--brand-50); }
         $isActive = basename($item[1]) === basename($_SERVER['PHP_SELF']);
       ?>
       <a href="<?= $__base ?>/<?= e($item[1]) ?>"
-         class="sb-item <?= $isActive ? 'active' : '' ?>"
-         data-label="<?= e($item[0]) ?>">
-        <span class="sb-icon"><?= $__icon($item[2]) ?></span>
-        <span class="sb-label"><?= e($item[0]) ?></span>
-      </a>
+   class="sb-child sb-item <?= $isActive ? 'active' : '' ?>"
+   data-label="<?= e($item[0]) ?>">
+  <span class="sb-icon"><?= $__icon($item[2]) ?></span>
+  <span class="sb-label"><?= e($item[0]) ?></span>
+</a>
 
       <?php else: ?>
       <!-- Group with children -->
@@ -1261,26 +1408,28 @@ function svgIcon(n, cls='', style='') {
 
 // ── Sidebar collapse ──────────────────────────────────────────
 (function() {
+  // Fix tooltip vertical position for collapsed sidebar items
+document.addEventListener('mouseover', function(e) {
+  const item = e.target.closest('.sb.collapsed .sb-item');
+  if (!item) return;
+  const rect = item.getBoundingClientRect();
+  item.style.setProperty('--tooltip-top', rect.top + (rect.height / 2) - 14 + 'px');
+});
   const sb  = document.getElementById('sidebar');
   const mw  = document.getElementById('mainWrap');
   const btn = document.getElementById('menuBtn');
   const MOBILE = () => window.innerWidth <= 768;
 
   function applyState(collapsed) {
-    if (MOBILE()) {
-      sb.classList.toggle('mobile-open', !collapsed);
-      sb.classList.remove('collapsed');
-      mw.classList.remove('expanded');
-      mw.style.marginLeft = '';
-    } else {
-      sb.classList.toggle('collapsed', collapsed);
-      mw.classList.toggle('expanded', collapsed);
-      // Force margin update immediately — don't rely on class transition alone
-      mw.style.marginLeft = collapsed
-        ? 'var(--sidebar-mini)'
-        : 'var(--sidebar-w)';
-    }
+  if (MOBILE()) {
+    sb.classList.toggle('mobile-open', !collapsed);
+    sb.classList.remove('collapsed');
+    mw.classList.remove('expanded');
+  } else {
+    sb.classList.toggle('collapsed', collapsed);
+    mw.classList.toggle('expanded', collapsed);
   }
+}
 
   // Restore saved state
   const saved = localStorage.getItem('sbCollapsed') === 'true';
@@ -1358,8 +1507,12 @@ async function apiPost(url, data) {
   return res.json();
 }
 function filterTable(q, id) {
+  const lower = q.toLowerCase();
   document.querySelectorAll(`#${id} tbody tr`).forEach(r => {
-    r.style.display = r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+    if (r.dataset.filtered === 'true') return;
+    const text = Array.from(r.querySelectorAll('td'))
+      .map(td => td.textContent).join(' ').toLowerCase();
+    r.style.display = text.includes(lower) ? '' : 'none';
   });
 }
 function $(id)    { return document.getElementById(id)?.value || ''; }

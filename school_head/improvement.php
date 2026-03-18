@@ -1083,10 +1083,19 @@ $remarkLines = [];
 }
 
 function saveInd(array &$s, int $r, string $dim, string $code, string $text, string $ev, string $act): void {
-    if ($r > 0 && !empty($code) && !empty($dim)) {
+    if ($r > 0 && $r <= 4 && !empty($code) && !empty($dim) && !empty($text)) {
         $key = "rating_{$r}";
         if (!isset($s[$key][$dim])) $s[$key][$dim] = [];
-        $s[$key][$dim][] = ['code'=>$code,'text'=>$text,'evidence'=>$ev,'action'=>$act];
+        // Prevent duplicate entries
+        foreach ($s[$key][$dim] as $existing) {
+            if ($existing['code'] === $code) return;
+        }
+        $s[$key][$dim][] = [
+            'code'     => trim($code),
+            'text'     => trim($text),
+            'evidence' => trim($ev),
+            'action'   => trim($act),
+        ];
     }
 }
 ?>

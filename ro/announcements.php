@@ -86,11 +86,11 @@ $thisWeek  = count(array_filter($anns, fn($a) => strtotime($a['created_at']) >= 
 
 /* ── CATEGORY HELPERS ───────────────────────────────────────── */
 $catMeta = [
-    'general'   => ['label' => 'General',   'color' => 'var(--g500)',    'bg' => 'var(--g100)',   'pill' => 'pill-admin'],
-    'policy'    => ['label' => 'Policy',    'color' => 'var(--purple)',  'bg' => 'var(--purpb)',  'pill' => 'pill-principal'],
-    'directive' => ['label' => 'Directive', 'color' => 'var(--blue)',    'bg' => 'var(--blueb)',  'pill' => 'pill-teacher'],
-    'advisory'  => ['label' => 'Advisory',  'color' => 'var(--gold)',    'bg' => 'var(--goldb)',  'pill' => 'pill-student'],
-    'emergency' => ['label' => 'Emergency', 'color' => 'var(--red)',     'bg' => 'var(--redb)',   'pill' => 'pill-student'],
+    'general'   => ['label' => 'General',   'color' => 'var(--brand-600)', 'bg' => 'var(--brand-100)', 'pill' => 'pill-general'],
+    'policy'    => ['label' => 'Policy',    'color' => 'var(--purple)',    'bg' => 'var(--purple-bg)', 'pill' => 'pill-policy'],
+    'directive' => ['label' => 'Directive', 'color' => 'var(--blue)',      'bg' => 'var(--blue-bg)',   'pill' => 'pill-in_progress'],
+    'advisory'  => ['label' => 'Advisory',  'color' => 'var(--amber)',     'bg' => 'var(--amber-bg)',  'pill' => 'pill-advisory'],
+    'emergency' => ['label' => 'Emergency', 'color' => 'var(--red)',       'bg' => 'var(--red-bg)',    'pill' => 'pill-returned'],
 ];
 
 $pageTitle  = 'Announcements';

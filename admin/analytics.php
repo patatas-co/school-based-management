@@ -12,8 +12,8 @@ $dimAvg = $db->prepare("
          ROUND(AVG(ds.percentage),1) avg_pct,
          COUNT(DISTINCT ds.school_id) school_count
   FROM sbm_dimensions d
-  LEFT JOIN sbm_cycles c ON c.sy_id=?
-  LEFT JOIN sbm_dimension_scores ds ON d.dimension_id=ds.dimension_id AND ds.cycle_id=c.cycle_id
+  LEFT JOIN sbm_dimension_scores ds ON d.dimension_id=ds.dimension_id
+  LEFT JOIN sbm_cycles c ON ds.cycle_id=c.cycle_id AND c.sy_id=?
   GROUP BY d.dimension_id ORDER BY d.dimension_no
 ");
 $dimAvg->execute([$syId]); $dimAvgs = $dimAvg->fetchAll();
@@ -138,41 +138,52 @@ const dimValues  = <?= json_encode(array_map(fn($d)=>floatval($d['avg_pct']), $d
 
 // Radar
 const radarFullNames = <?= json_encode(array_map(fn($d)=>'D'.$d['dimension_no'].': '.$d['dimension_name'], $dimAvgs)) ?>;
-new Chart(document.getElementById('radarChart'),{
-  type:'radar',
-  data:{
-    labels: <?= json_encode(array_map(fn($d)=>'D'.$d['dimension_no'], $dimAvgs)) ?>,
-    datasets:[{
-      label:'Avg Score (%)',
-      data:dimValues,
-      backgroundColor:'rgba(22,163,74,.15)',
-      borderColor:'#16A34A',
-      pointBackgroundColor:dimColors,
-      pointRadius:5,
-      borderWidth:2
-    }]
-  },
-  options:{
-    scales:{r:{
-      min:0,max:100,
-      ticks:{font:{size:10},stepSize:25,backdropColor:'transparent'},
-      pointLabels:{font:{size:13,weight:'700',family:"'DM Sans',sans-serif"},color:'#374151'}
-    }},
-    plugins:{
-      legend:{display:false},
-      tooltip:{callbacks:{title:ctx=>radarFullNames[ctx[0].dataIndex],label:ctx=>' '+ctx.raw+'%'}}
+if (dimValues.length > 0 && dimValues.some(v => v > 0)) {
+  new Chart(document.getElementById('radarChart'),{
+    type:'radar',
+    data:{
+      labels: <?= json_encode(array_map(fn($d)=>'D'.$d['dimension_no'], $dimAvgs)) ?>,
+      datasets:[{
+        label:'Avg Score (%)',
+        data:dimValues,
+        backgroundColor:'rgba(22,163,74,.15)',
+        borderColor:'#16A34A',
+        pointBackgroundColor:dimColors,
+        pointRadius:5,
+        borderWidth:2
+      }]
     },
-    maintainAspectRatio:true
-  }
-});
+    options:{
+      scales:{r:{
+        min:0,max:100,
+        ticks:{font:{size:10},stepSize:25,backdropColor:'transparent'},
+        pointLabels:{font:{size:13,weight:'700',family:"'DM Sans',sans-serif"},color:'#374151'}
+      }},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{title:ctx=>radarFullNames[ctx[0].dataIndex],label:ctx=>' '+ctx.raw+'%'}}
+      },
+      maintainAspectRatio:true
+    }
+  });
+} else {
+  document.getElementById('radarChart').closest('.card-body').innerHTML =
+    '<p style="text-align:center;color:var(--n400);padding:40px 0;font-size:13px;">No dimension data yet for this school year.</p>';
+}
 
 // Maturity donut
 const matData = <?= json_encode(array_column($matDists,'cnt','maturity_level')) ?>;
-new Chart(document.getElementById('maturityChart'),{
-  type:'doughnut',
-  data:{labels:['Beginning','Developing','Maturing','Advanced'],datasets:[{data:['Beginning','Developing','Maturing','Advanced'].map(l=>matData[l]||0),backgroundColor:['#DC2626','#D97706','#2563EB','#16A34A'],borderWidth:2,borderColor:'#fff'}]},
-  options:{plugins:{legend:{position:'bottom',labels:{font:{family:"'DM Sans',sans-serif",size:12},padding:10}}},cutout:'60%',maintainAspectRatio:true}
-});
+const matTotal = ['Beginning','Developing','Maturing','Advanced'].reduce((s,l)=>(matData[l]||0)+s,0);
+if (matTotal > 0) {
+  new Chart(document.getElementById('maturityChart'),{
+    type:'doughnut',
+    data:{labels:['Beginning','Developing','Maturing','Advanced'],datasets:[{data:['Beginning','Developing','Maturing','Advanced'].map(l=>matData[l]||0),backgroundColor:['#DC2626','#D97706','#2563EB','#16A34A'],borderWidth:2,borderColor:'#fff'}]},
+    options:{plugins:{legend:{position:'bottom',labels:{font:{family:"'DM Sans',sans-serif",size:12},padding:10}}},cutout:'60%',maintainAspectRatio:true}
+  });
+} else {
+  document.getElementById('maturityChart').closest('.card-body').innerHTML =
+    '<p style="text-align:center;color:var(--n400);padding:40px 0;font-size:13px;">No validated assessments yet.</p>';
+}
 
 // Bar chart
 new Chart(document.getElementById('dimBarChart'),{

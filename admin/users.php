@@ -217,7 +217,8 @@ include __DIR__.'/../includes/header.php';
   </div>
 </div>
 
-<script>
+  <script>
+const escHtml = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 async function createUser(){
   const d={action:'create',full_name:$('c_name'),username:$('c_user'),email:$('c_email'),role:$('c_role'),status:$('c_status'),school_id:$('c_school'),password:$('c_pass')};
   const r=await apiPost('users.php',d);
@@ -229,20 +230,22 @@ async function createUser(){
 
     // Instantly add new row at top of table
     const tbody = document.querySelector('#tblUsers tbody');
-    const initials = r.user.full_name.charAt(0).toUpperCase();
-    const rolePill = r.user.role.replace(/_/g,' ');
+    const initials = escHtml(r.user.full_name).charAt(0).toUpperCase();
+    const safeRole = r.user.role.replace(/[^a-z0-9_]/g,'');
+    const rolePill = safeRole.replace(/_/g,' ');
+    const safeStatus = r.user.status.replace(/[^a-z0-9_]/g,'');
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
         <div class="flex-c" style="gap:9px;">
-          <div style="width:32px;height:32px;border-radius:8px;background:var(--g100);color:var(--g700);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initials}</div>
-          <div><strong style="font-size:13px;">${r.user.full_name}</strong><div style="font-size:11.5px;color:var(--n400);">${r.user.email}</div></div>
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--brand-100);color:var(--brand-700);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initials}</div>
+          <div><strong style="font-size:13px;">${escHtml(r.user.full_name)}</strong><div style="font-size:11.5px;color:var(--n400);">${escHtml(r.user.email)}</div></div>
         </div>
       </td>
-      <td style="font-family:monospace;font-size:12.5px;color:var(--n500);">${r.user.username}</td>
-      <td><span class="pill pill-${r.user.role}">${rolePill.charAt(0).toUpperCase()+rolePill.slice(1)}</span></td>
-      <td style="font-size:12.5px;">${r.user.school}</td>
-      <td><span class="pill pill-${r.user.status}">${r.user.status.charAt(0).toUpperCase()+r.user.status.slice(1)}</span></td>
+      <td style="font-family:monospace;font-size:12.5px;color:var(--n500);">${escHtml(r.user.username)}</td>
+      <td><span class="pill pill-${safeRole}">${rolePill.charAt(0).toUpperCase()+rolePill.slice(1)}</span></td>
+      <td style="font-size:12.5px;">${escHtml(r.user.school)}</td>
+      <td><span class="pill pill-${safeStatus}">${safeStatus.charAt(0).toUpperCase()+safeStatus.slice(1)}</span></td>
       <td style="font-size:12px;color:var(--n400);">just now</td>
       <td>
         <div class="flex-c" style="gap:5px;">
