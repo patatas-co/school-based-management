@@ -15,8 +15,8 @@ define('DB_HOST',    $_ENV['SBM_DB_HOST']    ?? 'localhost');
 define('DB_USER',    $_ENV['SBM_DB_USER']    ?? 'root');
 define('DB_PASS',    $_ENV['SBM_DB_PASS']    ?? '');
 define('DB_NAME',    $_ENV['SBM_DB_NAME']    ?? 'sbm_db');
-define('SITE_NAME',  $_ENV['SBM_SITE_NAME']  ?? 'DepEd SBM Monitoring System');
-define('SITE_SHORT', $_ENV['SBM_SITE_SHORT'] ?? 'SBM Monitor');
+define('SITE_NAME',  $_ENV['SBM_SITE_NAME']  ?? 'Dasmarinas Integrated High School SBM Online Monitoring System');
+define('SITE_SHORT', $_ENV['SBM_SITE_SHORT'] ?? 'DIHS SBM Online Monitoring System');
 
 function getDB(): PDO {
     static $pdo = null;
