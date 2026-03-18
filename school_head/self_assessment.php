@@ -38,8 +38,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             echo json_encode(['ok'=>false,'msg'=>'This indicator is answered by teachers.']); exit;
         }
 
-        $cycleRow = $db->prepare("SELECT cycle_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?");
-        $cycleRow->execute([$schoolId,$syId]); $cycleRow = $cycleRow->fetch();
+        $cycleRow = $db->prepare("SELECT cycle_id, school_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+$cycleRow->execute([$schoolId,$syId]); $cycleRow = $cycleRow->fetch();
 
         if (!$cycleRow) {
     try {
@@ -57,6 +57,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     }
 } else {
             $cycleId = $cycleRow['cycle_id'];
+            if ((int)$cycleRow['school_id'] !== (int)$schoolId) {
+        echo json_encode(['ok'=>false,'msg'=>'Access denied.']);
+        exit;
+    }
             if ($cycleRow['status'] === 'draft') {
                 $db->prepare("UPDATE sbm_cycles SET status='in_progress',started_at=NOW() WHERE cycle_id=?")->execute([$cycleId]);
             }
@@ -85,8 +89,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             echo json_encode(['ok'=>false,'msg'=>'Cannot clear a teacher indicator.']); exit;
         }
 
-        $cycleRow = $db->prepare("SELECT cycle_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?");
-        $cycleRow->execute([$schoolId,$syId]); $cycleRow = $cycleRow->fetch();
+        $cycleRow = $db->prepare("SELECT cycle_id, school_id, sy_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+$cycleRow->execute([$schoolId,$syId]); $cycleRow = $cycleRow->fetch();
         if (!$cycleRow) { echo json_encode(['ok'=>false,'msg'=>'No active cycle.']); exit; }
         if (in_array($cycleRow['status'], ['submitted','validated'])) {
             echo json_encode(['ok'=>false,'msg'=>'Assessment is locked. Cannot clear.']); exit;
@@ -193,19 +197,20 @@ $shDoneStmt->execute(array_merge([$cyc['cycle_id']], TEACHER_INDICATOR_CODES));
 // Recompute all dimensions before finalizing score
 $allDims = $db->query("SELECT dimension_id FROM sbm_dimensions WHERE 1")->fetchAll(PDO::FETCH_COLUMN);
 foreach ($allDims as $dimId) {
-    // Get any indicator in this dimension to trigger recompute
     $anyInd = $db->prepare("SELECT indicator_id FROM sbm_indicators WHERE dimension_id=? AND is_active=1 LIMIT 1");
     $anyInd->execute([$dimId]);
     $anyIndId = $anyInd->fetchColumn();
     if ($anyIndId) {
         recomputeDimScoreWithOverrides($db, $cyc['cycle_id'], $anyIndId, $schoolId);
     }
+}
+
+// Single query AFTER all dimensions are updated
 $total = $db->prepare("SELECT SUM(raw_score), SUM(max_score) FROM sbm_dimension_scores WHERE cycle_id=?");
 $total->execute([$cyc['cycle_id']]);
 [$totalRaw, $totalMax] = array_values($total->fetch(PDO::FETCH_NUM));
 $overall = $totalMax > 0 ? round(($totalRaw/$totalMax)*100, 2) : 0;
 $mat = sbmMaturityLevel($overall);
-  }
 
 
         $db->prepare("UPDATE sbm_cycles SET status='submitted',submitted_at=NOW(),overall_score=?,maturity_level=? WHERE cycle_id=?")

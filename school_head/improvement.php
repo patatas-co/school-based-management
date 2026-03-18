@@ -1023,7 +1023,8 @@ function parseRecommendationSections(string $text): array {
         if (preg_match('/Always Manifested.*?:\s*(\d+)/i', $line, $m))    $sections['counts']['always']     = (int)$m[1];
     }
 
-    $inRemarks=$remarkLines=[];$inRemarks=false;$remarkLines=[];
+    $inRemarks = false;
+$remarkLines = [];
     $inRating=0;$currentDim='';$currentCode='';$currentText='';
     $currentEvidence='';$currentAction='';$inTopics=false;$currentTopic='';
 

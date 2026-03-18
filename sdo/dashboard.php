@@ -6,8 +6,9 @@ $db = getDB();
 
 $syId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 $totalSchools = $db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
-$submitted    = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE sy_id=? AND status IN('submitted','validated')")->execute([$syId]) ? $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE sy_id=? AND status IN('submitted','validated')")->execute([$syId]) : 0;
-$st = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE sy_id=? AND status IN('submitted','validated')"); $st->execute([$syId]); $submitted = $st->fetchColumn();
+$st = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE sy_id=? AND status IN('submitted','validated')");
+$st->execute([$syId]);
+$submitted = $st->fetchColumn();
 $st2 = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE sy_id=? AND status='validated'"); $st2->execute([$syId]); $validated = $st2->fetchColumn();
 $st3 = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE sy_id=? AND status='in_progress'"); $st3->execute([$syId]); $inProg = $st3->fetchColumn();
 $st4 = $db->prepare("SELECT ROUND(AVG(overall_score),1) FROM sbm_cycles WHERE sy_id=? AND overall_score IS NOT NULL"); $st4->execute([$syId]); $avgScore = $st4->fetchColumn();

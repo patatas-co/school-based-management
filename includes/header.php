@@ -1348,6 +1348,13 @@ const _csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 async function apiPost(url, data) {
   data.csrf_token = _csrf;
   const res = await fetch(url, { method:'POST', body: new URLSearchParams(data) });
+  if (res.status === 403) {
+    toast('Your session has expired. Please refresh the page.', 'err');
+    return { ok: false, msg: 'Session expired.' };
+  }
+  if (!res.ok) {
+    return { ok: false, msg: 'Server error (' + res.status + ').' };
+  }
   return res.json();
 }
 function filterTable(q, id) {

@@ -255,7 +255,7 @@ include __DIR__ . '/../includes/header.php';
 <div class="stats" style="margin-bottom:20px;">
     <div class="stat"><div class="stat-ic blue"><?= svgIcon('home') ?></div><div class="stat-data"><div class="stat-val"><?= $totalSch ?></div><div class="stat-lbl">Total Schools</div></div></div>
     <div class="stat"><div class="stat-ic dark"><?= svgIcon('minus-circle') ?></div><div class="stat-data"><div class="stat-val"><?= $notStarted ?></div><div class="stat-lbl">Not Started</div></div></div>
-    <div class="stat"><div class="stat-ic gold"><?= svgIcon('loader') ?></div><div class="stat-data"><div class="stat-val"><?= $inProgress ?></div><div class="stat-lbl">In Progress</div></div></div>
+    <div class="stat"><div class="stat-ic amber"><?= svgIcon('loader') ?></div><div class="stat-data"><div class="stat-val"><?= $inProgress ?></div><div class="stat-lbl">In Progress</div></div></div>
     <div class="stat"><div class="stat-ic green"><?= svgIcon('check-circle') ?></div><div class="stat-data"><div class="stat-val"><?= $completed ?></div><div class="stat-lbl">Completed</div></div></div>
     <div class="stat"><div class="stat-ic red"><?= svgIcon('alert-triangle') ?></div><div class="stat-data"><div class="stat-val"><?= $overdueSch ?></div><div class="stat-lbl">Schools w/ Overdue</div></div></div>
     <div class="stat"><div class="stat-ic teal"><?= svgIcon('percent') ?></div><div class="stat-data"><div class="stat-val"><?= $totalSch ? round(($completed / $totalSch) * 100) : 0 ?>%</div><div class="stat-lbl">Cycle Completion</div></div></div>

@@ -7,6 +7,7 @@ Falls back to rule-based templates if LLM unavailable.
 import os
 import json
 import textwrap
+from score_analyzer import DIMENSION_NAMES
 
 # ── Rule-based fallback templates (Year 1) ──────────────────────
 TEMPLATES = {

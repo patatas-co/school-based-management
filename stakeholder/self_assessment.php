@@ -73,6 +73,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])){
             );
             $retry->execute([$schoolId, $syId]);
             $cycleId = $retry->fetchColumn();
+            if (!$cycleId) {
+                echo json_encode(['ok'=>false,'msg'=>'Cycle creation failed. Please try again.']);
+                exit;
+            }
         } else {
             throw $e;
         }

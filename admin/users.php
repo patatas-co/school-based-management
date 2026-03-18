@@ -247,7 +247,7 @@ async function createUser(){
       <td>
         <div class="flex-c" style="gap:5px;">
           <button class="btn btn-secondary btn-sm" onclick="editUser(${r.user.id})">${svgI('edit')}</button>
-          <button class="btn btn-danger btn-sm" onclick="delUser(${r.user.id},'${r.user.full_name}')">${svgI('trash')}</button>
+          <button class="btn btn-danger btn-sm" onclick="delUser(${r.user.id},'${r.user.full_name}',this)">${svgI('trash')}</button>
         </div>
       </td>`;
     tbody.insertBefore(tr, tbody.firstChild);

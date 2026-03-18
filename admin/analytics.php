@@ -12,8 +12,8 @@ $dimAvg = $db->prepare("
          ROUND(AVG(ds.percentage),1) avg_pct,
          COUNT(DISTINCT ds.school_id) school_count
   FROM sbm_dimensions d
-  LEFT JOIN sbm_dimension_scores ds ON d.dimension_id=ds.dimension_id
-  LEFT JOIN sbm_cycles c ON ds.cycle_id=c.cycle_id AND c.sy_id=?
+  LEFT JOIN sbm_cycles c ON c.sy_id=?
+  LEFT JOIN sbm_dimension_scores ds ON d.dimension_id=ds.dimension_id AND ds.cycle_id=c.cycle_id
   GROUP BY d.dimension_id ORDER BY d.dimension_no
 ");
 $dimAvg->execute([$syId]); $dimAvgs = $dimAvg->fetchAll();

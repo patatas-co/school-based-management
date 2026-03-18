@@ -146,14 +146,18 @@ $db->prepare("
         $cycleRow->execute([$schoolId, $syId]); $cycleRow = $cycleRow->fetch();
 
         if (!$cycleRow) {
-            $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")->execute([$syId,$schoolId]);
-            $cycleId = $db->lastInsertId();
-        } else {
-            $cycleId = $cycleRow['cycle_id'];
-            if (in_array($cycleRow['status'], ['submitted','validated'])) {
-                echo json_encode(['ok'=>false,'msg'=>'Assessment is locked. Cannot edit.']); exit;
-            }
-        }
+    echo json_encode([
+        'ok'  => false,
+        'msg' => 'No active assessment cycle yet. Please wait for the School Head to start the assessment.'
+    ]);
+    exit;
+} else {
+    $cycleId = $cycleRow['cycle_id'];
+    if (in_array($cycleRow['status'], ['submitted','validated'])) {
+        echo json_encode(['ok'=>false,'msg'=>'Assessment is locked. Cannot edit.']);
+        exit;
+    }
+}
 
         $db->prepare("INSERT INTO teacher_responses (cycle_id,indicator_id,school_id,teacher_id,rating,remarks)
                       VALUES (?,?,?,?,?,?)
