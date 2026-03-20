@@ -164,6 +164,11 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/x-icon" href="<?= $__base ?>/favicon/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="<?= $__base ?>/favicon/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="<?= $__base ?>/favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="<?= $__base ?>/favicon/favicon-16x16.png">
+<link rel="manifest" href="<?= $__base ?>/favicon/site.webmanifest">
+<link rel="shortcut icon" href="<?= $__base ?>/favicon/favicon.ico">
 <title><?= e($pageTitle ?? 'Dashboard') ?> — <?= e(SITE_NAME) ?></title>
 <meta name="csrf-token" content="<?= csrfToken() ?>">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
