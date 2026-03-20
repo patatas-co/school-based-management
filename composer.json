@@ -1,0 +1,16 @@
+{
+    "name": "deped/sbm-monitoring-system",
+    "description": "DepEd SBM Online Monitoring System",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "mpdf/mpdf": "^8.2"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "autoload": {
+        "psr-4": {}
+    }
+}

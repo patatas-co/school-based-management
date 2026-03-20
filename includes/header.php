@@ -741,7 +741,7 @@ body {
   color: var(--n-600);
 }
 .topbar-breadcrumb span { color: var(--n-300); }
-.topbar-title {
+.topbar-breadcrumb .topbar-title {
   font-family: var(--font-display);
   font-size: 15px;
   font-weight: 700;

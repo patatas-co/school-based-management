@@ -245,15 +245,18 @@ function runMLPipeline(PDO $db, int $cycleId): bool
         ],
     ];
 
-    // 8. Try ML service first, fall back to rule-based
+    // 8. Try ML service first
     $result = null;
     if (defined('ML_SERVICE_URL') && !empty(ML_SERVICE_URL)) {
-    $result = ml_post('/api/full_pipeline', $payload);
-}
+        $result = ml_post('/api/full_pipeline', $payload);
+    }
 
-    // If ML service unavailable or not configured, use built-in rule-based engine
+    // If ML service unavailable, do NOT fall back to old rule-based silently.
+    // Instead, log the failure and maybe try one more time or just fail gracefully.
     if (!$result) {
-        $result = runRuleBasedPipeline($payload);
+        error_log("ML Pipeline failed to reach Python service.");
+        // We'll return false or a specific error structure if we want to show "AI Offline"
+        return false; 
     }
 
     if (!$result) return false;

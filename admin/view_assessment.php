@@ -80,7 +80,7 @@ include __DIR__.'/../includes/header.php';
   </div>
   <div class="page-head-actions" style="gap:8px;">
     <a href="assessment.php" class="btn btn-secondary"><?= svgIcon('arrow-left') ?> Back</a>
-    <a href="/export_pdf.php?cycle_id=<?= $cycle['cycle_id'] ?>&type=improvement"
+    <a href="<?= baseUrl() ?>/export_pdf.php?cycle_id=<?= $cycle['cycle_id'] ?>&type=improvement"
    target="_blank" class="btn btn-secondary">
   Download Improvement Plan (PDF)
 </a>

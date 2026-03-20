@@ -33,7 +33,7 @@ include __DIR__.'/../includes/header.php';
 <div class="page-head">
   <div class="page-head-text"><h2>My SBM Report</h2><p>Self-assessment results for <?= e($school['school_name'] ?? '') ?> — <?= $cycle ? e($cycle['sy_label']) : 'Current SY' ?></p></div>
   <div class="page-head-actions">
-    <a href="/export_pdf.php?cycle_id=<?= $cycle['cycle_id'] ?>&type=dimension"
+    <a href="<?= baseUrl() ?>/export_pdf.php?cycle_id=<?= $cycle['cycle_id'] ?>&type=dimension"
    target="_blank" class="btn btn-secondary">
   Download Dimension Report (PDF)
 </a>

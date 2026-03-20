@@ -252,10 +252,11 @@ def generate_recommendations(
             text = _call_ollama(prompt)
         elif backend == "openai":
             text = _call_openai(prompt)
-        elif backend == "groq":
-            text = _call_groq(prompt)
+        # Default/Always fall back to Groq if not specified or explicitly requested
         else:
-            text = _rule_based_fallback(analysis)
+            text = _call_groq(prompt)
+            backend = "groq"
+            
     except Exception as e:
         import logging
         import traceback
@@ -263,8 +264,19 @@ def generate_recommendations(
         logging.error(f"Error generating recommendations ({backend}): {e}\n{tb}")
         print(f"[ML ERROR] {backend} failed: {e}\n{tb}", flush=True)
         error = str(e)
-        text  = _rule_based_fallback(analysis)
-        backend = f"rule_based_fallback (was: {backend}, error: {str(e)[:120]})"
+        
+        # If the failure wasn't Groq, try Groq as a final attempt
+        if backend != "groq":
+            try:
+                text = _call_groq(prompt)
+                backend = "groq_fallback"
+                error = None # Recovered
+            except:
+                text = _rule_based_fallback(analysis)
+                backend = f"rule_based_error (was: {backend})"
+        else:
+            text = _rule_based_fallback(analysis)
+            backend = f"rule_based_error (was: {backend})"
 
     return {
         "recommendations": text,
