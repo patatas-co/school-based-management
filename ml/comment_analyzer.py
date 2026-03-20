@@ -6,6 +6,7 @@ Phase 1 (Year 1): Rule-based. Phase 2: upgrade to fine-tuned model.
 """
 import re
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from rapidfuzz import fuzz
 
 # --- Filipino negation / intensifier map (code-mix aware) ---
 TAGALOG_NEGATIONS = {"hindi", "wala", "walang", "huwag", "di"}
@@ -50,10 +51,28 @@ vader = SentimentIntensityAnalyzer()
 
 # Augment VADER lexicon with Filipino-flavored words
 FILIPINO_LEXICON = {
+    # Positive Filipino words
     "maganda":  2.5,  "mabuti": 2.0,  "mahusay": 2.8,  "magaling": 2.5,
-    "maayos":   2.0,  "masaya": 2.2,  "maliwanag": 1.8,
-    "masama":  -2.0,  "malala": -2.5, "mahirap": -1.5, "kulang": -1.8,
-    "sirang":  -2.5,  "wala":   -1.0, "hindi":   -0.5,
+    "maayos":   2.0,  "masaya": 2.2,  "maliwanag": 1.8, "epektibo": 2.0,
+    "kapaki-pakinabang": 2.3, "nakakatulong": 2.0, "mahalaga": 1.5,
+    "nag-improve": 2.0, "napabuti": 2.2, "nagtagumpay": 2.5,
+    "maganda ang": 2.3, "okay naman": 1.2, "sapat": 1.0,
+    "nandoon": 0.5, "meron": 0.5, "mayroon": 0.5,
+    "napapanahon": 1.5, "organisado": 1.8, "aktibo": 1.5,
+
+    # Negative Filipino words
+    "masama":  -2.0, "malala": -2.5, "mahirap": -1.5, "kulang":  -1.8,
+    "sirang":  -2.5, "wala":   -1.0, "hindi":   -0.5, "problema": -1.5,
+    "nakakainis": -2.2, "mapanganib": -2.5, "walang": -1.2,
+    "bigo": -2.0, "hindi epektibo": -2.0, "hindi maayos": -1.8,
+    "hindi sapat": -1.6, "kulang-kulang": -2.0, "pabaya": -2.0,
+    "hindi organisado": -1.8, "di maayos": -1.8, "wala pang": -1.5,
+    "marami pa ring": -1.5, "hindi pa": -1.0, "di pa": -1.0,
+    "hindi naipapatupad": -2.2, "hindi naisasagawa": -2.2,
+
+    # Strong negative intensifiers
+    "sobrang masama": -3.0, "napaka-pangit": -2.8,
+    "napaka-dami": -1.5, "lubhang kulang": -2.5,
 }
 vader.lexicon.update(FILIPINO_LEXICON)
 
@@ -102,15 +121,38 @@ def analyze_sentiment(text: str) -> dict:
 def extract_topics(text: str) -> list:
     """
     Returns list of matched topic keys.
-    A topic matches if ≥1 keyword appears in the text.
+    Uses exact regex match first, then fuzzy match for misspellings.
+    Handles Filipino/English code-mixed text.
     """
     cleaned = preprocess(text)
+    words   = cleaned.split()
     matched = []
+
     for topic, keywords in TOPIC_TAXONOMY.items():
+        # Step 1: Fast exact match via regex
         pattern = r"\b(" + "|".join(re.escape(k) for k in keywords) + r")\b"
         if re.search(pattern, cleaned):
             matched.append(topic)
-    return matched
+            continue
+
+        # Step 2: Fuzzy match for misspellings (e.g. "bulying", "harasment")
+        # Only apply fuzzy on words longer than 4 chars to avoid false positives
+        found_fuzzy = False
+        for word in words:
+            if len(word) < 4:
+                continue
+            for kw in keywords:
+                if len(kw) < 4:
+                    continue
+                score = fuzz.ratio(word, kw)
+                if score > 82:
+                    matched.append(topic)
+                    found_fuzzy = True
+                    break
+            if found_fuzzy:
+                break
+
+    return list(set(matched))
 
 
 def detect_urgency(text: str) -> dict:

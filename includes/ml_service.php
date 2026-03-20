@@ -251,12 +251,25 @@ function runMLPipeline(PDO $db, int $cycleId): bool
         $result = ml_post('/api/full_pipeline', $payload);
     }
 
-    // If ML service unavailable, do NOT fall back to old rule-based silently.
-    // Instead, log the failure and maybe try one more time or just fail gracefully.
+    // If ML service unavailable, run PHP rule-based engine and tag it clearly.
     if (!$result) {
-        error_log("ML Pipeline failed to reach Python service.");
-        // We'll return false or a specific error structure if we want to show "AI Offline"
-        return false; 
+        error_log("ML Pipeline: Python service unavailable for cycle $cycleId — using PHP fallback.");
+
+        $fallbackResult = runRuleBasedPipeline($payload);
+        saveMLResults($db, $cycleId, $fallbackResult);
+
+        // Tag the saved recommendation as rule-based fallback so UI can show a notice
+        try {
+            $db->prepare("
+                UPDATE ml_recommendations
+                SET generated_by = 'rule_based_fallback'
+                WHERE cycle_id = ?
+            ")->execute([$cycleId]);
+        } catch (Exception $e) {
+            error_log("ML fallback tag error: " . $e->getMessage());
+        }
+
+        return true;
     }
 
     if (!$result) return false;
@@ -857,6 +870,43 @@ function saveMLResults(PDO $db, int $cycleId, array $result): void
     $gap     = $result['score_analysis']['gap_analysis']     ?? [];
     $comms   = $result['comment_analysis']                   ?? [];
     $recs    = $result['recommendations']['recommendations'] ?? '';
+
+    // ── 0. Save training snapshot for future cross-cycle learning ──
+    try {
+        $meta = $db->prepare(
+            "SELECT school_id, overall_score, maturity_level FROM sbm_cycles WHERE cycle_id=?"
+        );
+        $meta->execute([$cycleId]);
+        $meta = $meta->fetch();
+
+        if ($meta) {
+            $dimJson = json_encode($gap['all_dimensions'] ?? []);
+            $indJson = json_encode(
+                $result['score_analysis']['weak_indicators']['by_dimension'] ?? []
+            );
+
+            $db->prepare("
+                INSERT INTO ml_training_snapshots
+                    (school_id, cycle_id, dim_scores, indicator_ratings,
+                     overall_score, maturity_level)
+                VALUES (?,?,?,?,?,?)
+                ON DUPLICATE KEY UPDATE
+                    dim_scores         = VALUES(dim_scores),
+                    indicator_ratings  = VALUES(indicator_ratings),
+                    overall_score      = VALUES(overall_score),
+                    maturity_level     = VALUES(maturity_level)
+            ")->execute([
+                $meta['school_id'],
+                $cycleId,
+                $dimJson,
+                $indJson,
+                $meta['overall_score'],
+                $meta['maturity_level'],
+            ]);
+        }
+    } catch (Exception $e) {
+        error_log("ML snapshot save error: " . $e->getMessage());
+    }
 
     // ── 1. Save ml_predictions for weak/critical dimensions ──
     if (!empty($gap['weakest_dimensions'])) {

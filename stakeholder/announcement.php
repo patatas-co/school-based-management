@@ -1,72 +1,224 @@
 <?php
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
-requireRole('external_stakeholder');
+requireRole('admin','sdo','ro');
 $db = getDB();
 
-$anns = $db->query("
-    SELECT a.*,u.full_name 
-    FROM announcements a 
-    JOIN users u ON a.posted_by=u.user_id 
-    WHERE a.is_published=1 
-  AND a.target_role IN('all','school_head','external_stakeholder')
-    ORDER BY a.created_at DESC
-")->fetchAll();
+if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
+    header('Content-Type: application/json');
+    verifyCsrf();
+    if ($_POST['action']==='post') {
+        $title = trim($_POST['title'] ?? '');
+        $content = trim($_POST['content'] ?? '');
+        if (!$title || !$content) { echo json_encode(['ok'=>false,'msg'=>'Title and content required.']); exit; }
+        $cat = in_array($_POST['category'],['general','policy','deadline','advisory','emergency']) ? $_POST['category'] : 'general';
+        $target = in_array($_POST['target'],['all','school_head','teacher','sdo','ro','external_stakeholder']) ? $_POST['target'] : 'all';
+        $db->prepare("INSERT INTO announcements (posted_by,title,content,category,target_role) VALUES (?,?,?,?,?)")
+           ->execute([$_SESSION['user_id'],$title,$content,$cat,$target]);
+        $newId = $db->lastInsertId();
+        echo json_encode(['ok'=>true,'msg'=>'Announcement posted.','ann'=>[
+            'id'=>$newId,'title'=>$title,'content'=>$content,
+            'category'=>$cat,'target'=>$target,'author'=>$_SESSION['full_name']??'Admin',
+        ]]); exit;
+    }
+    if ($_POST['action']==='delete') {
+        $db->prepare("DELETE FROM announcements WHERE ann_id=?")->execute([(int)$_POST['id']]);
+        echo json_encode(['ok'=>true,'msg'=>'Announcement deleted.']); exit;
+    }
+    exit;
+}
 
-$pageTitle  = 'Announcements';
-$activePage = 'announcements.php';
+$filterCat = $_GET['cat'] ?? '';
+$sql = "SELECT a.*,u.full_name FROM announcements a JOIN users u ON a.posted_by=u.user_id";
+$params = [];
+if ($filterCat) { $sql .= " WHERE a.category=?"; $params[] = $filterCat; }
+$sql .= " ORDER BY a.created_at DESC";
+$stmt = $db->prepare($sql); $stmt->execute($params);
+$anns = $stmt->fetchAll();
+
+// Count by category
+$catCounts = $db->query("SELECT category, COUNT(*) cnt FROM announcements GROUP BY category")->fetchAll(PDO::FETCH_KEY_PAIR);
+
+$pageTitle = 'Announcements'; $activePage = 'announcements.php';
 include __DIR__.'/../includes/header.php';
+
+$catColors = ['general'=>'#16A34A','policy'=>'#7C3AED','deadline'=>'#DC2626','advisory'=>'#D97706','emergency'=>'#DC2626'];
+$catBgs    = ['general'=>'#DCFCE7','policy'=>'#EDE9FE','deadline'=>'#FEE2E2','advisory'=>'#FEF3C7','emergency'=>'#FEE2E2'];
 ?>
-<div class="page-head">
-  <div class="page-head-text">
-    <h2>Announcements</h2>
-    <p>Notices from the school administration.</p>
+<style>
+.ann-v2 {
+  background: var(--white);
+  border: 1px solid var(--n-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+  margin-bottom: 10px;
+  transition: box-shadow 140ms, transform 140ms;
+}
+.ann-v2:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.ann-v2-stripe { height: 4px; }
+.ann-v2-body { padding: 16px 20px; }
+.ann-v2-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.ann-v2-pills { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ann-v2-title { font-size: 15.5px; font-weight: 700; color: var(--n-900); margin-bottom: 8px; line-height: 1.35; }
+.ann-v2-content { font-size: 13.5px; color: var(--n-600); line-height: 1.75; }
+.ann-v2-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--n-100); font-size: 12px; color: var(--n-400); }
+.cat-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+</style>
+
+<div class="ph2">
+  <div class="ph2-left">
+    <div class="ph2-eyebrow">Communication</div>
+    <div class="ph2-title">Announcements</div>
+    <div class="ph2-sub">Post notices and advisories for portal users.</div>
   </div>
+  <div class="ph2-right">
+    <button class="btn btn-primary" onclick="openModal('mPost')"><?= svgIcon('plus') ?> Post Announcement</button>
+  </div>
+</div>
+
+<!-- Category filter tabs -->
+<div class="status-tabs" style="margin-bottom:20px;">
+  <a href="announcements.php" class="status-tab <?= !$filterCat ? 'active' : '' ?>">
+    All <span class="status-tab-count"><?= array_sum($catCounts) ?></span>
+  </a>
+  <?php foreach(['general','policy','deadline','advisory','emergency'] as $c): ?>
+  <a href="announcements.php?cat=<?= $c ?>" class="status-tab <?= $filterCat===$c ? 'active' : '' ?>">
+    <span class="cat-dot" style="background:<?= $catColors[$c] ?>;"></span>
+    <?= ucfirst($c) ?>
+    <?php if($catCounts[$c] ?? 0): ?><span class="status-tab-count"><?= $catCounts[$c] ?></span><?php endif; ?>
+  </a>
+  <?php endforeach; ?>
 </div>
 
 <?php if(!$anns): ?>
 <div class="card">
-  <div class="card-body" style="text-align:center;
-                                padding:48px;color:var(--n400);">
-      No announcements at this time.
+  <div class="empty-state">
+    <div class="empty-icon"><?= svgIcon('bell') ?></div>
+    <div class="empty-title">No announcements yet</div>
+    <div class="empty-sub">Post your first announcement to notify school heads, teachers, and other portal users.</div>
+    <button class="btn btn-primary" onclick="openModal('mPost')"><?= svgIcon('plus') ?> Post Announcement</button>
   </div>
 </div>
-<?php endif; ?>
-
-<div style="display:flex;flex-direction:column;gap:12px;">
+<?php else: ?>
+<div id="annFeed">
 <?php foreach($anns as $a):
-    $colors = [
-        'general'   => 'var(--g400)',
-        'policy'    => 'var(--purple)',
-        'deadline'  => 'var(--red)',
-        'advisory'  => 'var(--gold)',
-        'emergency' => 'var(--red)'
-    ];
+  $col = $catColors[$a['category']] ?? '#16A34A';
+  $bg  = $catBgs[$a['category']]   ?? '#DCFCE7';
 ?>
-<div class="card" 
-     style="border-left:4px solid 
-            <?= $colors[$a['category']] ?? 'var(--g400)' ?>;">
-  <div class="card-body" style="padding:16px 20px;">
-    <div class="flex-c" style="gap:8px;margin-bottom:10px;">
-      <span class="pill pill-<?= e($a['category']) ?>">
-          <?= ucfirst($a['category']) ?>
-      </span>
+<div class="ann-v2" id="ann<?= $a['ann_id'] ?>">
+  <div class="ann-v2-stripe" style="background:<?= $col ?>;"></div>
+  <div class="ann-v2-body">
+    <div class="ann-v2-header">
+      <div class="ann-v2-pills">
+        <span class="pill pill-<?= e($a['category']) ?>"><?= ucfirst($a['category']) ?></span>
+        <span class="pill pill-<?= e($a['target_role']) ?>" style="font-size:11px;"><?= ucfirst(str_replace('_',' ',$a['target_role'])) ?></span>
+        <?php if($a['category']==='emergency'): ?>
+        <span class="pill" style="background:var(--red-bg);color:var(--red);border:1px solid #FECACA;font-size:11px;animation:pulse 1.2s infinite;">Urgent</span>
+        <?php endif; ?>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="delAnn(<?= $a['ann_id'] ?>,this)"><?= svgIcon('trash') ?></button>
     </div>
-    <h3 style="font-size:15px;font-weight:700;
-               color:var(--n900);margin-bottom:8px;">
-        <?= e($a['title']) ?>
-    </h3>
-    <p style="font-size:13.5px;color:var(--n600);line-height:1.7;">
-        <?= nl2br(e($a['content'])) ?>
-    </p>
-    <div style="font-size:11.5px;color:var(--n400);
-                margin-top:12px;padding-top:10px;
-                border-top:1px solid var(--n100);">
-        Posted by <strong><?= e($a['full_name']) ?></strong> 
-        &nbsp;·&nbsp; <?= timeAgo($a['created_at']) ?>
+    <div class="ann-v2-title"><?= e($a['title']) ?></div>
+    <div class="ann-v2-content"><?= nl2br(e($a['content'])) ?></div>
+    <div class="ann-v2-footer">
+      <span>Posted by <strong style="color:var(--n-600);"><?= e($a['full_name']) ?></strong> · <?= timeAgo($a['created_at']) ?> · <?= date('M d, Y',strtotime($a['created_at'])) ?></span>
     </div>
   </div>
 </div>
 <?php endforeach; ?>
 </div>
+<?php endif; ?>
+
+<!-- Post Modal -->
+<div class="overlay" id="mPost">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-head">
+      <span class="modal-title">Post Announcement</span>
+      <button class="modal-close" onclick="closeModal('mPost')"><?= svgIcon('x') ?></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="fg">
+          <label>Category</label>
+          <select class="fc" id="a_cat">
+            <?php foreach(['general','policy','deadline','advisory','emergency'] as $c): ?>
+            <option value="<?= $c ?>"><?= ucfirst($c) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Target Audience</label>
+          <select class="fc" id="a_target">
+            <option value="all">All Users</option>
+            <option value="school_head">School Heads</option>
+            <option value="teacher">Teachers</option>
+            <option value="sdo">SDO</option>
+            <option value="ro">Regional Office</option>
+            <option value="external_stakeholder">External Stakeholders</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>Title *</label><input class="fc" id="a_title" placeholder="Announcement title…"></div>
+      <div class="fg"><label>Content *</label><textarea class="fc" id="a_content" rows="5" placeholder="Write your announcement here…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mPost')">Cancel</button>
+      <button class="btn btn-primary" onclick="postAnn()"><?= svgIcon('send') ?> Post</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ANN_COLORS={'general':'#16A34A','policy':'#7C3AED','deadline':'#DC2626','advisory':'#D97706','emergency':'#DC2626'};
+
+function annCard(a){
+  const _e=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const sc=String(a.category||'general').replace(/[^a-z0-9_-]/g,'');
+  const st=String(a.target||'all').replace(/[^a-z0-9_-]/g,'');
+  const id=parseInt(a.id)||0;
+  const col=ANN_COLORS[sc]||'#16A34A';
+  return `<div class="ann-v2" id="ann${id}">
+    <div class="ann-v2-stripe" style="background:${col};"></div>
+    <div class="ann-v2-body">
+      <div class="ann-v2-header">
+        <div class="ann-v2-pills">
+          <span class="pill pill-${sc}">${sc.charAt(0).toUpperCase()+sc.slice(1)}</span>
+          <span class="pill pill-${st}" style="font-size:11px;">${st.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="delAnn(${id},this)">${svgI('trash')}</button>
+      </div>
+      <div class="ann-v2-title">${_e(a.title)}</div>
+      <div class="ann-v2-content">${_e(a.content).replace(/\n/g,'<br>')}</div>
+      <div class="ann-v2-footer">
+        <span>Posted by <strong>${_e(a.author)}</strong> · just now</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function postAnn(){
+  const r=await apiPost('announcements.php',{action:'post',title:$('a_title'),content:$('a_content'),category:$('a_cat'),target:$('a_target')});
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){
+    closeModal('mPost');
+    ['a_title','a_content'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    const feed=document.getElementById('annFeed');
+    if(feed){
+      const empty=feed.querySelector('.empty-state');
+      if(empty)empty.closest('.card')?.remove();
+      const tmp=document.createElement('div');
+      tmp.innerHTML=annCard(r.ann);
+      feed.insertBefore(tmp.firstElementChild,feed.firstChild);
+    }
+  }
+}
+
+async function delAnn(id,btn){
+  if(!confirm('Delete this announcement?'))return;
+  const r=await apiPost('announcements.php',{action:'delete',id});
+  toast(r.msg,r.ok?'ok':'err');
+  if(r.ok){const card=document.getElementById('ann'+id)||btn?.closest('.ann-v2');card?.remove();}
+}
+</script>
 <?php include __DIR__.'/../includes/footer.php'; ?>

@@ -134,13 +134,84 @@ def forecast_maturity(history: list) -> dict:
     }
 
 
+# DepEd-aligned dimension weights (adjust these as priorities change)
+# Higher value = more weight in gap scoring
+DIMENSION_WEIGHTS = {
+    1: 1.2,  # Curriculum and Teaching — core academic outcome
+    2: 1.2,  # Learning Environment — learner safety and wellbeing
+    3: 1.0,  # Leadership and Governance
+    4: 1.0,  # Accountability and Continuous Improvement
+    5: 0.9,  # Human Resource Development
+    6: 0.9,  # Finance and Resource Management
+}
+
+
+def weighted_gap_analysis(dim_scores: dict, weights: dict = None) -> dict:
+    """
+    Computes gap analysis using DepEd-priority weights per dimension.
+    Falls back to equal weights if none provided.
+    """
+    if not dim_scores:
+        return {}
+
+    if weights is None:
+        weights = DIMENSION_WEIGHTS
+
+    total_weight   = sum(weights.get(int(d), 1.0) for d in dim_scores)
+    weighted_avg   = sum(
+        float(dim_scores[d]) * weights.get(int(d), 1.0)
+        for d in dim_scores
+    ) / total_weight if total_weight > 0 else 0
+
+    gaps = []
+    for dim_no, score in dim_scores.items():
+        score      = float(score)
+        dim_no_int = int(dim_no)
+        weight     = weights.get(dim_no_int, 1.0)
+        raw_gap    = weighted_avg - score
+        # Weighted gap: gaps in high-priority dimensions feel larger
+        weighted_gap = raw_gap * weight
+        priority   = "high" if weighted_gap > 15 else (
+                     "medium" if weighted_gap > 5 else "low")
+
+        gaps.append({
+            "dimension_no":        dim_no_int,
+            "dimension_name":      DIMENSION_NAMES.get(dim_no_int, f"Dimension {dim_no_int}"),
+            "score":               round(score, 2),
+            "gap_from_avg":        round(raw_gap, 2),
+            "weighted_gap":        round(weighted_gap, 2),
+            "weight":              weight,
+            "priority":            priority,
+            "maturity":            get_maturity(score),
+        })
+
+    gaps.sort(key=lambda x: -x["weighted_gap"])
+
+    return {
+        "average_score":      round(weighted_avg, 2),
+        "overall_maturity":   get_maturity(weighted_avg),
+        "weakest_dimensions": [g for g in gaps if g["priority"] == "high"],
+        "all_dimensions":     gaps,
+    }
+
+
 def full_analysis(payload: dict) -> dict:
     """
     Master function called by Flask endpoint.
-    payload keys: dim_scores, indicators, history
+    payload keys: dim_scores, indicators, by_rating, history
     """
+    dim_scores = payload.get("dim_scores", {})
+
+    # Convert string keys to int keys if needed (JSON sends string keys)
+    if dim_scores and all(isinstance(k, str) for k in dim_scores):
+        dim_scores = {int(k): v for k, v in dim_scores.items()}
+
     return {
-        "gap_analysis":     analyze_gaps(payload.get("dim_scores", {})),
-        "weak_indicators":  analyze_weak_indicators(payload.get("indicators", [])),
-        "forecast":         forecast_maturity(payload.get("history", [])),
+        "gap_analysis":    weighted_gap_analysis(dim_scores),
+        "weak_indicators": analyze_weak_indicators(payload.get("indicators", [])),
+        "forecast":        forecast_maturity(payload.get("history", [])),
+        "by_rating":       payload.get("by_rating", {}),
+        "history":         payload.get("history", []),
     }
+
+    

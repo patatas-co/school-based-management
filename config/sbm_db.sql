@@ -1639,6 +1639,23 @@ ALTER TABLE `workflow_checkpoints`
   ADD CONSTRAINT `workflow_checkpoints_ibfk_1` FOREIGN KEY (`school_id`) REFERENCES `schools` (`school_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `workflow_checkpoints_ibfk_2` FOREIGN KEY (`sy_id`) REFERENCES `school_years` (`sy_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `workflow_checkpoints_ibfk_3` FOREIGN KEY (`completed_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
+  CREATE TABLE IF NOT EXISTS `ml_training_snapshots` (
+  `snapshot_id`      int(11) NOT NULL AUTO_INCREMENT,
+  `school_id`        int(11) NOT NULL,
+  `cycle_id`         int(11) NOT NULL,
+  `dim_scores`       longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`dim_scores`)),
+  `indicator_ratings` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`indicator_ratings`)),
+  `overall_score`    decimal(5,2) DEFAULT NULL,
+  `maturity_level`   enum('Beginning','Developing','Maturing','Advanced') DEFAULT NULL,
+  `created_at`       timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`snapshot_id`),
+  UNIQUE KEY `uq_snapshot` (`school_id`,`cycle_id`),
+  KEY `school_id` (`school_id`),
+  KEY `cycle_id`  (`cycle_id`),
+  CONSTRAINT `ml_snapshots_ibfk_1` FOREIGN KEY (`school_id`) REFERENCES `schools` (`school_id`) ON DELETE CASCADE,
+  CONSTRAINT `ml_snapshots_ibfk_2` FOREIGN KEY (`cycle_id`)  REFERENCES `sbm_cycles` (`cycle_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

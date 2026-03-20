@@ -95,8 +95,14 @@ def full_pipeline():
     # Step 2: Comment analysis
     comment_result = batch_analyze(data.get("comments", []))
 
-    # Step 3: Combine and generate recommendations
-    merged_analysis = {**score_result, "comment_summary": comment_result}
+    # Step 3: Combine — pass by_rating and history explicitly for the prompt
+    merged_analysis = {
+        **score_result,
+        "comment_summary": comment_result,
+        "by_rating":       data.get("by_rating", {}),
+        "history":         data.get("history", []),
+    }
+
     recs = generate_recommendations(
         analysis    = merged_analysis,
         school_name = data.get("school_name", "School"),

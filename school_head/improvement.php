@@ -392,9 +392,21 @@ if ($cycle) {
 
   <div class="card-head" style="background:var(--purpb);">
     <span class="card-title" style="color:var(--purple);display:flex;align-items:center;gap:7px;">
-      <?= svgIcon('cpu') ?> AI-Generated SIP Recommendations
+      <?= svgIcon('cpu') ?>
+      <?php if (($mlRec['generated_by'] ?? '') === 'rule_based_fallback'): ?>
+        Rule-Based SIP Recommendations
+      <?php else: ?>
+        AI-Generated SIP Recommendations
+      <?php endif; ?>
     </span>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <?php if (($mlRec['generated_by'] ?? '') === 'rule_based_fallback'): ?>
+      <span style="font-size:11px;color:var(--gold);background:var(--goldb);
+                   border:1px solid #FDE68A;border-radius:999px;
+                   padding:2px 10px;font-weight:600;">
+        ⚠ AI offline — using rule-based mode
+      </span>
+      <?php endif; ?>
       <?php if($mlRec['has_urgent']): ?>
       <span class="pill" style="background:var(--redb);color:var(--red);border:1px solid #FECACA;animation:pulse 1.5s infinite;">
         🚨 Urgent Issues Flagged

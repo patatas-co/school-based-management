@@ -48,69 +48,91 @@ TEMPLATES = {
 def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     """
     Constructs a structured prompt for the LLM.
-    Prioritizes indicator rating data over stakeholder remarks.
+    Includes historical trend data and forces indicator code references.
     """
-    gap      = analysis.get("gap_analysis", {})
-    weak     = analysis.get("weak_indicators", {})
-    comments = analysis.get("comment_summary", {})
-    forecast = analysis.get("forecast", {})
+    gap       = analysis.get("gap_analysis", {})
+    weak      = analysis.get("weak_indicators", {})
+    comments  = analysis.get("comment_summary", {})
+    forecast  = analysis.get("forecast", {})
     by_rating = analysis.get("by_rating", {})
+    history   = analysis.get("history", [])
 
     weakest_dims = gap.get("weakest_dimensions", [])
     top_topics   = comments.get("top_topics", [])
     urgent       = comments.get("has_urgent", False)
 
+    # --- Historical context block ---
+    if history and len(history) >= 2:
+        scores    = [float(h.get("overall_score", 0)) for h in history]
+        change    = round(scores[-1] - scores[-2], 1)
+        direction = "improved" if change > 0 else ("declined" if change < 0 else "stable")
+        history_line = (
+            f"Historical trend: School has {direction} by {abs(change)}% "
+            f"from last cycle ({scores[-2]}% → {scores[-1]}%). "
+            f"All recorded scores: {', '.join(str(round(s,1)) for s in scores)}"
+        )
+    elif history and len(history) == 1:
+        history_line = (
+            f"Historical trend: One prior cycle recorded "
+            f"({float(history[0].get('overall_score', 0))}%). "
+            f"Current cycle is the second assessment."
+        )
+    else:
+        history_line = "Historical trend: First assessment cycle — no prior data available."
+
+    # --- Forecast line ---
+    trend_line = (
+        f"Score forecast for next cycle: {forecast.get('forecast', 'N/A')}% "
+        f"({forecast.get('trend', 'unknown')} trajectory)"
+        if forecast.get("forecast") else ""
+    )
+
+    # --- Dimension summary ---
     dim_lines = "\n".join(
         f"  - {d['dimension_name']} ({d['score']}%, {d['maturity']})"
         for d in weakest_dims[:3]
     )
-    
-    # Detail weak indicators (Priority 1 & 2)
-    weak_ind_list = []
-    by_dim = weak.get("by_dimension", {})
-    for dim_no, inds in by_dim.items():
-        dim_name = DIMENSION_NAMES.get(int(dim_no), f"Dimension {dim_no}")
-        for ind in inds[:3]:  # Top 3 per dim
-            weak_ind_list.append(f"  - [{ind['code']}] {ind['text']} (Rating: {ind['rating']:.1f})")
 
-    # Also pull from by_rating if available (more complete source)
+    # --- Weak indicator list (by_rating is most accurate source) ---
+    weak_ind_list = []
     if by_rating:
         rating1 = by_rating.get(1, by_rating.get("1", []))
         rating2 = by_rating.get(2, by_rating.get("2", []))
-        if rating1 or rating2:
-            weak_ind_list = []  # Reset and use by_rating as it's more accurate
-            for ind in rating1:
+        for ind in rating1:
+            weak_ind_list.append(
+                f"  - [{ind.get('code','?')}] {ind.get('text','')} "
+                f"(Rating: 1 — Not Yet Manifested)"
+            )
+        for ind in rating2:
+            weak_ind_list.append(
+                f"  - [{ind.get('code','?')}] {ind.get('text','')} "
+                f"(Rating: 2 — Emerging)"
+            )
+
+    # Fallback to by_dimension if by_rating is empty
+    if not weak_ind_list:
+        by_dim = weak.get("by_dimension", {})
+        for dim_no, inds in by_dim.items():
+            for ind in inds[:3]:
                 weak_ind_list.append(
-                    f"  - [{ind.get('code','?')}] {ind.get('text','')} "
-                    f"(Rating: 1 — Not Yet Manifested)"
-                )
-            for ind in rating2:
-                weak_ind_list.append(
-                    f"  - [{ind.get('code','?')}] {ind.get('text','')} "
-                    f"(Rating: 2 — Emerging)"
+                    f"  - [{ind['code']}] {ind['text']} "
+                    f"(Rating: {ind['rating']:.1f})"
                 )
 
-    weak_ind_lines = "\n".join(weak_ind_list[:15])  # Allow up to 15
-
-    # Build rating distribution summary
-    # (by_rating is already defined from analysis.get("by_rating", {}) on line 57)
-    
-    topic_line = ", ".join(top_topics[:5]) if top_topics else "none identified"
-    trend_line = (
-        f"Trend: {forecast.get('trend','unknown')} "
-        f"(forecast: {forecast.get('forecast','N/A')}%)"
-        if forecast.get("forecast") else ""
-    )
+    weak_ind_lines = "\n".join(weak_ind_list[:15])
+    topic_line     = ", ".join(top_topics[:5]) if top_topics else "none identified"
 
     prompt = textwrap.dedent(f"""
-    You are an educational improvement specialist helping a Philippine
-    public school prepare its School Improvement Plan (SIP) per
-    DepEd Order No. 007, s. 2024.
+    You are an SBM improvement specialist for Philippine public schools.
+    Always answer in English. Always reference DepEd Order No. 007, s. 2024.
+    Every recommendation MUST cite a specific indicator code (e.g. [2.1], [5.3]).
+    Avoid generic advice — all suggestions must directly match the school's data below.
 
     School: {school_name}
     School Year: {sy_label}
     Overall SBM Score: {gap.get('average_score', 'N/A')}%
     Maturity Level: {gap.get('overall_maturity', 'N/A')}
+    {history_line}
     {trend_line}
 
     IMPORTANT: Base your recommendations PRIMARILY on the weak indicator
@@ -122,30 +144,32 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     ALL Weak Indicators Rated 1 or 2 by teachers/school head:
     {weak_ind_lines if weak_ind_lines else "  (none identified)"}
 
-    Stakeholder Remarks Context (secondary — do not base all recommendations on this):
+    Stakeholder Remarks Context (secondary):
     Key themes mentioned: {topic_line}
-    Urgent issues flagged: {"YES" if urgent else "None"}
+    Urgent issues flagged: {"YES — address first" if urgent else "None"}
 
     Write 4 to 6 specific, actionable recommendations for the School Head.
 
     Instructions:
-    1. Address the weak indicators and weakest dimensions FIRST. Each
-       recommendation must reference a specific indicator code (e.g. 5.2, 3.2).
-    2. Suggest concrete DepEd-aligned actions (LAC sessions, SGC meetings,
-       DRRM drills, MOOE planning, LGU partnerships, etc.).
-    3. Only add a stakeholder/remarks-based recommendation at the end if
-       the themes are relevant and not already covered above.
-    4. Do NOT write recommendations only about remarks topics if the
-       indicator ratings show different weaknesses.
+    1. Address the weak indicators FIRST. Each recommendation must start with
+       the indicator code in brackets, e.g. [2.1].
+    2. If the school declined from last cycle, start with a recovery plan note.
+    3. If this is the first cycle, focus on building baseline systems.
+    4. Suggest concrete DepEd-aligned actions: LAC sessions, SGC meetings,
+       DRRM drills, MOOE planning, LGU partnerships, IPCR submissions, etc.
+    5. Only add a stakeholder/remarks recommendation at the end if the theme
+       is not already covered by the indicator data above.
+    6. Do NOT write vague recommendations like "improve performance" —
+       specify who does what, by when, and how success is measured.
 
     Format:
     [Assessment Overview]
-    (1-sentence summary mentioning the overall score and top weak dimensions)
+    (1-sentence summary: overall score, maturity level, trend vs last cycle)
 
     [Priority Recommendations]
-    1. [Indicator X.X] (Actionable step...)
-    2. [Indicator X.X] (Actionable step...)
-    3. [Indicator X.X] (Actionable step...)
+    1. [Indicator X.X] (Specific action, person responsible, timeline)
+    2. [Indicator X.X] (Specific action, person responsible, timeline)
+    3. [Indicator X.X] (Specific action, person responsible, timeline)
 
     [Stakeholder Focus]
     (Only if remarks reveal something not covered by indicator data above)
