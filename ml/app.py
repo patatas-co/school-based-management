@@ -12,11 +12,14 @@ from score_analyzer        import full_analysis
 from recommendation_engine import generate_recommendations
 
 BASE_DIR = Path(__file__).resolve().parent
-# Load local ml/.env first, then optional project-root .env.
-# This makes local dev less error-prone when the server is started
-# from a different working directory.
-load_dotenv(BASE_DIR / ".env")
-load_dotenv(BASE_DIR.parent / ".env")
+load_dotenv(BASE_DIR / ".env", override=True)
+load_dotenv(BASE_DIR.parent / ".env", override=True)
+
+# Debug: confirm key loaded
+import sys
+_key = os.getenv("GROQ_API_KEY", "")
+_backend = os.getenv("LLM_BACKEND", "rule_based")
+print(f"[STARTUP] LLM_BACKEND={_backend}, GROQ_API_KEY={'SET ('+_key[:8]+'...)' if _key else 'MISSING'}", flush=True)
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -85,6 +88,7 @@ def full_pipeline():
     score_result = full_analysis({
         "dim_scores":  data.get("dim_scores", {}),
         "indicators":  data.get("indicators", []),
+        "by_rating":   data.get("by_rating", {}),
         "history":     data.get("history", []),
     })
 

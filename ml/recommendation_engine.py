@@ -48,12 +48,13 @@ TEMPLATES = {
 def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     """
     Constructs a structured prompt for the LLM.
-    Keeps context tight so even a 3B local model performs well.
+    Prioritizes indicator rating data over stakeholder remarks.
     """
-    gap   = analysis.get("gap_analysis", {})
-    weak  = analysis.get("weak_indicators", {})
+    gap      = analysis.get("gap_analysis", {})
+    weak     = analysis.get("weak_indicators", {})
     comments = analysis.get("comment_summary", {})
     forecast = analysis.get("forecast", {})
+    by_rating = analysis.get("by_rating", {})
 
     weakest_dims = gap.get("weakest_dimensions", [])
     top_topics   = comments.get("top_topics", [])
@@ -68,13 +69,32 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     weak_ind_list = []
     by_dim = weak.get("by_dimension", {})
     for dim_no, inds in by_dim.items():
-        # Get dim name from analysis or mapping
         dim_name = DIMENSION_NAMES.get(int(dim_no), f"Dimension {dim_no}")
-        for ind in inds[:2]: # Top 2 per dim to keep it concise
-            weak_ind_list.append(f"  - [{ind['code']}] {ind['text']} (Rating: {ind['rating']})")
-    
-    weak_ind_lines = "\n".join(weak_ind_list[:6]) # Max 6 total
+        for ind in inds[:3]:  # Top 3 per dim
+            weak_ind_list.append(f"  - [{ind['code']}] {ind['text']} (Rating: {ind['rating']:.1f})")
 
+    # Also pull from by_rating if available (more complete source)
+    if by_rating:
+        rating1 = by_rating.get(1, by_rating.get("1", []))
+        rating2 = by_rating.get(2, by_rating.get("2", []))
+        if rating1 or rating2:
+            weak_ind_list = []  # Reset and use by_rating as it's more accurate
+            for ind in rating1:
+                weak_ind_list.append(
+                    f"  - [{ind.get('code','?')}] {ind.get('text','')} "
+                    f"(Rating: 1 — Not Yet Manifested)"
+                )
+            for ind in rating2:
+                weak_ind_list.append(
+                    f"  - [{ind.get('code','?')}] {ind.get('text','')} "
+                    f"(Rating: 2 — Emerging)"
+                )
+
+    weak_ind_lines = "\n".join(weak_ind_list[:15])  # Allow up to 15
+
+    # Build rating distribution summary
+    # (by_rating is already defined from analysis.get("by_rating", {}) on line 57)
+    
     topic_line = ", ".join(top_topics[:5]) if top_topics else "none identified"
     trend_line = (
         f"Trend: {forecast.get('trend','unknown')} "
@@ -86,39 +106,49 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     You are an educational improvement specialist helping a Philippine
     public school prepare its School Improvement Plan (SIP) per
     DepEd Order No. 007, s. 2024.
-    
+
     School: {school_name}
     School Year: {sy_label}
     Overall SBM Score: {gap.get('average_score', 'N/A')}%
     Maturity Level: {gap.get('overall_maturity', 'N/A')}
     {trend_line}
 
-    Weakest Dimensions:
+    IMPORTANT: Base your recommendations PRIMARILY on the weak indicator
+    ratings below. Stakeholder remarks are secondary context only.
+
+    Weakest Dimensions (by score):
     {dim_lines if dim_lines else "  (none identified)"}
 
-    Specific Weak Indicators (Rated 1-2):
+    ALL Weak Indicators Rated 1 or 2 by teachers/school head:
     {weak_ind_lines if weak_ind_lines else "  (none identified)"}
 
-    Key Stakeholder Themes: {topic_line}
-    Urgent Issues: {"YES" if urgent else "None"}
+    Stakeholder Remarks Context (secondary — do not base all recommendations on this):
+    Key themes mentioned: {topic_line}
+    Urgent issues flagged: {"YES" if urgent else "None"}
 
-    Write 3 to 5 specific, actionable recommendations for the School Head.
-    
+    Write 4 to 6 specific, actionable recommendations for the School Head.
+
     Instructions:
-    1. Focus on addressing the weak indicators and weakest dimensions.
-    2. Suggest concrete actions (e.g., LAC sessions, LGU partnerships, specific programs).
-    3. Use a clear format with headers and numbered points.
-    
+    1. Address the weak indicators and weakest dimensions FIRST. Each
+       recommendation must reference a specific indicator code (e.g. 5.2, 3.2).
+    2. Suggest concrete DepEd-aligned actions (LAC sessions, SGC meetings,
+       DRRM drills, MOOE planning, LGU partnerships, etc.).
+    3. Only add a stakeholder/remarks-based recommendation at the end if
+       the themes are relevant and not already covered above.
+    4. Do NOT write recommendations only about remarks topics if the
+       indicator ratings show different weaknesses.
+
     Format:
     [Assessment Overview]
-    (Brief 1-sentence summary)
+    (1-sentence summary mentioning the overall score and top weak dimensions)
 
     [Priority Recommendations]
-    1. (Actionable step...)
-    2. (Actionable step...)
-    
+    1. [Indicator X.X] (Actionable step...)
+    2. [Indicator X.X] (Actionable step...)
+    3. [Indicator X.X] (Actionable step...)
+
     [Stakeholder Focus]
-    (Recommendation based on stakeholder themes)
+    (Only if remarks reveal something not covered by indicator data above)
     """).strip()
 
     return prompt
@@ -222,18 +252,19 @@ def generate_recommendations(
             text = _call_ollama(prompt)
         elif backend == "openai":
             text = _call_openai(prompt)
-        elif backend == "groq":              # ← ADD THIS
-            text = _call_groq(prompt)        # ← ADD THIS
+        elif backend == "groq":
+            text = _call_groq(prompt)
         else:
             text = _rule_based_fallback(analysis)
     except Exception as e:
         import logging
         import traceback
-        logging.error(f"Error generating recommendations ({backend}): {e}")
-        traceback.print_exc()
+        tb = traceback.format_exc()
+        logging.error(f"Error generating recommendations ({backend}): {e}\n{tb}")
+        print(f"[ML ERROR] {backend} failed: {e}\n{tb}", flush=True)
         error = str(e)
-        text  = _rule_based_fallback(analysis)  # always fall back
-        backend = "rule_based_fallback"
+        text  = _rule_based_fallback(analysis)
+        backend = f"rule_based_fallback (was: {backend}, error: {str(e)[:120]})"
 
     return {
         "recommendations": text,
