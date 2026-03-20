@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
                     ON sr.indicator_id = i.indicator_id AND sr.cycle_id = tr.cycle_id
                 WHERE tr.cycle_id = ? AND sr.response_id IS NULL
                 GROUP BY i.indicator_id
-                HAVING FLOOR(AVG(tr.rating)) <= 2
+                HAVING AVG(tr.rating) <= 2.5
 
             ) AS combined
             LEFT JOIN improvement_plans ip
@@ -205,7 +205,7 @@ if ($cycle) {
             WHERE tr.cycle_id = ?
               AND sr.response_id IS NULL
             GROUP BY i.indicator_id
-            HAVING FLOOR(AVG(tr.rating)) <= 2
+            HAVING AVG(tr.rating) <= 2.5
 
         ) AS combined
         ORDER BY combined.rating ASC, combined.dimension_name ASC
@@ -1052,7 +1052,15 @@ $remarkLines = [];
         if (preg_match('/^[─\-]{10,}/',$stripped) || stripos($stripped,'NOTE:')===0 || stripos($stripped,'DIMENSION-LEVEL')!==false)
             { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentCode=$currentText=$currentEvidence=$currentAction=''; $inRemarks=false;$inRating=0;$inTopics=false; continue; }
 
-        if ($inRemarks && !empty($trimmed)) { $remarkLines[] = $trimmed; continue; }
+        if ($inRemarks && !empty($trimmed)) {
+            if (!preg_match('/PRIORITY\s*[123]/i', $stripped) &&
+                !preg_match('/NOT YET MANIFESTED/i', $stripped) &&
+                !preg_match('/ALWAYS MANIFESTED/i', $stripped) &&
+                !preg_match('/SUSTAINED PRACTICES/i', $stripped)) {
+                $remarkLines[] = $trimmed;
+            }
+            continue;
+        }
 
         if ($inRating > 0) {
             if (preg_match('/(?:📌\s*|•\s*)(.+)/', $stripped, $m) && !preg_match('/^\[/', trim($m[1])))

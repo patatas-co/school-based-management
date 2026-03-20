@@ -150,7 +150,10 @@ include __DIR__.'/../includes/header.php';
         <td>
           <div class="flex-c" style="gap:5px;">
             <button class="btn btn-secondary btn-sm" onclick="editSchool(<?= $s['school_id'] ?>)"><?= svgIcon('edit') ?></button>
-            <button class="btn btn-danger btn-sm" onclick="delSchool(<?= $s['school_id'] ?>,'<?= e(addslashes($s['school_name'])) ?>')"><?= svgIcon('trash') ?></button>
+            <button class="btn btn-danger btn-sm"
+        data-id="<?= $s['school_id'] ?>"
+        data-name="<?= e($s['school_name']) ?>"
+        onclick="delSchool(this.dataset.id, this.dataset.name)"><?= svgIcon('trash') ?></button>
           </div>
         </td>
       </tr>

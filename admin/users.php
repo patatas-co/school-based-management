@@ -127,7 +127,10 @@ include __DIR__.'/../includes/header.php';
           <div class="flex-c" style="gap:5px;">
             <button class="btn btn-secondary btn-sm" onclick="editUser(<?= $u['user_id'] ?>)"><?= svgIcon('edit') ?></button>
             <?php if($u['user_id'] != $_SESSION['user_id']): ?>
-            <button class="btn btn-danger btn-sm" onclick="delUser(<?= $u['user_id'] ?>,'<?= e(addslashes($u['full_name'])) ?>',this)"><?= svgIcon('trash') ?></button>
+            <button class="btn btn-danger btn-sm"
+        data-id="<?= $u['user_id'] ?>"
+        data-name="<?= e($u['full_name']) ?>"
+        onclick="delUser(this.dataset.id, this.dataset.name, this)"><?= svgIcon('trash') ?></button>
             <?php endif; ?>
           </div>
         </td>

@@ -283,7 +283,7 @@ include __DIR__ . '/../includes/header.php';
         <!-- Connector rail -->
         <div class="wf-rail">
         <?php foreach ($dbPhases as $i => $ph):
-            $pc      = $PHASES[$ph['phase_no']];
+            $pc      = $PHASES[$ph['phase_no']] ?? $PHASES[1];
             $isDone  = $activePhaseNo > $ph['phase_no'];
             $isAct   = (bool)$ph['is_active'];
         ?>
@@ -706,7 +706,7 @@ include __DIR__ . '/../includes/header.php';
                 }
                 ?>
                 <?php foreach ($phDefaults as $pd):
-                    $pc = $PHASES[$pd['no']];
+                    $pc = $PHASES[$pd['no']] ?? $PHASES[1];
                 ?>
                 <div class="ph-cfg-card">
                     <div class="ph-cfg-head" style="background:<?= $pc['bg'] ?>;color:<?= $pc['color'] ?>;">

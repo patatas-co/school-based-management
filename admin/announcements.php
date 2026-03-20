@@ -106,7 +106,6 @@ const ANN_COLORS = {general:'var(--g400)',policy:'var(--purple)',deadline:'var(-
 
 function annCard(a){
   const _esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  // Sanitize class-safe values (only allow alphanumeric, underscore, hyphen)
   const safecat = String(a.category||'general').replace(/[^a-z0-9_-]/g,'');
   const safetgt = String(a.target||'all').replace(/[^a-z0-9_-]/g,'');
   const safeId  = parseInt(a.id) || 0;
@@ -125,22 +124,6 @@ function annCard(a){
           <span class="pill pill-${safetgt}" style="font-size:10.5px;">${tgtCap}</span>
         </div>
         <button class="btn btn-danger btn-sm" onclick="delAnn(${safeId},this)">${svgI('trash')}</button>
-      </div>
-      <h3 style="font-size:15px;font-weight:700;color:var(--n900);margin:10px 0 6px;">${safeTitle}</h3>
-      <p style="font-size:13.5px;color:var(--n600);line-height:1.65;">${safeContent}</p>
-      <div style="font-size:11.5px;color:var(--n400);margin-top:10px;padding-top:9px;border-top:1px solid var(--n100);">
-        Posted by <strong>${safeAuthor}</strong> · <span class="ann-time">just now</span>
-      </div>
-    </div>
-  </div>`;
-}
-    <div class="card-body" style="padding:16px 18px;">
-      <div class="flex-cb">
-        <div class="flex-c" style="gap:8px;">
-          <span class="pill pill-${a.category}">${cat}</span>
-          <span class="pill pill-${a.target}" style="font-size:10.5px;">${tgtCap}</span>
-        </div>
-        <button class="btn btn-danger btn-sm" onclick="delAnn(${a.id},this)">${svgI('trash')}</button>
       </div>
       <h3 style="font-size:15px;font-weight:700;color:var(--n900);margin:10px 0 6px;">${safeTitle}</h3>
       <p style="font-size:13.5px;color:var(--n600);line-height:1.65;">${safeContent}</p>

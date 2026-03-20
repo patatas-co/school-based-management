@@ -134,7 +134,7 @@ include __DIR__.'/../includes/header.php';
 <script>
 const dimLabels  = <?= json_encode(array_map(fn($d)=>'Dim '.$d['dimension_no'], $dimAvgs)) ?>;
 const dimColors  = <?= json_encode(array_column($dimAvgs,'color_hex')) ?>;
-const dimValues  = <?= json_encode(array_map(fn($d)=>floatval($d['avg_pct']), $dimAvgs)) ?>;
+const dimValues  = <?= json_encode(array_map(fn($d)=> $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $dimAvgs)) ?>;
 
 // Radar
 const radarFullNames = <?= json_encode(array_map(fn($d)=>'D'.$d['dimension_no'].': '.$d['dimension_name'], $dimAvgs)) ?>;
@@ -189,7 +189,15 @@ if (matTotal > 0) {
 new Chart(document.getElementById('dimBarChart'),{
   type:'bar',
   data:{labels:dimLabels,datasets:[{label:'Average Score (%)',data:dimValues,backgroundColor:dimColors.map(c=>c+'33'),borderColor:dimColors,borderWidth:2,borderRadius:6}]},
-  options:{scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}}},plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:true}
+  options:{
+    scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}}},
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>ctx.raw !== null ? ctx.raw+'%' : 'No data'}}
+    },
+    responsive:true,
+    maintainAspectRatio:true
+  }
 });
 </script>
 <?php include __DIR__.'/../includes/footer.php'; ?>

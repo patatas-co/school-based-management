@@ -7,6 +7,7 @@ if (file_exists($envFile)) {
     foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
         if (!$line || str_starts_with($line, '#') || !str_contains($line, '=')) continue;
         [$k, $v] = array_map('trim', explode('=', $line, 2));
+        $v = preg_replace('/\s+#.*$/', '', $v);
         $_ENV[$k] = trim($v, '"\'');
     }
 }

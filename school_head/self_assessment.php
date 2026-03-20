@@ -50,6 +50,10 @@ $cycleRow->execute([$schoolId,$syId]); $cycleRow = $cycleRow->fetch();
                     $retry = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
                     $retry->execute([$schoolId, $syId]);
                     $cycleId = $retry->fetchColumn();
+                    if (!$cycleId) {
+                        echo json_encode(['ok'=>false,'msg'=>'Failed to initialize assessment cycle. Please refresh and try again.']);
+                        exit;
+                    }
                 } else {
                     throw $e;
                 }

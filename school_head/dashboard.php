@@ -93,12 +93,16 @@ $teachers = $db->prepare("
     ORDER BY ts.status DESC, u.full_name ASC
 ");
 $cycleIdForTeachers = $cycle['cycle_id'] ?? 0;
-$teachers->execute([
-    $cycleIdForTeachers, 
-    $cycleIdForTeachers, 
-    $schoolId
-]);
-$teacherList = $teachers->fetchAll();
+if ($cycleIdForTeachers) {
+    $teachers->execute([
+        $cycleIdForTeachers,
+        $cycleIdForTeachers,
+        $schoolId
+    ]);
+    $teacherList = $teachers->fetchAll();
+} else {
+    $teacherList = [];
+}
 
 $submittedCount = count(array_filter(
     $teacherList, fn($t) => $t['sub_status'] === 'submitted'

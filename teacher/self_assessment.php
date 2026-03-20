@@ -43,32 +43,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     if ($_POST['action'] === 'submit') {
-    // Get or create cycle
     $cycleRow = $db->prepare(
-        "SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?"
+        "SELECT cycle_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?"
     );
     $cycleRow->execute([$schoolId, $syId]);
-    $cycleId = $cycleRow->fetchColumn();
+    $row     = $cycleRow->fetch();
+    $cycleId = $row['cycle_id'] ?? null;
+    $status  = $row['status']   ?? null;
 
     if (!$cycleId) {
-    echo json_encode([
-        'ok'  => false,
-        'msg' => 'No active assessment cycle exists yet. Please wait for the School Head to start the assessment.'
-    ]); exit;
-}
+        echo json_encode([
+            'ok'  => false,
+            'msg' => 'No active assessment cycle exists yet. Please wait for the School Head to start the assessment.'
+        ]); exit;
+    }
 
-// Add this check that is currently missing
-$cycleStatus = $db->prepare(
-    "SELECT status FROM sbm_cycles WHERE cycle_id=?"
-);
-$cycleStatus->execute([$cycleId]);
-$status = $cycleStatus->fetchColumn();
-if (in_array($status, ['submitted', 'validated'])) {
-    echo json_encode([
-        'ok'  => false,
-        'msg' => 'This assessment has already been submitted. Your responses are locked.'
-    ]); exit;
-}
+    if (in_array($status, ['submitted', 'validated'])) {
+        echo json_encode([
+            'ok'  => false,
+            'msg' => 'This assessment has already been submitted. Your responses are locked.'
+        ]); exit;
+    }
 
     // Count how many teacher indicators this teacher has answered
     $placeholders = implode(

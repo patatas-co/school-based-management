@@ -122,9 +122,13 @@ function validateCycle(cycleId, action){
   $v('v_action', action);
   $v('v_remarks', '');
   const isValidate = action === 'validate';
-  $el('mVTitle').textContent = isValidate ? 'Validate Assessment' : 'Return for Revision';
-  $el('v_submit_btn').textContent = isValidate ? 'Validate' : 'Return';
-  $el('v_submit_btn').className = 'btn btn-' + (isValidate ? 'success' : 'danger');
+  const title = $el('mVTitle');
+  const btn   = $el('v_submit_btn');
+  if (title) title.textContent = isValidate ? 'Validate Assessment' : 'Return for Revision';
+  if (btn) {
+    btn.textContent = isValidate ? 'Validate' : 'Return';
+    btn.className   = 'btn btn-' + (isValidate ? 'success' : 'danger');
+  }
   openModal('mValidate');
 }
 async function submitValidation(){
