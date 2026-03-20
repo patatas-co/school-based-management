@@ -16,24 +16,24 @@ $__navGroups = [];
 
 if ($__role === 'admin') {
     $__navGroups = [
-        ['Overview', null, [
+        ['Overview', 'grid', [
             ['Dashboard',        'admin/dashboard.php',     'grid'],
             ['Analytics & ML',   'admin/analytics.php',     'bar-chart-2'],
         ]],
-        ['Management', null, [
+        ['Management', 'users', [
             ['User Accounts',    'admin/users.php',         'users'],
             ['Schools',          'admin/schools.php',       'home'],
             ['School Years',     'admin/settings.php',      'calendar'],
         ]],
-        ['Evaluation', null, [
+        ['Evaluation', 'check-circle', [
             ['SBM Assessments',  'admin/assessment.php',    'check-circle'],
             ['Workflow & SIP',   'admin/workflow.php',      'trending-up'],
             ['Reports',          'admin/reports.php',       'file-text'],
         ]],
-        ['Communication', null, [
+        ['Communication', 'bell', [
             ['Announcements',    'admin/announcements.php', 'bell'],
         ]],
-        ['System', null, [
+        ['System', 'settings', [
             ['Settings',         'admin/settings.php',      'settings'],
         ]],
     ];
@@ -41,19 +41,19 @@ if ($__role === 'admin') {
 
 elseif ($__role === 'school_head') {
     $__navGroups = [
-        ['Overview', null, [
+        ['Overview', 'grid', [
             ['Dashboard',        'school_head/dashboard.php',         'grid'],
             ['SBM Dimensions',   'school_head/dimensions.php',        'layers'],
         ]],
-        ['Evaluation', null, [
+        ['Evaluation', 'check-circle', [
             ['Self-Assessment',  'school_head/self_assessment.php',   'check-circle'],
             ['Evidence & MOV',   'school_head/evidence.php',          'paperclip'],
         ]],
-        ['Planning', null, [
+        ['Planning', 'trending-up', [
             ['Improvement Plan', 'school_head/improvement.php',       'trending-up'],
             ['Reports',          'school_head/reports.php',           'file-text'],
         ]],
-        ['Communication', null, [
+        ['Communication', 'bell', [
             ['Announcements',    'school_head/announcements.php',     'bell'],
         ]],
     ];
@@ -61,13 +61,13 @@ elseif ($__role === 'school_head') {
 
 elseif ($__role === 'teacher') {
     $__navGroups = [
-        ['Overview', null, [
+        ['Overview', 'grid', [
             ['Dashboard',        'teacher/dashboard.php',            'grid'],
         ]],
-        ['Evaluation', null, [
+        ['Evaluation', 'check-circle', [
             ['Self-Assessment',  'teacher/self_assessment.php',      'check-circle'],
         ]],
-        ['Communication', null, [
+        ['Communication', 'bell', [
             ['Announcements',    'teacher/announcements.php',        'bell'],
         ]],
     ];
@@ -75,23 +75,23 @@ elseif ($__role === 'teacher') {
 
 elseif ($__role === 'sdo') {
     $__navGroups = [
-        ['Overview', null, [
+        ['Overview', 'grid', [
             ['Dashboard',        'sdo/dashboard.php',                'grid'],
             ['School Monitor',   'sdo/monitoring.php',              'eye'],
         ]],
-        ['Evaluation', null, [
+        ['Evaluation', 'check-circle', [
             ['Assessments',      'sdo/assessments.php',             'check-circle'],
             ['Workflow & SIP',   'sdo/workflow.php',                'trending-up'],
         ]],
-        ['Support', null, [
+        ['Support', 'briefcase', [
             ['Technical Assist', 'sdo/technical_assistance.php',    'briefcase'],
             ['TA Requests',      'sdo/ta_requests.php',             'send'],
         ]],
-        ['Reports', null, [
+        ['Reports', 'file-text', [
             ['Division Reports', 'sdo/reports.php',                 'file-text'],
             ['Schools',          'sdo/schools.php',                 'home'],
         ]],
-        ['Communication', null, [
+        ['Communication', 'bell', [
             ['Announcements',    'sdo/announcements.php',           'bell'],
         ]],
     ];
@@ -99,13 +99,13 @@ elseif ($__role === 'sdo') {
 
 elseif ($__role === 'ro') {
     $__navGroups = [
-        ['Overview', null, [
+        ['Overview', 'grid', [
             ['Dashboard',        'ro/dashboard.php',                 'grid'],
         ]],
-        ['Reports', null, [
+        ['Reports', 'file-text', [
             ['Regional Reports', 'ro/reports.php',                   'file-text'],
         ]],
-        ['Communication', null, [
+        ['Communication', 'bell', [
             ['Announcements',    'ro/announcements.php',             'bell'],
         ]],
     ];
@@ -113,13 +113,13 @@ elseif ($__role === 'ro') {
 
 elseif ($__role === 'external_stakeholder') {
     $__navGroups = [
-        ['Overview', null, [
+        ['Overview', 'grid', [
             ['Dashboard',        'stakeholder/dashboard.php',        'grid'],
         ]],
-        ['Participation', null, [
+        ['Participation', 'users', [
             ['Self-Assessment',  'stakeholder/self_assessment.php',  'check-circle'],
         ]],
-        ['Communication', null, [
+        ['Communication', 'bell', [
             ['Announcements',    'stakeholder/announcement.php',     'bell'],
         ]],
     ];
@@ -155,6 +155,8 @@ $__roleColor = [
     'ro'                   => '#DC2626',
     'external_stakeholder' => '#16A34A',
 ][$__role] ?? '#16A34A';
+
+$__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -509,105 +511,78 @@ body {
   overflow-x: hidden;
 }
 
-.sb.collapsed .sb-section {
-  margin-bottom: 0;
+/* ── Popover for collapsed mode ── */
+.sb.collapsed .sb-group {
+  position: relative;
+  margin-bottom: 2px;
 }
-
-.sb.collapsed .sb-section-label {
-  display: none;
-}
-
-.sb.collapsed .sb-item .sb-label,
-.sb.collapsed .sb-item .sb-badge,
-.sb.collapsed .sb-item .sb-chevron {
-  display: none !important;
-  width: 0 !important;
-  overflow: hidden !important;
-}
-
-.sb.collapsed .sb-child {
-  display: none !important;
-}
-
 .sb.collapsed .sb-children {
+  position: fixed;
+  left: var(--sidebar-mini);
+  top: var(--popover-top, auto);
+  width: 200px;
+  background: var(--sb-surface);
+  border: 1px solid var(--sb-border);
+  border-radius: 0 10px 10px 0;
+  display: none !important; /* Hide by default */
+  max-height: none !important;
+  opacity: 1 !important;
+  padding: 8px;
+  box-shadow: 10px 0 25px rgba(0,0,0,.3);
+  z-index: 1000;
+}
+.sb.collapsed .sb-group:hover .sb-children {
+  display: block !important;
+}
+.sb.collapsed .sb-child {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 8px 12px 8px 16px !important;
+  border-bottom: none;
+  position: relative;
+}
+.sb.collapsed .sb-child::before {
+  left: 6px;
+  height: 14px;
+}
+.sb.collapsed .sb-child span:not(.sb-icon) {
+  display: inline !important;
+}
+
+.sb.collapsed .sb-section-label,
+.sb.collapsed .sb-chevron,
+.sb.collapsed .sb-label,
+.sb.collapsed .sb-badge {
   display: none !important;
-  max-height: 0 !important;
+}
+
+.sb.collapsed .sb-item {
+  padding: 12px 0;
+  justify-content: center;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.sb.collapsed .sb-item span:not(.sb-icon) {
+  display: none !important;
 }
 
 .sb.collapsed .sb-icon {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   margin: 0 auto;
-  flex-shrink: 0;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
 }
 
 .sb.collapsed .sb-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
+  stroke: var(--sb-text);
 }
 
-/* Tooltip on hover */
-.sb.collapsed .sb-item {
-  position: relative;
-}
-
-.sb.collapsed .sb-item::after {
-  content: attr(data-label);
-  position: fixed;
-  left: calc(var(--sidebar-mini) + 8px);
-  top: var(--tooltip-top, 50%);
-  transform: none;
-  background: var(--n900);
-  color: #fff;
-  padding: 5px 12px;
-  border-radius: 7px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  box-shadow: var(--shadow-lg);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 120ms var(--ease);
-  z-index: 999;
-}
-
-.sb.collapsed .sb-item:hover::after {
-  opacity: 1;
-}
-
-/* User tile collapsed */
-.sb.collapsed .sb-user-tile {
-  justify-content: center;
-  padding: 10px 0;
-  width: var(--sidebar-mini);
-}
-
-.sb.collapsed .sb-user-info,
-.sb.collapsed .sb-user-more {
-  display: none !important;
-}
-
-.sb.collapsed .sb-avatar {
-  margin: 0 auto;
-}
-
-/* Brand area collapsed */
-.sb.collapsed .sb-brand {
-  padding: 18px 0 16px;
-  justify-content: center;
-}
-
-.sb.collapsed .sb-brand-text {
-  display: none !important;
-}
-
-.sb.collapsed .sb-logo {
-  margin: 0 auto;
-}
-
-.sb.collapsed .sb-item:hover::after { opacity: 1; }
-.sb.collapsed .sb-children { display: none; }
-.sb.collapsed .sb-section-label { opacity: 0; }
 
 /* ── Footer / user tile ── */
 .sb-footer {
@@ -678,7 +653,14 @@ body {
   z-index: 200;
 }
 .sb-popup.open { display: block; }
-.sb.collapsed .sb-popup { left: 70px; right: auto; width: 190px; bottom: 14px; }
+.sb.collapsed .sb-popup { 
+  position: fixed;
+  left: 70px; 
+  right: auto; 
+  width: 190px; 
+  bottom: 14px; 
+  z-index: 2000;
+}
 .sb-popup-user {
   display: flex;
   align-items: center;
@@ -1204,7 +1186,7 @@ tbody tr:hover td { background: var(--brand-50); }
 <body>
 
 <!-- ── SIDEBAR ──────────────────────────────────────────────── -->
-<aside class="sb" id="sidebar">
+<aside class="sb <?= $__sbCollapsed ? 'collapsed' : '' ?>" id="sidebar">
 
   <!-- Brand -->
   <div class="sb-brand">
@@ -1277,43 +1259,34 @@ tbody tr:hover td { background: var(--brand-50); }
     };
 
     foreach ($__navGroups as $group):
-      [$groupLabel, , $groupItems] = $group;
+      [$groupLabel, $groupIcon, $groupItems] = $group;
+      
       // Check if any item in this group is active
       $groupActive = false;
       foreach ($groupItems as $item) {
-        if (basename($item[1]) === basename($_SERVER['PHP_SELF']))
-          $groupActive = true;
+        if (basename($item[1]) === basename($_SERVER['PHP_SELF'])) $groupActive = true;
       }
     ?>
 
-    <div class="sb-section">
-      <div class="sb-section-label"><?= e($groupLabel) ?></div>
+    <div class="sb-group <?= $groupActive ? 'open' : '' ?>">
+      <div class="sb-item" onclick="toggleGroup(this.parentElement)" data-label="<?= e($groupLabel) ?>">
+        <span class="sb-icon"><?= $__icon($groupIcon) ?></span>
+        <span class="sb-label"><?= e($groupLabel) ?></span>
+        <svg class="sb-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
 
-      <?php if (count($groupItems) === 1):
-        // Flat item (no accordion needed)
-        $item = $groupItems[0];
-        $isActive = basename($item[1]) === basename($_SERVER['PHP_SELF']);
-      ?>
-      <a href="<?= $__base ?>/<?= e($item[1]) ?>"
-   class="sb-child sb-item <?= $isActive ? 'active' : '' ?>"
-   data-label="<?= e($item[0]) ?>">
-  <span class="sb-icon"><?= $__icon($item[2]) ?></span>
-  <span class="sb-label"><?= e($item[0]) ?></span>
-</a>
-
-      <?php else: ?>
-      <!-- Group with children -->
-      <?php foreach ($groupItems as $item):
-        $isActive = basename($item[1]) === basename($_SERVER['PHP_SELF']);
-      ?>
-      <a href="<?= $__base ?>/<?= e($item[1]) ?>"
-         class="sb-child <?= $isActive ? 'active' : '' ?>"
-         data-label="<?= e($item[0]) ?>">
-        <span class="sb-icon"><?= $__icon($item[2]) ?></span>
-        <span><?= e($item[0]) ?></span>
-      </a>
-      <?php endforeach; ?>
-      <?php endif; ?>
+      <div class="sb-children">
+        <?php foreach ($groupItems as $item):
+          $isActive = basename($item[1]) === basename($_SERVER['PHP_SELF']);
+        ?>
+        <a href="<?= $__base ?>/<?= e($item[1]) ?>"
+           class="sb-child <?= $isActive ? 'active' : '' ?>"
+           data-label="<?= e($item[0]) ?>">
+          <span class="sb-icon"><?= $__icon($item[2]) ?></span>
+          <span><?= e($item[0]) ?></span>
+        </a>
+        <?php endforeach; ?>
+      </div>
     </div>
 
     <?php endforeach; ?>
@@ -1354,7 +1327,7 @@ tbody tr:hover td { background: var(--brand-50); }
 </aside>
 
 <!-- ── MAIN WRAPPER ──────────────────────────────────────────── -->
-<div class="main-wrap" id="mainWrap">
+<div class="main-wrap <?= $__sbCollapsed ? 'expanded' : '' ?>" id="mainWrap">
 
   <div class="deped-stripe"></div>
 
@@ -1408,13 +1381,36 @@ function svgIcon(n, cls='', style='') {
 
 // ── Sidebar collapse ──────────────────────────────────────────
 (function() {
-  // Fix tooltip vertical position for collapsed sidebar items
-document.addEventListener('mouseover', function(e) {
-  const item = e.target.closest('.sb.collapsed .sb-item');
-  if (!item) return;
-  const rect = item.getBoundingClientRect();
-  item.style.setProperty('--tooltip-top', rect.top + (rect.height / 2) - 14 + 'px');
-});
+  // Fix tooltip and popover vertical position for collapsed sidebar items
+  document.addEventListener('mouseover', function(e) {
+    const sb = document.getElementById('sidebar');
+    if (!sb.classList.contains('collapsed')) return;
+
+    const group = e.target.closest('.sb-group');
+    if (group) {
+      const rect = group.getBoundingClientRect();
+      const children = group.querySelector('.sb-children');
+      if (children) {
+        children.style.setProperty('--popover-top', rect.top + 'px');
+      }
+    }
+
+    const item = e.target.closest('.sb-item, .sb-child');
+    if (!item) return;
+    const rect = item.getBoundingClientRect();
+    item.style.setProperty('--tooltip-top', rect.top + (rect.height / 2) - 14 + 'px');
+  });
+
+  // Accordion toggle logic
+  window.toggleGroup = function(groupEl) {
+    const sb = document.getElementById('sidebar');
+    if (sb.classList.contains('collapsed')) {
+      // Expand sidebar on group click for better UX
+      document.getElementById('menuBtn').click();
+      return;
+    }
+    groupEl.classList.toggle('open');
+  };
   const sb  = document.getElementById('sidebar');
   const mw  = document.getElementById('mainWrap');
   const btn = document.getElementById('menuBtn');
@@ -1431,7 +1427,7 @@ document.addEventListener('mouseover', function(e) {
   }
 }
 
-  // Restore saved state
+  // Restore saved state (handled by PHP cookies initially, but synced here)
   const saved = localStorage.getItem('sbCollapsed') === 'true';
   applyState(saved);
 
@@ -1439,6 +1435,10 @@ document.addEventListener('mouseover', function(e) {
     const next = MOBILE()
       ? !sb.classList.contains('mobile-open')
       : !sb.classList.contains('collapsed');
+    
+    // Set cookie for PHP (30 days)
+    document.cookie = `sb_collapsed=${next}; path=/; max-age=${30*24*60*60}; SameSite=Lax`;
+    
     localStorage.setItem('sbCollapsed', MOBILE() ? 'false' : String(next));
     applyState(next);
   });

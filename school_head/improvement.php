@@ -607,7 +607,12 @@ if ($cycle) {
   <?php } else { ?>
     <!-- Raw text fallback for non-structured LLM output (Groq/OpenAI) -->
     <div style="padding:16px 18px; font-size:14px; color:var(--n800); line-height:1.7; white-space:pre-line;">
-      <?= nl2br(e($recText)) ?>
+      <?php
+      $cleaned = preg_replace('/^#+\s+/m', '', $recText); 
+      $cleaned = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $cleaned);
+      $cleaned = preg_replace('/\*+(.*?)\*+/', '$1', $cleaned); 
+      echo nl2br($cleaned);
+      ?>
     </div>
   <?php } ?>
 
