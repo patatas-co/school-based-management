@@ -8,25 +8,25 @@ $syId = (int)($_GET['sy'] ?? $db->query("SELECT sy_id FROM school_years WHERE is
 
 $dimAvg = $db->prepare("
   SELECT d.dimension_no,d.dimension_name,d.color_hex,
-         ROUND(AVG(ds.percentage),1) avg_pct,
-         COUNT(DISTINCT ds.school_id) school_count
+         ROUND(AVG(ds.percentage),1) avg_pct
   FROM sbm_dimensions d
   LEFT JOIN sbm_dimension_scores ds ON d.dimension_id=ds.dimension_id
-  LEFT JOIN sbm_cycles c ON ds.cycle_id=c.cycle_id AND c.sy_id=?
+  LEFT JOIN sbm_cycles c ON ds.cycle_id=c.cycle_id AND c.sy_id=? AND c.school_id=?
   GROUP BY d.dimension_id ORDER BY d.dimension_no
 ");
-$dimAvg->execute([$syId]); $dimAvgs = $dimAvg->fetchAll();
+$dimAvg->execute([$syId, SCHOOL_ID]); $dimAvgs = $dimAvg->fetchAll();
 
-$matDist = $db->prepare("SELECT maturity_level,COUNT(*) cnt FROM sbm_cycles WHERE sy_id=? AND maturity_level IS NOT NULL GROUP BY maturity_level");
-$matDist->execute([$syId]); $matDists = $matDist->fetchAll();
+$matDist = $db->prepare("SELECT maturity_level,COUNT(*) cnt FROM sbm_cycles WHERE sy_id=? AND school_id=? AND maturity_level IS NOT NULL GROUP BY maturity_level");
+$matDist->execute([$syId, SCHOOL_ID]); $matDists = $matDist->fetchAll();
 
-$topSchools = $db->prepare("
-  SELECT s.school_name,s.classification,c.overall_score,c.maturity_level
-  FROM sbm_cycles c JOIN schools s ON c.school_id=s.school_id
-  WHERE c.sy_id=? AND c.overall_score IS NOT NULL
+$stmtHistory = $db->prepare("
+  SELECT sy.label as school_name, 'JHS' as classification,
+         c.overall_score, c.maturity_level
+  FROM sbm_cycles c JOIN school_years sy ON c.sy_id=sy.sy_id
+  WHERE c.school_id=? AND c.overall_score IS NOT NULL
   ORDER BY c.overall_score DESC LIMIT 10
 ");
-$topSchools->execute([$syId]); $topSchools = $topSchools->fetchAll();
+$stmtHistory->execute([SCHOOL_ID]); $topSchools = $stmtHistory->fetchAll();
 
 $weakIndicators = $db->prepare("
   SELECT i.indicator_code,i.indicator_text,d.dimension_name,d.color_hex,
@@ -82,8 +82,8 @@ include __DIR__.'/../includes/header.php';
     <div class="kpi-mini-lbl">System Average</div>
   </div>
   <div class="kpi-mini">
-    <div class="kpi-mini-val"><?= $schoolsWithData ?: '—' ?></div>
-    <div class="kpi-mini-lbl">Schools with Data</div>
+    <div class="kpi-mini-val" style="font-size:15px;color:var(--brand-700);">DIHS</div>
+    <div class="kpi-mini-lbl">Dasmariñas Integrated HS</div>
   </div>
   <div class="kpi-mini">
     <?php if($topDim): ?><div class="kpi-mini-val" style="font-size:18px;color:var(--brand-700);">D<?= $topDim['dimension_no'] ?></div>
@@ -142,8 +142,8 @@ include __DIR__.'/../includes/header.php';
   <!-- Top Schools -->
   <div class="card">
     <div class="card-head">
-      <span class="card-title">Top Performing Schools</span>
-      <span style="font-size:12px;color:var(--n-400);"><?= count($topSchools) ?> schools</span>
+      <span class="card-title">Assessment History — DIHS</span>
+      <span style="font-size:12px;color:var(--n-400);"><?= count($topSchools) ?> cycle(s)</span>
     </div>
     <?php if($topSchools): ?>
     <div class="tbl-wrap">

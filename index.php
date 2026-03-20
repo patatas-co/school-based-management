@@ -6,8 +6,9 @@ $db = getDB();
 // Fetch stats
 $total_indicators = $db->query("SELECT COUNT(*) FROM sbm_indicators WHERE is_active=1")->fetchColumn();
 $total_dimensions = $db->query("SELECT COUNT(*) FROM sbm_dimensions")->fetchColumn();
-$total_schools    = $db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
-$validated_cycles = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='validated'")->fetchColumn();
+$total_schools    = 1; // DIHS only
+$validated_cycles = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='validated' AND school_id=".SCHOOL_ID)->fetchColumn();
+
 
 $is_logged_in = !empty($_SESSION['user_id']);
 $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
@@ -818,8 +819,8 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
             <div class="stat-label">SBM Dimensions</div>
           </div>
           <div class="stat">
-            <div class="stat-number"><?= number_format($total_schools) ?></div>
-            <div class="stat-label">Registered Schools</div>
+            <div class="stat-number">2,500<span>+</span></div>
+        <div class="stat-label">Learners Served</div>
           </div>
           <div class="stat">
             <div class="stat-number"><?= number_format($validated_cycles) ?></div>

@@ -16,7 +16,7 @@ require_once __DIR__.'/../includes/auth.php';
 requireRole('admin');
 $db = getDB();
 
-$totalSchools  = $db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
+$totalSchools  = 1; // DIHS — single school system
 $totalUsers    = $db->query("SELECT COUNT(*) FROM users WHERE status='active'")->fetchColumn();
 $totalCycles   = $db->query("SELECT COUNT(*) FROM sbm_cycles")->fetchColumn();
 $submitted     = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status IN('submitted','validated')")->fetchColumn();
@@ -52,12 +52,7 @@ $submissionRate = $totalSchools > 0 ? round(($submitted / $totalSchools) * 100) 
 $validationRate = $submitted > 0 ? round(($validated / $submitted) * 100) : 0;
 
 // Top 5 schools by score
-$topSchools = $db->query("
-  SELECT s.school_name, c.overall_score, c.maturity_level
-  FROM sbm_cycles c JOIN schools s ON c.school_id=s.school_id
-  WHERE c.overall_score IS NOT NULL
-  ORDER BY c.overall_score DESC LIMIT 5
-")->fetchAll();
+$topSchools = []; // Single-school system — leaderboard not applicable
 
 $currentSY = $db->query("SELECT label FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 
@@ -489,8 +484,9 @@ include __DIR__.'/../includes/header.php';
     <div class="db-hero-sub">
       <?= date('l, F j, Y') ?>
       <?php if ($currentSY): ?>
-      &nbsp;·&nbsp; School Year <?= e($currentSY) ?>
+      &nbsp;·&nbsp; SY <?= e($currentSY) ?>
       <?php endif; ?>
+      &nbsp;·&nbsp; Dasmariñas Integrated High School
     </div>
   </div>
   <div class="db-hero-right">
@@ -525,12 +521,9 @@ include __DIR__.'/../includes/header.php';
 
   <div class="stat-v2">
     <div class="stat-v2-accent" style="background:#16A34A;"></div>
-    <div class="stat-v2-label">Total Schools</div>
-    <div class="stat-v2-value" data-live="total-schools"><?= number_format($totalSchools) ?></div>
-    <div class="stat-v2-meta">
-      <span class="stat-v2-badge badge-green"><?= $submissionRate ?>% submitted</span>
-    </div>
-    <div class="kpi-bar"><div class="kpi-bar-fill" style="width:<?= $submissionRate ?>%;background:#16A34A;"></div></div>
+    <div class="stat-v2-label">DIHS Enrollment</div>
+    <div class="stat-v2-value">2,500</div>
+    <div class="stat-v2-meta" style="color:var(--n-400);">Dasmariñas Integrated HS</div>
   </div>
 
   <div class="stat-v2">
@@ -721,11 +714,11 @@ include __DIR__.'/../includes/header.php';
             </div>
             Add User
           </a>
-          <a href="schools.php" class="quick-action-btn">
+          <a href="admin/school_profile.php" class="quick-action-btn">
             <div class="quick-action-icon" style="background:var(--brand-100);color:var(--brand-700);">
               <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </div>
-            Schools
+            School Profile
           </a>
           <a href="announcements.php" class="quick-action-btn">
             <div class="quick-action-icon" style="background:var(--amber-bg);color:var(--amber);">

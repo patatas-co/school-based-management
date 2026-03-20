@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
 $syears = $db->query("SELECT * FROM school_years ORDER BY sy_id DESC")->fetchAll();
 
 // System stats
-$schoolCount=$db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
+$schoolCount=1; // Single school (DIHS)
 $userCount=$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $activeUsers=$db->query("SELECT COUNT(*) FROM users WHERE status='active'")->fetchColumn();
 $cycleCount=$db->query("SELECT COUNT(*) FROM sbm_cycles")->fetchColumn();
@@ -138,7 +138,7 @@ include __DIR__.'/../includes/header.php';
         </div>
       </div>
       <div class="info-row"><span class="info-label">Current School Year</span><span class="info-value" style="color:var(--brand-700);"><?= e($currentSY?:'Not set') ?></span></div>
-      <div class="info-row"><span class="info-label">Registered Schools</span><span class="info-value"><?= number_format($schoolCount) ?></span></div>
+      <div class="info-row"><span class="info-label">School</span><span class="info-value" style="color:var(--brand-700);">Dasmariñas Integrated HS</span></div>
       <div class="info-row"><span class="info-label">Total Users</span><span class="info-value"><?= number_format($userCount) ?> <span style="font-size:12px;color:var(--n-400);font-weight:400;">(<?= $activeUsers ?> active)</span></span></div>
       <div class="info-row"><span class="info-label">Assessment Cycles</span><span class="info-value"><?= number_format($cycleCount) ?></span></div>
       <div class="info-row"><span class="info-label">Validated Cycles</span><span class="info-value" style="color:var(--brand-700);"><?= number_format($validatedCount) ?></span></div>
@@ -159,7 +159,7 @@ include __DIR__.'/../includes/header.php';
         </div>
       </div>
       <div class="info-row"><a href="users.php" style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">User Management</a><span style="font-size:12px;color:var(--n-400);"><?= $userCount ?> users</span></div>
-      <div class="info-row"><a href="schools.php" style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">School Management</a><span style="font-size:12px;color:var(--n-400);"><?= $schoolCount ?> schools</span></div>
+      <div class="info-row"><a href="school_profile.php" style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">School Profile</a><span style="font-size:12px;color:var(--n-400);">DIHS info & contacts</span></div>
       <div class="info-row"><a href="workflow.php" style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">Workflow & Timeline</a><span style="font-size:12px;color:var(--n-400);">SBM 3-step cycle</span></div>
       <div class="info-row"><a href="analytics.php" style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">Analytics Dashboard</a><span style="font-size:12px;color:var(--n-400);">Performance insights</span></div>
     </div>

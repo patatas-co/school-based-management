@@ -23,7 +23,7 @@ $_SESSION['last_poll'] = $now;
 
 $db       = getDB();
 $role     = $_SESSION['role']     ?? '';
-$schoolId = $_SESSION['school_id'] ?? 0;
+$schoolId = SCHOOL_ID; // Single-school system
 $syId     = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 $out      = [];
 

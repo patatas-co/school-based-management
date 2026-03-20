@@ -22,7 +22,7 @@ if ($__role === 'admin') {
         ]],
         ['Management', 'users', [
             ['User Accounts',    'admin/users.php',         'users'],
-            ['Schools',          'admin/schools.php',       'home'],
+            ['School Profile',   'admin/school_profile.php','home'],
             ['School Years',     'admin/settings.php',      'calendar'],
         ]],
         ['Evaluation', 'check-circle', [
@@ -88,8 +88,7 @@ elseif ($__role === 'sdo') {
             ['TA Requests',      'sdo/ta_requests.php',             'send'],
         ]],
         ['Reports', 'file-text', [
-            ['Division Reports', 'sdo/reports.php',                 'file-text'],
-            ['Schools',          'sdo/schools.php',                 'home'],
+            ['Reports',          'sdo/reports.php',                 'file-text'],
         ]],
         ['Communication', 'bell', [
             ['Announcements',    'sdo/announcements.php',           'bell'],
@@ -1572,8 +1571,8 @@ tbody tr:hover td { background: var(--brand-50); }
       </svg>
     </div>
     <div class="sb-brand-text">
-      <div class="sb-brand-name"><?= e(SITE_SHORT) ?></div>
-      <div class="sb-brand-sub">DepEd SBM Portal</div>
+      <div class="sb-brand-name">DIHS SBM Portal</div>
+      <div class="sb-brand-sub">Dasmariñas Integrated HS</div>
     </div>
   </div>
 

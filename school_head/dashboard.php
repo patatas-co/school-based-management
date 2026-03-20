@@ -16,10 +16,10 @@ requireRole('school_head','admin');
 $db = getDB();
 
 $uid = $_SESSION['user_id'];
-$schoolId = $_SESSION['school_id'] ?? 0;
+$schoolId = SCHOOL_ID; // Always DIHS
 
-$school = $schoolId ? $db->prepare("SELECT * FROM schools WHERE school_id=?") : null;
-if ($school) { $school->execute([$schoolId]); $school = $school->fetch(); }
+$school = $db->prepare("SELECT * FROM schools WHERE school_id=?");
+$school->execute([$schoolId]); $school = $school->fetch();
 
 $syId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 $syLabel = $syId ? $db->query("SELECT label FROM school_years WHERE sy_id=$syId")->fetchColumn() : '—';
@@ -263,7 +263,7 @@ $mat = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : null;
 
   <!-- School Info -->
   <div class="sh-hero-info">
-    <div class="sh-hero-school"><?= e($school['school_name'] ?? 'No school assigned') ?></div>
+    <div class="sh-hero-school">Dasmariñas Integrated High School</div>
     <div class="sh-hero-sy">
       School Year <?= e($syLabel) ?>
       &nbsp;·&nbsp;

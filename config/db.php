@@ -16,8 +16,13 @@ define('DB_HOST',    $_ENV['SBM_DB_HOST']    ?? 'localhost');
 define('DB_USER',    $_ENV['SBM_DB_USER']    ?? 'root');
 define('DB_PASS',    $_ENV['SBM_DB_PASS']    ?? '');
 define('DB_NAME',    $_ENV['SBM_DB_NAME']    ?? 'sbm_db');
-define('SITE_NAME',  $_ENV['SBM_SITE_NAME']  ?? 'Dasmarinas Integrated High School SBM Online Monitoring System');
-define('SITE_SHORT', $_ENV['SBM_SITE_SHORT'] ?? 'DIHS SBM Online Monitoring System');
+define('SITE_NAME',  $_ENV['SBM_SITE_NAME']  ?? 'Dasmariñas Integrated High School SBM Online Monitoring System');
+define('SITE_SHORT', $_ENV['SBM_SITE_SHORT'] ?? 'DIHS SBM Portal');
+define('SCHOOL_ID',  1);   // DIHS is always school_id = 1
+define('SCHOOL_NAME','Dasmariñas Integrated High School');
+define('SCHOOL_DEPED_ID', '301143');
+define('SCHOOL_ADDRESS', 'Dasmariñas City, Cavite');
+define('SCHOOL_HEAD', 'Maria Santos');
 
 function getDB(): PDO {
     static $pdo = null;

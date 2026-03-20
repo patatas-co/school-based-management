@@ -32,15 +32,15 @@ $sql = "SELECT c.*,s.school_name,s.classification,sy.label sy_label,u.full_name 
         JOIN schools s ON c.school_id=s.school_id
         JOIN school_years sy ON c.sy_id=sy.sy_id
         LEFT JOIN users u ON c.validated_by=u.user_id
-        WHERE c.sy_id=?";
-$p = [$syId];
+        WHERE c.sy_id=? AND c.school_id=?";
+$p = [$syId, SCHOOL_ID];
 if ($status) { $sql .= " AND c.status=?"; $p[] = $status; }
 $sql .= " ORDER BY c.submitted_at DESC, c.created_at DESC";
 $stmt = $db->prepare($sql); $stmt->execute($p); $cycles = $stmt->fetchAll();
 
 // Status counts
-$statusCounts = $db->prepare("SELECT status, COUNT(*) cnt FROM sbm_cycles WHERE sy_id=? GROUP BY status");
-$statusCounts->execute([$syId]);
+$statusCounts = $db->prepare("SELECT status, COUNT(*) cnt FROM sbm_cycles WHERE sy_id=? AND school_id=? GROUP BY status");
+$statusCounts->execute([$syId, SCHOOL_ID]);
 $counts = array_column($statusCounts->fetchAll(), 'cnt', 'status');
 $totalCount = array_sum($counts);
 
@@ -96,7 +96,7 @@ include __DIR__.'/../includes/header.php';
     <table id="tblAssessments" class="tbl-enhanced">
       <thead>
         <tr>
-          <th>School</th>
+          <th>Assessment Round</th>
           <th>School Year</th>
           <th>Status</th>
           <th>Score</th>
@@ -110,12 +110,9 @@ include __DIR__.'/../includes/header.php';
       <?php foreach($cycles as $c): ?>
       <tr>
         <td>
-          <div class="cell-avatar">
-            <div class="cell-av" style="background:var(--brand-700);"><?= strtoupper(substr($c['school_name'],0,1)) ?></div>
-            <div class="cell-av-info">
-              <div class="cell-av-name"><?= e($c['school_name']) ?></div>
-              <div class="cell-av-sub"><?= e($c['classification']) ?></div>
-            </div>
+          <div class="cell-av-info">
+            <div class="cell-av-name">SY <?= e($c['sy_label']) ?> Assessment</div>
+            <div class="cell-av-sub">DIHS — <?= e($c['classification']) ?></div>
           </div>
         </td>
         <td style="font-size:13px;"><?= e($c['sy_label']) ?></td>

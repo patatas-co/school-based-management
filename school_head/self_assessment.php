@@ -8,11 +8,11 @@ function buildInPlaceholders(array $arr): string {
 requireRole('school_head','admin');
 $db = getDB();
 
-$schoolId = $_SESSION['school_id'] ?? 0;
-$syId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
+$schoolId = SCHOOL_ID; // Always DIHS
+$syId     = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 
-if (!$schoolId || !$syId) {
-    echo '<div class="alert alert-danger">No school or school year configured. Contact the administrator.</div>';
+if (!$syId) {
+    echo '<div class="alert alert-danger">No active school year configured. Contact the administrator.</div>';
     include __DIR__.'/../includes/footer.php'; exit;
 }
 

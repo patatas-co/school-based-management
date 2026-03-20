@@ -6,11 +6,11 @@ requireRole('teacher');
 $db = getDB();
 
 $uid      = $_SESSION['user_id'];
-$schoolId = $_SESSION['school_id'] ?? 0;
+$schoolId = SCHOOL_ID; // Always DIHS — single school system
 $syId     = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 
-if (!$schoolId || !$syId) {
-    echo '<div class="alert alert-danger">No school or school year configured. Contact the administrator.</div>';
+if (!$syId) {
+    echo '<div class="alert alert-danger">No active school year. Contact the administrator.</div>';
     include __DIR__.'/../includes/footer.php'; exit;
 }
 

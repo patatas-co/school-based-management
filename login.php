@@ -533,10 +533,10 @@ body::before {
     <div class="left-body">
       <span class="eyebrow"><?= e(SITE_NAME) ?></span>
       <h1 class="headline">
-        Governance for<br><em>Quality Education</em>
+        DIHS School-Based<br><em>Management Portal</em>
       </h1>
       <p class="sub">
-        Digital platform for SBM self-assessment, monitoring, and governance aligned with DepEd Order No. 007, s. 2024.
+        Dasmariñas Integrated High School's digital platform for SBM self-assessment, monitoring, and planning aligned with DepEd Order No. 007, s. 2024.
       </p>
 
       <div class="left-stats">

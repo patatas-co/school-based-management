@@ -120,7 +120,7 @@ $roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'
   <?php else: ?>
   <div class="tbl-wrap">
     <table id="tblUsers" class="tbl-enhanced">
-      <thead><tr><th>User</th><th>Username</th><th>Role</th><th>School</th><th>Status</th><th>Last Login</th><th></th></tr></thead>
+      <thead><tr><th>User</th><th>Username</th><th>Role</th><th>Status</th><th>Last Login</th><th></th></tr></thead>
       <tbody>
       <?php foreach($users as $u):
         $rc=$roleColors[$u['role']]??'#16A34A';
@@ -141,7 +141,6 @@ $roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'
             <?= ucfirst(str_replace('_',' ',$u['role'])) ?>
           </span>
         </td>
-        <td style="font-size:12.5px;color:var(--n-600);"><?= e($u['school_name']??'—') ?></td>
         <td>
           <?php $statColors=['active'=>['#DCFCE7','#16A34A'],'inactive'=>['var(--n-100)','var(--n-500)'],'suspended'=>['var(--red-bg)','var(--red)']]; [$sb,$sc]=$statColors[$u['status']]??['var(--n-100)','var(--n-500)']; ?>
           <span style="display:inline-flex;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:<?= $sb ?>;color:<?= $sc ?>;"><?= ucfirst($u['status']) ?></span>
@@ -185,13 +184,15 @@ $roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'
           <select class="fc" id="c_status"><option value="active">Active</option><option value="inactive">Inactive</option></select>
         </div>
       </div>
-      <div class="fg"><label>School</label>
-        <select class="fc" id="c_school">
-          <option value="">— No School —</option>
-          <?php foreach($schools as $sc): ?>
-          <option value="<?= $sc['school_id'] ?>"><?= e($sc['school_name']) ?></option>
-          <?php endforeach; ?>
-        </select>
+      <!-- Single school system: all school users belong to DIHS automatically -->
+      <div class="fg">
+        <label>School Assignment</label>
+        <div style="padding:9px 12px;background:var(--brand-100);border-radius:8px;
+                    font-size:13px;font-weight:600;color:var(--brand-700);
+                    border:1.5px solid var(--brand-200);">
+          🏫 Dasmariñas Integrated High School (auto-assigned for school roles)
+        </div>
+        <input type="hidden" id="c_school" value="<?= SCHOOL_ID ?>">
       </div>
       <div class="fg">
         <label>Password * <span style="font-weight:400;color:var(--n-400);">(minimum 8 characters)</span></label>
@@ -227,13 +228,14 @@ $roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'
           <select class="fc" id="e_status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option></select>
         </div>
       </div>
-      <div class="fg"><label>School</label>
-        <select class="fc" id="e_school">
-          <option value="">— No School —</option>
-          <?php foreach($schools as $sc): ?>
-          <option value="<?= $sc['school_id'] ?>"><?= e($sc['school_name']) ?></option>
-          <?php endforeach; ?>
-        </select>
+      <div class="fg">
+        <label>School Assignment</label>
+        <div style="padding:9px 12px;background:var(--brand-100);border-radius:8px;
+                    font-size:13px;font-weight:600;color:var(--brand-700);
+                    border:1.5px solid var(--brand-200);">
+          Dasmariñas Integrated High School
+        </div>
+        <input type="hidden" id="e_school" value="<?= SCHOOL_ID ?>">
       </div>
       <div class="fg">
         <label>New Password <span style="font-weight:400;color:var(--n-400);">(leave blank to keep current)</span></label>
