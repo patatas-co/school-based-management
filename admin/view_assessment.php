@@ -80,7 +80,10 @@ include __DIR__.'/../includes/header.php';
   </div>
   <div class="page-head-actions" style="gap:8px;">
     <a href="assessment.php" class="btn btn-secondary"><?= svgIcon('arrow-left') ?> Back</a>
-    <button class="btn btn-secondary" onclick="window.print()"><?= svgIcon('download') ?> Print / PDF</button>
+    <a href="/export_pdf.php?cycle_id=<?= $cycle['cycle_id'] ?>&type=improvement"
+   target="_blank" class="btn btn-secondary">
+  Download Improvement Plan (PDF)
+</a>
     <?php if($cycle['status']==='submitted'): ?>
     <button class="btn btn-success btn-sm" onclick="openAction('validate')"><?= svgIcon('check') ?> Validate</button>
     <button class="btn btn-danger btn-sm" onclick="openAction('return')"><?= svgIcon('x') ?> Return</button>

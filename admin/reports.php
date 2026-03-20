@@ -32,7 +32,10 @@ include __DIR__.'/../includes/header.php';
   <div class="page-head-text"><h2>Reports & Documentation</h2><p>Generate official SBM Annex A and performance reports.</p></div>
   <div class="page-head-actions">
     <?php if($reportData): ?>
-    <button class="btn btn-secondary" onclick="window.print()"><?= svgIcon('download') ?> Print / Export PDF</button>
+    <a href="/export_pdf.php?cycle_id=<?= $cycle['cycle_id'] ?>&type=dimension"
+   target="_blank" class="btn btn-secondary">
+  Download Dimension Report (PDF)
+</a>
     <?php endif; ?>
   </div>
 </div>
