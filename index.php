@@ -78,8 +78,8 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
     }
 
     .logo-icon {
-      width: 40px;
-      height: 40px;
+      width: 55px;
+      height: 55px;
       flex-shrink: 0;
     }
 
@@ -649,8 +649,8 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
   <!-- Header -->
   <header>
     <a class="logo" href="#">
-      <!-- Circular "C" SVG icon -->
-      <span class="logo-text"><?= e(SITE_SHORT) ?></span>
+        <img src="favicon/android-chrome-192x192.png" alt="Main Logo" class="logo-icon">
+      <span class="logo-text">School Management</span>
     </a>
 
     <nav>
