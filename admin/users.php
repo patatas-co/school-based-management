@@ -10,22 +10,69 @@ $db = getDB();
 if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     verifyCsrf();
-    $action=$_POST['action'];
-    if($action==='create'){
-        $pw=$_POST['password']??'';
-        if(strlen($pw)<8){echo json_encode(['ok'=>false,'msg'=>'Password must be at least 8 characters.']);exit;}
-        $role=$_POST['role']??'';
-        if(!in_array($role,['admin','school_head','teacher','sdo','ro','external_stakeholder'])){echo json_encode(['ok'=>false,'msg'=>'Invalid role.']);exit;}
-        try{
+    $action = $_POST['action'];
+    if ($action === 'create') {
+        $pw = $_POST['password'] ?? '';
+        if ($pw && strlen($pw) < 8) { echo json_encode(['ok' => false, 'msg' => 'Password must be at least 8 characters.']); exit; }
+        $role = $_POST['role'] ?? '';
+        if (!in_array($role, ['admin', 'school_head', 'teacher', 'sdo', 'ro', 'external_stakeholder'])) { echo json_encode(['ok' => false, 'msg' => 'Invalid role.']); exit; }
+
+        try {
+            $hashedPw = $pw ? password_hash($pw, PASSWORD_DEFAULT) : null;
+            $initialStatus = $pw ? ($_POST['status'] ?? 'active') : 'inactive';
+            $schoolId = $_POST['school_id'] ?: SCHOOL_ID;
+
             $db->prepare("INSERT INTO users (username,password,email,full_name,role,status,school_id) VALUES (?,?,?,?,?,?,?)")
-               ->execute([trim($_POST['username']),password_hash($pw,PASSWORD_DEFAULT),trim($_POST['email']),trim($_POST['full_name']),$role,$_POST['status'],$_POST['school_id']?:null]);
-            logActivity('create_user','users','Created: '.trim($_POST['username']));
-            $newId=$db->lastInsertId();
-            $schoolStmt=$db->prepare("SELECT school_name FROM schools WHERE school_id=?");
-            $schoolStmt->execute([$_POST['school_id']?:0]);
-            $schoolName=$_POST['school_id']?($schoolStmt->fetchColumn()?:'—'):'—';
-            echo json_encode(['ok'=>true,'msg'=>'User created.','user'=>['id'=>$newId,'full_name'=>trim($_POST['full_name']),'username'=>trim($_POST['username']),'email'=>trim($_POST['email']),'role'=>$_POST['role'],'status'=>$_POST['status'],'school'=>$schoolName]]);exit;
-        }catch(Exception $e){echo json_encode(['ok'=>false,'msg'=>'Username or email already exists.']);exit;}
+               ->execute([trim($_POST['username']), $hashedPw, trim($_POST['email']), trim($_POST['full_name']), $role, $initialStatus, $schoolId]);
+
+            $newId = $db->lastInsertId();
+            logActivity('create_user', 'users', 'Created: ' . trim($_POST['username']));
+
+            $schoolStmt = $db->prepare("SELECT school_name FROM schools WHERE school_id=?");
+            $schoolStmt->execute([$schoolId]);
+            $schoolName = $schoolId ? ($schoolStmt->fetchColumn() ?: '—') : '—';
+
+            // Only send setup-link email when no password was provided
+            if (!$pw) {
+                require_once __DIR__ . '/../includes/email_service.php';
+                $newUser = [
+                    'user_id'   => $newId,
+                    'full_name' => trim($_POST['full_name']),
+                    'email'     => trim($_POST['email']),
+                ];
+                $emailSent = sendAccountCreationEmail($db, $newUser);
+                $emailMsg = $emailSent
+                    ? 'User created. A password setup link was sent via email.'
+                    : 'User created, but the welcome email could not be sent. Use Resend Email to retry.';
+            } else {
+                // Password was set manually — no email token needed
+                $emailSent = false;
+                $emailMsg  = 'User created with the provided password.';
+            }
+
+            echo json_encode([
+                'ok'        => true,
+                'msg'       => $emailMsg,
+                'emailSent' => $emailSent,
+                'user'      => [
+                    'id'        => $newId,
+                    'full_name' => trim($_POST['full_name']),
+                    'username'  => trim($_POST['username']),
+                    'email'     => trim($_POST['email']),
+                    'role'      => $_POST['role'],
+                    'status'    => $initialStatus,
+                    'school'    => $schoolName
+                ]
+            ]);
+            exit;
+        } catch (Exception $e) {
+            $logDir = __DIR__ . '/../logs';
+            if (!is_dir($logDir)) mkdir($logDir, 0777, true);
+            $logMsg = date('[Y-m-d H:i:s] ') . "Action: create_user | Error: " . $e->getMessage() . " | Trace: " . $e->getTraceAsString() . "\n";
+            file_put_contents($logDir . '/user_creation_error.log', $logMsg, FILE_APPEND);
+            echo json_encode(['ok' => false, 'msg' => 'Error: ' . $e->getMessage()]);
+            exit;
+        }
     }
     if($action==='get'){$st=$db->prepare("SELECT user_id,username,email,full_name,role,status,school_id FROM users WHERE user_id=?");$st->execute([(int)$_POST['id']]);echo json_encode($st->fetch());exit;}
     if($action==='update'){
@@ -40,6 +87,22 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         if($id===(int)$_SESSION['user_id']){echo json_encode(['ok'=>false,'msg'=>'Cannot delete your own account.']);exit;}
         $db->prepare("DELETE FROM users WHERE user_id=?")->execute([$id]);
         echo json_encode(['ok'=>true,'msg'=>'User deleted.']);exit;
+    }
+    if($action==='resend_email'){
+        $id=(int)$_POST['id'];
+        $u=$db->prepare("SELECT user_id,full_name,email,status FROM users WHERE user_id=?");
+        $u->execute([$id]); $u=$u->fetch();
+        if(!$u){echo json_encode(['ok'=>false,'msg'=>'User not found.']);exit;}
+        if($u['status']==='active'){
+            echo json_encode(['ok'=>false,'msg'=>'Account already activated — password is already set.']);exit;
+        }
+        require_once __DIR__.'/../includes/email_service.php';
+        $sent = sendAccountCreationEmail($db, $u);
+        if($sent){
+            $db->prepare("UPDATE users SET email_resent_count=email_resent_count+1 WHERE user_id=?")
+               ->execute([$id]);
+        }
+        echo json_encode(['ok'=>$sent,'msg'=>$sent?'Welcome email resent.':'Failed to resend email. Check mail config.']);exit;
     }
     exit;
 }
@@ -148,11 +211,14 @@ $roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'
         <td style="font-size:12px;color:<?= $u['last_login']?'var(--n-400)':'var(--red)' ?>;"><?= $u['last_login'] ? timeAgo($u['last_login']) : 'Never' ?></td>
         <td>
           <div class="flex-c" style="gap:4px;">
-            <button class="btn btn-secondary btn-sm" onclick="editUser(<?= $u['user_id'] ?>)"><?= svgIcon('edit') ?></button>
-            <?php if($u['user_id']!=$_SESSION['user_id']): ?>
-            <button class="btn btn-danger btn-sm" data-id="<?= $u['user_id'] ?>" data-name="<?= e($u['full_name']) ?>" onclick="delUser(this.dataset.id,this.dataset.name,this)"><?= svgIcon('trash') ?></button>
-            <?php endif; ?>
-          </div>
+    <button class="btn btn-secondary btn-sm" onclick="editUser(<?= $u['user_id'] ?>)"><?= svgIcon('edit') ?></button>
+    <?php if($u['status'] !== 'active'): ?>
+    <button class="btn btn-blue btn-sm" onclick="resendEmail(<?= $u['user_id'] ?>)" title="Resend welcome email"><?= svgIcon('send') ?></button>
+    <?php endif; ?>
+    <?php if($u['user_id']!=$_SESSION['user_id']): ?>
+    <button class="btn btn-danger btn-sm" data-id="<?= $u['user_id'] ?>" data-name="<?= e($u['full_name']) ?>" onclick="delUser(this.dataset.id,this.dataset.name,this)"><?= svgIcon('trash') ?></button>
+    <?php endif; ?>
+</div>
         </td>
       </tr>
       <?php endforeach; ?>
@@ -186,17 +252,9 @@ $roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'
       </div>
       <!-- Single school system: all school users belong to DIHS automatically -->
       <div class="fg">
-        <label>School Assignment</label>
-        <div style="padding:9px 12px;background:var(--brand-100);border-radius:8px;
-                    font-size:13px;font-weight:600;color:var(--brand-700);
-                    border:1.5px solid var(--brand-200);">
-          🏫 Dasmariñas Integrated High School (auto-assigned for school roles)
-        </div>
+        <label>Password <span style="font-weight:400;color:var(--n-400);">(leave blank to send a setup link via email)</span></label>
+        <input class="fc" type="password" id="c_pass" placeholder="Leave blank — user sets password via email link" autocomplete="new-password">
         <input type="hidden" id="c_school" value="<?= SCHOOL_ID ?>">
-      </div>
-      <div class="fg">
-        <label>Password * <span style="font-weight:400;color:var(--n-400);">(minimum 8 characters)</span></label>
-        <input class="fc" type="password" id="c_pass" placeholder="Minimum 8 characters" autocomplete="new-password">
       </div>
     </div>
     <div class="modal-foot">
@@ -266,14 +324,18 @@ async function createUser(){
     const rc=roleColors[r.user.role]||'#16A34A';
     const safeRole=r.user.role.replace(/[^a-z0-9_]/g,'');
     const tr=document.createElement('tr');
+    const isActive = r.user.status === 'active';
+    const statusBg = isActive ? '#DCFCE7' : 'var(--n-100)';
+    const statusClr = isActive ? '#16A34A' : 'var(--n-500)';
+    const statusLabel = r.user.status.charAt(0).toUpperCase() + r.user.status.slice(1);
     tr.innerHTML=`
       <td><div class="cell-avatar"><div class="cell-av" style="background:${rc};">${initials}</div><div class="cell-av-info"><div class="cell-av-name">${escH(r.user.full_name)}</div><div class="cell-av-sub">${escH(r.user.email)}</div></div></div></td>
       <td style="font-family:monospace;font-size:12px;color:var(--n-500);">${escH(r.user.username)}</td>
       <td><span style="display:inline-flex;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:${rc}18;color:${rc};">${escH(r.user.role.replace(/_/g,' ')).replace(/\b\w/g,c=>c.toUpperCase())}</span></td>
       <td style="font-size:12.5px;">${escH(r.user.school)}</td>
-      <td><span style="display:inline-flex;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:#DCFCE7;color:#16A34A;">Active</span></td>
+      <td><span style="display:inline-flex;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:${statusBg};color:${statusClr};">${statusLabel}</span></td>
       <td style="font-size:12px;color:var(--red);">Never</td>
-      <td><div class="flex-c" style="gap:4px;"><button class="btn btn-secondary btn-sm" onclick="editUser(${r.user.id})">${svgI('edit')}</button><button class="btn btn-danger btn-sm" onclick="delUser(${r.user.id},'${escH(r.user.full_name)}',this)">${svgI('trash')}</button></div></td>`;
+      <td><div class="flex-c" style="gap:4px;"><button class="btn btn-secondary btn-sm" onclick="editUser(${r.user.id})">${svgI('edit')}</button>${!isActive?`<button class="btn btn-blue btn-sm" onclick="resendEmail(${r.user.id})" title="Resend welcome email">${svgI('send')}</button>`:''}<button class="btn btn-danger btn-sm" onclick="delUser(${r.user.id},'${escH(r.user.full_name)}',this)">${svgI('trash')}</button></div></td>`;
     tbody.insertBefore(tr,tbody.firstChild);
     const cap=document.getElementById('userCountCap');
     if(cap) cap.textContent='('+tbody.querySelectorAll('tr').length+')';
@@ -289,6 +351,11 @@ async function updateUser(){
   const r=await apiPost('users.php',d);
   toast(r.msg,r.ok?'ok':'err');
   if(r.ok){closeModal('mEdit');setTimeout(()=>location.reload(),800);}
+}
+async function resendEmail(id) {
+    if (!confirm('Resend the welcome email with a new password setup link?')) return;
+    const r = await apiPost('users.php', { action: 'resend_email', id });
+    toast(r.msg, r.ok ? 'ok' : 'err');
 }
 async function delUser(id,name,btn){
   if(!confirm(`Delete "${name}"?\n\nThis cannot be undone.`))return;

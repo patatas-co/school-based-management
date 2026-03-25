@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $db->prepare("SELECT * FROM users WHERE (username=? OR email=?) AND status='active' LIMIT 1");
         $stmt->execute([$uname, $uname]);
         $row  = $stmt->fetch();
-        if ($row && password_verify($pass, $row['password'])) {
+        if ($row && $row['password'] && password_verify($pass, $row['password'])) {
             $_SESSION['user_id']    = $row['user_id'];
             $_SESSION['username']   = $row['username'];
             $_SESSION['full_name']  = $row['full_name'];
@@ -36,6 +36,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $db->prepare("UPDATE users SET last_login=NOW() WHERE user_id=?")->execute([$row['user_id']]);
             logActivity('login', 'auth', 'User logged in');
+
+            // Force password change on first login if required
+            if ($row['force_password_change']) {
+                $_SESSION['force_pw_change'] = true;
+                header('Location: ' . baseUrl() . '/change_password.php'); exit;
+            }
             header('Location: ' . roleHome($row['role'])); exit;
         }
         $error = 'Incorrect username or password.';
@@ -462,7 +468,7 @@ body::before {
   box-shadow: 0 2px 8px rgba(21,128,61,.25);
 }
 
-.btn-login:active { transform: translateY(0); }
+/* duplicate .btn-login:active removed */
 
 .btn-login .arrow {
   transition: transform .2s;

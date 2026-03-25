@@ -1224,13 +1224,16 @@ CREATE TABLE `technical_assistance` (
 CREATE TABLE `users` (
   `user_id` int(11) NOT NULL,
   `username` varchar(60) NOT NULL,
-  `password` varchar(255) NOT NULL,
+  `password` varchar(255) NULL,
   `email` varchar(120) NOT NULL,
   `full_name` varchar(120) NOT NULL,
   `role` enum('admin','school_head','teacher','sdo','ro','external_stakeholder') NOT NULL DEFAULT 'teacher',
-  `status` enum('active','inactive','suspended') NOT NULL DEFAULT 'active',
+  `status` enum('active','inactive','suspended') NOT NULL DEFAULT 'inactive',
   `school_id` int(11) DEFAULT NULL,
   `last_login` datetime DEFAULT NULL,
+  `force_password_change` tinyint(1) DEFAULT 1,
+  `email_sent_at` timestamp NULL DEFAULT NULL,
+  `email_resent_count` int(11) DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
