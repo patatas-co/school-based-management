@@ -55,20 +55,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --navy:    #15803D;
+  --navy:    #14532D;
   --green:   #16A34A;
   --g50:     #F0FDF4;
   --g100:    #DCFCE7;
   --g200:    #BBF7D0;
   --g300:    #86EFAC;
   --g700:    #15803D;
-  --dark:    #111827;
+  --dark:    #0D1117;
   --mid:     #4B5563;
   --light:   #9CA3AF;
   --n200:    #E5E7EB;
@@ -78,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   --white:   #FFFFFF;
   --font:    'DM Sans', sans-serif;
   --serif:   'Instrument Serif', Georgia, serif;
+  --mono:    'JetBrains Mono', monospace;
 }
 
 html, body {
@@ -110,7 +111,7 @@ body::before {
 /* ── LEFT — editorial panel ── */
 .panel-left {
   position: relative;
-  background: var(--dark);
+  background: #0A0F0A;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -123,19 +124,21 @@ body::before {
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(ellipse at 15% 20%, rgba(22,163,74,.18) 0%, transparent 55%),
-    radial-gradient(ellipse at 85% 80%, rgba(22,163,74,.1) 0%, transparent 50%);
+    radial-gradient(ellipse at 10% 15%, rgba(22,163,74,.22) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 85%, rgba(22,163,74,.14) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(5,150,105,.06) 0%, transparent 70%);
   pointer-events: none;
 }
 
-/* Decorative large circle */
+/* Subtle grid overlay for depth */
 .panel-left::after {
   content: '';
   position: absolute;
-  width: 500px; height: 500px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,.05);
-  top: -160px; right: -160px;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 48px 48px;
   pointer-events: none;
 }
 
@@ -208,12 +211,13 @@ body::before {
 
 .headline {
   font-family: var(--serif);
-  font-size: clamp(42px, 4.5vw, 64px);
+  font-size: clamp(40px, 4.2vw, 60px);
   font-weight: 400;
   color: #fff;
   line-height: 1.08;
   letter-spacing: -1.5px;
   margin-bottom: 20px;
+  text-shadow: 0 2px 40px rgba(0,0,0,.4);
 
   opacity: 0;
   animation: fadeUp .7s .35s ease forwards;
@@ -262,11 +266,12 @@ body::before {
 
 .stat-num {
   font-family: var(--serif);
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 400;
   color: #fff;
   line-height: 1;
   margin-bottom: 5px;
+  text-shadow: 0 0 20px rgba(74,222,128,.3);
 }
 
 .stat-lbl {
@@ -284,7 +289,16 @@ body::before {
   justify-content: center;
   align-items: center;
   padding: 56px 64px;
-  background: var(--white);
+  background: #FAFDFB;
+  position: relative;
+}
+.panel-right::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(to bottom, transparent, rgba(22,163,74,.15), transparent);
 }
 
 .form-wrap {
@@ -314,6 +328,10 @@ body::before {
   color: var(--green);
   letter-spacing: .08em;
   text-transform: uppercase;
+  background: rgba(22,163,74,.08);
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(22,163,74,.2);
 }
 
 .form-title {
@@ -385,51 +403,63 @@ body::before {
 
 .fc {
   width: 100%;
-  padding: 11px 13px 11px 40px;
+  padding: 12px 13px 12px 42px;
   border: 1.5px solid var(--n200);
   border-radius: 10px;
-  background: var(--n100);
+  background: #fff;
   font-family: var(--font);
   font-size: 14px;
   color: var(--dark);
   outline: none;
-  transition: border-color .18s, background .18s, box-shadow .18s;
+  transition: border-color .2s, background .2s, box-shadow .2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.fc:focus {
+  border-color: var(--green);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(22,163,74,.12), 0 1px 2px rgba(0,0,0,.04);
 }
 
 .fc::placeholder { color: var(--light); }
 
-.fc:focus {
-  border-color: var(--green);
-  background: var(--white);
-  box-shadow: 0 0 0 3px rgba(22,163,74,.1);
-}
-
 /* Submit button */
 .btn-login {
   width: 100%;
-  padding: 12px;
+  padding: 13px;
   border-radius: 10px;
   border: none;
-  background: var(--navy);
+  background: linear-gradient(135deg, #15803D 0%, #166534 100%);
   color: #fff;
   font-family: var(--font);
   font-size: 14.5px;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 8px;
+  margin-top: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: background .2s, transform .15s, box-shadow .2s;
-  box-shadow: 0 2px 12px rgba(22,163,74,.3);
+  transition: all .2s ease;
+  box-shadow: 0 2px 8px rgba(21,128,61,.35), 0 1px 2px rgba(0,0,0,.08);
   letter-spacing: .01em;
+  position: relative;
+  overflow: hidden;
 }
-
+.btn-login::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.1) 0%, transparent 60%);
+  pointer-events: none;
+}
 .btn-login:hover {
-  background: #0f6030;
+  background: linear-gradient(135deg, #166534 0%, #14532D 100%);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(22,163,74,.28);
+  box-shadow: 0 8px 24px rgba(21,128,61,.3), 0 2px 4px rgba(0,0,0,.1);
+}
+.btn-login:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(21,128,61,.25);
 }
 
 .btn-login:active { transform: translateY(0); }
@@ -481,18 +511,34 @@ body::before {
 .back-link {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 500;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--mid);
   text-decoration: none;
-  margin-bottom: 36px;
-  transition: color .15s;
+  margin-bottom: 32px;
+  padding: 6px 12px 6px 0;
+  margin-left: -4px;
+  border-radius: 8px;
+  transition: all .2s ease;
+  border: 1px solid transparent;
 }
 
-.back-link:hover { color: var(--dark); }
+.back-link:hover {
+  color: var(--green);
+  background: rgba(22,163,74,.05);
+  border-color: rgba(22,163,74,.1);
+  transform: translateX(-2px);
+}
 
-.back-link svg { width: 14px; height: 14px; }
+.back-link svg {
+  width: 15px; height: 15px;
+  transition: transform .2s ease;
+}
+
+.back-link:hover svg {
+  transform: translateX(-2px);
+}
 
 /* ── Animations ── */
 @keyframes fadeUp {
@@ -513,24 +559,35 @@ body::before {
 
   <!-- ── LEFT PANEL ── -->
   <div class="panel-left">
-
+      <!-- Watermark seal -->
+    <div style="position:absolute;bottom:-60px;right:-60px;z-index:0;pointer-events:none;opacity:.04;filter:grayscale(1);">
+      <img src="assets/seal.png"
+           alt=""
+           style="width:380px;height:380px;object-fit:contain;
+                  filter:blur(0px) brightness(4);">
+    </div>
+    <!-- Secondary small seal top-right corner -->
+    <div style="position:absolute;top:24px;right:28px;z-index:0;pointer-events:none;opacity:.06;filter:grayscale(1);">
+    </div>
     <div class="left-nav">
-      <div class="left-seal">
-        <img src="assets/seal.png" alt="DepEd"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <svg style="display:none;width:22px;height:22px;" viewBox="0 0 24 24" fill="none"
-             stroke="rgba(255,255,255,.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-          <path d="M2 17l10 5 10-5"/>
-          <path d="M2 12l10 5 10-5"/>
-        </svg>
-      </div>
       <div class="left-seal-label">
-        Republic of the Philippines<br>Department of Education
       </div>
     </div>
 
     <div class="left-body">
+      <!-- Seal + title lockup -->
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;
+                  opacity:0;animation:fadeUp .6s .2s ease forwards;">
+        <div style="position:relative;flex-shrink:0;">
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:rgba(74,222,128,.6);
+                      letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px;">
+          </div>
+          <div style="font-size:12px;color:rgba(255,255,255,.4);font-weight:400;">
+          </div>
+        </div>
+      </div>
       <span class="eyebrow"><?= e(SITE_NAME) ?></span>
       <h1 class="headline">
         DIHS School-Based<br><em>Management Portal</em>
@@ -641,9 +698,12 @@ body::before {
         <span class="role-pill"><span class="role-dot"></span>SDO / RO</span>
       </div>
 
-      <p class="form-footer">
-        <?= e(SITE_NAME) ?> &nbsp;·&nbsp; DepEd Order No. 007, s. 2024 &nbsp;·&nbsp; <?= date('Y') ?>
-      </p>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;
+                  margin-top:20px;padding-top:16px;border-top:1px solid #F3F4F6;">
+        <p class="form-footer" style="margin:0;">
+          <?= e(SITE_NAME) ?> &nbsp;·&nbsp; DepEd Order No. 007, s. 2024 &nbsp;·&nbsp; <?= date('Y') ?>
+        </p>
+      </div>
 
     </div>
   </div>

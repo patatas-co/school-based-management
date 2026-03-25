@@ -231,12 +231,12 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / .08), 0 4px 6px -4px rgb(0 0 0 / .05);
 
   /* Sidebar-specific */
-  --sb-bg:         #0F172A;
-  --sb-surface:    #1E293B;
-  --sb-border:     rgba(255,255,255,.07);
-  --sb-text:       rgba(255,255,255,.55);
-  --sb-text-hover: rgba(255,255,255,.9);
-  --sb-active-bg:  rgba(255,255,255,.1);
+  --sb-bg:         #0A0F0A;
+  --sb-surface:    #111A11;
+  --sb-border:     rgba(255,255,255,.08);
+  --sb-text:       rgba(255,255,255,.5);
+  --sb-text-hover: rgba(255,255,255,.92);
+  --sb-active-bg:  rgba(22,163,74,.15);
 
   /* Transition */
   --ease: cubic-bezier(.4,0,.2,1);
@@ -305,6 +305,8 @@ body {
   z-index: 100;
   transition: width 220ms var(--ease);
   overflow: hidden;
+  border-right: 1px solid rgba(22,163,74,.12);
+  box-shadow: 4px 0 24px rgba(0,0,0,.25);
 }
 .sb.collapsed { width: var(--sidebar-mini); }
 
@@ -316,6 +318,20 @@ body {
   padding: 18px 16px 16px;
   border-bottom: 1px solid var(--sb-border);
   flex-shrink: 0;
+  position: relative;
+}
+.sb-brand::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #16A34A, #4ADE80, #16A34A);
+  background-size: 200% 100%;
+  animation: shimmerBrand 3s linear infinite;
+}
+@keyframes shimmerBrand {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 .sb-logo {
   width: 36px; height: 36px;
@@ -365,7 +381,8 @@ body {
   overflow-x: hidden;
   padding: 12px 8px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,.1) transparent;
+  scrollbar-color: rgba(22,163,74,.2) transparent;
+  background-image: radial-gradient(circle at 50% 100%, rgba(22,163,74,.04) 0%, transparent 60%);
 }
 .sb-nav::-webkit-scrollbar { width: 3px; }
 .sb-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
@@ -376,11 +393,11 @@ body {
 }
 .sb-section-label {
   font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: .09em;
+  font-weight: 800;
+  letter-spacing: .12em;
   text-transform: uppercase;
-  color: rgba(255,255,255,.28);
-  padding: 12px 10px 4px;
+  color: rgba(74,222,128,.4);
+  padding: 14px 10px 4px;
   white-space: nowrap;
   overflow: hidden;
 }
@@ -415,7 +432,10 @@ body {
 }
 .sb-item.active {
   color: #fff;
-  background: var(--brand-700);
+  background: linear-gradient(90deg, rgba(22,163,74,.25) 0%, rgba(22,163,74,.12) 100%);
+  border-left: 2px solid #4ADE80;
+  padding-left: 8px;
+  box-shadow: inset 0 0 12px rgba(22,163,74,.08);
 }
 .sb-item.active .sb-icon svg { stroke: #fff; }
 .sb-item .sb-label { flex: 1; overflow: hidden; text-overflow: ellipsis; }
@@ -499,10 +519,14 @@ body {
 }
 .sb-child:hover { color: var(--sb-text-hover); background: rgba(255,255,255,.06); }
 .sb-child.active {
-  color: var(--brand-400);
-  background: rgba(22,163,74,.12);
+  color: #86EFAC;
+  background: rgba(22,163,74,.14);
+  font-weight: 600;
 }
-.sb-child.active::before { background: var(--brand-500); }
+.sb-child.active::before {
+  background: #4ADE80;
+  box-shadow: 0 0 6px rgba(74,222,128,.5);
+}
 
 /* Collapsed tooltips */
 /* ── Collapsed sidebar overrides ── */
@@ -604,7 +628,10 @@ body {
   cursor: pointer;
   transition: background var(--dur);
 }
-.sb-user-tile:hover { background: rgba(255,255,255,.07); }
+.sb-user-tile:hover {
+  background: rgba(22,163,74,.1);
+  border-radius: 8px;
+}
 .sb-avatar {
   width: 34px; height: 34px;
   border-radius: 8px;
@@ -649,12 +676,13 @@ body {
   display: none;
   position: absolute;
   bottom: 80px; left: 10px; right: 10px;
-  background: #1E293B;
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 10px;
+  background: #111A11;
+  border: 1px solid rgba(22,163,74,.2);
+  border-radius: 12px;
   padding: 8px;
-  box-shadow: 0 -8px 24px rgba(0,0,0,.35);
+  box-shadow: 0 -8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(22,163,74,.08);
   z-index: 200;
+  backdrop-filter: blur(8px);
 }
 .sb-popup.open { display: block; }
 .sb.collapsed .sb-popup { 
@@ -1563,16 +1591,28 @@ tbody tr:hover td { background: var(--brand-50); }
 
   <!-- Brand -->
   <div class="sb-brand">
-    <div class="sb-logo">
+    <div class="sb-logo" style="position:relative;overflow:visible;background:transparent;
+                                 border:none;">
+      <!-- Glow ring behind seal -->
+      <div style="position:absolute;inset:-3px;border-radius:50%;
+                  background:radial-gradient(circle, rgba(74,222,128,.15) 0%, transparent 70%);
+                  pointer-events:none;"></div>
       <img src="<?= $__base ?>/assets/seal.png" alt="DepEd"
+           style="width:40px;height:40px;border-radius:0;object-fit:contain;
+                  filter:drop-shadow(0 0 6px rgba(74,222,128,.3)) brightness(1.05);
+                  position:relative;z-index:1;"
            onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
       <svg class="sb-logo-fallback" style="display:none" viewBox="0 0 24 24">
         <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
       </svg>
     </div>
     <div class="sb-brand-text">
-      <div class="sb-brand-name">DIHS SBM Portal</div>
-      <div class="sb-brand-sub">Dasmariñas Integrated HS</div>
+      <div class="sb-brand-name" style="display:flex;align-items:center;gap:6px;">
+        DIHS SBM Portal
+      </div>
+      <div class="sb-brand-sub" style="display:flex;align-items:center;gap:5px;">
+        Dasmariñas Integrated HS
+      </div>
     </div>
   </div>
 
@@ -1665,6 +1705,15 @@ tbody tr:hover td { background: var(--brand-50); }
     <?php endforeach; ?>
   </nav>
 
+  <!-- Sidebar watermark seal -->
+  <div style="display:flex;justify-content:center;padding:8px 0 4px;
+              pointer-events:none;flex-shrink:0;">
+    <img src="<?= $__base ?>/assets/seal.png"
+         alt=""
+         style="width:48px;height:48px;object-fit:contain;
+                opacity:.06;filter:grayscale(1) brightness(2);">
+  </div>
+
   <!-- Footer / User -->
   <div class="sb-footer">
     <div class="sb-user-tile" id="userTile" onclick="toggleUserMenu()" role="button" tabindex="0" aria-label="User menu">
@@ -1683,14 +1732,18 @@ tbody tr:hover td { background: var(--brand-50); }
     <!-- Popup menu -->
     <div class="sb-popup" id="userPopup" role="menu">
       <div class="sb-popup-user">
-        <div class="sb-avatar" style="background:<?= $__roleColor ?>;width:36px;height:36px;font-size:13px;">
-          <?= e($__initials) ?>
-        </div>
-        <div>
-          <div class="sb-popup-name"><?= e($__me['name']) ?></div>
-          <div class="sb-popup-role"><?= e($__roleLabel) ?></div>
-        </div>
+      <div class="sb-avatar" style="background:<?= $__roleColor ?>;width:36px;height:36px;font-size:13px;">
+        <?= e($__initials) ?>
       </div>
+      <div style="flex:1;min-width:0;">
+        <div class="sb-popup-name"><?= e($__me['name']) ?></div>
+        <div class="sb-popup-role"><?= e($__roleLabel) ?></div>
+      </div>
+      <img src="<?= $__base ?>/assets/seal.png"
+           alt=""
+           style="width:22px;height:22px;object-fit:contain;
+                  opacity:.2;flex-shrink:0;filter:grayscale(1) brightness(2);">
+    </div>
       <a href="<?= $__base ?>/logout.php" class="sb-popup-item danger" role="menuitem">
         <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Sign out
