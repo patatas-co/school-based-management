@@ -108,9 +108,9 @@ function buildWelcomeEmailHtml(string $name, string $email,
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
               <tr>
                 <td align="center" style="padding-bottom:16px;">
-                  <div style="display:inline-block;background:#FFFFFF;border-radius:50%;width:80px;height:80px;line-height:80px;text-align:center;overflow:hidden;border:3px solid rgba(255,255,255,0.25);">
-                    <img src="cid:school_logo_cid" width="80" height="80" alt="DIHS Logo" style="display:inline-block;vertical-align:middle;object-fit:contain;padding:4px;">
-                  </div>
+                  <div style="display:inline-flex;align-items:center;justify-content:center;background:#FFFFFF;border-radius:50%;width:80px;height:80px;overflow:hidden;border:3px solid rgba(255,255,255,0.25);">
+    <img src="cid:school_logo_cid" width="72" height="72" alt="DIHS Logo" style="display:block;object-fit:contain;">
+  </div>
                 </td>
               </tr>
               <tr>
