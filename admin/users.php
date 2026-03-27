@@ -99,10 +99,59 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         require_once __DIR__.'/../includes/email_service.php';
         $sent = sendAccountCreationEmail($db, $u);
         if($sent){
-            $db->prepare("UPDATE users SET email_resent_count=email_resent_count+1 WHERE user_id=?")
-               ->execute([$id]);
+            try {
+                $db->prepare("UPDATE users SET email_resent_count=email_resent_count+1 WHERE user_id=?")
+                   ->execute([$id]);
+            } catch (\Exception $e) {
+                // Column may not exist — safe to ignore
+            }
         }
         echo json_encode(['ok'=>$sent,'msg'=>$sent?'Welcome email resent.':'Failed to resend email. Check mail config.']);exit;
+    }
+    if ($action === 'import') {
+        if (!isset($_FILES['csv']) || $_FILES['csv']['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['ok' => false, 'msg' => 'No file uploaded or upload error.']); exit;
+        }
+        $file = $_FILES['csv']['tmp_name'];
+        if (!is_uploaded_file($file)) { echo json_encode(['ok' => false, 'msg' => 'Invalid file.']); exit; }
+
+        $handle = fopen($file, 'r');
+        $headers = fgetcsv($handle); // Assume first row is headers: full_name, username, email, role, [password]
+        
+        $success = 0; $failed = 0; $errors = []; $usersCreated = 0;
+        $validRoles = ['admin', 'school_head', 'teacher', 'sdo', 'ro', 'external_stakeholder'];
+
+        while (($row = fgetcsv($handle)) !== FALSE) {
+            if (count($row) < 4) { $failed++; continue; }
+            [$fullName, $username, $email, $role] = array_map('trim', array_slice($row, 0, 4));
+            $password = isset($row[4]) ? trim($row[4]) : null;
+
+            if (!in_array($role, $validRoles)) { $failed++; $errors[] = "Invalid role for $username"; continue; }
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { $failed++; $errors[] = "Invalid email for $username"; continue; }
+
+            try {
+                $hashedPw = $password ? password_hash($password, PASSWORD_DEFAULT) : null;
+                $status = $password ? 'active' : 'inactive';
+                
+                $st = $db->prepare("INSERT INTO users (username, password, email, full_name, role, status, school_id) VALUES (?,?,?,?,?,?,?)");
+                $st->execute([$username, $hashedPw, $email, $fullName, $role, $status, SCHOOL_ID]);
+                
+                $newId = $db->lastInsertId();
+                $success++;
+
+                if (!$password) {
+                    require_once __DIR__ . '/../includes/email_service.php';
+                    sendAccountCreationEmail($db, ['user_id' => $newId, 'full_name' => $fullName, 'email' => $email]);
+                }
+            } catch (Exception $e) {
+                $failed++;
+                $errors[] = "Error creating $username: " . $e->getMessage();
+            }
+        }
+        fclose($handle);
+        logActivity('import_users', 'users', "Imported $success users, $failed failed.");
+        echo json_encode(['ok' => true, 'msg' => "Import complete. $success success, $failed failed.", 'errors' => $errors]);
+        exit;
     }
     exit;
 }
@@ -135,6 +184,7 @@ $roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'
     <div class="ph2-sub">Manage all portal accounts across roles — <?= $activeUsers ?> active users.</div>
   </div>
   <div class="ph2-right">
+    <button class="btn btn-secondary" onclick="openModal('mImport')"><?= svgIcon('upload') ?> Import CSV</button>
     <button class="btn btn-primary" onclick="openModal('mCreate')"><?= svgIcon('plus') ?> Add User</button>
   </div>
 </div>
@@ -307,6 +357,127 @@ $roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'
   </div>
 </div>
 
+<!-- Import Modal -->
+<div class="overlay" id="mImport">
+  <div class="modal" style="max-width:520px;width:100%;border-radius:12px;overflow:hidden;">
+
+    <!-- Header -->
+    <div class="modal-head" style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid var(--n-100);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:34px;height:34px;border-radius:8px;background:var(--brand-50);border:1px solid var(--brand-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--brand-600)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:600;color:var(--n-900);line-height:1.2;">Bulk Import Users</div>
+          <div style="font-size:12px;color:var(--n-400);margin-top:2px;">Upload a CSV file to create multiple accounts</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal('mImport')" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--n-200);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--n-500)" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body" style="padding:20px 24px;">
+
+      <!-- CSV Format Info -->
+      <div style="background:var(--n-50);border-radius:8px;border:1px solid var(--n-100);padding:14px 16px;margin-bottom:18px;">
+        <div style="font-size:11px;font-weight:600;color:var(--n-400);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Required CSV format</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <?php foreach(['full_name','username','email','role'] as $col): ?>
+          <span style="font-size:12px;font-family:monospace;background:#fff;border:1px solid var(--n-200);border-radius:4px;padding:3px 9px;color:var(--n-700);"><?= $col ?></span>
+          <?php endforeach; ?>
+          <span style="font-size:12px;font-family:monospace;background:#fff;border:1px solid var(--n-100);border-radius:4px;padding:3px 9px;color:var(--n-400);font-style:italic;">password <span style="font-size:10px;">(optional)</span></span>
+        </div>
+        <div style="border-top:1px solid var(--n-100);padding-top:10px;">
+          <div style="font-size:11px;color:var(--n-400);font-weight:600;margin-bottom:7px;">Valid roles</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            <?php foreach(['admin','school_head','teacher','sdo','ro','external_stakeholder'] as $r): ?>
+            <span style="font-size:11px;background:#fff;border:1px solid var(--n-200);border-radius:999px;padding:2px 9px;color:var(--n-500);"><?= $r ?></span>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drop Zone -->
+      <div id="importDropZone"
+           style="border:1.5px dashed var(--n-200);border-radius:8px;padding:30px 20px;text-align:center;cursor:pointer;transition:border-color 0.15s,background 0.15s;position:relative;"
+           onclick="document.getElementById('csvFile').click()"
+           ondragover="event.preventDefault();this.style.borderColor='var(--brand-500)';this.style.background='var(--brand-50)';"
+           ondragleave="this.style.borderColor='var(--n-200)';this.style.background='transparent';"
+           ondrop="importHandleDrop(event)">
+
+        <!-- Idle state -->
+        <div id="importDropIdle">
+          <div style="width:44px;height:44px;border-radius:8px;background:var(--n-50);border:1px solid var(--n-100);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--n-400)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/>
+              <line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--n-700);margin-bottom:5px;">Drop your CSV file here</div>
+          <div style="font-size:12px;color:var(--n-400);">or <span style="color:var(--brand-600);text-decoration:underline;text-underline-offset:2px;">browse to upload</span></div>
+          <div style="font-size:11px;color:var(--n-300);margin-top:6px;">.csv files only</div>
+        </div>
+
+        <!-- Selected state -->
+        <div id="importDropSelected" style="display:none;">
+          <div style="width:44px;height:44px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <polyline points="9 12 11 14 15 10"/>
+            </svg>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;">
+            <span id="importFileName" style="font-size:13px;font-weight:600;color:var(--n-700);"></span>
+            <button onclick="event.stopPropagation();importClearFile()"
+                    style="width:18px;height:18px;border-radius:50%;border:1px solid var(--n-200);background:var(--n-100);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--n-400)" stroke-width="3" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <div id="importFileSize" style="font-size:11px;color:var(--n-400);"></div>
+        </div>
+
+        <input type="file" id="csvFile" accept=".csv" style="position:absolute;opacity:0;width:0;height:0;" onchange="importHandleFile(this.files[0])">
+      </div>
+
+      <!-- Note -->
+      <div style="display:flex;align-items:flex-start;gap:7px;margin-top:13px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--n-300)" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:2px;">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span style="font-size:12px;color:var(--n-400);line-height:1.5;">Users without a password will receive a setup link via email. Leave the password column blank or omit it entirely.</span>
+      </div>
+    </div>
+
+    <div class="modal-foot" style="border-top:1px solid var(--n-100);">
+      <button class="btn btn-secondary" onclick="closeModal('mImport')">Cancel</button>
+      <button id="importSubmitBtn" class="btn btn-primary" onclick="importUsers()" disabled
+              style="opacity:0.45;cursor:not-allowed;display:flex;align-items:center;gap:7px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Upload &amp; Import
+      </button>
+    </div>
+
+  </div>
+</div>
+
 <script>
 const escH=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const roleColors={admin:'#7C3AED',school_head:'#2563EB',teacher:'#0D9488',sdo:'#D97706',ro:'#DC2626',external_stakeholder:'#16A34A'};
@@ -332,7 +503,6 @@ async function createUser(){
       <td><div class="cell-avatar"><div class="cell-av" style="background:${rc};">${initials}</div><div class="cell-av-info"><div class="cell-av-name">${escH(r.user.full_name)}</div><div class="cell-av-sub">${escH(r.user.email)}</div></div></div></td>
       <td style="font-family:monospace;font-size:12px;color:var(--n-500);">${escH(r.user.username)}</td>
       <td><span style="display:inline-flex;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:${rc}18;color:${rc};">${escH(r.user.role.replace(/_/g,' ')).replace(/\b\w/g,c=>c.toUpperCase())}</span></td>
-      <td style="font-size:12.5px;">${escH(r.user.school)}</td>
       <td><span style="display:inline-flex;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:${statusBg};color:${statusClr};">${statusLabel}</span></td>
       <td style="font-size:12px;color:var(--red);">Never</td>
       <td><div class="flex-c" style="gap:4px;"><button class="btn btn-secondary btn-sm" onclick="editUser(${r.user.id})">${svgI('edit')}</button>${!isActive?`<button class="btn btn-blue btn-sm" onclick="resendEmail(${r.user.id})" title="Resend welcome email">${svgI('send')}</button>`:''}<button class="btn btn-danger btn-sm" onclick="delUser(${r.user.id},'${escH(r.user.full_name)}',this)">${svgI('trash')}</button></div></td>`;
@@ -363,5 +533,76 @@ async function delUser(id,name,btn){
   toast(r.msg,r.ok?'ok':'err');
   if(r.ok)btn?.closest('tr')?.remove();
 }
+async function importUsers() {
+    const file = document.getElementById('csvFile').files[0];
+    if (!file) { toast('Please select a CSV file.', 'err'); return; }
+    
+    const formData = new FormData();
+    formData.append('action', 'import');
+    formData.append('csv', file);
+    formData.append('csrf_token', '<?= csrfToken() ?>');
+
+    toast('Importing users... please wait.', 'info');
+    
+    try {
+        const response = await fetch('users.php', { method: 'POST', body: formData });
+        const r = await response.json();
+        toast(r.msg, r.ok ? 'ok' : 'err');
+        if (r.ok) {
+            closeModal('mImport');
+            if (r.errors && r.errors.length > 0) {
+                console.error('Import errors:', r.errors);
+                alert('Some rows had errors:\n' + r.errors.join('\n'));
+            }
+            setTimeout(() => location.reload(), 1500);
+        }
+    } catch (e) {
+        toast('Upload failed.', 'err');
+    }
+}
+
+// Auto-open create modal if action=create is in URL
+window.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('action') === 'create') {
+    openModal('mCreate');
+  }
+});
+
+function importHandleFile(file) {
+  if (!file) return;
+  document.getElementById('importDropIdle').style.display = 'none';
+  document.getElementById('importDropSelected').style.display = 'block';
+  document.getElementById('importFileName').textContent = file.name;
+  document.getElementById('importFileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+  const btn = document.getElementById('importSubmitBtn');
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.style.cursor = 'pointer';
+}
+function importClearFile() {
+  document.getElementById('importDropIdle').style.display = 'block';
+  document.getElementById('importDropSelected').style.display = 'none';
+  document.getElementById('csvFile').value = '';
+  const btn = document.getElementById('importSubmitBtn');
+  btn.disabled = true;
+  btn.style.opacity = '0.45';
+  btn.style.cursor = 'not-allowed';
+}
+function importHandleDrop(event) {
+  event.preventDefault();
+  const dz = document.getElementById('importDropZone');
+  dz.style.borderColor = 'var(--n-200)';
+  dz.style.background = 'transparent';
+  const file = event.dataTransfer.files[0];
+  if (file && file.name.endsWith('.csv')) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('csvFile').files = dt.files;
+    importHandleFile(file);
+  }
+}
+
+// Auto-open create modal if action=create is in URL
 </script>
 <?php include __DIR__.'/../includes/footer.php'; ?>

@@ -63,13 +63,10 @@ include __DIR__.'/../includes/header.php';
 <?php if (!$reportData): ?>
 <div class="card">
   <div class="card-body" style="text-align:center;padding:40px 40px;">
-    <div style="font-size:36px;margin-bottom:12px;">📊</div>
     <h3 style="font-size:16px;font-weight:600;color:var(--n-600);margin-bottom:6px;">Select a School Year</h3>
     <p style="font-size:13px;color:var(--n-400);">Choose a school year above to generate the Annex A report for DIHS.</p>
   </div>
 </div>
-<?php elseif(!$reportData): ?>
-<div class="alert alert-warning"><?= svgIcon('alert-circle') ?> No assessment data found for this school and school year.</div>
 <?php else: ?>
 <?php include __DIR__.'/../includes/report_annex_a.php'; ?>
 <?php endif; ?>

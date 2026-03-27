@@ -11,7 +11,8 @@ $dimAvg = $db->prepare("
          ROUND(AVG(ds.percentage),1) avg_pct
   FROM sbm_dimensions d
   LEFT JOIN sbm_dimension_scores ds ON d.dimension_id=ds.dimension_id
-  LEFT JOIN sbm_cycles c ON ds.cycle_id=c.cycle_id AND c.sy_id=? AND c.school_id=?
+  LEFT JOIN sbm_cycles c ON ds.cycle_id=c.cycle_id
+  WHERE c.sy_id=? AND c.school_id=?
   GROUP BY d.dimension_id ORDER BY d.dimension_no
 ");
 $dimAvg->execute([$syId, SCHOOL_ID]); $dimAvgs = $dimAvg->fetchAll();
@@ -47,7 +48,7 @@ $allPcts = array_filter(array_column($dimAvgs,'avg_pct'), fn($v) => $v !== null)
 $avgOverall = count($allPcts) > 0 ? round(array_sum($allPcts)/count($allPcts),1) : null;
 $topDim = !empty($allPcts) ? $dimAvgs[array_search(max($allPcts), array_column($dimAvgs,'avg_pct'))] : null;
 $weakDim = !empty($allPcts) ? $dimAvgs[array_search(min($allPcts), array_column($dimAvgs,'avg_pct'))] : null;
-$schoolsWithData = max(array_column($dimAvgs,'school_count') ?: [0]);
+$schoolsWithData = 1; // Single-school system (DIHS)
 
 $pageTitle = 'Analytics'; $activePage = 'analytics.php';
 include __DIR__.'/../includes/header.php';
@@ -142,13 +143,13 @@ include __DIR__.'/../includes/header.php';
   <!-- Top Schools -->
   <div class="card">
     <div class="card-head">
-      <span class="card-title">Assessment History — DIHS</span>
+      <span class="card-title">Assessment History</span>
       <span style="font-size:12px;color:var(--n-400);"><?= count($topSchools) ?> cycle(s)</span>
     </div>
     <?php if($topSchools): ?>
     <div class="tbl-wrap">
       <table class="tbl-enhanced">
-        <thead><tr><th>#</th><th>School</th><th>Score</th><th>Maturity</th></tr></thead>
+        <thead><tr><th>#</th><th>Year</th><th>Score</th><th>Maturity</th></tr></thead>
         <tbody>
         <?php foreach($topSchools as $i => $sc):
           $mat = sbmMaturityLevel(floatval($sc['overall_score']));
@@ -158,8 +159,8 @@ include __DIR__.'/../includes/header.php';
             <span style="width:22px;height:22px;border-radius:6px;background:<?= $i===0?'#FEF3C7':($i===1?'#F3F4F6':'var(--n-100)') ?>;color:<?= $i===0?'#B45309':($i===1?'#6B7280':'var(--n-600)') ?>;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;"><?= $i+1 ?></span>
           </td>
           <td>
-            <div style="font-size:13px;font-weight:600;color:var(--n-900);"><?= e($sc['school_name']) ?></div>
-            <div style="font-size:11.5px;color:var(--n-400);"><?= e($sc['classification']) ?></div>
+            <div style="font-size:13px;font-weight:600;color:var(--n-900);">SY <?= e($sc['school_name']) ?></div>
+            <div style="font-size:11.5px;color:var(--n-400);">Dasmariñas Integrated HS</div>
           </td>
           <td>
             <div class="score-bar-cell">

@@ -66,11 +66,12 @@ function sendAccountCreationEmail(PDO $db, array $user): bool {
 
         return true;
     } catch (Exception $e) {
+        $errMsg = $mail->ErrorInfo ?: $e->getMessage();
         $db->prepare("INSERT INTO email_logs
                         (user_id, email_type, recipient_email, status, error_message)
                       VALUES (?, 'account_creation', ?, 'failed', ?)")
-           ->execute([$user['user_id'], $user['email'], $mail->ErrorInfo]);
-        error_log('SBM Email Error: ' . $mail->ErrorInfo);
+           ->execute([$user['user_id'], $user['email'], $errMsg]);
+        error_log('SBM Email Error: ' . $errMsg);
         return false;
     }
 }
@@ -108,9 +109,7 @@ function buildWelcomeEmailHtml(string $name, string $email,
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
               <tr>
                 <td align="center" style="padding-bottom:16px;">
-                  <div style="display:inline-flex;align-items:center;justify-content:center;background:#FFFFFF;border-radius:50%;width:80px;height:80px;overflow:hidden;border:3px solid rgba(255,255,255,0.25);">
-    <img src="cid:school_logo_cid" width="72" height="72" alt="DIHS Logo" style="display:block;object-fit:contain;">
-  </div>
+                  <div style="display:inline-flex;align-items:center;justify-content:center;background:#FFFFFF;border-radius:50%;width:80px;height:80px;overflow:hidden;border:3px solid rgba(255,255,255,0.25);"><img src="cid:school_logo_cid" width="72" height="72" alt="DIHS Logo" style="display:block;object-fit:contain;"></div>
                 </td>
               </tr>
               <tr>

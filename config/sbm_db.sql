@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 25, 2026 at 04:03 PM
+-- Generation Time: Mar 27, 2026 at 04:36 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -311,7 +311,16 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (267, 1, 'create_user', 'users', 'Created: Charles', '::1', '2026-03-25 14:44:10'),
 (268, 1, 'create_user', 'users', 'Created: Charles Patrick', '::1', '2026-03-25 14:44:56'),
 (269, 1, 'create_user', 'users', 'Created: Jr', '::1', '2026-03-25 14:46:32'),
-(270, 1, 'create_user', 'users', 'Created: Rolito', '::1', '2026-03-25 14:58:37');
+(270, 1, 'create_user', 'users', 'Created: Rolito', '::1', '2026-03-25 14:58:37'),
+(271, 1, 'create_user', 'users', 'Created: Patrick', '::1', '2026-03-25 15:12:59'),
+(272, 1, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-03-25 15:15:19'),
+(273, 32, 'login', 'auth', 'User logged in', '::1', '2026-03-25 15:15:42'),
+(274, 32, 'update_user', 'users', 'Updated user ID:1', '::1', '2026-03-25 15:16:15'),
+(275, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-25 15:16:26'),
+(276, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-25 15:24:19'),
+(277, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-25 15:24:35'),
+(278, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-25 15:25:19'),
+(279, 15, 'login', 'auth', 'User logged in', '::1', '2026-03-25 15:34:26');
 
 -- --------------------------------------------------------
 
@@ -379,8 +388,7 @@ CREATE TABLE `email_logs` (
 --
 
 INSERT INTO `email_logs` (`log_id`, `user_id`, `email_type`, `recipient_email`, `status`, `error_message`, `sent_at`) VALUES
-(2, 26, 'account_creation', 'mendozacharles00@gmail.com', 'sent', NULL, '2026-03-25 14:58:42'),
-(3, 26, 'account_creation', 'mendozacharles00@gmail.com', 'sent', NULL, '2026-03-25 15:00:12');
+(4, 32, 'account_creation', 'ariascharles00@gmail.com', 'sent', NULL, '2026-03-25 15:13:04');
 
 -- --------------------------------------------------------
 
@@ -681,8 +689,7 @@ CREATE TABLE `password_setup_tokens` (
 --
 
 INSERT INTO `password_setup_tokens` (`token_id`, `user_id`, `token`, `type`, `expires_at`, `used_at`, `created_at`) VALUES
-(8, 26, '1839a43e126db32de92d161da76e5d91cf62e3b89cddd7672a2c029ec8b24b43e92cc65a5ae916acbfe9218850cdca49', 'setup', '2026-03-27 22:58:37', '2026-03-25 23:00:07', '2026-03-25 14:58:37'),
-(9, 26, '88b79f23825812a6a78822d08829adf85f11c7c3b75faf9064b023af92d4d3ef9c2d84b47cd690a58b50ca675ac314fd', 'setup', '2026-03-27 23:00:07', NULL, '2026-03-25 15:00:07');
+(10, 32, 'bab6735ae3553396c023a21b0b5808cf57f311b4104d4337c94b5372a9f72ca6f12da2fff3a742973d25bcfc5c6282e7', 'setup', '2026-03-27 23:12:59', '2026-03-25 23:15:19', '2026-03-25 15:12:59');
 
 -- --------------------------------------------------------
 
@@ -996,7 +1003,7 @@ CREATE TABLE `school_years` (
 --
 
 INSERT INTO `school_years` (`sy_id`, `label`, `is_current`, `date_start`, `date_end`) VALUES
-(1, '2024-2025', 1, '2024-06-03', '2025-04-04'),
+(1, '2024-2025', 0, '2024-06-03', '2025-04-04'),
 (2, '2025-2026', 1, '2025-06-20', '2026-04-22');
 
 -- --------------------------------------------------------
@@ -1343,14 +1350,14 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`) VALUES
-(1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@sbm.edu.ph', 'System Administrator', 'admin', 'active', NULL, '2026-03-25 21:52:09', '2026-03-11 16:18:35', 0, NULL, NULL, NULL, 0),
+(1, 'admin', '$2y$10$CktH/GuB4WyKWCOMOz4pFeatVYNEFLBWmTabvVpWp/nfif0hyVbrm', 'admin@sbm.edu.ph', 'System Administrator', 'admin', 'active', NULL, '2026-03-25 23:24:35', '2026-03-11 16:18:35', 0, NULL, NULL, NULL, 0),
 (2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, '2026-03-25 19:36:27', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0),
-(5, 'Ryza E.', '$2y$10$uNsxRtmZILkMBaV3EfXdtuIfTTvSp0ZCctNKLtjeoZ9N9MNEjvrV6', 'rmevangelio@dihs.edu.ph', 'Ryza Evangelio', 'school_head', 'active', 1, '2026-03-25 21:40:57', '2026-03-11 16:35:49', 0, NULL, NULL, NULL, 0),
+(5, 'Ryza E.', '$2y$10$uNsxRtmZILkMBaV3EfXdtuIfTTvSp0ZCctNKLtjeoZ9N9MNEjvrV6', 'rmevangelio@dihs.edu.ph', 'Ryza Evangelio', 'school_head', 'active', 1, '2026-03-25 23:25:19', '2026-03-11 16:35:49', 0, NULL, NULL, NULL, 0),
 (12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, '2026-03-20 10:20:07', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0),
 (13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, '2026-03-16 21:10:06', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0),
 (14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, '2026-03-16 21:08:26', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0),
-(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, '2026-03-25 21:46:30', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0),
-(26, 'Rolito', NULL, 'mendozacharles00@gmail.com', 'Rolito Jr', 'admin', 'inactive', 1, NULL, '2026-03-25 14:58:37', 0, NULL, NULL, '2026-03-25 23:00:12', 1);
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, '2026-03-25 23:34:26', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0),
+(32, 'Patrick', '$2y$10$67UbqyKHU6ZgRA/gc29v1eKjO2CEx0P9G.Vp3O9OH8DcQXfTSwBdm', 'ariascharles00@gmail.com', 'Charles Patrick Arias', 'admin', 'active', 1, '2026-03-25 23:15:42', '2026-03-25 15:12:59', 0, NULL, NULL, '2026-03-25 23:13:04', 0);
 
 -- --------------------------------------------------------
 
@@ -1656,7 +1663,7 @@ ALTER TABLE `workflow_checkpoints`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=271;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=280;
 
 --
 -- AUTO_INCREMENT for table `announcements`
@@ -1674,7 +1681,7 @@ ALTER TABLE `divisions`
 -- AUTO_INCREMENT for table `email_logs`
 --
 ALTER TABLE `email_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `grading_periods`
@@ -1716,7 +1723,7 @@ ALTER TABLE `ml_training_snapshots`
 -- AUTO_INCREMENT for table `password_setup_tokens`
 --
 ALTER TABLE `password_setup_tokens`
-  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `regions`
@@ -1824,7 +1831,7 @@ ALTER TABLE `technical_assistance`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `workflow_checkpoints`

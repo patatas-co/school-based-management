@@ -20,9 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['username']   = $row['username'];
             $_SESSION['full_name']  = $row['full_name'];
             $_SESSION['role']       = $row['role'];
-            $_SESSION['school_id']  = $row['school_id'];
-            $_SESSION['division_id'] = $row['division_id'];
-            $_SESSION['region_id']   = $row['region_id'];
+            $_SESSION['school_id']   = $row['school_id'];
+            // division_id and region_id are not in the users table; resolve via school if needed
+            $_SESSION['division_id'] = null;
+            $_SESSION['region_id']   = null;
 
             if (password_needs_rehash($row['password'], PASSWORD_DEFAULT)) {
                 try {

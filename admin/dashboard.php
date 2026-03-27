@@ -714,7 +714,7 @@ include __DIR__.'/../includes/header.php';
             </div>
             Add User
           </a>
-          <a href="admin/school_profile.php" class="quick-action-btn">
+          <a href="school_profile.php" class="quick-action-btn">
             <div class="quick-action-icon" style="background:var(--brand-100);color:var(--brand-700);">
               <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </div>
@@ -920,7 +920,7 @@ new Chart(document.getElementById('dimBarChart'), {
 // ── Live polling ─────────────────────────────────────────────
 async function pollUpdates() {
   try {
-    const res = await fetch('<?= baseUrl() ?>/includes/poll.php');
+    const res = await fetch('<?= $__base ?>/includes/poll.php');
     if (!res.ok) return;
     const d = await res.json();
     if (d.schools   !== undefined) liveSet('total-schools', d.schools);

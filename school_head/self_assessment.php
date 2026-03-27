@@ -58,10 +58,10 @@ $cycleRow->execute([$schoolId,$syId]); $cycleRow = $cycleRow->fetch();
                     throw $e;
                 }
             }
-            if (!$cycleId) {
-                echo json_encode(['ok'=>false,'msg'=>'Failed to initialize assessment cycle. Please refresh and try again.']);
-                exit;
-            }
+            if (empty($cycleId)) {
+    echo json_encode(['ok'=>false,'msg'=>'Failed to initialize assessment cycle. Please refresh and try again.']);
+    exit;
+}
 } else {
             $cycleId = $cycleRow['cycle_id'];
             if ((int)$cycleRow['school_id'] !== (int)$schoolId) {

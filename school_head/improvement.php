@@ -1016,7 +1016,7 @@ async function regenerateML() {
   if (r.ok) setTimeout(() => location.reload(), 800);
   else if (btn) {
     btn.disabled = false;
-    btn.textContent = 'Regenerate AI Report';
+    btn.innerHTML = `${svgI('refresh-cw')} Regenerate AI Report`;
   }
 }
 </script>
