@@ -671,8 +671,17 @@ body::before {
           </div>
         </div>
 
-        <div class="field">
-          <label>Password</label>
+         <div class="field">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
+            <label for="password" style="margin-bottom:0;">Password</label>
+            <a href="forgot_password.php"
+               style="font-size:12px;font-weight:600;color:var(--green);text-decoration:none;
+                      transition:opacity .15s;"
+               onmouseover="this.style.opacity='.7'"
+               onmouseout="this.style.opacity='1'">
+              Forgot password?
+            </a>
+          </div>
           <div class="field-wrap">
             <span class="field-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -681,7 +690,7 @@ body::before {
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
             </span>
-            <input class="fc" type="password" name="password"
+            <input class="fc" type="password" id="password" name="password"
                    placeholder="Enter your password" required>
           </div>
         </div>
