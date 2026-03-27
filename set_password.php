@@ -67,6 +67,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenRow) {
     }
 }
 
+// ── Handle "resend reset link" request ───────────────────────────────────
+$resent      = isset($_GET['resent']) && $_GET['resent'] === '1';
+$resentError = '';
+if (isset($_GET['resend']) && $mode === 'reset' && $token) {
+    require_once __DIR__ . '/includes/email_service.php';
+    $st = $db->prepare(
+        "SELECT u.user_id, u.email, u.full_name
+         FROM password_setup_tokens pst
+         JOIN users u ON pst.user_id = u.user_id
+         WHERE pst.token = ? AND pst.type = 'reset'
+         LIMIT 1"
+    );
+    $st->execute([$token]);
+    $oldTokenRow = $st->fetch();
+
+    if ($oldTokenRow) {
+        $sent = sendPasswordResetEmail($db, $oldTokenRow);
+        if ($sent) {
+            // Redirect to a clean URL so the old token is no longer in the address bar
+            header('Location: ' . baseUrl() . '/set_password.php?mode=reset&resent=1');
+            exit;
+        }
+        $resentError = 'Failed to send email. Please try again later.';
+    } else {
+        $resentError = 'Could not identify the account for this link.';
+    }
+}
+
 // ── Page copy based on mode ───────────────────────────────────────────────
 $pageTitle    = $mode === 'reset' ? 'Reset Password'    : 'Set Your Password';
 $cardHeading  = $mode === 'reset' ? 'Reset Password'    : 'Set Your Password';
@@ -83,356 +111,731 @@ $successMsg   = $mode === 'reset'
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= e($pageTitle) ?> — DIHS SBM Portal</title>
+  <link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
+  <title><?= e($pageTitle) ?> — <?= e(SITE_NAME) ?></title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    <style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --green-950: #052e16;
-      --green-900: #0D5C28;
-      --green-700: #15803D;
-      --green-600: #16A34A;
-      --green-100: #DCFCE7;
-      --green-50:  #F0FDF4;
-      --gray-900:  #111827;
-      --gray-700:  #374151;
-      --gray-500:  #6B7280;
-      --gray-300:  #D1D5DB;
-      --gray-100:  #F3F4F6;
-      --red-600:   #DC2626;
-      --red-50:    #FEF2F2;
-      --red-200:   #FECACA;
-    }
+:root {
+  --navy:  #14532D;
+  --green: #16A34A;
+  --g50:   #F0FDF4;
+  --g100:  #DCFCE7;
+  --g200:  #BBF7D0;
+  --g300:  #86EFAC;
+  --g700:  #15803D;
+  --dark:  #0D1117;
+  --mid:   #4B5563;
+  --light: #9CA3AF;
+  --n200:  #E5E7EB;
+  --n100:  #F3F4F6;
+  --red:   #DC2626;
+  --redb:  #FEE2E2;
+  --white: #FFFFFF;
+  --font:  'DM Sans', sans-serif;
+  --serif: 'Instrument Serif', Georgia, serif;
+}
 
-    html, body {
-      height: 100%;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font);
+  background: var(--white);
+  color: var(--dark);
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg,#166534 0%,#22C55E 40%,#FFD700 70%,#CE1126 100%);
+  z-index: 999;
+}
 
-    body::before {
-      content: '';
-      position: fixed; top:0; left:0; right:0; height:3px;
-      background: linear-gradient(90deg,#166534 0%,#22C55E 40%,#FFD700 70%,#CE1126 100%);
-      z-index: 999;
-    }
+/* ── Layout ── */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
 
-    .page-bg {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px 16px;
-      background: linear-gradient(150deg, #052e16 0%, #0D5C28 45%, #15803D 100%);
-      position: relative;
-      overflow: hidden;
-    }
+/* ── Left panel — mirrors login.php ── */
+.panel-left {
+  position: relative;
+  background: #0A0F0A;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 56px 64px;
+}
 
-    .page-bg::before, .page-bg::after {
-      content: '';
-      position: absolute;
-      border-radius: 50%;
-      opacity: .07;
-      pointer-events: none;
-    }
-    .page-bg::before { width:600px; height:600px; background:#22C55E; top:-180px; right:-180px; }
-    .page-bg::after  { width:400px; height:400px; background:#22C55E; bottom:-120px; left:-120px; }
+.panel-left::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(ellipse at 10% 15%, rgba(22,163,74,.22) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 85%, rgba(22,163,74,.14) 0%, transparent 45%);
+  pointer-events: none;
+}
 
-    /* ── Card ── */
-    .card {
-      background: #fff;
-      border-radius: 18px;
-      width: 100%; max-width: 460px;
-      box-shadow: 0 0 0 1px rgba(0,0,0,.04), 0 8px 40px rgba(0,0,0,.22), 0 2px 8px rgba(0,0,0,.12);
-      overflow: hidden;
-      position: relative; z-index: 1;
-    }
+.panel-left::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
 
-    .card-header {
-      background: linear-gradient(150deg,#052e16 0%,#0D5C28 60%,#16A34A 100%);
-      padding: 32px 36px 28px;
-      text-align: center;
-    }
+.left-body {
+  position: relative;
+  z-index: 1;
+  margin-top: auto;
+  margin-bottom: auto;
+  padding-top: 40px;
+}
 
-    .logo-wrap {
-      display: inline-flex;
-      align-items: center; justify-content: center;
-      width: 72px; height: 72px;
-      background: rgba(255,255,255,.9);
-      border-radius: 50%;
-      margin-bottom: 16px;
-      padding: 4px;
-      box-shadow: 0 4px 12px rgba(0,0,0,.15);
-      border: 2px solid rgba(255,255,255,.2);
-    }
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--g300);
+  margin-bottom: 22px;
+  opacity: 0;
+  animation: fadeUp .6s .25s ease forwards;
+}
 
-    .logo-wrap img { width:100%; height:100%; object-fit:contain; }
+.eyebrow::before, .eyebrow::after {
+  content: '';
+  display: block;
+  width: 20px; height: 1px;
+  background: var(--g300);
+  opacity: .5;
+}
 
-    .card-header h1 { color:#fff; font-size:17px; font-weight:700; margin-bottom:4px; }
-    .card-header p  { color:rgba(255,255,255,.65); font-size:12.5px; }
+.headline {
+  font-family: var(--serif);
+  font-size: clamp(38px,4vw,56px);
+  font-weight: 400;
+  color: #fff;
+  line-height: 1.08;
+  letter-spacing: -1.5px;
+  margin-bottom: 18px;
+  opacity: 0;
+  animation: fadeUp .7s .35s ease forwards;
+}
 
-    .card-body   { padding: 32px 36px 36px; }
-    .card-footer {
-      background: var(--gray-100);
-      padding: 14px 36px;
-      text-align: center;
-      border-top: 1px solid #E5E7EB;
-    }
-    .card-footer p { font-size:11.5px; color:var(--gray-500); }
-    .card-footer a { color:var(--green-700); text-decoration:none; font-weight:500; }
-    .card-footer a:hover { text-decoration:underline; }
+.headline em { font-style: italic; color: var(--g300); }
 
-    /* ── Section head ── */
-    .section-title    { font-size:18px; font-weight:700; color:var(--green-900); margin-bottom:4px; }
-    .section-subtitle { font-size:13.5px; color:var(--gray-500); margin-bottom:24px; line-height:1.6; }
+.sub {
+  font-size: 15px;
+  font-weight: 300;
+  color: rgba(255,255,255,.45);
+  line-height: 1.75;
+  max-width: 340px;
+  opacity: 0;
+  animation: fadeUp .7s .45s ease forwards;
+}
 
-    /* ── Mode badge ── */
-    .mode-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      padding: 4px 10px;
-      border-radius: 999px;
-      margin-bottom: 18px;
-    }
+.left-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 44px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding-top: 28px;
+  position: relative; z-index: 1;
+  opacity: 0;
+  animation: fadeUp .6s .55s ease forwards;
+}
 
-    .mode-badge.reset { background:#EFF6FF; border:1px solid #BFDBFE; color:#1D4ED8; }
-    .mode-badge.setup { background:var(--green-50); border:1px solid #BBF7D0; color:var(--green-700); }
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
 
-    /* ── User pill ── */
-    .user-pill {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: var(--green-50);
-      border: 1px solid #BBF7D0;
-      border-radius: 10px;
-      padding: 12px 16px;
-      margin-bottom: 24px;
-    }
+.step-num {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: rgba(22,163,74,.15);
+  border: 1px solid rgba(22,163,74,.3);
+  color: var(--g300);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
 
-    .user-avatar {
-      width:38px; height:38px;
-      border-radius:10px;
-      background: linear-gradient(135deg,#16A34A,#0D5C28);
-      display:flex; align-items:center; justify-content:center;
-      flex-shrink:0;
-    }
+.step-text {
+  font-size: 13px;
+  color: rgba(255,255,255,.5);
+  line-height: 1.6;
+}
 
-    .user-info .name  { font-size:14px; font-weight:600; color:var(--green-900); line-height:1.3; }
-    .user-info .label { font-size:11.5px; color:var(--gray-500); font-weight:500; }
+.step-text strong { color: rgba(255,255,255,.75); font-weight: 500; }
 
-    /* ── Alerts ── */
-    .alert {
-      border-radius:9px;
-      padding:13px 16px;
-      font-size:13.5px;
-      margin-bottom:20px;
-      display:flex;
-      align-items:flex-start;
-      gap:10px;
-      line-height:1.55;
-    }
-    .alert svg { flex-shrink:0; margin-top:1px; }
-    .alert-error   { background:var(--red-50);  border:1px solid var(--red-200);  color:var(--red-600); }
-    .alert-expired { background:#FFF7ED; border:1px solid #FED7AA; color:#9A3412; }
+/* ── Right panel ── */
+.panel-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 56px 64px;
+  background: #FAFDFB;
+  position: relative;
+  overflow-y: auto;
+}
 
-    /* ── Form ── */
-    .form-group { margin-bottom:18px; }
+.form-wrap {
+  width: 100%;
+  max-width: 420px;
+  opacity: 0;
+  animation: fadeUp .7s .3s ease forwards;
+}
 
-    label {
-      display:block;
-      font-size:13px;
-      font-weight:600;
-      color:var(--gray-700);
-      margin-bottom:6px;
-      letter-spacing:.1px;
-    }
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mid);
+  text-decoration: none;
+  margin-bottom: 32px;
+  padding: 6px 12px 6px 0;
+  border-radius: 8px;
+  transition: all .2s ease;
+  border: 1px solid transparent;
+}
 
-    .input-wrap { position:relative; }
+.back-link:hover {
+  color: var(--green);
+  background: rgba(22,163,74,.05);
+  border-color: rgba(22,163,74,.1);
+  transform: translateX(-2px);
+}
 
-    .input-icon {
-      position:absolute;
-      left:13px; top:50%;
-      transform:translateY(-50%);
-      color:var(--gray-300);
-      pointer-events:none;
-      display:flex; align-items:center;
-    }
+.back-link svg { width: 15px; height: 15px; transition: transform .2s; }
+.back-link:hover svg { transform: translateX(-2px); }
 
-    input[type="password"] {
-      width:100%;
-      padding:11px 14px 11px 40px;
-      border:1.5px solid var(--gray-300);
-      border-radius:9px;
-      font-size:14.5px;
-      font-family:inherit;
-      color:var(--gray-900);
-      background:#fff;
-      outline:none;
-      transition:border-color .18s, box-shadow .18s;
-    }
+.form-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
+}
 
-    input[type="password"]:focus {
-      border-color:var(--green-600);
-      box-shadow:0 0 0 3px rgba(22,163,74,.12);
-    }
+.form-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+}
 
-    .hint { font-size:11.5px; color:var(--gray-500); margin-top:5px; }
+.form-eyebrow-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  background: rgba(22,163,74,.08);
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(22,163,74,.2);
+}
 
-    /* Strength bar */
-    .strength-wrap { height:4px; background:var(--gray-100); border-radius:4px; margin-top:8px; overflow:hidden; }
-    .strength-bar  { height:100%; border-radius:4px; width:0%; transition:width .3s, background-color .3s; }
+.form-title {
+  font-family: var(--serif);
+  font-size: 34px;
+  font-weight: 400;
+  color: var(--dark);
+  letter-spacing: -.5px;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
 
-    /* Requirements checklist */
-    .req-list {
-      list-style:none;
-      margin-top:10px;
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-    }
+.form-sub {
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--mid);
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
 
-    .req-item {
-      font-size:11.5px;
-      color:var(--gray-500);
-      display:flex;
-      align-items:center;
-      gap:4px;
-      transition:color .2s;
-    }
+/* Alert */
+.alert-err {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--redb);
+  border: 1px solid #FECACA;
+  color: var(--red);
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-size: 13.5px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
 
-    .req-item.met { color:var(--green-600); }
+.alert-err svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; }
 
-    .req-dot {
-      width:6px; height:6px;
-      border-radius:50%;
-      background:var(--gray-300);
-      flex-shrink:0;
-      transition:background .2s;
-    }
+/* Success state */
+.success-card {
+  background: var(--g50);
+  border: 1px solid var(--g200);
+  border-radius: 14px;
+  padding: 30px 28px;
+  text-align: center;
+}
 
-    .req-item.met .req-dot { background:var(--green-600); }
+.success-icon {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  background: var(--g100);
+  border: 2px solid var(--g200);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 18px;
+}
 
-    /* Submit button */
-    .btn-primary {
-      width:100%;
-      padding:13px 20px;
-      background:linear-gradient(135deg,var(--green-600) 0%,var(--green-700) 100%);
-      color:#fff;
-      border:none;
-      border-radius:9px;
-      font-size:15px;
-      font-weight:600;
-      font-family:inherit;
-      cursor:pointer;
-      margin-top:6px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
-      transition:opacity .15s, transform .15s, box-shadow .15s;
-      box-shadow:0 4px 12px rgba(22,163,74,.30);
-      letter-spacing:.1px;
-    }
+.success-card h3 {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--navy);
+  margin-bottom: 10px;
+  letter-spacing: -.3px;
+}
 
-    .btn-primary:hover { opacity:.92; transform:translateY(-1px); box-shadow:0 6px 18px rgba(22,163,74,.38); }
-    .btn-primary:active { transform:translateY(0); }
-    .btn-primary:disabled { opacity:.55; pointer-events:none; cursor:not-allowed; }
+.success-card p {
+  font-size: 13.5px;
+  color: var(--mid);
+  line-height: 1.7;
+  margin-bottom: 22px;
+}
 
-    /* Success block */
-    .success-block { text-align:center; padding:10px 0 8px; }
+.success-card .notice {
+  background: rgba(22,163,74,.07);
+  border: 1px solid rgba(22,163,74,.15);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  margin-bottom: 22px;
+}
 
-    .success-icon-wrap {
-      width:68px; height:68px;
-      border-radius:50%;
-      background:var(--green-100);
-      display:flex; align-items:center; justify-content:center;
-      margin:0 auto 20px;
-      border:3px solid #BBF7D0;
-    }
+/* Field */
+.field { margin-bottom: 18px; }
 
-    .success-block h3 { font-size:19px; font-weight:700; color:var(--green-900); margin-bottom:8px; }
-    .success-block p  { font-size:14px; color:var(--gray-500); line-height:1.65; margin-bottom:28px; }
+.field label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 7px;
+  letter-spacing: .01em;
+}
 
-    .btn-login {
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      background:var(--green-900);
-      color:#fff;
-      text-decoration:none;
-      font-size:14.5px;
-      font-weight:600;
-      padding:12px 32px;
-      border-radius:9px;
-      transition:background .15s, transform .15s;
-      box-shadow:0 3px 10px rgba(13,92,40,.30);
-    }
+.field-wrap { position: relative; }
 
-    .btn-login:hover { background:var(--green-700); transform:translateY(-1px); }
+.field-icon {
+  position: absolute;
+  left: 13px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--light);
+  display: flex; align-items: center;
+  pointer-events: none;
+}
 
-    /* Expired block */
-    .expired-block { text-align:center; padding:8px 0; }
+.fc {
+  width: 100%;
+  padding: 12px 13px 12px 42px;
+  border: 1.5px solid var(--n200);
+  border-radius: 10px;
+  background: #fff;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--dark);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
 
-    .expired-icon-wrap {
-      width:68px; height:68px;
-      border-radius:50%;
-      background:#FFF7ED;
-      display:flex; align-items:center; justify-content:center;
-      margin:0 auto 20px;
-      border:3px solid #FED7AA;
-    }
+.fc:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(22,163,74,.12),0 1px 2px rgba(0,0,0,.04);
+}
 
-    .expired-block h3 { font-size:18px; font-weight:700; color:#92400E; margin-bottom:8px; }
-    .expired-block p  { font-size:13.5px; color:var(--gray-500); line-height:1.65; }
+.fc::placeholder { color: var(--light); }
 
-    .btn-outline {
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      border:1.5px solid var(--green-700);
-      color:var(--green-700);
-      text-decoration:none;
-      font-size:14px;
-      font-weight:600;
-      padding:10px 28px;
-      border-radius:9px;
-      margin-top:20px;
-      transition:background .15s, color .15s;
-    }
+/* Button */
+.btn-primary {
+  width: 100%;
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg,#15803D 0%,#166534 100%);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all .2s ease;
+  box-shadow: 0 2px 8px rgba(21,128,61,.35);
+  letter-spacing: .01em;
+  position: relative;
+  overflow: hidden;
+}
 
-    .btn-outline:hover { background:var(--green-50); }
+.btn-primary::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg,rgba(255,255,255,.1) 0%,transparent 60%);
+  pointer-events: none;
+}
 
-    @media (max-width:500px) {
-      .card-body   { padding:26px 24px 28px; }
-      .card-header { padding:26px 24px 22px; }
-      .card-footer { padding:13px 24px; }
-    }
-  </style>
+.btn-primary:hover {
+  background: linear-gradient(135deg,#166534 0%,#14532D 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(21,128,61,.3);
+}
+
+.btn-primary:active { transform: translateY(0); }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 11px;
+  border-radius: 10px;
+  border: 1.5px solid var(--n200);
+  background: #fff;
+  color: var(--mid);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all .2s;
+  margin-top: 10px;
+}
+
+.btn-secondary:hover {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--g50);
+}
+
+/* Loading state */
+.btn-primary.loading { opacity: .7; pointer-events: none; }
+
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+/* ── set_password extras ── */
+.form-group { margin-bottom: 18px; }
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 6px;
+  letter-spacing: .01em;
+}
+
+.input-wrap { position: relative; }
+
+.input-icon {
+  position: absolute;
+  left: 13px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--light);
+  pointer-events: none;
+  display: flex; align-items: center;
+}
+
+input[type="password"] {
+  width: 100%;
+  padding: 12px 13px 12px 42px;
+  border: 1.5px solid var(--n200);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--font);
+  color: var(--dark);
+  background: #fff;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+
+input[type="password"]:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(22,163,74,.12), 0 1px 2px rgba(0,0,0,.04);
+}
+
+.hint { font-size: 11.5px; color: var(--light); margin-top: 5px; }
+
+.strength-wrap { height: 4px; background: var(--n100); border-radius: 4px; margin-top: 8px; overflow: hidden; }
+.strength-bar  { height: 100%; border-radius: 4px; width: 0%; transition: width .3s, background-color .3s; }
+
+.req-list {
+  list-style: none;
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.req-item {
+  font-size: 11.5px;
+  color: var(--light);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color .2s;
+}
+
+.req-item.met { color: var(--green); }
+
+.req-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--n200);
+  flex-shrink: 0;
+  transition: background .2s;
+}
+
+.req-item.met .req-dot { background: var(--green); }
+
+.user-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--g50);
+  border: 1px solid var(--g200);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+}
+
+.user-avatar {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #16A34A, #166534);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-info .name  { font-size: 14px; font-weight: 600; color: var(--dark); line-height: 1.3; }
+.user-info .label { font-size: 11.5px; color: var(--light); font-weight: 500; }
+
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 18px;
+}
+
+.mode-badge.reset { background: #EFF6FF; border: 1px solid #BFDBFE; color: #1D4ED8; }
+.mode-badge.setup { background: var(--g50); border: 1px solid var(--g200); color: var(--g700); }
+
+.alert {
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-size: 13.5px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.55;
+}
+.alert svg { flex-shrink: 0; margin-top: 1px; }
+.alert-error   { background: var(--redb); border: 1px solid #FECACA; color: var(--red); }
+.alert-expired { background: #FFF7ED; border: 1px solid #FED7AA; color: #9A3412; }
+
+.success-block { text-align: center; padding: 10px 0 8px; width: 100%; }
+
+.success-icon-wrap {
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  background: var(--g100);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  border: 3px solid var(--g200);
+}
+
+.success-block h3 { font-family: var(--serif); font-size: 22px; font-weight: 400; color: var(--navy); margin-bottom: 8px; letter-spacing: -.3px; }
+.success-block p  { font-size: 14px; color: var(--mid); line-height: 1.65; margin-bottom: 28px; }
+
+.btn-login {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #15803D 0%, #166534 100%);
+  color: #fff;
+  text-decoration: none;
+  font-size: 14.5px;
+  font-weight: 600;
+  padding: 12px 32px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .15s, transform .15s, box-shadow .15s;
+  box-shadow: 0 2px 8px rgba(21,128,61,.35);
+}
+
+.btn-login:hover {
+  background: linear-gradient(135deg,#166534 0%,#14532D 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(21,128,61,.3);
+}
+
+.btn-login:active { transform: translateY(0); }
+
+.expired-block { text-align: center; padding: 8px 0; width: 100%; }
+
+.expired-icon-wrap {
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  background: #FFF7ED;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  border: 3px solid #FED7AA;
+}
+
+.expired-block h3 { font-size: 18px; font-weight: 700; color: #92400E; margin-bottom: 8px; }
+.expired-block p  { font-size: 13.5px; color: var(--mid); line-height: 1.65; }
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid var(--green);
+  color: var(--green);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 28px;
+  border-radius: 10px;
+  margin-top: 20px;
+  cursor: pointer;
+  transition: background .15s, color .15s, transform .15s, box-shadow .15s;
+}
+
+.btn-outline:hover {
+  background: var(--g50);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22,163,74,.15);
+}
+
+.btn-outline:active { transform: translateY(0); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .panel-left { display: none; }
+  .panel-right { padding: 40px 28px; }
+}
+</style>
 </head>
 <body>
 
-<div class="page-bg">
-  <div class="card">
+<div class="layout">
 
-    <!-- Header -->
-    <div class="card-header">
-      <div class="logo-wrap">
-        <img src="assets/seal.png" alt="DIHS School Seal">
-      </div>
-      <h1>DIHS SBM Portal</h1>
-      <p>Dasmariñas Integrated High School &nbsp;·&nbsp; DepEd Cavite</p>
+  <!-- ── LEFT PANEL ── -->
+  <div class="panel-left">
+    <div style="position:absolute;bottom:-60px;right:-60px;z-index:0;pointer-events:none;opacity:.04;filter:grayscale(1);">
+      <img src="assets/seal.png" alt="" style="width:380px;height:380px;object-fit:contain;">
     </div>
 
-    <!-- Body -->
-    <div class="card-body">
+    <div class="left-body">
+      <span class="eyebrow"><?= e(SITE_NAME) ?></span>
+      <h1 class="headline">
+        <?php if ($mode === 'reset'): ?>
+          Secure <em>Password</em><br>Reset
+        <?php else: ?>
+          Activate <em>Your</em><br>Account
+        <?php endif; ?>
+      </h1>
+      <p class="sub">
+        <?php if ($mode === 'reset'): ?>
+          Create a new secure password for your DIHS SBM Portal account. Your link expires in 30 minutes.
+        <?php else: ?>
+          Set a password to complete your account setup and gain access to the DIHS SBM Portal.
+        <?php endif; ?>
+      </p>
+
+      <div class="left-steps">
+        <?php if ($mode === 'reset'): ?>
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Enter a new password</strong><br>Choose something strong and memorable.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text"><strong>Confirm your password</strong><br>Re-enter to make sure it's correct.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text"><strong>Sign in</strong><br>Use your new credentials to access the portal.</div>
+        </div>
+        <?php else: ?>
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Set your password</strong><br>Create a secure password for your account.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text"><strong>Activate your account</strong><br>Your account goes live immediately.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text"><strong>Sign in</strong><br>Access the DIHS SBM Portal with your credentials.</div>
+        </div>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT PANEL ── -->
+  <div class="panel-right">
+    <div class="form-wrap">
 
       <?php if ($success): ?>
       <!-- ── Success ── -->
@@ -469,13 +872,27 @@ $successMsg   = $mode === 'reset'
         <p><?= e($error) ?></p>
 
         <?php if ($mode === 'reset'): ?>
-          <a href="<?= baseUrl() ?>/forgot_password.php" class="btn-outline">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="1 4 1 10 7 10"/>
-              <path d="M3.51 15a9 9 0 1 0 .49-3.45"/>
-            </svg>
-            Request a New Reset Link
-          </a>
+          <?php if ($resent): ?>
+            <div style="margin-top:20px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:14px 18px;text-align:center;">
+              <p style="color:#15803D;font-size:13.5px;font-weight:600;margin-bottom:2px;">Reset link sent!</p>
+              <p style="color:#6B7280;font-size:12.5px;">Check your email inbox for a new password reset link.</p>
+            </div>
+          <?php elseif ($resentError): ?>
+            <p style="margin-top:14px;font-size:13px;color:#DC2626;"><?= e($resentError) ?></p>
+            <a href="?token=<?= urlencode($token) ?>&mode=reset&resend=1" class="btn-outline" style="margin-top:12px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.45"/>
+              </svg>
+              Try Again
+            </a>
+          <?php else: ?>
+            <a href="?token=<?= urlencode($token) ?>&mode=reset&resend=1" class="btn-outline">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.45"/>
+              </svg>
+              Request a New Reset Link
+            </a>
+          <?php endif; ?>
         <?php else: ?>
           <p style="margin-top:12px;font-size:13px;color:var(--gray-500);">Please contact your School Administrator for a new invitation.</p>
         <?php endif; ?>
@@ -595,21 +1012,16 @@ $successMsg   = $mode === 'reset'
       </form>
       <?php endif; ?>
 
-    </div>
-
-    <!-- Footer -->
-    <div class="card-footer">
-      <p>
-        DIHS SBM Portal &mdash; Secure access
-        &nbsp;·&nbsp;
-        <a href="<?= baseUrl() ?>/login.php">Back to Login</a>
+    <div style="text-align:center;margin-top:22px;font-size:12px;color:var(--light);">
         <?php if ($mode === 'reset' && !$success && $tokenRow): ?>
-          &nbsp;·&nbsp;
-          <a href="<?= baseUrl() ?>/forgot_password.php">Request new link</a>
+          Need a new link?
+          <a href="<?= baseUrl() ?>/forgot_password.php" style="color:var(--green);font-weight:600;text-decoration:none;">Request one</a>
+        <?php else: ?>
+          <a href="<?= baseUrl() ?>/login.php" style="color:var(--green);font-weight:600;text-decoration:none;transition:opacity .2s;" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">Back to sign in</a>
         <?php endif; ?>
-      </p>
-    </div>
+      </div>
 
+    </div>
   </div>
 </div>
 

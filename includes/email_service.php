@@ -77,21 +77,31 @@ function sendAccountCreationEmail(PDO $db, array $user): bool {
 }
 
 function generateResetToken(PDO $db, int $userId): string {
-    $token     = bin2hex(random_bytes(48));   // 96 hex chars — cryptographically secure
-    $expiresAt = date('Y-m-d H:i:s', time() + 30 * 60);  // 30 minutes
+    $token     = bin2hex(random_bytes(48));
+    $expiresAt = date('Y-m-d H:i:s', time() + 30 * 60);
  
-    // Invalidate all previous unused reset tokens for this user
+    // Invalidate all previous unused reset tokens for this user FIRST
     $db->prepare(
         "UPDATE password_setup_tokens
          SET used_at = NOW()
          WHERE user_id = ? AND type = 'reset' AND used_at IS NULL"
     )->execute([$userId]);
  
-    // Insert the new token
+    // Insert the new token AFTER invalidating old ones
     $db->prepare(
         "INSERT INTO password_setup_tokens (user_id, token, type, expires_at)
          VALUES (?, ?, 'reset', ?)"
     )->execute([$userId, $token, $expiresAt]);
+
+    // Verify the token was actually saved correctly
+    $check = $db->prepare(
+        "SELECT token FROM password_setup_tokens 
+         WHERE token = ? AND used_at IS NULL AND expires_at > NOW()"
+    );
+    $check->execute([$token]);
+    if (!$check->fetch()) {
+        throw new \RuntimeException('Token generation failed — token not found after insert.');
+    }
  
     return $token;
 }
@@ -193,9 +203,11 @@ function buildResetEmailHtml(string $name, string $email,
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
               <tr>
                 <td align="center" style="padding-bottom:16px;">
-                  <div style="display:inline-flex;align-items:center;justify-content:center;background:#FFFFFF;border-radius:50%;width:80px;height:80px;overflow:hidden;border:3px solid rgba(255,255,255,0.25);">
-                    <img src="cid:school_logo_cid" width="72" height="72" alt="DIHS Logo" style="display:block;object-fit:contain;">
-                  </div>
+                  <table role="presentation" cellpadding="4" cellspacing="0" align="center" style="border-radius:50%;background:#FFFFFF;border:3px solid rgba(255,255,255,0.25);">
+  <tr><td align="center" valign="middle" width="72" height="72">
+    <img src="cid:school_logo_cid" width="64" height="64" alt="DIHS Logo" style="display:block;border-radius:50%;object-fit:contain;">
+  </td></tr>
+</table>
                 </td>
               </tr>
               <tr>
@@ -232,7 +244,7 @@ function buildResetEmailHtml(string $name, string $email,
                 <td align="center">
                   <a href="{$safeLink}"
                      style="display:inline-block;background:linear-gradient(135deg,#16A34A 0%,#15803D 100%);color:#FFFFFF;text-decoration:none;font-size:15px;font-weight:700;padding:15px 40px;border-radius:9px;letter-spacing:0.2px;box-shadow:0 4px 12px rgba(22,163,74,0.35);">
-                    &#x1F511;&nbsp; Reset My Password
+                    Reset My Password
                   </a>
                 </td>
               </tr>
@@ -355,7 +367,11 @@ function buildWelcomeEmailHtml(string $name, string $email,
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
               <tr>
                 <td align="center" style="padding-bottom:16px;">
-                  <div style="display:inline-flex;align-items:center;justify-content:center;background:#FFFFFF;border-radius:50%;width:80px;height:80px;overflow:hidden;border:3px solid rgba(255,255,255,0.25);"><img src="cid:school_logo_cid" width="72" height="72" alt="DIHS Logo" style="display:block;object-fit:contain;"></div>
+                  <table role="presentation" cellpadding="4" cellspacing="0" align="center" style="border-radius:50%;background:#FFFFFF;border:3px solid rgba(255,255,255,0.25);">
+  <tr><td align="center" valign="middle" width="72" height="72">
+    <img src="cid:school_logo_cid" width="64" height="64" alt="DIHS Logo" style="display:block;border-radius:50%;object-fit:contain;">
+  </td></tr>
+</table>
                 </td>
               </tr>
               <tr>
