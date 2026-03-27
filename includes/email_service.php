@@ -7,20 +7,16 @@ require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 function generateSetupToken(PDO $db, int $userId): string {
     $token     = bin2hex(random_bytes(48));
-    $expiresAt = date('Y-m-d H:i:s', 
+    $expiresAt = date('Y-m-d H:i:s',
         time() + ((int)($_ENV['SBM_TOKEN_EXPIRY_HOURS'] ?? 48) * 3600)
     );
-
-    // Invalidate any previous unused tokens
-    $db->prepare("UPDATE password_setup_tokens SET used_at=NOW() 
+    $db->prepare("UPDATE password_setup_tokens SET used_at=NOW()
                   WHERE user_id=? AND used_at IS NULL")
        ->execute([$userId]);
-
-    $db->prepare("INSERT INTO password_setup_tokens 
-                    (user_id, token, type, expires_at) 
+    $db->prepare("INSERT INTO password_setup_tokens
+                    (user_id, token, type, expires_at)
                   VALUES (?, ?, 'setup', ?)")
        ->execute([$userId, $token, $expiresAt]);
-
     return $token;
 }
 
@@ -47,6 +43,12 @@ function sendAccountCreationEmail(PDO $db, array $user): bool {
         );
         $mail->addAddress($user['email'], $user['full_name']);
 
+        // Embed the school logo
+        $logoPath = dirname(__DIR__) . '/assets/seal.png';
+        if (file_exists($logoPath)) {
+            $mail->addEmbeddedImage($logoPath, 'school_logo_cid', 'seal.png');
+        }
+
         $mail->isHTML(true);
         $mail->Subject = 'Your DIHS SBM Portal Account is Ready';
         $mail->Body    = $html;
@@ -55,20 +57,17 @@ function sendAccountCreationEmail(PDO $db, array $user): bool {
                        . "This link expires in $expiry.";
         $mail->send();
 
-        // Log success + update user record
         $db->prepare("UPDATE users SET email_sent_at=NOW() WHERE user_id=?")
            ->execute([$user['user_id']]);
-        $db->prepare("INSERT INTO email_logs 
-                        (user_id, email_type, recipient_email, status) 
+        $db->prepare("INSERT INTO email_logs
+                        (user_id, email_type, recipient_email, status)
                       VALUES (?, 'account_creation', ?, 'sent')")
            ->execute([$user['user_id'], $user['email']]);
 
         return true;
-
     } catch (Exception $e) {
-        // Log failure
-        $db->prepare("INSERT INTO email_logs 
-                        (user_id, email_type, recipient_email, status, error_message) 
+        $db->prepare("INSERT INTO email_logs
+                        (user_id, email_type, recipient_email, status, error_message)
                       VALUES (?, 'account_creation', ?, 'failed', ?)")
            ->execute([$user['user_id'], $user['email'], $mail->ErrorInfo]);
         error_log('SBM Email Error: ' . $mail->ErrorInfo);
@@ -76,63 +75,191 @@ function sendAccountCreationEmail(PDO $db, array $user): bool {
     }
 }
 
-function buildWelcomeEmailHtml(string $name, string $email, 
+function buildWelcomeEmailHtml(string $name, string $email,
                                string $link, string $expiry): string {
-    $safeName  = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+    $safeName  = htmlspecialchars($name,  ENT_QUOTES, 'UTF-8');
     $safeEmail = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
-    $safeLink  = htmlspecialchars($link, ENT_QUOTES, 'UTF-8');
+    $safeLink  = htmlspecialchars($link,  ENT_QUOTES, 'UTF-8');
+    $year      = date('Y');
+
     return <<<HTML
 <!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8">
-<style>
-  body{font-family:'Segoe UI',Arial,sans-serif;background:#f4f6f8;margin:0;padding:0;}
-  .wrap{max-width:600px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);}
-  .hdr{background:linear-gradient(135deg,#0A4F1A 0%,#16A34A 100%);padding:28px 32px;text-align:center;}
-  .hdr img{height:50px;margin-bottom:10px;}
-  .hdr h1{color:#fff;font-size:18px;margin:0;font-weight:700;}
-  .hdr p{color:rgba(255,255,255,.7);font-size:13px;margin:4px 0 0;}
-  .body{padding:32px;}
-  .body h2{color:#14532D;font-size:20px;margin:0 0 8px;}
-  .body p{color:#374151;font-size:14px;line-height:1.7;margin:0 0 16px;}
-  .info{background:#F0FDF4;border-left:4px solid #16A34A;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;}
-  .info strong{color:#14532D;font-size:13px;}
-  .btn{display:inline-block;background:#16A34A;color:#fff!important;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;margin:20px 0;}
-  .warn{background:#FEF9C3;border:1px solid #FDE047;border-radius:8px;padding:12px 16px;font-size:13px;color:#713F12;margin:16px 0;}
-  .ftr{background:#f4f6f8;padding:20px 32px;text-align:center;font-size:12px;color:#9CA3AF;}
-</style>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your DIHS SBM Portal Account</title>
+  <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
 </head>
-<body>
-<div class="wrap">
-  <div class="hdr">
-    <h1>DIHS SBM Online Monitoring System</h1>
-    <p>Dasmariñas Integrated High School · DepEd Cavite</p>
-  </div>
-  <div class="body">
-    <h2>Welcome, {$safeName}!</h2>
-    <p>An account has been created for you in the <strong>DIHS SBM Portal</strong>. 
-       You can now participate in the school's self-assessment process.</p>
-    <div class="info">
-      <strong>Your Login Email:</strong><br>
-      📧 {$safeEmail}
-    </div>
-    <p>To activate your account, please set your password by clicking the button below:</p>
-    <div style="text-align:center;">
-      <a href="{$safeLink}" class="btn">🔐 Set My Password</a>
-    </div>
-    <div class="warn">
-      ⚠️ This link will expire in <strong>{$expiry}</strong>. 
-         If you did not expect this email, please contact your School Administrator.
-    </div>
-    <p style="font-size:12px;color:#6B7280;">If the button doesn't work, copy this link:<br>
-      <span style="word-break:break-all;color:#2563EB;">{$safeLink}</span>
-    </p>
-  </div>
-  <div class="ftr">
-    This is an automated message · Do not reply<br>
-    DIHS SBM Portal · DepEd Order No. 007, s. 2024
-  </div>
-</div>
+<body style="margin:0;padding:0;background-color:#F0F7F1;font-family:'Segoe UI',Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#F0F7F1;padding:40px 16px;">
+  <tr>
+    <td align="center">
+
+      <!-- Outer container -->
+      <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;width:100%;">
+
+        <!-- ===== HEADER ===== -->
+        <tr>
+          <td style="background:linear-gradient(150deg,#0D5C28 0%,#16A34A 60%,#22C55E 100%);border-radius:14px 14px 0 0;padding:36px 40px 32px;text-align:center;">
+
+            <!-- Shield / Crest icon (SVG, no emoji) -->
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td align="center" style="padding-bottom:16px;">
+                  <div style="display:inline-block;background:#FFFFFF;border-radius:50%;width:80px;height:80px;line-height:80px;text-align:center;overflow:hidden;border:3px solid rgba(255,255,255,0.25);">
+                    <img src="cid:school_logo_cid" width="80" height="80" alt="DIHS Logo" style="display:inline-block;vertical-align:middle;object-fit:contain;padding:4px;">
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td align="center">
+                  <h1 style="margin:0;color:#FFFFFF;font-size:20px;font-weight:700;letter-spacing:-0.3px;line-height:1.3;">DIHS SBM Online Monitoring System</h1>
+                  <p style="margin:6px 0 0;color:rgba(255,255,255,0.75);font-size:13px;letter-spacing:0.3px;">Dasmariñas Integrated High School &nbsp;·&nbsp; DepEd Cavite</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- ===== BODY ===== -->
+        <tr>
+          <td style="background:#FFFFFF;padding:40px 40px 32px;">
+
+            <!-- Greeting -->
+            <h2 style="margin:0 0 6px;color:#0D5C28;font-size:22px;font-weight:700;">Welcome, {$safeName}!</h2>
+            <p style="margin:0 0 24px;color:#6B7280;font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:0.8px;">Account Activation Notice</p>
+
+            <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.75;">
+              Your account has been created in the <strong style="color:#0D5C28;">DIHS SBM Portal</strong>. You can now participate in the school's School-Based Management self-assessment process.
+            </p>
+
+            <!-- Divider -->
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px;">
+              <tr><td style="border-top:1px solid #E5E7EB;"></td></tr>
+            </table>
+
+            <!-- Login info card -->
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;margin-bottom:24px;">
+              <tr>
+                <td style="padding:18px 20px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                    <tr>
+                      <td width="32" valign="top" style="padding-right:12px;padding-top:2px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <rect x="2" y="4" width="20" height="16" rx="3" fill="#16A34A" opacity="0.15"/>
+                          <path d="M2 8L12 13L22 8" stroke="#16A34A" stroke-width="2" stroke-linecap="round"/>
+                          <rect x="2" y="4" width="20" height="16" rx="3" stroke="#16A34A" stroke-width="1.5"/>
+                        </svg>
+                      </td>
+                      <td valign="top">
+                        <p style="margin:0 0 3px;color:#6B7280;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.7px;">Your Login Email</p>
+                        <p style="margin:0;color:#0D5C28;font-size:15px;font-weight:600;">{$safeEmail}</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:0 0 24px;color:#374151;font-size:15px;line-height:1.75;">
+              To activate your account and gain access to the portal, please set your password by clicking the button below:
+            </p>
+
+            <!-- CTA Button -->
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:28px;">
+              <tr>
+                <td align="center">
+                  <a href="{$safeLink}"
+                     style="display:inline-block;background:linear-gradient(135deg,#16A34A 0%,#15803D 100%);color:#FFFFFF;text-decoration:none;font-size:15px;font-weight:700;padding:15px 40px;border-radius:9px;letter-spacing:0.2px;box-shadow:0 4px 12px rgba(22,163,74,0.35);">
+                    &#x1F512;&nbsp; Set My Password
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Divider -->
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:20px;">
+              <tr><td style="border-top:1px solid #E5E7EB;"></td></tr>
+            </table>
+
+            <!-- Warning card -->
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;margin-bottom:24px;">
+              <tr>
+                <td style="padding:16px 20px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                    <tr>
+                      <td width="24" valign="top" style="padding-right:10px;padding-top:1px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 2L2 20H22L12 2Z" stroke="#D97706" stroke-width="2" stroke-linejoin="round" fill="#FDE68A"/>
+                          <path d="M12 9V13" stroke="#D97706" stroke-width="2" stroke-linecap="round"/>
+                          <circle cx="12" cy="17" r="1" fill="#D97706"/>
+                        </svg>
+                      </td>
+                      <td valign="top">
+                        <p style="margin:0;color:#92400E;font-size:13.5px;line-height:1.6;">
+                          This link will expire in <strong>{$expiry}</strong>. If you did not expect this email, please contact your School Administrator immediately.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Fallback link -->
+            <p style="margin:0;color:#9CA3AF;font-size:12px;line-height:1.7;">
+              If the button above doesn't work, copy and paste this link into your browser:
+            </p>
+            <p style="margin:6px 0 0;word-break:break-all;">
+              <a href="{$safeLink}" style="color:#2563EB;font-size:12px;text-decoration:none;">{$safeLink}</a>
+            </p>
+
+          </td>
+        </tr>
+
+        <!-- ===== FOOTER ===== -->
+        <tr>
+          <td style="background:#1A2E1F;border-radius:0 0 14px 14px;padding:24px 40px;text-align:center;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td align="center" style="padding-bottom:12px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="padding:0 10px;border-right:1px solid rgba(255,255,255,0.15);">
+                        <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;">DIHS SBM Portal</p>
+                      </td>
+                      <td style="padding:0 10px;border-right:1px solid rgba(255,255,255,0.15);">
+                        <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;">DepEd Cavite</p>
+                      </td>
+                      <td style="padding:0 10px;">
+                        <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;">DepEd Order No. 007, s. 2024</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td align="center">
+                  <p style="margin:0;color:rgba(255,255,255,0.3);font-size:11px;">
+                    This is an automated message &mdash; please do not reply directly to this email.<br>
+                    &copy; {$year} Dasmariñas Integrated High School. All rights reserved.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Bottom spacer -->
+        <tr><td style="height:32px;"></td></tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
 </body>
 </html>
 HTML;

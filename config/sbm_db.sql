@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 20, 2026 at 05:33 PM
+-- Generation Time: Mar 25, 2026 at 04:03 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -51,27 +51,27 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (7, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-11 17:36:07'),
 (8, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-11 17:47:57'),
 (9, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-11 17:48:14'),
-(10, 8, 'login', 'auth', 'User logged in', '::1', '2026-03-11 17:50:06'),
+(10, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-11 17:50:06'),
 (11, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-11 17:51:20'),
-(12, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-11 17:52:52'),
-(13, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-11 17:53:40'),
-(14, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-12 11:53:58'),
+(12, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-11 17:52:52'),
+(13, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-11 17:53:40'),
+(14, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-12 11:53:58'),
 (15, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-12 11:54:12'),
 (16, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-12 12:01:24'),
 (17, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-12 12:01:55'),
-(18, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-12 12:02:02'),
-(19, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-12 15:12:14'),
-(20, 8, 'login', 'auth', 'User logged in', '::1', '2026-03-12 15:12:24'),
-(21, 8, 'login', 'auth', 'User logged in', '::1', '2026-03-12 15:13:46'),
+(18, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-12 12:02:02'),
+(19, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-12 15:12:14'),
+(20, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-12 15:12:24'),
+(21, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-12 15:13:46'),
 (22, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-12 15:13:58'),
-(23, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-12 15:14:08'),
+(23, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-12 15:14:08'),
 (24, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-12 15:14:16'),
 (25, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-12 15:14:28'),
 (26, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-12 22:33:50'),
 (27, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-12 22:34:52'),
-(28, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-12 22:35:34'),
+(28, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-12 22:35:34'),
 (29, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-12 22:35:46'),
-(30, 8, 'login', 'auth', 'User logged in', '::1', '2026-03-12 22:35:57'),
+(30, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-12 22:35:57'),
 (31, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-12 22:47:38'),
 (32, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-12 22:48:51'),
 (33, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-12 22:52:46'),
@@ -81,36 +81,36 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (37, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-12 23:13:17'),
 (38, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-12 23:15:28'),
 (39, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-12 23:16:49'),
-(40, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-12 23:16:57'),
-(41, 8, 'login', 'auth', 'User logged in', '::1', '2026-03-12 23:17:12'),
+(40, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-12 23:16:57'),
+(41, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-12 23:17:12'),
 (42, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-12 23:17:36'),
-(43, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-12 23:17:53'),
+(43, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-12 23:17:53'),
 (44, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-12 23:18:02'),
 (45, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-14 01:16:23'),
 (46, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-14 01:38:05'),
 (47, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-14 01:38:15'),
-(48, 8, 'login', 'auth', 'User logged in', '::1', '2026-03-14 01:38:31'),
+(48, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-14 01:38:31'),
 (49, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-14 03:00:42'),
 (50, 5, 'submit_ta_request', 'improvement', 'Submitted TA request for cycle 2', '::1', '2026-03-14 03:01:53'),
-(51, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-14 03:02:02'),
-(52, 8, 'login', 'auth', 'User logged in', '::1', '2026-03-14 03:02:08'),
+(51, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-14 03:02:02'),
+(52, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-14 03:02:08'),
 (53, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-14 03:09:41'),
-(54, 8, 'login', 'auth', 'User logged in', '::1', '2026-03-14 03:09:51'),
+(54, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-14 03:09:51'),
 (55, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-14 03:10:28'),
 (56, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-14 03:33:44'),
 (57, 1, 'validate_assessment', 'assessment', 'Validated cycle ID:2', '::1', '2026-03-14 03:34:11'),
 (58, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-14 03:34:38'),
 (59, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-14 04:34:00'),
-(60, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-14 04:34:17'),
+(60, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-14 04:34:17'),
 (61, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-14 04:34:36'),
-(62, 8, 'login', 'auth', 'User logged in', '::1', '2026-03-14 04:34:52'),
+(62, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-14 04:34:52'),
 (63, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-14 04:37:20'),
 (64, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-14 04:45:16'),
 (65, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-14 05:03:51'),
 (66, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-14 05:06:01'),
 (67, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-14 05:06:14'),
-(68, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-14 06:23:02'),
-(69, 8, 'login', 'auth', 'User logged in', '::1', '2026-03-14 06:23:09'),
+(68, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-14 06:23:02'),
+(69, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-14 06:23:09'),
 (70, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-14 06:23:39'),
 (71, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-14 06:24:05'),
 (72, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-14 06:28:42'),
@@ -128,7 +128,7 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (84, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-14 23:30:32'),
 (85, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-14 23:30:38'),
 (86, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-14 23:30:44'),
-(87, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-14 23:32:17'),
+(87, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-14 23:32:17'),
 (88, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-14 23:32:40'),
 (89, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-14 23:33:33'),
 (90, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-14 23:33:45'),
@@ -208,14 +208,14 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (164, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:41:16'),
 (165, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:42:53'),
 (166, 1, 'update_user', 'users', 'Updated user ID: 10', '::1', '2026-03-15 14:43:09'),
-(167, 10, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:43:21'),
+(167, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:43:21'),
 (168, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:43:39'),
 (169, 1, 'validate_assessment', 'view_assessment', 'Validated cycle ID:7', '::1', '2026-03-15 14:44:12'),
 (170, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:44:58'),
 (171, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:45:44'),
 (172, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:46:20'),
 (173, 1, 'update_user', 'users', 'Updated user ID: 8', '::1', '2026-03-15 14:46:42'),
-(174, 8, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:46:51'),
+(174, NULL, 'login', 'auth', 'User logged in', '::1', '2026-03-15 14:46:51'),
 (175, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-15 16:35:33'),
 (176, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-16 12:21:46'),
 (177, 12, 'login', 'auth', 'User logged in', '::1', '2026-03-16 13:00:48'),
@@ -273,7 +273,45 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (229, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-20 14:30:13'),
 (230, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-20 14:30:47'),
 (231, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-20 14:31:12'),
-(232, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-20 16:32:16');
+(232, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-20 16:32:16'),
+(233, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-20 16:36:10'),
+(234, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-20 16:37:02'),
+(235, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-20 16:39:53'),
+(236, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-20 16:41:45'),
+(237, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-20 16:42:39'),
+(238, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-20 16:42:48'),
+(239, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-21 11:25:57'),
+(240, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-21 11:26:35'),
+(241, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-21 13:47:47'),
+(242, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-21 14:00:51'),
+(243, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-21 15:55:54'),
+(244, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-21 16:21:46'),
+(245, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-21 16:45:41'),
+(246, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-21 16:58:36'),
+(247, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-21 17:02:20'),
+(248, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-21 17:06:11'),
+(249, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-21 17:09:04'),
+(250, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-22 03:42:23'),
+(251, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-22 03:43:48'),
+(252, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-22 03:46:19'),
+(253, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-24 11:23:41'),
+(254, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-24 11:36:58'),
+(255, 2, 'login', 'auth', 'User logged in', '::1', '2026-03-25 11:36:27'),
+(256, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-25 11:37:01'),
+(257, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-25 11:43:26'),
+(258, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-25 13:40:44'),
+(259, 5, 'login', 'auth', 'User logged in', '::1', '2026-03-25 13:40:57'),
+(260, 15, 'login', 'auth', 'User logged in', '::1', '2026-03-25 13:46:30'),
+(261, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-25 13:51:52'),
+(262, 1, 'login', 'auth', 'User logged in', '::1', '2026-03-25 13:52:09'),
+(263, 1, 'create_user', 'users', 'Created: Charles', '::1', '2026-03-25 14:04:35'),
+(264, 1, 'create_user', 'users', 'Created: Charles', '::1', '2026-03-25 14:24:43'),
+(265, 1, 'create_user', 'users', 'Created: Charles', '::1', '2026-03-25 14:29:47'),
+(266, 1, 'create_user', 'users', 'Created: Patpat', '::1', '2026-03-25 14:40:20'),
+(267, 1, 'create_user', 'users', 'Created: Charles', '::1', '2026-03-25 14:44:10'),
+(268, 1, 'create_user', 'users', 'Created: Charles Patrick', '::1', '2026-03-25 14:44:56'),
+(269, 1, 'create_user', 'users', 'Created: Jr', '::1', '2026-03-25 14:46:32'),
+(270, 1, 'create_user', 'users', 'Created: Rolito', '::1', '2026-03-25 14:58:37');
 
 -- --------------------------------------------------------
 
@@ -319,6 +357,30 @@ CREATE TABLE `divisions` (
 
 INSERT INTO `divisions` (`division_id`, `region_id`, `division_name`, `division_code`) VALUES
 (1, 1, 'Schools Division of Cavite', 'SDO-CAVITE');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `email_logs`
+--
+
+CREATE TABLE `email_logs` (
+  `log_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `email_type` varchar(60) DEFAULT 'account_creation',
+  `recipient_email` varchar(120) NOT NULL,
+  `status` enum('sent','failed') DEFAULT 'sent',
+  `error_message` text DEFAULT NULL,
+  `sent_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `email_logs`
+--
+
+INSERT INTO `email_logs` (`log_id`, `user_id`, `email_type`, `recipient_email`, `status`, `error_message`, `sent_at`) VALUES
+(2, 26, 'account_creation', 'mendozacharles00@gmail.com', 'sent', NULL, '2026-03-25 14:58:42'),
+(3, 26, 'account_creation', 'mendozacharles00@gmail.com', 'sent', NULL, '2026-03-25 15:00:12');
 
 -- --------------------------------------------------------
 
@@ -522,7 +584,13 @@ INSERT INTO `ml_comment_analysis` (`analysis_id`, `cycle_id`, `indicator_id`, `d
 (125, 8, NULL, NULL, 5, 0, 0, 5, '[\"bullying\"]', 0, NULL, '2026-03-20 12:35:46'),
 (126, 8, NULL, NULL, 5, 0, 3, 2, '[\"bullying\"]', 0, NULL, '2026-03-20 12:35:46'),
 (127, 8, NULL, NULL, 5, 0, 0, 5, '[\"bullying\"]', 0, NULL, '2026-03-20 14:26:09'),
-(128, 8, NULL, NULL, 5, 0, 3, 2, '[\"bullying\"]', 0, NULL, '2026-03-20 14:26:09');
+(128, 8, NULL, NULL, 5, 0, 3, 2, '[\"bullying\"]', 0, NULL, '2026-03-20 14:26:09'),
+(129, 8, NULL, NULL, 5, 0, 0, 5, '[\"bullying\"]', 0, NULL, '2026-03-20 16:36:43'),
+(130, 8, NULL, NULL, 5, 0, 3, 2, '[\"bullying\"]', 0, NULL, '2026-03-20 16:36:43'),
+(131, 8, NULL, NULL, 5, 0, 0, 5, '[\"bullying\"]', 0, NULL, '2026-03-21 11:26:52'),
+(132, 8, NULL, NULL, 5, 0, 3, 2, '[\"bullying\"]', 0, NULL, '2026-03-21 11:26:52'),
+(133, 8, NULL, NULL, 5, 0, 0, 5, '[\"bullying\"]', 0, NULL, '2026-03-25 11:38:18'),
+(134, 8, NULL, NULL, 5, 0, 3, 2, '[\"bullying\"]', 0, NULL, '2026-03-25 11:38:18');
 
 -- --------------------------------------------------------
 
@@ -566,7 +634,7 @@ CREATE TABLE `ml_recommendations` (
 --
 
 INSERT INTO `ml_recommendations` (`rec_id`, `cycle_id`, `recommendation_text`, `generated_by`, `top_topics`, `has_urgent`, `sentiment_summary`, `generated_at`) VALUES
-(84, 8, '[Assessment Overview]\nThe Dasmariñas Integrated High School has achieved an overall SBM score of 76.58% with an Advanced maturity level in its first assessment cycle, providing a baseline for future improvements.\n\n[Priority Recommendations]\n1. [2.1] The School Head shall review and update the zero-bullying policy by the end of the first semester, ensuring it is implemented, monitored, and regularly updated, with a target of achieving a rating of 3 (Developing) by the next assessment cycle.\n2. [4.2] The School Head shall convene a meeting with the PTA by the end of the first quarter to discuss their role in school planning and monitoring, aiming to increase their active engagement and achieve a rating of 3 (Developing) by the next assessment cycle.\n3. [5.2] The School Head shall ensure that Learning Action Cells (LAC) sessions are conducted regularly, with at least one session per month, and that outcomes are documented, aiming to achieve a rating of 3 (Developing) by the next assessment cycle.\n4. [3.2] The School Head shall establish a school-community planning team by the end of the first semester, ensuring it is functional and contributes to school planning and development, with a target of achieving a rating of 3 (Developing) by the next assessment cycle.\n5. [6.1] The School Head shall update the school facilities inventory by the end of the first quarter and submit it on time, ensuring that all facilities are accounted for and maintained, aiming to achieve a rating of 3 (Developing) by the next assessment cycle.\n6. [4.5] The School Head shall conduct a stakeholder satisfaction survey by the end of the school year, using the results to inform school improvement plans and achieve a rating of 3 (Developing) by the next assessment cycle, as per DepEd Order No. 007, s. 2024.\n\n[Stakeholder Focus]\nConsidering the stakeholder remarks on bullying, the School Head should also ensure that the updated zero-bullying policy [2.1] is communicated to all stakeholders, including learners, teachers, and parents, to raise awareness and promote a culture of respect and inclusivity, as emphasized in DepEd Order No. 007, s. 2024.', 'groq', '[\"bullying\"]', 0, '{\"negative\":3,\"neutral\":2,\"positive\":0}', '2026-03-20 14:26:09');
+(87, 8, '[Assessment Overview]\nDasmariñas Integrated High School achieved an overall SBM score of 76.58% with an Advanced maturity level in its first assessment cycle, providing a baseline for future improvements as per DepEd Order No. 007, s. 2024.\n\n[Priority Recommendations]\n1. [2.1] The School Head, in collaboration with the School Governance Council (SGC), shall review and update the zero-bullying policy by the end of the first semester, ensuring it is implemented, monitored, and regularly updated, with a target of achieving a rating of 3 (Developing) by the next assessment cycle.\n2. [4.2] The School Head shall convene a meeting with the PTA and SGC by October 2024 to organize and actively engage the PTA in school planning and monitoring, aiming to increase the rating to 3 (Developing) through active participation in at least two school planning sessions per semester.\n3. [5.2] The School Head shall ensure that Learning Action Cells (LAC) sessions are conducted regularly, with at least one session per month, and that documented outcomes are submitted to the Division Office quarterly, targeting an improvement in the rating to 3 (Developing) by the end of the school year.\n4. [6.1] The School Head shall task the School Property Custodian to update the school facilities inventory by November 2024 and submit it on time, ensuring that all facilities are accounted for and maintained, aiming for a rating of 3 (Developing) in the next assessment cycle.\n5. [4.5] The School Head shall conduct a stakeholder satisfaction survey by February 2025 and use the results for school improvement, with a goal of achieving a rating of 3 (Developing) by incorporating the feedback into the school\'s planning and development processes.\n6. [1.8] The School Head, in collaboration with the TLE/TVL department, shall establish active industry partnerships by March 2025, aiming to produce certified graduates and improve the rating to 3 (Developing), with a target of at least two industry partnerships per TLE/TVL program.\n\n[Stakeholder Focus]\nGiven the stakeholders\' concerns about bullying, the School Head should ensure that the updated zero-bullying policy [2.1] addresses these concerns and that its implementation is closely monitored, with regular feedback sessions with stakeholders to ensure that the policy is effective in creating a safe and inclusive learning environment, as emphasized in DepEd Order No. 007, s. 2024.', 'groq', '[\"bullying\"]', 0, '{\"negative\":3,\"neutral\":2,\"positive\":0}', '2026-03-25 11:38:18');
 
 -- --------------------------------------------------------
 
@@ -591,6 +659,30 @@ CREATE TABLE `ml_training_snapshots` (
 
 INSERT INTO `ml_training_snapshots` (`snapshot_id`, `school_id`, `cycle_id`, `dim_scores`, `indicator_ratings`, `overall_score`, `maturity_level`, `created_at`) VALUES
 (1, 1, 8, '[{\"dimension_name\":\"Human Resource Development\",\"dimension_no\":5,\"gap_from_avg\":3.01,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":73.57,\"weight\":0.9,\"weighted_gap\":2.71},{\"dimension_name\":\"Accountability and Continuous Improvement\",\"dimension_no\":4,\"gap_from_avg\":2.41,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":74.17,\"weight\":1,\"weighted_gap\":2.41},{\"dimension_name\":\"Learning Environment\",\"dimension_no\":2,\"gap_from_avg\":1.58,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":75,\"weight\":1.2,\"weighted_gap\":1.89},{\"dimension_name\":\"Leadership and Governance\",\"dimension_no\":3,\"gap_from_avg\":1.58,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":75,\"weight\":1,\"weighted_gap\":1.58},{\"dimension_name\":\"Finance and Resource Management\",\"dimension_no\":6,\"gap_from_avg\":-4.13,\"maturity\":\"Advanced\",\"priority\":\"low\",\"score\":80.71,\"weight\":0.9,\"weighted_gap\":-3.72},{\"dimension_name\":\"Curriculum and Teaching\",\"dimension_no\":1,\"gap_from_avg\":-4.05,\"maturity\":\"Advanced\",\"priority\":\"low\",\"score\":80.63,\"weight\":1.2,\"weighted_gap\":-4.86}]', '[]', 76.67, 'Advanced', '2026-03-20 14:26:09');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `password_setup_tokens`
+--
+
+CREATE TABLE `password_setup_tokens` (
+  `token_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `token` varchar(128) NOT NULL,
+  `type` enum('setup','reset') DEFAULT 'setup',
+  `expires_at` datetime NOT NULL,
+  `used_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `password_setup_tokens`
+--
+
+INSERT INTO `password_setup_tokens` (`token_id`, `user_id`, `token`, `type`, `expires_at`, `used_at`, `created_at`) VALUES
+(8, 26, '1839a43e126db32de92d161da76e5d91cf62e3b89cddd7672a2c029ec8b24b43e92cc65a5ae916acbfe9218850cdca49', 'setup', '2026-03-27 22:58:37', '2026-03-25 23:00:07', '2026-03-25 14:58:37'),
+(9, 26, '88b79f23825812a6a78822d08829adf85f11c7c3b75faf9064b023af92d4d3ef9c2d84b47cd690a58b50ca675ac314fd', 'setup', '2026-03-27 23:00:07', NULL, '2026-03-25 15:00:07');
 
 -- --------------------------------------------------------
 
@@ -878,6 +970,13 @@ CREATE TABLE `school_workflow_status` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `school_workflow_status`
+--
+
+INSERT INTO `school_workflow_status` (`wf_id`, `school_id`, `sy_id`, `current_phase`, `phase1_started_at`, `phase1_done_at`, `phase2_started_at`, `phase2_done_at`, `phase3_started_at`, `q1_monitored_at`, `q2_monitored_at`, `q3_monitored_at`, `phase3_done_at`, `overall_status`, `remarks`, `updated_at`) VALUES
+(2, 1, 1, 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'in_progress', NULL, '2026-03-21 13:50:03');
+
 -- --------------------------------------------------------
 
 --
@@ -898,7 +997,7 @@ CREATE TABLE `school_years` (
 
 INSERT INTO `school_years` (`sy_id`, `label`, `is_current`, `date_start`, `date_end`) VALUES
 (1, '2024-2025', 1, '2024-06-03', '2025-04-04'),
-(2, '2025-2026', 0, '2025-06-20', '2026-04-22');
+(2, '2025-2026', 1, '2025-06-20', '2026-04-22');
 
 -- --------------------------------------------------------
 
@@ -1224,33 +1323,34 @@ CREATE TABLE `technical_assistance` (
 CREATE TABLE `users` (
   `user_id` int(11) NOT NULL,
   `username` varchar(60) NOT NULL,
-  `password` varchar(255) NULL,
+  `password` varchar(255) DEFAULT NULL,
   `email` varchar(120) NOT NULL,
   `full_name` varchar(120) NOT NULL,
   `role` enum('admin','school_head','teacher','sdo','ro','external_stakeholder') NOT NULL DEFAULT 'teacher',
-  `status` enum('active','inactive','suspended') NOT NULL DEFAULT 'inactive',
+  `status` enum('active','inactive','suspended') NOT NULL DEFAULT 'active',
   `school_id` int(11) DEFAULT NULL,
   `last_login` datetime DEFAULT NULL,
-  `force_password_change` tinyint(1) DEFAULT 1,
-  `email_sent_at` timestamp NULL DEFAULT NULL,
-  `email_resent_count` int(11) DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `email_verified` tinyint(1) DEFAULT 0,
+  `reset_token` varchar(64) DEFAULT NULL,
+  `token_expiry` datetime DEFAULT NULL,
+  `email_sent_at` datetime DEFAULT NULL,
+  `force_password_change` tinyint(1) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `last_login`, `created_at`) VALUES
-(1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@sbm.edu.ph', 'System Administrator', 'admin', 'active', NULL, '2026-03-21 00:32:16', '2026-03-11 16:18:35'),
-(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, '2026-03-20 11:20:02', '2026-03-11 16:31:59'),
-(5, 'Ryza E.', '$2y$10$uNsxRtmZILkMBaV3EfXdtuIfTTvSp0ZCctNKLtjeoZ9N9MNEjvrV6', 'rmevangelio@dihs.edu.ph', 'Ryza Evangelio', 'school_head', 'active', 1, '2026-03-20 22:30:47', '2026-03-11 16:35:49'),
-(8, 'Rolito Billones', '$2y$10$vE5eBX3jCDELcBxYFpzEyu2xZI7j4WmKBisnmALaEJoBlauG1wMby', 'rbillones@dihs.edu.ph', 'Rolito Villones', 'sdo', 'active', 1, '2026-03-15 22:46:51', '2026-03-11 17:49:46'),
-(10, 'Charles', '$2y$10$QAAo3OtJ1AEEj3tltB3hteEmz6xYbZNL19jeADIS2dLHg26vTe/Je', 'cpmarias@dihs.edu.com', 'Charles Patrick Arias', 'ro', 'active', 1, '2026-03-15 22:43:21', '2026-03-11 17:52:19'),
-(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, '2026-03-20 10:20:07', '2026-03-15 11:19:35'),
-(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, '2026-03-16 21:10:06', '2026-03-15 11:20:09'),
-(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, '2026-03-16 21:08:26', '2026-03-15 11:20:53'),
-(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, '2026-03-16 21:06:08', '2026-03-15 11:21:39');
+INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`) VALUES
+(1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@sbm.edu.ph', 'System Administrator', 'admin', 'active', NULL, '2026-03-25 21:52:09', '2026-03-11 16:18:35', 0, NULL, NULL, NULL, 0),
+(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, '2026-03-25 19:36:27', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0),
+(5, 'Ryza E.', '$2y$10$uNsxRtmZILkMBaV3EfXdtuIfTTvSp0ZCctNKLtjeoZ9N9MNEjvrV6', 'rmevangelio@dihs.edu.ph', 'Ryza Evangelio', 'school_head', 'active', 1, '2026-03-25 21:40:57', '2026-03-11 16:35:49', 0, NULL, NULL, NULL, 0),
+(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, '2026-03-20 10:20:07', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0),
+(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, '2026-03-16 21:10:06', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0),
+(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, '2026-03-16 21:08:26', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0),
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, '2026-03-25 21:46:30', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0),
+(26, 'Rolito', NULL, 'mendozacharles00@gmail.com', 'Rolito Jr', 'admin', 'inactive', 1, NULL, '2026-03-25 14:58:37', 0, NULL, NULL, '2026-03-25 23:00:12', 1);
 
 -- --------------------------------------------------------
 
@@ -1278,8 +1378,8 @@ CREATE TABLE `workflow_checkpoints` (
 --
 
 INSERT INTO `workflow_checkpoints` (`cp_id`, `school_id`, `sy_id`, `phase_no`, `grading_period`, `cp_type`, `status`, `due_date`, `completed_at`, `completed_by`, `notes`, `created_at`) VALUES
-(7, 1, 1, 1, NULL, 'self_assessment', 'pending', '2025-04-04', NULL, NULL, NULL, '2026-03-18 16:38:40'),
-(8, 1, 1, 2, NULL, 'planning', 'pending', '2025-05-30', NULL, NULL, NULL, '2026-03-18 16:38:40'),
+(7, 1, 1, 1, NULL, 'self_assessment', 'done', '2025-04-04', '2026-03-21 21:50:01', 1, '', '2026-03-18 16:38:40'),
+(8, 1, 1, 2, NULL, 'planning', 'done', '2025-05-30', '2026-03-21 21:50:03', 1, '', '2026-03-18 16:38:40'),
 (9, 1, 1, 3, 1, 'q1_monitoring', 'pending', '2025-10-17', NULL, NULL, NULL, '2026-03-18 16:38:40'),
 (10, 1, 1, 3, 2, 'q2_monitoring', 'pending', '2026-01-02', NULL, NULL, NULL, '2026-03-18 16:38:40'),
 (11, 1, 1, 3, 3, 'q3_monitoring', 'pending', '2026-03-21', NULL, NULL, NULL, '2026-03-18 16:38:40'),
@@ -1309,6 +1409,13 @@ ALTER TABLE `announcements`
 ALTER TABLE `divisions`
   ADD PRIMARY KEY (`division_id`),
   ADD KEY `region_id` (`region_id`);
+
+--
+-- Indexes for table `email_logs`
+--
+ALTER TABLE `email_logs`
+  ADD PRIMARY KEY (`log_id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `grading_periods`
@@ -1362,6 +1469,14 @@ ALTER TABLE `ml_training_snapshots`
   ADD UNIQUE KEY `uq_snapshot` (`school_id`,`cycle_id`),
   ADD KEY `school_id` (`school_id`),
   ADD KEY `cycle_id` (`cycle_id`);
+
+--
+-- Indexes for table `password_setup_tokens`
+--
+ALTER TABLE `password_setup_tokens`
+  ADD PRIMARY KEY (`token_id`),
+  ADD UNIQUE KEY `token` (`token`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `regions`
@@ -1541,7 +1656,7 @@ ALTER TABLE `workflow_checkpoints`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=233;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=271;
 
 --
 -- AUTO_INCREMENT for table `announcements`
@@ -1554,6 +1669,12 @@ ALTER TABLE `announcements`
 --
 ALTER TABLE `divisions`
   MODIFY `division_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `email_logs`
+--
+ALTER TABLE `email_logs`
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `grading_periods`
@@ -1571,7 +1692,7 @@ ALTER TABLE `improvement_plans`
 -- AUTO_INCREMENT for table `ml_comment_analysis`
 --
 ALTER TABLE `ml_comment_analysis`
-  MODIFY `analysis_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=129;
+  MODIFY `analysis_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=135;
 
 --
 -- AUTO_INCREMENT for table `ml_predictions`
@@ -1583,13 +1704,19 @@ ALTER TABLE `ml_predictions`
 -- AUTO_INCREMENT for table `ml_recommendations`
 --
 ALTER TABLE `ml_recommendations`
-  MODIFY `rec_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=85;
+  MODIFY `rec_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=88;
 
 --
 -- AUTO_INCREMENT for table `ml_training_snapshots`
 --
 ALTER TABLE `ml_training_snapshots`
-  MODIFY `snapshot_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `snapshot_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `password_setup_tokens`
+--
+ALTER TABLE `password_setup_tokens`
+  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `regions`
@@ -1643,7 +1770,7 @@ ALTER TABLE `schools`
 -- AUTO_INCREMENT for table `school_workflow_status`
 --
 ALTER TABLE `school_workflow_status`
-  MODIFY `wf_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `wf_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `school_years`
@@ -1697,7 +1824,7 @@ ALTER TABLE `technical_assistance`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `workflow_checkpoints`
@@ -1726,6 +1853,12 @@ ALTER TABLE `announcements`
 --
 ALTER TABLE `divisions`
   ADD CONSTRAINT `divisions_ibfk_1` FOREIGN KEY (`region_id`) REFERENCES `regions` (`region_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `email_logs`
+--
+ALTER TABLE `email_logs`
+  ADD CONSTRAINT `el_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `grading_periods`
@@ -1770,6 +1903,12 @@ ALTER TABLE `ml_recommendations`
 ALTER TABLE `ml_training_snapshots`
   ADD CONSTRAINT `ml_snapshots_ibfk_1` FOREIGN KEY (`school_id`) REFERENCES `schools` (`school_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `ml_snapshots_ibfk_2` FOREIGN KEY (`cycle_id`) REFERENCES `sbm_cycles` (`cycle_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `password_setup_tokens`
+--
+ALTER TABLE `password_setup_tokens`
+  ADD CONSTRAINT `pst_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `sbm_cycles`

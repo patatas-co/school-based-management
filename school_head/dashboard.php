@@ -355,7 +355,7 @@ $mat = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : null;
     <?php else: ?>
     <div class="card">
       <div class="card-body" style="text-align:center;padding:40px;">
-        <div style="font-size:36px;margin-bottom:12px;">📊</div>
+        <div style="font-size:36px;margin-bottom:12px;"></div>
         <h3 style="font-size:16px;font-weight:700;color:var(--n-700);margin-bottom:8px;">No dimension data yet</h3>
         <p style="font-size:13.5px;color:var(--n-400);margin-bottom:16px;">Start your self-assessment to see scores across all 6 SBM dimensions.</p>
         <a href="self_assessment.php" class="btn btn-primary">Start Assessment</a>
