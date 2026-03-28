@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(python -c \"import os; print\\(''GROQ_API_KEY:'', repr\\(os.getenv\\(''GROQ_API_KEY''\\)\\)\\)\")"
+    ]
+  }
+}

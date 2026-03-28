@@ -22,7 +22,7 @@ function generateSetupToken(PDO $db, int $userId): string {
 
 function sendAccountCreationEmail(PDO $db, array $user): bool {
     $token     = generateSetupToken($db, $user['user_id']);
-    $setupLink = baseUrl() . '/set_password.php?token=' . $token;
+    $setupLink = baseUrl() . '/set_password.php?token=' . urlencode($token);
     $expiry    = ($_ENV['SBM_TOKEN_EXPIRY_HOURS'] ?? 48) . ' hours';
 
     $html = buildWelcomeEmailHtml($user['full_name'], $user['email'], $setupLink, $expiry);
@@ -112,7 +112,7 @@ function generateResetToken(PDO $db, int $userId): string {
  */
 function sendPasswordResetEmail(PDO $db, array $user): bool {
     $token     = generateResetToken($db, $user['user_id']);
-    $resetLink = baseUrl() . '/set_password.php?token=' . $token . '&mode=reset';
+    $resetLink = baseUrl() . '/set_password.php?token=' . urlencode($token) . '&mode=reset';
  
     $html = buildResetEmailHtml(
         $user['full_name'],

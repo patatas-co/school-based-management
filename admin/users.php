@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         try {
             $hashedPw = $pw ? password_hash($pw, PASSWORD_DEFAULT) : null;
             $initialStatus = $pw ? ($_POST['status'] ?? 'active') : 'inactive';
-            $schoolId = $_POST['school_id'] ?: SCHOOL_ID;
+            $schoolId = (int)($_POST['school_id'] ?: SCHOOL_ID);
 
             $db->prepare("INSERT INTO users (username,password,email,full_name,role,status,school_id) VALUES (?,?,?,?,?,?,?)")
                ->execute([trim($_POST['username']), $hashedPw, trim($_POST['email']), trim($_POST['full_name']), $role, $initialStatus, $schoolId]);
@@ -77,16 +77,31 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     if($action==='get'){$st=$db->prepare("SELECT user_id,username,email,full_name,role,status,school_id FROM users WHERE user_id=?");$st->execute([(int)$_POST['id']]);echo json_encode($st->fetch());exit;}
     if($action==='update'){
         $id=(int)$_POST['id'];$pw=$_POST['password']??'';
-        if($pw){$db->prepare("UPDATE users SET full_name=?,email=?,role=?,status=?,school_id=?,password=? WHERE user_id=?")->execute([trim($_POST['full_name']),trim($_POST['email']),$_POST['role'],$_POST['status'],$_POST['school_id']?:null,password_hash($pw,PASSWORD_DEFAULT),$id]);}
-        else{$db->prepare("UPDATE users SET full_name=?,email=?,role=?,status=?,school_id=? WHERE user_id=?")->execute([trim($_POST['full_name']),trim($_POST['email']),$_POST['role'],$_POST['status'],$_POST['school_id']?:null,$id]);}
-        logActivity('update_user','users','Updated user ID:'.$id);
-        echo json_encode(['ok'=>true,'msg'=>'User updated.']);exit;
+        try {
+            if($pw){$db->prepare("UPDATE users SET full_name=?,email=?,role=?,status=?,school_id=?,password=? WHERE user_id=?")->execute([trim($_POST['full_name']),trim($_POST['email']),$_POST['role'],$_POST['status'],(int)($_POST['school_id'] ?: null),password_hash($pw,PASSWORD_DEFAULT),$id]);}
+            else{$db->prepare("UPDATE users SET full_name=?,email=?,role=?,status=?,school_id=? WHERE user_id=?")->execute([trim($_POST['full_name']),trim($_POST['email']),$_POST['role'],$_POST['status'],(int)($_POST['school_id'] ?: null),$id]);}
+            logActivity('update_user','users','Updated user ID:'.$id);
+            echo json_encode(['ok'=>true,'msg'=>'User updated.']);exit;
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) {
+                echo json_encode(['ok'=>false,'msg'=>'Update failed: Username or email already exists.']);
+            } else {
+                echo json_encode(['ok'=>false,'msg'=>'Database error: '.$e->getMessage()]);
+            }
+            exit;
+        }
     }
     if($action==='delete'){
         $id=(int)$_POST['id'];
         if($id===(int)$_SESSION['user_id']){echo json_encode(['ok'=>false,'msg'=>'Cannot delete your own account.']);exit;}
-        $db->prepare("DELETE FROM users WHERE user_id=?")->execute([$id]);
-        echo json_encode(['ok'=>true,'msg'=>'User deleted.']);exit;
+        try {
+            $db->prepare("DELETE FROM users WHERE user_id=?")->execute([$id]);
+            logActivity('delete_user','users','Deleted user ID:'.$id);
+            echo json_encode(['ok'=>true,'msg'=>'User deleted.']);exit;
+        } catch (PDOException $e) {
+            echo json_encode(['ok'=>false,'msg'=>'Cannot delete user because they are linked to existing system records (like assessments or logs). Suspend them instead.']);
+            exit;
+        }
     }
     if($action==='resend_email'){
         $id=(int)$_POST['id'];
@@ -603,6 +618,5 @@ function importHandleDrop(event) {
   }
 }
 
-// Auto-open create modal if action=create is in URL
 </script>
 <?php include __DIR__.'/../includes/footer.php'; ?>

@@ -9,8 +9,11 @@ $db = getDB();
 
 if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
-    verifyCsrf();
-    error_reporting(0);
+    verifyCsrf(true);
+    // Log errors instead of suppressing them
+    ini_set('display_errors', '0');
+    error_reporting(E_ALL);
+    ini_set('log_errors', '1');
     if ($_POST['action']==='save_sy') {
         $id=(int)($_POST['sy_id']??0);
         if($id){

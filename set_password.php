@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenRow) {
     } elseif ($password !== $confirm) {
         $error = 'Passwords do not match.';
     } else {
-        $hash = password_hash($password, PASSWORD_DEFAULT, ['cost' => 12]);
+        $hash = password_hash($password, PASSWORD_DEFAULT);
 
         // Update password and activate account
         $db->prepare(

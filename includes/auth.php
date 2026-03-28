@@ -13,6 +13,14 @@ function requireLogin(): void {
 function requireRole(string ...$roles): void {
     requireLogin();
     if (!in_array($_SESSION['role'], $roles, true)) {
+        http_response_code(403);
+        if (!empty($_SESSION['user_id'])) {
+            // Authenticated user with wrong role — show access denied
+            echo '<div class="alert alert-danger">Access denied. You do not have permission to view this page.</div>';
+            include __DIR__ . '/footer.php';
+            exit;
+        }
+        // Not logged in — redirect to login
         header('Location: ' . baseUrl() . '/login.php?err=access'); exit;
     }
 }
@@ -28,7 +36,13 @@ function me(): array {
     ];
 }
 function baseUrl(): string {
-    $proto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    // Check for reverse proxy headers first
+    $proto = 'http';
+    if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+        $proto = strtolower(explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'])[0]);
+    } elseif (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        $proto = 'https';
+    }
     $host    = $_SERVER['HTTP_HOST'];
     // Normalize both paths to forward slashes for Windows (XAMPP) compatibility
     $docRoot = rtrim(str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT']), '/');
@@ -88,9 +102,16 @@ function csrfToken(): string {
     if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     return $_SESSION['csrf_token'];
 }
-function verifyCsrf(): void {
+function verifyCsrf(bool $ajaxOnly = false): void {
     if (!hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? '')) {
-        http_response_code(403); echo json_encode(['ok'=>false,'msg'=>'Invalid CSRF token.']); exit;
+        if ($ajaxOnly || (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'msg' => 'Invalid CSRF token.']);
+            exit;
+        }
+        http_response_code(403);
+        echo '<div class="alert alert-danger">Invalid CSRF token. Please refresh the page and try again.</div>';
+        exit;
     }
 }
 function sbmRatingBadge(int $r): string {
@@ -114,5 +135,8 @@ function logActivity(string $action, string $module = '', string $details = ''):
                $details,
                $_SERVER['REMOTE_ADDR'] ?? ''
            ]);
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+        // Log to error log instead of silently swallowing
+        error_log('logActivity failed: ' . $e->getMessage());
+    }
 }

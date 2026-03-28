@@ -27,12 +27,32 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     if ($_POST['action']==='save') {
         if (!$cycle) { echo json_encode(['ok'=>false,'msg'=>'No active assessment cycle.']); exit; }
         $id = (int)($_POST['plan_id'] ?? 0);
+        // Validate max lengths before inserting
+        $objective        = trim($_POST['objective']);
+        $strategy         = trim($_POST['strategy']);
+        $personResp       = trim($_POST['person_responsible']);
+        $resourcesNeeded   = trim($_POST['resources_needed']);
+        $expectedOutput    = trim($_POST['expected_output']);
+        if (strlen($objective) > 500) {
+            echo json_encode(['ok'=>false,'msg'=>'Objective must be 500 characters or less.']); exit;
+        }
+        if (strlen($strategy) > 1000) {
+            echo json_encode(['ok'=>false,'msg'=>'Strategy must be 1000 characters or less.']); exit;
+        }
+        if (strlen($personResp) > 200) {
+            echo json_encode(['ok'=>false,'msg'=>'Person responsible must be 200 characters or less.']); exit;
+        }
+        if (strlen($resourcesNeeded) > 500) {
+            echo json_encode(['ok'=>false,'msg'=>'Resources needed must be 500 characters or less.']); exit;
+        }
+        if (strlen($expectedOutput) > 500) {
+            echo json_encode(['ok'=>false,'msg'=>'Expected output must be 500 characters or less.']); exit;
+        }
         $data = [
             $schoolId,$cycle['cycle_id'],(int)$_POST['dimension_id'],
             $_POST['indicator_id']?:null,$_POST['priority'],
-            trim($_POST['objective']),trim($_POST['strategy']),
-            trim($_POST['person_responsible']),$_POST['target_date']?:null,
-            trim($_POST['resources_needed']),trim($_POST['expected_output']),$_SESSION['user_id']
+            $objective,$strategy,$personResp,$_POST['target_date']?:null,
+            $resourcesNeeded,$expectedOutput,$_SESSION['user_id']
         ];
         if ($id) {
             $data[] = $id;
@@ -122,8 +142,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         foreach ($weakRows as $w) {
             $r = (int)$w['rating'];
             $priority  = $r === 1 ? 'High' : 'Medium';
-            $objective = "Improve performance on indicator {$w['indicator_code']}: {$w['indicator_text']}";
-            $strategy  = "Develop targeted interventions to address areas rated '{$ratingLabels[$r]}'. Identify root causes, allocate resources, and monitor progress.";
+            $objective = "Improve performance on indicator " . e($w['indicator_code']) . ": " . e($w['indicator_text']);
+            $strategy  = "Develop targeted interventions to address areas rated '" . ($ratingLabels[$r] ?? '') . "'. Identify root causes, allocate resources, and monitor progress.";
             $db->prepare("INSERT INTO improvement_plans (school_id,cycle_id,dimension_id,indicator_id,priority_level,objective,strategy,created_by) VALUES (?,?,?,?,?,?,?,?)")
                ->execute([$schoolId,$cycle['cycle_id'],$w['dimension_id'],$w['indicator_id'],$priority,$objective,$strategy,$_SESSION['user_id']]);
             $generated++;

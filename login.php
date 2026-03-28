@@ -8,46 +8,71 @@ if (!empty($_SESSION['user_id'])) {
 }
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $uname = trim($_POST['username'] ?? '');
-    $pass  = $_POST['password'] ?? '';
-    if ($uname && $pass) {
-        $db   = getDB();
-        $stmt = $db->prepare("SELECT * FROM users WHERE (username=? OR email=?) AND status='active' LIMIT 1");
-        $stmt->execute([$uname, $uname]);
-        $row  = $stmt->fetch();
-        if ($row && $row['password'] && password_verify($pass, $row['password'])) {
-            $_SESSION['user_id']    = $row['user_id'];
-            $_SESSION['username']   = $row['username'];
-            $_SESSION['full_name']  = $row['full_name'];
-            $_SESSION['role']       = $row['role'];
-            $_SESSION['school_id']   = $row['school_id'];
-            // division_id and region_id are not in the users table; resolve via school if needed
-            $_SESSION['division_id'] = null;
-            $_SESSION['region_id']   = null;
+    verifyCsrf(true);
 
-            if (password_needs_rehash($row['password'], PASSWORD_DEFAULT)) {
-                try {
-                    $newHash = password_hash($pass, PASSWORD_DEFAULT);
-                    $db->prepare("UPDATE users SET password=? WHERE user_id=?")
-                       ->execute([$newHash, $row['user_id']]);
-                } catch (\Exception $e) {
-                    error_log('Password rehash failed for user '.$row['user_id'].': '.$e->getMessage());
-                }
-            }
-
-            $db->prepare("UPDATE users SET last_login=NOW() WHERE user_id=?")->execute([$row['user_id']]);
-            logActivity('login', 'auth', 'User logged in');
-
-            // Force password change on first login if required
-            if ($row['force_password_change']) {
-                $_SESSION['force_pw_change'] = true;
-                header('Location: ' . baseUrl() . '/change_password.php'); exit;
-            }
-            header('Location: ' . roleHome($row['role'])); exit;
-        }
-        $error = 'Incorrect username or password.';
+    // Brute-force protection: track failed attempts in session
+    $loginAttempts = (int)($_SESSION['login_attempts'] ?? 0);
+    $lastAttempt  = (int)($_SESSION['login_last_attempt'] ?? 0);
+    $lockoutTime  = 15 * 60; // 15 minutes
+    if ($loginAttempts >= 5 && (time() - $lastAttempt) < $lockoutTime) {
+        $remaining = ceil(($lockoutTime - (time() - $lastAttempt)) / 60);
+        $error = "Too many failed attempts. Please try again in {$remaining} minute(s).";
     } else {
-        $error = 'Please enter your username and password.';
+        // Reset lockout if enough time has passed
+        if ((time() - $lastAttempt) >= $lockoutTime) {
+            $_SESSION['login_attempts']    = 0;
+            $_SESSION['login_last_attempt'] = 0;
+            $loginAttempts = 0;
+        }
+
+        $uname = trim($_POST['username'] ?? '');
+        $pass  = $_POST['password'] ?? '';
+        if ($uname && $pass) {
+            $db   = getDB();
+            $stmt = $db->prepare("SELECT * FROM users WHERE (username=? OR email=?) AND status='active' LIMIT 1");
+            $stmt->execute([$uname, $uname]);
+            $row  = $stmt->fetch();
+            if ($row && $row['password'] && password_verify($pass, $row['password'])) {
+                // Successful login — reset attempt counter
+                unset($_SESSION['login_attempts'], $_SESSION['login_last_attempt']);
+
+                $_SESSION['user_id']    = $row['user_id'];
+                $_SESSION['username']   = $row['username'];
+                $_SESSION['full_name']  = $row['full_name'];
+                $_SESSION['role']       = $row['role'];
+                $_SESSION['school_id']   = $row['school_id'];
+                // division_id and region_id are not in the users table; resolve via school if needed
+                $_SESSION['division_id'] = null;
+                $_SESSION['region_id']   = null;
+
+                if (password_needs_rehash($row['password'], PASSWORD_DEFAULT)) {
+                    try {
+                        $newHash = password_hash($pass, PASSWORD_DEFAULT);
+                        $db->prepare("UPDATE users SET password=? WHERE user_id=?")
+                           ->execute([$newHash, $row['user_id']]);
+                    } catch (\Exception $e) {
+                        error_log('Password rehash failed for user '.$row['user_id'].': '.$e->getMessage());
+                    }
+                }
+
+                $db->prepare("UPDATE users SET last_login=NOW() WHERE user_id=?")->execute([$row['user_id']]);
+                logActivity('login', 'auth', 'User logged in');
+
+                // Force password change on first login if required
+                if ($row['force_password_change']) {
+                    $_SESSION['force_pw_change'] = true;
+                    header('Location: ' . baseUrl() . '/change_password.php'); exit;
+                }
+                header('Location: ' . roleHome($row['role'])); exit;
+            }
+            $error = 'Incorrect username or password.';
+        } else {
+            $error = 'Please enter your username and password.';
+        }
+
+        // Track failed attempt
+        $_SESSION['login_attempts']    = $loginAttempts + 1;
+        $_SESSION['login_last_attempt'] = time();
     }
 }
 ?>
@@ -654,6 +679,7 @@ body::before {
       <?php endif; ?>
 
       <form method="post" autocomplete="off">
+        <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
         <div class="field">
           <label>Username or Email</label>
           <div class="field-wrap">

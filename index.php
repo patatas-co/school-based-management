@@ -7,7 +7,7 @@ $db = getDB();
 $total_indicators = $db->query("SELECT COUNT(*) FROM sbm_indicators WHERE is_active=1")->fetchColumn();
 $total_dimensions = $db->query("SELECT COUNT(*) FROM sbm_dimensions")->fetchColumn();
 $total_schools    = 1; // DIHS only
-$validated_cycles = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='validated' AND school_id=".SCHOOL_ID)->fetchColumn();
+$validated_cycles = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='validated' AND school_id=" . (int)SCHOOL_ID)->fetchColumn();
 
 
 $is_logged_in = !empty($_SESSION['user_id']);
