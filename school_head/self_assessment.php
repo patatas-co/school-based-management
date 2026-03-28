@@ -21,6 +21,21 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     verifyCsrf();
 
+    if ($_POST['action'] === 'start_assessment') {
+        $check = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+        $check->execute([$schoolId, $syId]);
+        if ($check->fetchColumn()) {
+            echo json_encode(['ok'=>false,'msg'=>'Assessment cycle already exists.']); exit;
+        }
+        try {
+            $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")->execute([$syId,$schoolId]);
+            logActivity('start_assessment','self_assessment',"Started SBM assessment cycle for the current school year.");
+            echo json_encode(['ok'=>true,'msg'=>'Assessment started successfully!']); exit;
+        } catch (\PDOException $e) {
+            echo json_encode(['ok'=>false,'msg'=>'Failed to initialize assessment cycle.']); exit;
+        }
+    }
+
     if ($_POST['action'] === 'save_response') {
         $indicatorId = (int)$_POST['indicator_id'];
         $rating      = (int)$_POST['rating'];
@@ -773,7 +788,12 @@ include __DIR__.'/../includes/header.php';
     <p>Rate all indicators across 6 dimensions using the 4 Degrees of Manifestation scale.</p>
   </div>
   <div class="page-head-actions">
-    <?php if(!$isLocked): ?>
+    <?php if(!$cycle): ?>
+    <button class="btn btn-primary" onclick="openModal('mStartAssessment')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-right:6px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+      Start Assessment
+    </button>
+    <?php elseif(!$isLocked): ?>
     <button class="btn btn-primary" onclick="submitAssessment()">
       <?= svgIcon('check') ?> Submit Assessment
     </button>
@@ -790,6 +810,21 @@ include __DIR__.'/../includes/header.php';
   <?= svgIcon('info') ?> This assessment has been <strong><?= e($cycle['status']) ?></strong>. Responses are read-only.
 </div>
 <?php endif; ?>
+
+<?php if (!$cycle): ?>
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-body" style="padding: 60px 20px; text-align: center;">
+    <div style="width: 72px; height: 72px; border-radius: 50%; background: var(--blueb); color: var(--blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px; margin-left:4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+    </div>
+    <h3 style="font-size: 22px; font-weight: 800; color: var(--n800); margin-bottom: 12px;">Start New Assessment Cycle</h3>
+    <p style="font-size: 15px; color: var(--n500); max-width: 480px; margin: 0 auto 30px; line-height: 1.6;">There is currently no active assessment cycle for this school year. Click the button below to explicitly start the assessment. This will instantly make the indicators available for all active teachers to answer.</p>
+    <button class="btn btn-primary" onclick="openModal('mStartAssessment')" style="padding: 12px 28px; font-size: 15.5px;">
+      Start Assessment Cycle
+    </button>
+  </div>
+</div>
+<?php else: ?>
 
 <?php if (!$isLocked && $totalTeachers > 0): ?>
 <!-- ── TEACHER STATUS PANEL (Fix B) ────────────────────────── -->
@@ -1301,6 +1336,8 @@ $ovData      = $hasOverride
   </button>
   <?php endif; ?>
 </div>
+
+<?php endif; // END of !$cycle check ?>
 
 <script>
 // ── State ──────────────────────────────────────────────────
@@ -1881,7 +1918,58 @@ async function clearOverride(indId) {
     if (r.ok) setTimeout(() => location.reload(), 800);
 }
 
+async function confirmStartAssessment() {
+    const btn = document.getElementById('btnStartAssessment');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = 'Starting...';
+
+    const r = await apiPost('self_assessment.php', { action: 'start_assessment' });
+    if (r.ok) {
+        toast(r.msg, 'ok');
+        closeModal('mStartAssessment');
+        setTimeout(() => location.reload(), 1000);
+    } else {
+        toast(r.msg || 'Something went wrong.', 'err');
+        btn.disabled = false;
+        btn.textContent = 'Yes, Start Assessment';
+    }
+}
+
 </script>
+
+<!-- Start Assessment Modal -->
+<div class="overlay" id="mStartAssessment">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <span class="modal-title">
+          Start Assessment Cycle
+      </span>
+      <button class="modal-close" onclick="closeModal('mStartAssessment')">
+          <?= svgIcon('x') ?>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info" style="margin-bottom:16px;">
+          <?= svgIcon('info') ?>
+          <span>
+             Are you sure you want to start the SBM Self-Assessment for this school year? 
+          </span>
+      </div>
+      <p style="font-size:14px; color:var(--n600); line-height:1.5;">
+          This action will immediately initialize the assessment indicators and reflect them on the teachers' dashboard so they can begin providing their ratings.
+      </p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mStartAssessment')">
+          Cancel
+      </button>
+      <button class="btn btn-primary" id="btnStartAssessment" type="button" onclick="confirmStartAssessment()">
+    Yes, Start Assessment
+</button>
+    </div>
+  </div>
+</div>
 
 <!-- Override Modal -->
 <div class="overlay" id="mOverride">

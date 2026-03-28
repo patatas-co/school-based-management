@@ -1924,10 +1924,23 @@ function toast(msg, type = 'ok') {
 }
 
 // ── API helpers ───────────────────────────────────────────────
-const _csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+const _csrf = document.querySelector('meta[name="csrf-token"]')?.content
+           || document.head.querySelector('[name=csrf-token]')?.getAttribute('content')
+           || '';
+if (!_csrf) console.warn('CSRF token missing from page — apiPost calls will fail.');
 async function apiPost(url, data) {
   data.csrf_token = _csrf;
-  const res = await fetch(url, { method:'POST', body: new URLSearchParams(data) });
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(data)
+    });
+  } catch (networkErr) {
+    toast('Network error. Check your connection.', 'err');
+    return { ok: false, msg: 'Network error.' };
+  }
   if (res.status === 403) {
     toast('Your session has expired. Please refresh the page.', 'err');
     return { ok: false, msg: 'Session expired.' };
@@ -1935,7 +1948,11 @@ async function apiPost(url, data) {
   if (!res.ok) {
     return { ok: false, msg: 'Server error (' + res.status + ').' };
   }
-  return res.json();
+  try {
+    return await res.json();
+  } catch (parseErr) {
+    return { ok: false, msg: 'Invalid server response.' };
+  }
 }
 function filterTable(q, id) {
   const lower = q.toLowerCase();
