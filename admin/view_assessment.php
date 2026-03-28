@@ -30,8 +30,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     verifyCsrf();
     if ($_POST['action']==='validate') {
-        $db->prepare("UPDATE sbm_cycles SET status='validated',validated_by=?,validated_at=NOW(),validator_remarks=? WHERE cycle_id=?")
-           ->execute([$_SESSION['user_id'],trim($_POST['remarks']),$cycleId]);
+    $targetCycleId = (int)($_POST['cycle_id'] ?? $cycleId);
+    if ($targetCycleId !== $cycleId) { echo json_encode(['ok'=>false,'msg'=>'Cycle mismatch.']); exit; }
+    $db->prepare("UPDATE sbm_cycles SET status='validated',validated_by=?,validated_at=NOW(),validator_remarks=? WHERE cycle_id=?")
+       ->execute([$_SESSION['user_id'],trim($_POST['remarks']),$cycleId]);
         logActivity('validate_assessment','view_assessment','Validated cycle ID:'.$cycleId);
         echo json_encode(['ok'=>true,'msg'=>'Assessment validated successfully.']); exit;
     }

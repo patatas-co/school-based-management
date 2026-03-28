@@ -39,7 +39,9 @@ $weakIndicators = $db->prepare("
   WHERE c.sy_id=?
   GROUP BY i.indicator_id ORDER BY avg_rating ASC LIMIT 8
 ");
-$weakIndicators->execute([$syId]); $weakIndicators = $weakIndicators->fetchAll();
+$weakIndicators->execute([$syId]);
+$weakIndicatorRows = $weakIndicators->fetchAll();
+$weakIndicators = $weakIndicatorRows;
 
 $syears = $db->query("SELECT * FROM school_years ORDER BY sy_id DESC")->fetchAll();
 

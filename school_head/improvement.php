@@ -4,6 +4,107 @@ require_once __DIR__.'/../includes/auth.php';
 requireRole('school_head','admin');
 $db = getDB();
 
+// ── Helper functions (must be defined before any call site) ──
+function saveInd(array &$s, int $r, string $dim, string $code, string $text, string $ev, string $act): void {
+    if ($r > 0 && $r <= 4 && !empty($code) && !empty($dim) && !empty($text)) {
+        $key = "rating_{$r}";
+        if (!isset($s[$key][$dim])) $s[$key][$dim] = [];
+        foreach ($s[$key][$dim] as $existing) {
+            if ($existing['code'] === $code) return;
+        }
+        $s[$key][$dim][] = [
+            'code'     => trim($code),
+            'text'     => trim($text),
+            'evidence' => trim($ev),
+            'action'   => trim($act),
+        ];
+    }
+}
+
+function parseRecommendationSections(string $text): array {
+    $sections = [
+        'overview' => '', 'remarks_summary' => '',
+        'rating_1' => [], 'rating_2' => [], 'rating_3' => [], 'rating_4' => [],
+        'topic_recs' => [], 'counts' => [],
+        'is_structured' => false,
+    ];
+    if (empty($text)) return $sections;
+
+    $lines = explode("\n", $text);
+
+    foreach ($lines as $line) {
+        if (preg_match('/Not Yet Manifested.*?:\s*(\d+)/i', $line, $m))   $sections['counts']['not_yet']    = (int)$m[1];
+        if (preg_match('/Emerging.*?:\s*(\d+)\s+indicator/i', $line, $m)) $sections['counts']['emerging']   = (int)$m[1];
+        if (preg_match('/Developing.*?:\s*(\d+)\s+indicator/i', $line, $m))$sections['counts']['developing'] = (int)$m[1];
+        if (preg_match('/Always Manifested.*?:\s*(\d+)/i', $line, $m))    $sections['counts']['always']     = (int)$m[1];
+    }
+
+    $inRemarks = false;
+    $remarkLines = [];
+    $inRating=0;$currentDim='';$currentCode='';$currentText='';
+    $currentEvidence='';$currentAction='';$inTopics=false;$currentTopic='';
+
+    foreach ($lines as $line) {
+        $trimmed = trim($line);
+        $stripped = trim(preg_replace('/[\x{1F300}-\x{1FFFF}]/u', '', $trimmed));
+
+        if (stripos($stripped, 'STAKEHOLDER REMARKS SUMMARY') !== false)
+            { $inRemarks=true; $inRating=0; $inTopics=false; continue; }
+        if (preg_match('/PRIORITY\s*1.*NOT YET MANIFESTED/i', $stripped) || preg_match('/NOT YET MANIFESTED.*IMMEDIATE/i', $stripped))
+            { $inRemarks=false; $inRating=1; $inTopics=false; continue; }
+        if (preg_match('/PRIORITY\s*2.*EMERGING/i', $stripped) || preg_match('/EMERGING.*FOCUSED/i', $stripped))
+            { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentCode=$currentText=$currentEvidence=$currentAction=''; $inRemarks=false;$inRating=2;$inTopics=false; continue; }
+        if (preg_match('/PRIORITY\s*3.*DEVELOPING/i', $stripped) || preg_match('/DEVELOPING.*CONTINUE/i', $stripped))
+            { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentCode=$currentText=$currentEvidence=$currentAction=''; $inRemarks=false;$inRating=3;$inTopics=false; continue; }
+        if (preg_match('/SUSTAINED PRACTICES/i', $stripped) || preg_match('/ALWAYS MANIFESTED.*SUSTAIN/i', $stripped))
+            { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentCode=$currentText=$currentEvidence=$currentAction=''; $inRemarks=false;$inRating=4;$inTopics=false; continue; }
+        if (stripos($stripped,'FROM STAKEHOLDER REMARKS')!==false || stripos($stripped,'RECOMMENDATIONS FROM STAKEHOLDER')!==false)
+            { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentCode=$currentText=$currentEvidence=$currentAction=''; $inRemarks=false;$inRating=0;$inTopics=true; continue; }
+        if (preg_match('/^[─\-]{10,}/',$stripped) || stripos($stripped,'NOTE:')===0 || stripos($stripped,'DIMENSION-LEVEL')!==false)
+            { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentCode=$currentText=$currentEvidence=$currentAction=''; $inRemarks=false;$inRating=0;$inTopics=false; continue; }
+
+        if ($inRemarks && !empty($trimmed)) {
+            if (!preg_match('/PRIORITY\s*[123]/i', $stripped) &&
+                !preg_match('/NOT YET MANIFESTED/i', $stripped) &&
+                !preg_match('/ALWAYS MANIFESTED/i', $stripped) &&
+                !preg_match('/SUSTAINED PRACTICES/i', $stripped)) {
+                $remarkLines[] = $trimmed;
+            }
+            continue;
+        }
+
+        if ($inRating > 0) {
+            if (preg_match('/(?:📌\s*|•\s*)(.+)/', $stripped, $m) && !preg_match('/^\[/', trim($m[1])))
+                { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentDim=trim($m[1],':');$currentCode=$currentText=$currentEvidence=$currentAction=''; continue; }
+            if (preg_match('/\[([A-Za-z0-9.]+)\]\s*(.+)/', $trimmed, $m))
+                { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentCode=$m[1];$currentText=$m[2];$currentEvidence=$currentAction=''; continue; }
+            if (stripos($trimmed,'Evidence noted:')!==false || stripos($trimmed,'Evidence:')!==false)
+                { preg_match('/"([^"]+)"/',$trimmed,$m); $currentEvidence=$m[1]??''; continue; }
+            if (strpos($trimmed,'→')!==false && !empty($currentCode))
+                { $act=trim(ltrim($trimmed,'→ ')); $currentAction=empty($currentAction)?$act:$currentAction.' '.$act; continue; }
+            if (!empty($currentCode) && !empty($currentAction) && strpos($line,'       ')===0)
+                { $currentAction.=' '.$trimmed; continue; }
+        }
+
+        if ($inTopics && !empty($trimmed)) {
+            if (preg_match('/^\[(.+)\]$/',$trimmed,$m)) { $currentTopic=$m[1]; continue; }
+            if (!empty($currentTopic) && strpos($trimmed,'→')!==false)
+                { $sections['topic_recs'][$currentTopic]=trim(ltrim($trimmed,'→ ')); continue; }
+        }
+    }
+
+    saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction);
+    $sections['remarks_summary'] = implode("\n", $remarkLines);
+
+    if (!empty($sections['rating_1']) || !empty($sections['rating_2']) ||
+        !empty($sections['rating_3']) || !empty($sections['rating_4']) ||
+        !empty($sections['topic_recs']) || !empty($sections['remarks_summary'])) {
+        $sections['is_structured'] = true;
+    }
+
+    return $sections;
+}
+
 $schoolId = $_SESSION['school_id'] ?? 0;
 $syId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 $cycle = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
@@ -1040,109 +1141,5 @@ async function regenerateML() {
   }
 }
 </script>
-
-<?php
-function parseRecommendationSections(string $text): array {
-    $sections = [
-        'overview' => '', 'remarks_summary' => '',
-        'rating_1' => [], 'rating_2' => [], 'rating_3' => [], 'rating_4' => [],
-        'topic_recs' => [], 'counts' => [],
-        'is_structured' => false,
-    ];
-    if (empty($text)) return $sections;
-
-    $lines = explode("\n", $text);
-
-    foreach ($lines as $line) {
-        if (preg_match('/Not Yet Manifested.*?:\s*(\d+)/i', $line, $m))   $sections['counts']['not_yet']    = (int)$m[1];
-        if (preg_match('/Emerging.*?:\s*(\d+)\s+indicator/i', $line, $m)) $sections['counts']['emerging']   = (int)$m[1];
-        if (preg_match('/Developing.*?:\s*(\d+)\s+indicator/i', $line, $m))$sections['counts']['developing'] = (int)$m[1];
-        if (preg_match('/Always Manifested.*?:\s*(\d+)/i', $line, $m))    $sections['counts']['always']     = (int)$m[1];
-    }
-
-    $inRemarks = false;
-$remarkLines = [];
-    $inRating=0;$currentDim='';$currentCode='';$currentText='';
-    $currentEvidence='';$currentAction='';$inTopics=false;$currentTopic='';
-
-    foreach ($lines as $line) {
-        $trimmed = trim($line);
-        $stripped = trim(preg_replace('/[\x{1F300}-\x{1FFFF}]/u', '', $trimmed));
-
-        if (stripos($stripped, 'STAKEHOLDER REMARKS SUMMARY') !== false)
-            { $inRemarks=true; $inRating=0; $inTopics=false; continue; }
-        if (preg_match('/PRIORITY\s*1.*NOT YET MANIFESTED/i', $stripped) || preg_match('/NOT YET MANIFESTED.*IMMEDIATE/i', $stripped))
-            { $inRemarks=false; $inRating=1; $inTopics=false; continue; }
-        if (preg_match('/PRIORITY\s*2.*EMERGING/i', $stripped) || preg_match('/EMERGING.*FOCUSED/i', $stripped))
-            { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentCode=$currentText=$currentEvidence=$currentAction=''; $inRemarks=false;$inRating=2;$inTopics=false; continue; }
-        if (preg_match('/PRIORITY\s*3.*DEVELOPING/i', $stripped) || preg_match('/DEVELOPING.*CONTINUE/i', $stripped))
-            { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentCode=$currentText=$currentEvidence=$currentAction=''; $inRemarks=false;$inRating=3;$inTopics=false; continue; }
-        if (preg_match('/SUSTAINED PRACTICES/i', $stripped) || preg_match('/ALWAYS MANIFESTED.*SUSTAIN/i', $stripped))
-            { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentCode=$currentText=$currentEvidence=$currentAction=''; $inRemarks=false;$inRating=4;$inTopics=false; continue; }
-        if (stripos($stripped,'FROM STAKEHOLDER REMARKS')!==false || stripos($stripped,'RECOMMENDATIONS FROM STAKEHOLDER')!==false)
-            { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentCode=$currentText=$currentEvidence=$currentAction=''; $inRemarks=false;$inRating=0;$inTopics=true; continue; }
-        if (preg_match('/^[─\-]{10,}/',$stripped) || stripos($stripped,'NOTE:')===0 || stripos($stripped,'DIMENSION-LEVEL')!==false)
-            { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentCode=$currentText=$currentEvidence=$currentAction=''; $inRemarks=false;$inRating=0;$inTopics=false; continue; }
-
-        if ($inRemarks && !empty($trimmed)) {
-            if (!preg_match('/PRIORITY\s*[123]/i', $stripped) &&
-                !preg_match('/NOT YET MANIFESTED/i', $stripped) &&
-                !preg_match('/ALWAYS MANIFESTED/i', $stripped) &&
-                !preg_match('/SUSTAINED PRACTICES/i', $stripped)) {
-                $remarkLines[] = $trimmed;
-            }
-            continue;
-        }
-
-        if ($inRating > 0) {
-            if (preg_match('/(?:📌\s*|•\s*)(.+)/', $stripped, $m) && !preg_match('/^\[/', trim($m[1])))
-                { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentDim=trim($m[1],':');$currentCode=$currentText=$currentEvidence=$currentAction=''; continue; }
-            if (preg_match('/\[([A-Za-z0-9.]+)\]\s*(.+)/', $trimmed, $m))
-                { saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction); $currentCode=$m[1];$currentText=$m[2];$currentEvidence=$currentAction=''; continue; }
-            if (stripos($trimmed,'Evidence noted:')!==false || stripos($trimmed,'Evidence:')!==false)
-                { preg_match('/"([^"]+)"/',$trimmed,$m); $currentEvidence=$m[1]??''; continue; }
-            if (strpos($trimmed,'→')!==false && !empty($currentCode))
-                { $act=trim(ltrim($trimmed,'→ ')); $currentAction=empty($currentAction)?$act:$currentAction.' '.$act; continue; }
-            if (!empty($currentCode) && !empty($currentAction) && strpos($line,'       ')===0)
-                { $currentAction.=' '.$trimmed; continue; }
-        }
-
-        if ($inTopics && !empty($trimmed)) {
-            if (preg_match('/^\[(.+)\]$/',$trimmed,$m)) { $currentTopic=$m[1]; continue; }
-            if (!empty($currentTopic) && strpos($trimmed,'→')!==false)
-                { $sections['topic_recs'][$currentTopic]=trim(ltrim($trimmed,'→ ')); continue; }
-        }
-    }
-
-    saveInd($sections,$inRating,$currentDim,$currentCode,$currentText,$currentEvidence,$currentAction);
-    $sections['remarks_summary'] = implode("\n", $remarkLines);
-
-    // Flag as structured if we found at least one rating section, topic, or summary
-    if (!empty($sections['rating_1']) || !empty($sections['rating_2']) || 
-        !empty($sections['rating_3']) || !empty($sections['rating_4']) || 
-        !empty($sections['topic_recs']) || !empty($sections['remarks_summary'])) {
-        $sections['is_structured'] = true;
-    }
-
-    return $sections;
-}
-
-function saveInd(array &$s, int $r, string $dim, string $code, string $text, string $ev, string $act): void {
-    if ($r > 0 && $r <= 4 && !empty($code) && !empty($dim) && !empty($text)) {
-        $key = "rating_{$r}";
-        if (!isset($s[$key][$dim])) $s[$key][$dim] = [];
-        // Prevent duplicate entries
-        foreach ($s[$key][$dim] as $existing) {
-            if ($existing['code'] === $code) return;
-        }
-        $s[$key][$dim][] = [
-            'code'     => trim($code),
-            'text'     => trim($text),
-            'evidence' => trim($ev),
-            'action'   => trim($act),
-        ];
-    }
-}
-?>
 
 <?php include __DIR__.'/../includes/footer.php'; ?>

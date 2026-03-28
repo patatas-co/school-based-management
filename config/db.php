@@ -31,6 +31,14 @@ define('SCHOOL_HEAD', 'Maria Santos');
 
 function getDB(): PDO {
     static $pdo = null;
+    if ($pdo !== null) {
+        try {
+            // test connection is alive
+            $pdo->query('SELECT 1');
+        } catch (\PDOException $e) {
+            $pdo = null;
+        }
+    }
     if ($pdo === null) {
         $dsn = "mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=utf8mb4";
         $pdo = new PDO($dsn, DB_USER, DB_PASS, [

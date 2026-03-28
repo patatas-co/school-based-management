@@ -333,15 +333,28 @@ $mat = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : null;
         <a href="dimensions.php" class="btn btn-ghost btn-sm">View details →</a>
       </div>
       <div class="dim-grid">
-        <?php foreach($dimScores as $ds):
-          $pct = floatval($ds['percentage']);
-          $mat2 = sbmMaturityLevel($pct);
-          $done = 0;
-          if ($cycle) {
-            $dd = $db->prepare("SELECT COUNT(*) FROM sbm_responses r JOIN sbm_indicators i ON r.indicator_id=i.indicator_id WHERE r.cycle_id=? AND i.dimension_id=?");
-            $dd->execute([$cycle['cycle_id'],$ds['dimension_id']]); $done = $dd->fetchColumn();
-          }
-        ?>
+        <?php
+// Load all dimension response counts in one query before the loop
+$dimCompletionData = [];
+if ($cycle) {
+    $dcStmt = $db->prepare("
+        SELECT i.dimension_id, COUNT(*) cnt
+        FROM sbm_responses r
+        JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
+        WHERE r.cycle_id = ?
+        GROUP BY i.dimension_id
+    ");
+    $dcStmt->execute([$cycle['cycle_id']]);
+    foreach ($dcStmt->fetchAll() as $dc) {
+        $dimCompletionData[$dc['dimension_id']] = $dc['cnt'];
+    }
+}
+?>
+<?php foreach($dimScores as $ds):
+  $pct = floatval($ds['percentage']);
+  $mat2 = sbmMaturityLevel($pct);
+  $done = $dimCompletionData[$ds['dimension_id']] ?? 0;
+?>
         <a href="self_assessment.php#dim<?= $ds['dimension_no'] ?>" class="dim-tile" style="border-top-color:<?= e($ds['color_hex']) ?>;text-decoration:none;">
           <div class="dim-tile-num">Dimension <?= $ds['dimension_no'] ?></div>
           <div class="dim-tile-name" style="color:<?= e($ds['color_hex']) ?>;"><?= e($ds['dimension_name']) ?></div>

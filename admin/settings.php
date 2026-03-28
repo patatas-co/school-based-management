@@ -39,9 +39,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     if (!$row) {
         echo json_encode(['ok' => false, 'msg' => 'School year not found.']); exit;
     }
-    if ($row['is_current']) {
-        echo json_encode(['ok' => false, 'msg' => 'Cannot delete the current active school year.']); exit;
-    }
+    if ((int)$row['is_current'] === 1) {
+    echo json_encode(['ok' => false, 'msg' => 'Cannot delete the current active school year.']); exit;
+}
 
     try {
         $db->prepare("DELETE FROM school_years WHERE sy_id = ?")->execute([$id]);

@@ -59,12 +59,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])){
 
         if (!$cycleRow) {
     try {
-        $db->prepare("
-            INSERT INTO sbm_cycles 
-                (sy_id,school_id,status,started_at) 
-            VALUES (?,?,'in_progress',NOW())
-        ")->execute([$syId,$schoolId]);
-        $cycleId = $db->lastInsertId();
+        $insertStmt = $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())");
+$insertStmt->execute([$syId,$schoolId]);
+$cycleId = (int)$db->lastInsertId();
+if (!$cycleId) {
+    echo json_encode(['ok'=>false,'msg'=>'Failed to create assessment cycle.']); exit;
+}
     } catch (\PDOException $e) {
         if ($e->getCode() === '23000') {
             $retry = $db->prepare(

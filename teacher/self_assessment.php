@@ -833,9 +833,9 @@ async function submitMyAssessment() {
         setTimeout(() => location.reload(), 1000);
     } else {
         if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = `${svgI('check')} Submit to School Head`;
-        }
+    btn.disabled = false;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="20 6 9 17 4 12"/></svg> Submit to School Head <span id="submitCount" style="font-size:12px;opacity:.8;margin-left:4px;">(${prog.done}/${prog.total} rated)</span>`;
+}
     }
 }
 </script>

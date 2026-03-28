@@ -43,7 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Still show success — don't reveal rate limiting to potential attackers
                 $success = true;
             } else {
-                $sent = sendPasswordResetEmail($db, $user);
+                try {
+    $sent = sendPasswordResetEmail($db, $user);
+} catch (\Exception $e) {
+    error_log('SBM: Password reset token error: ' . $e->getMessage());
+    $sent = false;
+}
                 // Log failure silently; don't expose to user
                 if (!$sent) {
                     error_log('SBM: Password reset email failed for user_id=' . $user['user_id']);

@@ -130,8 +130,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $file = $_FILES['csv']['tmp_name'];
         if (!is_uploaded_file($file)) { echo json_encode(['ok' => false, 'msg' => 'Invalid file.']); exit; }
 
-        $handle = fopen($file, 'r');
-        $headers = fgetcsv($handle); // Assume first row is headers: full_name, username, email, role, [password]
+       $finfo = finfo_open(FILEINFO_MIME_TYPE);
+$mimeType = finfo_file($finfo, $file);
+finfo_close($finfo);
+$allowedMimes = ['text/plain','text/csv','application/csv','application/vnd.ms-excel'];
+if (!in_array($mimeType, $allowedMimes)) {
+    echo json_encode(['ok' => false, 'msg' => 'Invalid file type. Please upload a .csv file.']); exit;
+}
+$handle = fopen($file, 'r');
+if (!$handle) { echo json_encode(['ok' => false, 'msg' => 'Could not open file.']); exit; }
+$headers = fgetcsv($handle); // Assume first row is headers: full_name, username, email, role, [password]
         
         $success = 0; $failed = 0; $errors = []; $usersCreated = 0;
         $validRoles = ['admin', 'school_head', 'teacher', 'sdo', 'ro', 'external_stakeholder'];
@@ -528,7 +536,16 @@ async function createUser(){
 }
 async function editUser(id){
   const r=await apiPost('users.php',{action:'get',id});
-  $v('e_id',r.user_id);$v('e_name',r.full_name);$v('e_email',r.email);$v('e_role',r.role);$v('e_status',r.status);$v('e_school',r.school_id);$v('e_pass','');
+  if(!r || !r.user_id){ toast('Failed to load user data.','err'); return; }
+  $v('e_id',r.user_id);
+  $v('e_name',r.full_name);
+  $v('e_email',r.email);
+  const roleEl=document.getElementById('e_role');
+  if(roleEl) roleEl.value=r.role||'teacher';
+  const statusEl=document.getElementById('e_status');
+  if(statusEl) statusEl.value=r.status||'active';
+  $v('e_school',r.school_id||'');
+  $v('e_pass','');
   openModal('mEdit');
 }
 async function updateUser(){

@@ -57,8 +57,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             echo json_encode(['ok'=>false,'msg'=>'This indicator is answered by teachers.']); exit;
         }
 
-        $cycleRow = $db->prepare("SELECT cycle_id, school_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?");
-$cycleRow->execute([$schoolId,$syId]); $cycleRow = $cycleRow->fetch();
+        $cycleStmt = $db->prepare("SELECT cycle_id, school_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+$cycleStmt->execute([$schoolId,$syId]);
+$cycleRow = $cycleStmt->fetch();
 
         if (!$cycleRow) {
             try {
@@ -149,8 +150,16 @@ $db->prepare("
 ")->execute(array_merge([$cycleRow['cycle_id'], $dimId], TEACHER_INDICATOR_CODES));
 
         $db->prepare("UPDATE sbm_dimension_scores SET raw_score=0,max_score=0,percentage=0,computed_at=NOW()
-                      WHERE cycle_id=? AND dimension_id=?")
-           ->execute([$cycleRow['cycle_id'], $dimId]);
+              WHERE cycle_id=? AND dimension_id=?")
+   ->execute([$cycleRow['cycle_id'], $dimId]);
+
+// Recompute from scratch using any remaining teacher responses
+$anyInd = $db->prepare("SELECT indicator_id FROM sbm_indicators WHERE dimension_id=? AND is_active=1 LIMIT 1");
+$anyInd->execute([$dimId]);
+$anyIndId = $anyInd->fetchColumn();
+if ($anyIndId) {
+    recomputeDimScoreWithOverrides($db, $cycleRow['cycle_id'], $anyIndId, $schoolId);
+}
 
         $indIds = $db->prepare("SELECT indicator_id FROM sbm_indicators WHERE dimension_id=? AND is_active=1");
         $indIds->execute([$dimId]);
@@ -1911,7 +1920,7 @@ async function confirmStartAssessment() {
     btn.disabled = true;
     btn.textContent = 'Starting...';
 
-    const r = await apiPost('school_head/self_assessment.php', { action: 'start_assessment' });
+    const r = await apiPost('self_assessment.php', { action: 'start_assessment' });
     if (r.ok) {
         toast(r.msg, 'ok');
         closeModal('mStartAssessment');

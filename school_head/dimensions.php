@@ -23,13 +23,14 @@ $dimScoreMap = array_column($dimScores, null, 'dimension_no');
 
 // ── ADD THIS BLOCK BELOW ──────────────────────────────────────
 // Cross-cycle trend data
-$allCycles = $db->prepare("
+$allCyclesStmt = $db->prepare("
     SELECT c.cycle_id, c.overall_score, c.status, c.created_at
     FROM sbm_cycles c
     WHERE c.school_id=?
     ORDER BY c.cycle_id ASC
 ");
-$allCycles->execute([$schoolId]); $allCycles = $allCycles->fetchAll();
+$allCyclesStmt->execute([$schoolId]);
+$allCycles = $allCyclesStmt->fetchAll();
 
 $trendData = [];
 foreach ($allCycles as $cyc) {

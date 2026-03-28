@@ -8,7 +8,7 @@ if (!empty($_SESSION['user_id'])) {
 }
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    verifyCsrf(true);
+    verifyCsrf();
 
     // Brute-force protection: track failed attempts in session
     $loginAttempts = (int)($_SESSION['login_attempts'] ?? 0);

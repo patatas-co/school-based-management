@@ -920,7 +920,7 @@ new Chart(document.getElementById('dimBarChart'), {
 // ── Live polling ─────────────────────────────────────────────
 async function pollUpdates() {
   try {
-    const res = await fetch('<?= $__base ?>/includes/poll.php');
+    const res = await fetch('<?= baseUrl() ?>/includes/poll.php');
     if (!res.ok) return;
     const d = await res.json();
     if (d.schools   !== undefined) liveSet('total-schools', d.schools);

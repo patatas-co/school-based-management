@@ -52,14 +52,15 @@ function baseUrl(): string {
     return $proto . '://' . $host . $base;
 }
 function roleHome(string $role): string {
+    $base = baseUrl();
     return match($role) {
-        'admin'                => 'admin/dashboard.php',
-        'school_head'          => 'school_head/dashboard.php',
-        'teacher'              => 'teacher/dashboard.php',
-        'sdo'                  => 'admin/dashboard.php',  // SDO uses same admin view
-        'ro'                   => 'admin/analytics.php',  // RO goes straight to analytics
-        'external_stakeholder' => 'stakeholder/dashboard.php',
-        default                => 'login.php',
+        'admin'                => $base . '/admin/dashboard.php',
+        'school_head'          => $base . '/school_head/dashboard.php',
+        'teacher'              => $base . '/teacher/dashboard.php',
+        'sdo'                  => $base . '/admin/dashboard.php',
+        'ro'                   => $base . '/admin/analytics.php',
+        'external_stakeholder' => $base . '/stakeholder/dashboard.php',
+        default                => $base . '/login.php',
     };
 }
 function e(?string $s): string { return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8'); }
