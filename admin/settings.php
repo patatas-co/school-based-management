@@ -10,6 +10,7 @@ $db = getDB();
 if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     verifyCsrf();
+    error_reporting(0);
     if ($_POST['action']==='save_sy') {
         $id=(int)($_POST['sy_id']??0);
         if($id){
@@ -22,10 +23,31 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         }
         echo json_encode(['ok'=>true,'msg'=>'School year saved.']); exit;
     }
-    if($_POST['action']==='delete_sy'){
-        $db->prepare("DELETE FROM school_years WHERE sy_id=?")->execute([(int)$_POST['id']]);
-        echo json_encode(['ok'=>true,'msg'=>'School year deleted.']); exit;
+    if ($_POST['action'] === 'delete_sy') {
+    $id = (int)($_POST['id'] ?? 0);
+    if (!$id) {
+        echo json_encode(['ok' => false, 'msg' => 'Invalid ID.']); exit;
     }
+
+    // Block deleting the active school year
+    $isCurrent = $db->prepare("SELECT is_current FROM school_years WHERE sy_id = ?");
+    $isCurrent->execute([$id]);
+    $row = $isCurrent->fetch();
+    if (!$row) {
+        echo json_encode(['ok' => false, 'msg' => 'School year not found.']); exit;
+    }
+    if ($row['is_current']) {
+        echo json_encode(['ok' => false, 'msg' => 'Cannot delete the current active school year.']); exit;
+    }
+
+    try {
+        $db->prepare("DELETE FROM school_years WHERE sy_id = ?")->execute([$id]);
+        echo json_encode(['ok' => true, 'msg' => 'School year deleted.']); exit;
+    } catch (\PDOException $e) {
+        // Foreign key constraint — linked cycles/responses exist
+        echo json_encode(['ok' => false, 'msg' => 'Cannot delete: this school year has linked assessment data. Remove those cycles first.']); exit;
+    }
+}
     if($_POST['action']==='get_sy'){$st=$db->prepare("SELECT * FROM school_years WHERE sy_id=?");$st->execute([(int)$_POST['id']]);echo json_encode($st->fetch());exit;}
     exit;
 }
