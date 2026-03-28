@@ -46,8 +46,9 @@ elseif ($__role === 'school_head') {
             ['SBM Dimensions',   'school_head/dimensions.php',        'layers'],
         ]],
         ['Evaluation', 'check-circle', [
-            ['Self-Assessment',  'school_head/self_assessment.php',   'check-circle'],
-            ['Evidence & MOV',   'school_head/evidence.php',          'paperclip'],
+            ['Self-Assessment',  'school_head/self_assessment.php',        'check-circle'],
+            ['Submission Status',   'school_head/teacher_status.php',         'users'],
+            ['Evidence & MOV',   'school_head/evidence.php',               'paperclip'],
         ]],
         ['Planning', 'trending-up', [
             ['Improvement Plan', 'school_head/improvement.php',       'trending-up'],

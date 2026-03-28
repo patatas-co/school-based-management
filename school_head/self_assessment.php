@@ -429,11 +429,53 @@ $shTotal      = count($shIndicators);
 $totalDone    = count($responses);
 $totalCount   = count($indicators);
 
-// ── Pending teachers (B: who hasn't submitted) ─────────────
-$pendingTeachers = [];
+// ── Teacher list: search + pagination ──────────────────────
+$teacherSearch   = trim($_GET['ts'] ?? '');          // search query
+$teacherPage     = max(1, (int)($_GET['tp'] ?? 1));  // current page
+$teacherPerPage  = 10;                               // rows per page
+
+$pendingTeachers       = [];
+$totalTeachers         = 0;
+$submittedTeachers     = 0;
+$pendingCount          = 0;
+$teacherTotalPages     = 1;
+
 if ($cycle) {
-    $pendingQ = $db->prepare("
-        SELECT u.user_id, u.full_name, u.email,
+    // ── Global totals (always all teachers, ignoring search) ──
+    $totStmt = $db->prepare("
+        SELECT
+          COUNT(*) AS total,
+          SUM(CASE WHEN ts.status = 'submitted' THEN 1 ELSE 0 END) AS submitted
+        FROM users u
+        LEFT JOIN teacher_submissions ts
+            ON ts.teacher_id = u.user_id AND ts.cycle_id = ?
+        WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active'
+    ");
+    $totStmt->execute([$cycle['cycle_id'], $schoolId]);
+    $totRow            = $totStmt->fetch();
+    $totalTeachers     = (int)$totRow['total'];
+    $submittedTeachers = (int)$totRow['submitted'];
+    $pendingCount      = $totalTeachers - $submittedTeachers;
+
+    // ── Filtered count (for pagination denominator) ────────────
+    $searchParam = "%{$teacherSearch}%";
+    $filtStmt = $db->prepare("
+        SELECT COUNT(*) FROM users u
+        LEFT JOIN teacher_submissions ts
+            ON ts.teacher_id = u.user_id AND ts.cycle_id = ?
+        WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active'
+          AND (? = '%%' OR u.full_name LIKE ? OR u.username LIKE ?)
+    ");
+    $filtStmt->execute([$cycle['cycle_id'], $schoolId,
+                        $searchParam, $searchParam, $searchParam]);
+    $filteredTotal     = (int)$filtStmt->fetchColumn();
+    $teacherTotalPages = max(1, (int)ceil($filteredTotal / $teacherPerPage));
+    $teacherPage       = min($teacherPage, $teacherTotalPages);
+    $offset            = ($teacherPage - 1) * $teacherPerPage;
+
+    // ── Paginated page fetch ───────────────────────────────────
+    $pageStmt = $db->prepare("
+        SELECT u.user_id, u.full_name, u.email, u.username,
                ts.status AS sub_status,
                ts.submitted_at,
                ts.response_count
@@ -441,14 +483,19 @@ if ($cycle) {
         LEFT JOIN teacher_submissions ts
             ON ts.teacher_id = u.user_id AND ts.cycle_id = ?
         WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active'
-        ORDER BY ts.status DESC, u.full_name ASC
+          AND (? = '%%' OR u.full_name LIKE ? OR u.username LIKE ?)
+        ORDER BY
+            CASE WHEN ts.status = 'submitted' THEN 1 ELSE 0 END ASC,
+            u.full_name ASC
+        LIMIT ? OFFSET ?
     ");
-    $pendingQ->execute([$cycle['cycle_id'], $schoolId]);
-    $pendingTeachers = $pendingQ->fetchAll();
+    $pageStmt->execute([
+        $cycle['cycle_id'], $schoolId,
+        $searchParam, $searchParam, $searchParam,
+        $teacherPerPage, $offset
+    ]);
+    $pendingTeachers = $pageStmt->fetchAll();
 }
-$totalTeachers     = count($pendingTeachers);
-$submittedTeachers = count(array_filter($pendingTeachers, fn($t) => $t['sub_status'] === 'submitted'));
-$pendingCount      = $totalTeachers - $submittedTeachers;
 
 // Teacher response data (for teacher indicator cards)
 $teacherData = [];
@@ -826,70 +873,6 @@ include __DIR__.'/../includes/header.php';
 </div>
 <?php else: ?>
 
-<?php if (!$isLocked && $totalTeachers > 0): ?>
-<!-- ── TEACHER STATUS PANEL (Fix B) ────────────────────────── -->
-<div class="card" style="margin-bottom:16px;" id="teacherStatusCard">
-  <div class="card-body" style="padding:14px 18px;">
-    <div class="flex-cb" style="margin-bottom:10px;">
-      <span style="font-size:13.5px;font-weight:700;color:var(--n800);">
-        👩‍🏫 Teacher Submission Status
-      </span>
-      <span style="font-size:12px;font-weight:600;color:<?= $pendingCount > 0 ? '#D97706' : '#16A34A' ?>;">
-        <?= $submittedTeachers ?>/<?= $totalTeachers ?> Submitted
-      </span>
-    </div>
-    <?php if ($pendingCount > 0): ?>
-    <div class="alert alert-warning" style="margin-bottom:10px;padding:8px 12px;">
-      <?= svgIcon('alert-circle') ?>
-      <span style="font-size:12.5px;">
-        <strong><?= $pendingCount ?> teacher<?= $pendingCount > 1 ? 's' : '' ?></strong> 
-        <?= $pendingCount > 1 ? 'have' : 'has' ?> not yet submitted. 
-        You may still submit but teacher averages will be partial.
-      </span>
-    </div>
-    <?php endif; ?>
-    <div style="display:flex;flex-direction:column;gap:6px;">
-      <?php foreach ($pendingTeachers as $t): 
-        $submitted = $t['sub_status'] === 'submitted';
-      ?>
-      <div style="display:flex;align-items:center;gap:10px;
-                  padding:8px 10px;border-radius:8px;
-                  background:<?= $submitted ? '#F0FDF4' : '#FFF7ED' ?>;
-                  border:1px solid <?= $submitted ? '#86EFAC' : '#FDE68A' ?>;">
-        <div style="width:32px;height:32px;border-radius:50%;
-                    background:<?= $submitted ? '#DCFCE7' : '#FEF3C7' ?>;
-                    display:flex;align-items:center;justify-content:center;
-                    font-size:14px;flex-shrink:0;">
-          <?= $submitted ? '✅' : '⏳' ?>
-        </div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;color:var(--n800);">
-            <?= e($t['full_name']) ?>
-          </div>
-          <div style="font-size:11.5px;color:var(--n500);">
-            <?php if ($submitted): ?>
-              Submitted <?= $t['submitted_at'] ? date('M d, g:i A', strtotime($t['submitted_at'])) : '' ?>
-              · <?= $t['response_count'] ?> responses
-            <?php else: ?>
-              Not yet submitted
-              <?php if ($t['email']): ?>
-                · <a href="mailto:<?= e($t['email']) ?>" style="color:var(--blue);">Send reminder</a>
-              <?php endif; ?>
-            <?php endif; ?>
-          </div>
-        </div>
-        <span style="font-size:11px;font-weight:700;padding:3px 10px;
-                     border-radius:999px;
-                     background:<?= $submitted ? '#DCFCE7' : '#FEF3C7' ?>;
-                     color:<?= $submitted ? '#16A34A' : '#D97706' ?>;">
-          <?= $submitted ? 'Done' : 'Pending' ?>
-        </span>
-      </div>
-      <?php endforeach; ?>
-    </div>
-  </div>
-</div>
-<?php endif; ?>
 
 <!-- ── PROGRESS CARD ─────────────────────────────────────── -->
 <div class="card" style="margin-bottom:16px;overflow:hidden;" id="progressCard">
@@ -1924,7 +1907,7 @@ async function confirmStartAssessment() {
     btn.disabled = true;
     btn.textContent = 'Starting...';
 
-    const r = await apiPost('self_assessment.php', { action: 'start_assessment' });
+    const r = await apiPost('school_head/self_assessment.php', { action: 'start_assessment' });
     if (r.ok) {
         toast(r.msg, 'ok');
         closeModal('mStartAssessment');
@@ -1935,6 +1918,11 @@ async function confirmStartAssessment() {
         btn.textContent = 'Yes, Start Assessment';
     }
 }
+// Bind start button after DOM is ready
+document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.getElementById('btnStartAssessment');
+    if (btn) btn.addEventListener('click', confirmStartAssessment);
+});
 
 </script>
 
@@ -1964,7 +1952,7 @@ async function confirmStartAssessment() {
       <button class="btn btn-secondary" onclick="closeModal('mStartAssessment')">
           Cancel
       </button>
-      <button class="btn btn-primary" id="btnStartAssessment" type="button" onclick="confirmStartAssessment()">
+      <button class="btn btn-primary" id="btnStartAssessment" type="button">
     Yes, Start Assessment
 </button>
     </div>
