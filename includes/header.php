@@ -1781,7 +1781,7 @@ tbody tr:hover td { background: var(--brand-50); }
 
 <?php
 // ── JS SVG icons (for dynamic insertion) ─────────────────────
-$__svgJs = json_encode($__svgPaths);
+$__svgJs = json_encode($__svgPaths, JSON_HEX_TAG);
 ?>
 
 <?php
@@ -1974,7 +1974,7 @@ function liveSet(attr, val) {
 // ── Live polling ──────────────────────────────────────────────
 async function pollUpdates() {
   try {
-    const res = await fetch('<?= $__base ?>/includes/poll.php');
+    const res = await fetch('<?= htmlspecialchars($__base, ENT_QUOTES) ?>/includes/poll.php');
     if (!res.ok) return;
     const d = await res.json();
     if (d.schools     !== undefined) liveSet('total-schools', d.schools);

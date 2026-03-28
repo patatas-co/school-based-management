@@ -1915,7 +1915,7 @@ async function clearOverride(indId) {
 }
 
 async function confirmStartAssessment() {
-    const btn = document.getElementById('btnStartAssessment');
+    const btn = document.getElementById('btnConfirmStart');
     if (!btn) return;
     btn.disabled = true;
     btn.textContent = 'Starting...';
@@ -1933,7 +1933,7 @@ async function confirmStartAssessment() {
 }
 // Bind start button after DOM is ready
 document.addEventListener('DOMContentLoaded', function () {
-    const btn = document.getElementById('btnStartAssessment');
+    const btn = document.getElementById('btnConfirmStart');
     if (btn) btn.addEventListener('click', confirmStartAssessment);
 });
 
@@ -1965,7 +1965,7 @@ document.addEventListener('DOMContentLoaded', function () {
       <button class="btn btn-secondary" onclick="closeModal('mStartAssessment')">
           Cancel
       </button>
-      <button class="btn btn-primary" id="btnStartAssessment" type="button">
+      <button class="btn btn-primary" id="btnConfirmStart" type="button">
     Yes, Start Assessment
 </button>
     </div>
