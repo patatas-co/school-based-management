@@ -74,43 +74,6 @@ elseif ($__role === 'teacher') {
     ];
 }
 
-elseif ($__role === 'sdo') {
-    $__navGroups = [
-        ['Overview', 'grid', [
-            ['Dashboard',        'sdo/dashboard.php',                'grid'],
-            ['School Monitor',   'sdo/monitoring.php',              'eye'],
-        ]],
-        ['Evaluation', 'check-circle', [
-            ['Assessments',      'sdo/assessments.php',             'check-circle'],
-            ['Workflow & SIP',   'sdo/workflow.php',                'trending-up'],
-        ]],
-        ['Support', 'briefcase', [
-            ['Technical Assist', 'sdo/technical_assistance.php',    'briefcase'],
-            ['TA Requests',      'sdo/ta_requests.php',             'send'],
-        ]],
-        ['Reports', 'file-text', [
-            ['Reports',          'sdo/reports.php',                 'file-text'],
-        ]],
-        ['Communication', 'bell', [
-            ['Announcements',    'sdo/announcements.php',           'bell'],
-        ]],
-    ];
-}
-
-elseif ($__role === 'ro') {
-    $__navGroups = [
-        ['Overview', 'grid', [
-            ['Dashboard',        'ro/dashboard.php',                 'grid'],
-        ]],
-        ['Reports', 'file-text', [
-            ['Regional Reports', 'ro/reports.php',                   'file-text'],
-        ]],
-        ['Communication', 'bell', [
-            ['Announcements',    'ro/announcements.php',             'bell'],
-        ]],
-    ];
-}
-
 elseif ($__role === 'external_stakeholder') {
     $__navGroups = [
         ['Overview', 'grid', [
@@ -141,8 +104,6 @@ $__roleLabel = [
     'admin'                => 'System Admin',
     'school_head'          => 'School Head',
     'teacher'              => 'Teacher',
-    'sdo'                  => 'SDO Officer',
-    'ro'                   => 'Regional Office',
     'external_stakeholder' => 'Ext. Stakeholder',
 ][$__role] ?? ucfirst($__role);
 
@@ -151,8 +112,6 @@ $__roleColor = [
     'admin'                => '#7C3AED',
     'school_head'          => '#2563EB',
     'teacher'              => '#0D9488',
-    'sdo'                  => '#D97706',
-    'ro'                   => '#DC2626',
     'external_stakeholder' => '#16A34A',
 ][$__role] ?? '#16A34A';
 
@@ -1041,8 +1000,6 @@ textarea.fc { resize: vertical; }
 .pill-admin      { background:var(--purple-bg); color:var(--purple); border-color:#DDD6FE; }
 .pill-school_head{ background:var(--blue-bg); color:var(--blue); border-color:#BFDBFE; }
 .pill-teacher    { background:var(--teal-bg); color:var(--teal); border-color:#99F6E4; }
-.pill-sdo        { background:var(--amber-bg); color:var(--amber); border-color:#FDE68A; }
-.pill-ro         { background:var(--red-bg); color:var(--red); border-color:#FECACA; }
 .pill-Beginning  { background:var(--red-bg); color:var(--red); border-color:#FECACA; }
 .pill-Developing { background:var(--amber-bg); color:var(--amber); border-color:#FDE68A; }
 .pill-Maturing   { background:var(--blue-bg); color:var(--blue); border-color:#BFDBFE; }

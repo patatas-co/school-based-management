@@ -737,7 +737,7 @@ body::before {
         <span class="role-pill"><span class="role-dot"></span>Admin</span>
         <span class="role-pill"><span class="role-dot"></span>School Head</span>
         <span class="role-pill"><span class="role-dot"></span>Teacher</span>
-        <span class="role-pill"><span class="role-dot"></span>SDO / RO</span>
+        <span class="role-pill"><span class="role-dot"></span>Stakeholder</span>
       </div>
 
       <div style="display:flex;align-items:center;justify-content:center;gap:8px;

@@ -57,8 +57,6 @@ function roleHome(string $role): string {
         'admin'                => $base . '/admin/dashboard.php',
         'school_head'          => $base . '/school_head/dashboard.php',
         'teacher'              => $base . '/teacher/dashboard.php',
-        'sdo'                  => $base . '/admin/dashboard.php',
-        'ro'                   => $base . '/admin/analytics.php',
         'external_stakeholder' => $base . '/stakeholder/dashboard.php',
         default                => $base . '/login.php',
     };
@@ -105,13 +103,10 @@ function csrfToken(): string {
 }
 function verifyCsrf(bool $ajaxOnly = false): void {
     if (!hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? '')) {
-        if ($ajaxOnly || (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')) {
-            http_response_code(403);
-            echo json_encode(['ok' => false, 'msg' => 'Invalid CSRF token.']);
-            exit;
-        }
+        ob_clean();
         http_response_code(403);
-        echo '<div class="alert alert-danger">Invalid CSRF token. Please refresh the page and try again.</div>';
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => false, 'msg' => 'Invalid CSRF token. Please refresh the page.']);
         exit;
     }
 }

@@ -22,10 +22,16 @@ if (!$syId) {
 
 // ── AJAX HANDLERS ────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
+    ob_start();
+    ob_clean();
     header('Content-Type: application/json');
     verifyCsrf();
+    try {
 
     if ($_POST['action'] === 'start_assessment') {
+        if (!$syId) {
+            echo json_encode(['ok'=>false,'msg'=>'No active school year found.']); exit;
+        }
         $check = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
         $check->execute([$schoolId, $syId]);
         if ($check->fetchColumn()) {
@@ -36,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             logActivity('start_assessment','self_assessment',"Started SBM assessment cycle for the current school year.");
             echo json_encode(['ok'=>true,'msg'=>'Assessment started successfully!']); exit;
         } catch (\PDOException $e) {
-            echo json_encode(['ok'=>false,'msg'=>'Failed to initialize assessment cycle.']); exit;
+            echo json_encode(['ok'=>false,'msg'=>'Failed to initialize assessment cycle. It may already exist.']); exit;
         }
     }
 
@@ -338,6 +344,9 @@ try {
         echo json_encode(['ok'=>true,'msg'=>'Override cleared. Score reverted to teacher average.']); exit;
     }
 
+    } catch (\Throwable $e) {
+        echo json_encode(['ok'=>false,'msg'=>'Server error: '.$e->getMessage()]);
+    }
     exit;
 }
 
@@ -441,6 +450,8 @@ $shResponded  = count(array_filter($shIndicators, fn($i) => isset($responses[$i[
 $shTotal      = count($shIndicators);
 $totalDone    = count($responses);
 $totalCount   = count($indicators);
+$shCount      = count($shIndicators);
+$teacherCount = $totalCount - $shCount;
 
 // ── Teacher list: search + pagination ──────────────────────
 $teacherSearch   = trim($_GET['ts'] ?? '');          // search query
@@ -964,7 +975,7 @@ include __DIR__.'/../includes/header.php';
 
 <!-- ── FILTER BAR ────────────────────────────────────────── -->
 <?php
-$shCount      = count($shIndicators);
+$shCount      = isset($shIndicators) ? count($shIndicators) : 0;
 $teacherCount = $totalCount - $shCount;
 ?>
 <div class="filter-bar" id="filterBar">
@@ -1342,15 +1353,15 @@ let currentFilter  = 'all';
 
 const TEACHER_CODES = new Set(<?= json_encode(TEACHER_INDICATOR_CODES) ?>);
 const COUNTS = {
-  all:     <?= $totalCount ?>,
-  sh:      <?= $shCount ?>,
-  teacher: <?= $teacherCount ?>
+  all:     <?= (int)($totalCount ?? 0) ?>,
+  sh:      <?= (int)($shCount ?? 0) ?>,
+  teacher: <?= (int)($teacherCount ?? 0) ?>
 };
 
 // Progress tracking state (mutable as user rates)
 const progress = {
-  shDone:   <?= $shResponded ?>,
-  shTotal:  <?= $shTotal ?>,
+  shDone:   <?= (int)($shResponded ?? 0) ?>,
+  shTotal:  <?= (int)($shTotal ?? 0) ?>,
   allDone:  <?= $totalDone ?>,
   allTotal: <?= $totalCount ?>,
   ratings:  { 1:<?= count(array_filter($responses, fn($x)=>$x['rating']==1)) ?>, 2:<?= count(array_filter($responses, fn($x)=>$x['rating']==2)) ?>, 3:<?= count(array_filter($responses, fn($x)=>$x['rating']==3)) ?>, 4:<?= count(array_filter($responses, fn($x)=>$x['rating']==4)) ?> },
@@ -1916,9 +1927,7 @@ async function clearOverride(indId) {
 
 async function confirmStartAssessment() {
     const btn = document.getElementById('btnConfirmStart');
-    if (!btn) return;
-    btn.disabled = true;
-    btn.textContent = 'Starting...';
+    if (btn) { btn.disabled = true; btn.textContent = 'Starting...'; }
 
     const r = await apiPost('self_assessment.php', { action: 'start_assessment' });
     if (r.ok) {
@@ -1927,15 +1936,9 @@ async function confirmStartAssessment() {
         setTimeout(() => location.reload(), 1000);
     } else {
         toast(r.msg || 'Something went wrong.', 'err');
-        btn.disabled = false;
-        btn.textContent = 'Yes, Start Assessment';
+        if (btn) { btn.disabled = false; btn.textContent = 'Yes, Start Assessment'; }
     }
 }
-// Bind start button after DOM is ready
-document.addEventListener('DOMContentLoaded', function () {
-    const btn = document.getElementById('btnConfirmStart');
-    if (btn) btn.addEventListener('click', confirmStartAssessment);
-});
 
 </script>
 
@@ -1965,7 +1968,7 @@ document.addEventListener('DOMContentLoaded', function () {
       <button class="btn btn-secondary" onclick="closeModal('mStartAssessment')">
           Cancel
       </button>
-      <button class="btn btn-primary" id="btnConfirmStart" type="button">
+      <button class="btn btn-primary" id="btnConfirmStart" type="button" onclick="confirmStartAssessment()">
     Yes, Start Assessment
 </button>
     </div>

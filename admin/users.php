@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $pw = $_POST['password'] ?? '';
         if ($pw && strlen($pw) < 8) { echo json_encode(['ok' => false, 'msg' => 'Password must be at least 8 characters.']); exit; }
         $role = $_POST['role'] ?? '';
-        if (!in_array($role, ['admin', 'school_head', 'teacher', 'sdo', 'ro', 'external_stakeholder'])) { echo json_encode(['ok' => false, 'msg' => 'Invalid role.']); exit; }
+        if (!in_array($role, ['admin', 'school_head', 'teacher', 'external_stakeholder'])) { echo json_encode(['ok' => false, 'msg' => 'Invalid role.']); exit; }
 
         try {
             $hashedPw = $pw ? password_hash($pw, PASSWORD_DEFAULT) : null;
@@ -142,7 +142,7 @@ if (!$handle) { echo json_encode(['ok' => false, 'msg' => 'Could not open file.'
 $headers = fgetcsv($handle); // Assume first row is headers: full_name, username, email, role, [password]
         
         $success = 0; $failed = 0; $errors = []; $usersCreated = 0;
-        $validRoles = ['admin', 'school_head', 'teacher', 'sdo', 'ro', 'external_stakeholder'];
+        $validRoles = ['admin', 'school_head', 'teacher', 'external_stakeholder'];
 
         while (($row = fgetcsv($handle)) !== FALSE) {
             if (count($row) < 4) { $failed++; continue; }
@@ -196,8 +196,8 @@ $schools=$db->query("SELECT school_id,school_name FROM schools ORDER BY school_n
 $pageTitle='User Management';$activePage='users.php';
 include __DIR__.'/../includes/header.php';
 
-$roleColors=['admin'=>'#7C3AED','school_head'=>'#2563EB','teacher'=>'#0D9488','sdo'=>'#D97706','ro'=>'#DC2626','external_stakeholder'=>'#16A34A'];
-$roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'=>'briefcase','ro'=>'map-pin','external_stakeholder'=>'users'];
+$roleColors=['admin'=>'#7C3AED','school_head'=>'#2563EB','teacher'=>'#0D9488','external_stakeholder'=>'#16A34A'];
+$roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','external_stakeholder'=>'users'];
 ?>
 
 <div class="ph2">
@@ -217,7 +217,7 @@ $roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'
   <a href="users.php<?= $q?"?q=".urlencode($q):'' ?>" class="status-tab <?= !$rf?'active':'' ?>">
     All <span class="status-tab-count"><?= $totalUsers ?></span>
   </a>
-  <?php foreach(['admin','school_head','teacher','sdo','ro','external_stakeholder'] as $r): ?>
+  <?php foreach(['admin','school_head','teacher','external_stakeholder'] as $r): ?>
   <?php $cnt=$roleCounts[$r]??0;if(!$cnt)continue; ?>
   <a href="users.php?role=<?= $r ?><?= $q?"&q=".urlencode($q):'' ?>" class="status-tab <?= $rf===$r?'active':'' ?>">
     <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:<?= $roleColors[$r] ?>;margin-right:4px;"></span>
@@ -314,7 +314,7 @@ $roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'
       <div class="form-row">
         <div class="fg"><label>Role *</label>
           <select class="fc" id="c_role">
-            <?php foreach(['admin','school_head','teacher','sdo','ro','external_stakeholder'] as $r): ?>
+            <?php foreach(['admin','school_head','teacher','external_stakeholder'] as $r): ?>
             <option value="<?= $r ?>"><?= ucfirst(str_replace('_',' ',$r)) ?></option>
             <?php endforeach; ?>
           </select>
@@ -350,7 +350,7 @@ $roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'
       <div class="form-row">
         <div class="fg"><label>Role</label>
           <select class="fc" id="e_role">
-            <?php foreach(['admin','school_head','teacher','sdo','ro','external_stakeholder'] as $r): ?>
+            <?php foreach(['admin','school_head','teacher', 'external_stakeholder'] as $r): ?>
             <option value="<?= $r ?>"><?= ucfirst(str_replace('_',' ',$r)) ?></option>
             <?php endforeach; ?>
           </select>
@@ -420,7 +420,7 @@ $roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'
         <div style="border-top:1px solid var(--n-100);padding-top:10px;">
           <div style="font-size:11px;color:var(--n-400);font-weight:600;margin-bottom:7px;">Valid roles</div>
           <div style="display:flex;gap:5px;flex-wrap:wrap;">
-            <?php foreach(['admin','school_head','teacher','sdo','ro','external_stakeholder'] as $r): ?>
+            <?php foreach(['admin','school_head','teacher','external_stakeholder'] as $r): ?>
             <span style="font-size:11px;background:#fff;border:1px solid var(--n-200);border-radius:999px;padding:2px 9px;color:var(--n-500);"><?= $r ?></span>
             <?php endforeach; ?>
           </div>
@@ -503,7 +503,7 @@ $roleIcons=['admin'=>'shield','school_head'=>'home','teacher'=>'book-open','sdo'
 
 <script>
 const escH=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const roleColors={admin:'#7C3AED',school_head:'#2563EB',teacher:'#0D9488',sdo:'#D97706',ro:'#DC2626',external_stakeholder:'#16A34A'};
+const roleColors={admin:'#7C3AED',school_head:'#2563EB',teacher:'#0D9488',external_stakeholder:'#16A34A'};
 
 async function createUser(){
   const d={action:'create',full_name:$('c_name'),username:$('c_user'),email:$('c_email'),role:$('c_role'),status:$('c_status'),school_id:$('c_school'),password:$('c_pass')};
