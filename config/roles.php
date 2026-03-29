@@ -7,9 +7,10 @@
 /**
  * ROLE DEFINITIONS
  * ─────────────────────────────────────────────────────────────
- * admin                — System Administrator (School Head):
+ * school_head          — School Head (Top-level):
  *                        full access, user management, school
- *                        years, system config, validation
+ *                        years, system config, validation,
+ *                        assessments, workflow, analytics
  * sbm_coordinator      — SBM Coordinator: manages assessment
  *                        cycle, analytics, improvement plans,
  *                        reporting; read-only system config
@@ -19,10 +20,10 @@
  *                        completion for stakeholder indicators
  */
 
-define('ROLE_ADMIN',       'admin');
-define('ROLE_COORDINATOR', 'sbm_coordinator');
-define('ROLE_TEACHER',     'teacher');
-define('ROLE_STAKEHOLDER', 'external_stakeholder');
+define('ROLE_SCHOOL_HEAD',  'school_head');
+define('ROLE_COORDINATOR',  'sbm_coordinator');
+define('ROLE_TEACHER',      'teacher');
+define('ROLE_STAKEHOLDER',  'external_stakeholder');
 
 /**
  * Module-level access map.
@@ -31,72 +32,60 @@ define('ROLE_STAKEHOLDER', 'external_stakeholder');
  */
 define('SBM_MODULE_ACCESS', [
 
-    // ── System Administration (Admin only) ──────────────────
-    'user_management'           => [ROLE_ADMIN],
-    'system_settings'           => [ROLE_ADMIN],
-    'school_years'              => [ROLE_ADMIN],
+    // ── System Administration (School Head only) ────────────
+    'user_management'                  => [ROLE_SCHOOL_HEAD],
+    'system_settings'                  => [ROLE_SCHOOL_HEAD],
+    'school_years'                     => [ROLE_SCHOOL_HEAD],
 
     // ── School-Level Configuration ──────────────────────────
-    'school_profile'            => [ROLE_ADMIN, ROLE_COORDINATOR],
+    'school_profile'                   => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 
     // ── Dashboards ──────────────────────────────────────────
-    'admin_dashboard'           => [ROLE_ADMIN],
-    'coordinator_dashboard'     => [ROLE_COORDINATOR],
-    'teacher_dashboard'         => [ROLE_TEACHER],
-    'stakeholder_dashboard'     => [ROLE_STAKEHOLDER],
+    'school_head_dashboard'            => [ROLE_SCHOOL_HEAD],
+    'coordinator_dashboard'            => [ROLE_COORDINATOR],
+    'teacher_dashboard'                => [ROLE_TEACHER],
+    'stakeholder_dashboard'            => [ROLE_STAKEHOLDER],
 
     // ── Analytics ───────────────────────────────────────────
-    // Admin: full access; Coordinator: read-only
-    'analytics'                 => [ROLE_ADMIN, ROLE_COORDINATOR],
-    'analytics_export'          => [ROLE_ADMIN],
+    'analytics'                        => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
+    'analytics_export'                 => [ROLE_SCHOOL_HEAD],
 
     // ── Assessment Lifecycle ─────────────────────────────────
-    // Start/manage cycle: Admin only (School Head)
-    'start_assessment'          => [ROLE_ADMIN],
-    // Close/lock assessment: Admin only
-    'close_assessment'          => [ROLE_ADMIN],
-    // Reopen assessment: Admin only
-    'reopen_assessment'         => [ROLE_ADMIN],
-    // Fill SH/coordinator indicators
-    'sh_self_assessment'        => [ROLE_ADMIN, ROLE_COORDINATOR],
-    // Fill teacher indicators
-    'teacher_self_assessment'   => [ROLE_TEACHER],
-    // Fill stakeholder indicators
-    'stakeholder_assessment'    => [ROLE_STAKEHOLDER],
-    // Submit final assessment: Admin only
-    'submit_assessment'         => [ROLE_ADMIN],
-    // Override teacher ratings: Admin + Coordinator
-    'override_teacher_rating'   => [ROLE_ADMIN, ROLE_COORDINATOR],
-    // Override coordinator assignments: Admin only
-    'override_coordinator_assignments' => [ROLE_ADMIN],
+    'start_assessment'                 => [ROLE_SCHOOL_HEAD],
+    'close_assessment'                 => [ROLE_SCHOOL_HEAD],
+    'reopen_assessment'                => [ROLE_SCHOOL_HEAD],
+    'sh_self_assessment'               => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
+    'teacher_self_assessment'          => [ROLE_TEACHER],
+    'stakeholder_assessment'           => [ROLE_STAKEHOLDER],
+    'submit_assessment'                => [ROLE_SCHOOL_HEAD],
+    'override_teacher_rating'          => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
+    'override_coordinator_assignments' => [ROLE_SCHOOL_HEAD],
 
-    // Assign indicators to teachers: Admin + Coordinator
-    'assign_indicators'         => [ROLE_ADMIN, ROLE_COORDINATOR],
+    // Assign indicators to teachers: School Head + Coordinator
+    'assign_indicators'                => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 
     // ── Assessment Validation ────────────────────────────────
-    // View submitted assessments: Admin + Coordinator
-    'view_assessments'          => [ROLE_ADMIN, ROLE_COORDINATOR],
-    // Validate/Return: Admin only
-    'validate_assessment'       => [ROLE_ADMIN],
+    'view_assessments'                 => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
+    'validate_assessment'              => [ROLE_SCHOOL_HEAD],
 
     // ── Improvement Plan ────────────────────────────────────
-    'improvement_plan'          => [ROLE_ADMIN, ROLE_COORDINATOR],
-    'improvement_plan_view'     => [ROLE_ADMIN, ROLE_COORDINATOR],
+    'improvement_plan'                 => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
+    'improvement_plan_view'            => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 
     // ── Reports ─────────────────────────────────────────────
-    'reports_school'            => [ROLE_ADMIN, ROLE_COORDINATOR],
+    'reports_school'                   => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 
     // ── Monitoring ──────────────────────────────────────────
-    'monitor_teachers'          => [ROLE_ADMIN, ROLE_COORDINATOR],
+    'monitor_teachers'                 => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 
     // ── Workflow / Timeline ──────────────────────────────────
-    'workflow_configure'        => [ROLE_ADMIN],
-    'workflow_view'             => [ROLE_ADMIN, ROLE_COORDINATOR],
+    'workflow_configure'               => [ROLE_SCHOOL_HEAD],
+    'workflow_view'                    => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 
     // ── Announcements ───────────────────────────────────────
-    'announcement_post'         => [ROLE_ADMIN, ROLE_COORDINATOR],
-    'announcement_view'         => [ROLE_ADMIN, ROLE_COORDINATOR,
-                                    ROLE_TEACHER, ROLE_STAKEHOLDER],
+    'announcement_post'                => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
+    'announcement_view'                => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR,
+                                          ROLE_TEACHER, ROLE_STAKEHOLDER],
 ]);
 
 /**
@@ -105,81 +94,80 @@ define('SBM_MODULE_ACCESS', [
  */
 define('SBM_NAV', [
 
-    ROLE_ADMIN => [
+    ROLE_SCHOOL_HEAD => [
         ['Overview', 'grid', [
-            ['Dashboard',         'admin/dashboard.php',      'grid'],
-            ['Analytics',         'admin/analytics.php',      'bar-chart-2'],
+            ['Dashboard',             'school_head/dashboard.php',            'grid'],
+            ['Analytics',             'school_head/analytics.php',            'bar-chart-2'],
         ]],
         ['Management', 'users', [
-            ['User Accounts',     'admin/users.php',          'users'],
-            ['School Profile',    'admin/school_profile.php', 'home'],
-            ['School Years',      'admin/settings.php',       'calendar'],
+            ['User Accounts',         'school_head/users.php',                'users'],
+            ['School Profile',        'school_head/school_profile.php',       'home'],
+            ['School Years',          'school_head/settings.php',             'calendar'],
         ]],
         ['Evaluation', 'check-circle', [
-            ['Self-Assessment',   'admin/self_assessment.php',   'check-circle'],
-            ['SBM Assessments',   'admin/assessment.php',        'check-circle'],
-            ['Assign Indicators', 'coordinator/assign_indicators.php','check-square'],
-            ['Indicator Assignments', 'admin/view_assignments.php','list'],
-            ['Workflow & SIP',    'admin/workflow.php',          'trending-up'],
-            ['Reports',           'admin/reports.php',           'file-text'],
+            ['Self-Assessment',        'school_head/self_assessment.php',      'check-circle'],
+            ['SBM Assessments',        'school_head/assessment.php',           'check-circle'],
+            ['Assign Indicators',      'coordinator/assign_indicators.php',    'check-square'],
+            ['Indicator Assignments',  'school_head/view_assignments.php',     'list'],
+            ['Workflow & SIP',         'school_head/workflow.php',             'trending-up'],
+            ['Reports',                'school_head/reports.php',              'file-text'],
         ]],
         ['Planning', 'trending-up', [
-            ['Improvement Plan',  'school_head/improvement.php',      'trending-up'],
-            ['Reports',           'coordinator/reports.php',           'file-text'],
+            ['Improvement Plan',       'school_head/improvement.php',          'trending-up'],
         ]],
         ['Communication', 'bell', [
-            ['Announcements',     'admin/announcements.php',  'bell'],
+            ['Announcements',          'school_head/announcements.php',        'bell'],
         ]],
         ['System', 'settings', [
-            ['Settings',          'admin/settings.php',       'settings'],
+            ['Settings',               'school_head/settings.php',             'settings'],
         ]],
     ],
 
     ROLE_COORDINATOR => [
         ['Overview', 'grid', [
-            ['Dashboard',         'coordinator/dashboard.php',         'grid'],
-            ['Analytics',         'coordinator/analytics.php',         'bar-chart-2'],
-            ['SBM Dimensions',    'coordinator/dimensions.php',        'layers'],
+            ['Dashboard',             'coordinator/dashboard.php',             'grid'],
+            ['Analytics',             'coordinator/analytics.php',             'bar-chart-2'],
+            ['SBM Dimensions',        'coordinator/dimensions.php',            'layers'],
         ]],
         ['Evaluation', 'check-circle', [
-            ['Self-Assessment',   'coordinator/self_assessment.php',   'check-circle'],
-            ['Assign Indicators', 'coordinator/assign_indicators.php', 'check-square'],
-            ['Teacher Status',    'coordinator/teacher_status.php',    'users'],
-            ['Evidence & MOV',    'coordinator/evidence.php',          'paperclip'],
+            ['Self-Assessment',        'coordinator/self_assessment.php',       'check-circle'],
+            ['Assign Indicators',      'coordinator/assign_indicators.php',     'check-square'],
+            ['Teacher Status',         'coordinator/teacher_status.php',        'users'],
+            ['Evidence & MOV',         'coordinator/evidence.php',              'paperclip'],
         ]],
         ['Planning', 'trending-up', [
-            ['Improvement Plan',  'coordinator/improvement.php',       'trending-up'],
-            ['Reports',           'coordinator/reports.php',           'file-text'],
+            ['Improvement Plan',       'coordinator/improvement.php',           'trending-up'],
+            ['Reports',                'coordinator/reports.php',               'file-text'],
         ]],
         ['School', 'home', [
-            ['School Profile',    'coordinator/school_profile.php',    'home'],
+            ['School Profile',         'coordinator/school_profile.php',        'home'],
         ]],
         ['Communication', 'bell', [
-            ['Announcements',     'coordinator/announcements.php',     'bell'],
+            ['Announcements',          'coordinator/announcements.php',         'bell'],
         ]],
     ],
 
     ROLE_TEACHER => [
         ['Overview', 'grid', [
-            ['Dashboard',         'teacher/dashboard.php',             'grid'],
+            ['Dashboard',             'teacher/dashboard.php',                  'grid'],
         ]],
         ['Evaluation', 'check-circle', [
-            ['Self-Assessment',   'teacher/self_assessment.php',       'check-circle'],
+            ['Self-Assessment',        'teacher/self_assessment.php',            'check-circle'],
         ]],
         ['Communication', 'bell', [
-            ['Announcements',     'teacher/announcements.php',         'bell'],
+            ['Announcements',          'teacher/announcements.php',              'bell'],
         ]],
     ],
 
     ROLE_STAKEHOLDER => [
         ['Overview', 'grid', [
-            ['Dashboard',         'stakeholder/dashboard.php',         'grid'],
+            ['Dashboard',             'stakeholder/dashboard.php',               'grid'],
         ]],
         ['Participation', 'users', [
-            ['Self-Assessment',   'stakeholder/self_assessment.php',   'check-circle'],
+            ['Self-Assessment',        'stakeholder/self_assessment.php',         'check-circle'],
         ]],
         ['Communication', 'bell', [
-            ['Announcements',     'stakeholder/announcement.php',      'bell'],
+            ['Announcements',          'stakeholder/announcement.php',            'bell'],
         ]],
     ],
 

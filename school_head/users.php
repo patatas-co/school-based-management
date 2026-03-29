@@ -1,11 +1,12 @@
 <?php
 // ============================================================
-// admin/users.php — User Management (updated roles)
-// Roles: admin | sbm_coordinator | teacher | external_stakeholder
+// school_head/users.php — User Management
+// Moved from admin/users.php — school_head is now the top role
+// Roles: school_head | sbm_coordinator | teacher | external_stakeholder
 // ============================================================
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
-requireRole('admin');
+requireRole('school_head');
 $db = getDB();
 
 if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
@@ -17,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $pw   = $_POST['password'] ?? '';
         if ($pw && strlen($pw) < 8) { echo json_encode(['ok'=>false,'msg'=>'Password must be at least 8 characters.']); exit; }
         $role = $_POST['role'] ?? '';
-        if (!in_array($role, ['admin','sbm_coordinator','teacher','external_stakeholder'])) {
+        if (!in_array($role, ['school_head','sbm_coordinator','teacher','external_stakeholder'])) {
             echo json_encode(['ok'=>false,'msg'=>'Invalid role.']); exit;
         }
         try {
@@ -103,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $handle = fopen($file,'r');
         $headers = fgetcsv($handle);
         $success=0; $failed=0; $errors=[];
-        $validRoles=['admin','sbm_coordinator','teacher','external_stakeholder'];
+        $validRoles=['school_head','sbm_coordinator','teacher','external_stakeholder'];
         while (($row=fgetcsv($handle))!==FALSE) {
             if (count($row)<4) { $failed++; continue; }
             [$fullName,$username,$email,$role] = array_map('trim',array_slice($row,0,4));
@@ -139,13 +140,13 @@ $pageTitle='User Management';$activePage='users.php';
 include __DIR__.'/../includes/header.php';
 
 $roleColors=[
-    'admin'                => '#7C3AED',
-    'sbm_coordinator'      => '#16A34A',
+    'school_head'          => '#16A34A',
+    'sbm_coordinator'      => '#7C3AED',
     'teacher'              => '#0D9488',
     'external_stakeholder' => '#2563EB',
 ];
 $roleLabels=[
-    'admin'                => 'Admin',
+    'school_head'          => 'School Head',
     'sbm_coordinator'      => 'SBM Coordinator',
     'teacher'              => 'Teacher',
     'external_stakeholder' => 'External Stakeholder',
@@ -169,7 +170,7 @@ $roleLabels=[
   <a href="users.php<?= $q?"?q=".urlencode($q):'' ?>" class="status-tab <?= !$rf?'active':'' ?>">
     All <span class="status-tab-count"><?= $totalUsers ?></span>
   </a>
-  <?php foreach(['admin','sbm_coordinator','teacher','external_stakeholder'] as $r):
+  <?php foreach(['school_head','sbm_coordinator','teacher','external_stakeholder'] as $r):
     $cnt=$roleCounts[$r]??0; if(!$cnt) continue; ?>
   <a href="users.php?role=<?= $r ?><?= $q?"&q=".urlencode($q):'' ?>" class="status-tab <?= $rf===$r?'active':'' ?>">
     <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:<?= $roleColors[$r] ?>;margin-right:4px;"></span>
@@ -196,7 +197,7 @@ $roleLabels=[
   <div class="card-head">
     <span class="card-title">
       <?= $rf ? ($roleLabels[$rf]??ucfirst($rf)).'s' : 'All Users' ?>
-      <span style="font-weight:400;color:var(--n-400);font-family:var(--font-body);font-size:13px;" id="userCountCap">(<?= count($users) ?>)</span>
+      <span style="font-weight:400;color:var(--n-400);font-family:var(--font-body);font-size:13px;">(<?= count($users) ?>)</span>
     </span>
   </div>
   <?php if(!$users): ?>
@@ -267,7 +268,7 @@ $roleLabels=[
       <div class="form-row">
         <div class="fg"><label>Role *</label>
           <select class="fc" id="c_role">
-            <option value="admin">Admin</option>
+            <option value="school_head">School Head</option>
             <option value="sbm_coordinator">SBM Coordinator</option>
             <option value="teacher">Teacher</option>
             <option value="external_stakeholder">External Stakeholder</option>
@@ -303,7 +304,7 @@ $roleLabels=[
       <div class="form-row">
         <div class="fg"><label>Role</label>
           <select class="fc" id="e_role">
-            <option value="admin">Admin</option>
+            <option value="school_head">School Head</option>
             <option value="sbm_coordinator">SBM Coordinator</option>
             <option value="teacher">Teacher</option>
             <option value="external_stakeholder">External Stakeholder</option>
@@ -345,7 +346,7 @@ $roleLabels=[
           <?php endforeach; ?>
           <span style="font-size:12px;font-family:monospace;background:#fff;border:1px solid var(--n-100);border-radius:4px;padding:3px 9px;color:var(--n-400);font-style:italic;">password (optional)</span>
         </div>
-        <div style="margin-top:10px;font-size:11px;color:var(--n-400);">Valid roles: admin · sbm_coordinator · teacher · external_stakeholder</div>
+        <div style="margin-top:10px;font-size:11px;color:var(--n-400);">Valid roles: school_head · sbm_coordinator · teacher · external_stakeholder</div>
       </div>
       <div class="fg"><label>CSV File</label><input type="file" class="fc" id="csvFile" accept=".csv"></div>
     </div>
@@ -357,10 +358,6 @@ $roleLabels=[
 </div>
 
 <script>
-const roleColors = <?= json_encode($roleColors) ?>;
-const roleLabels = <?= json_encode($roleLabels) ?>;
-const escH = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-
 async function createUser(){
   const d={action:'create',full_name:$('c_name'),username:$('c_user'),email:$('c_email'),role:$('c_role'),status:$('c_status'),school_id:$('c_school'),password:$('c_pass')};
   const r=await apiPost('users.php',d);

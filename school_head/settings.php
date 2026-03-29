@@ -1,19 +1,14 @@
 <?php
-// ============================================================
-// admin/settings.php — REDESIGNED v3
-// ============================================================
+// school_head/settings.php — System Settings & School Years
+// Moved from admin/settings.php — school_head is now top role
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
-requireRole('admin');
+requireRole('school_head');
 $db = getDB();
 
 if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     verifyCsrf(true);
-    // Log errors instead of suppressing them
-    ini_set('display_errors', '0');
-    error_reporting(E_ALL);
-    ini_set('log_errors', '1');
     if ($_POST['action']==='save_sy') {
         $id=(int)($_POST['sy_id']??0);
         if($id){
@@ -27,74 +22,47 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         echo json_encode(['ok'=>true,'msg'=>'School year saved.']); exit;
     }
     if ($_POST['action'] === 'delete_sy') {
-    $id = (int)($_POST['id'] ?? 0);
-    if (!$id) {
-        echo json_encode(['ok' => false, 'msg' => 'Invalid ID.']); exit;
+        $id = (int)($_POST['id'] ?? 0);
+        if (!$id) { echo json_encode(['ok' => false, 'msg' => 'Invalid ID.']); exit; }
+        $isCurrent = $db->prepare("SELECT is_current FROM school_years WHERE sy_id = ?");
+        $isCurrent->execute([$id]); $row = $isCurrent->fetch();
+        if (!$row) { echo json_encode(['ok' => false, 'msg' => 'School year not found.']); exit; }
+        if ((int)$row['is_current'] === 1) { echo json_encode(['ok' => false, 'msg' => 'Cannot delete the current active school year.']); exit; }
+        try {
+            $db->prepare("DELETE FROM school_years WHERE sy_id = ?")->execute([$id]);
+            echo json_encode(['ok' => true, 'msg' => 'School year deleted.']); exit;
+        } catch (\PDOException $e) {
+            echo json_encode(['ok' => false, 'msg' => 'Cannot delete: this school year has linked assessment data.']); exit;
+        }
     }
-
-    // Block deleting the active school year
-    $isCurrent = $db->prepare("SELECT is_current FROM school_years WHERE sy_id = ?");
-    $isCurrent->execute([$id]);
-    $row = $isCurrent->fetch();
-    if (!$row) {
-        echo json_encode(['ok' => false, 'msg' => 'School year not found.']); exit;
-    }
-    if ((int)$row['is_current'] === 1) {
-    echo json_encode(['ok' => false, 'msg' => 'Cannot delete the current active school year.']); exit;
-}
-
-    try {
-        $db->prepare("DELETE FROM school_years WHERE sy_id = ?")->execute([$id]);
-        echo json_encode(['ok' => true, 'msg' => 'School year deleted.']); exit;
-    } catch (\PDOException $e) {
-        // Foreign key constraint — linked cycles/responses exist
-        echo json_encode(['ok' => false, 'msg' => 'Cannot delete: this school year has linked assessment data. Remove those cycles first.']); exit;
-    }
-}
     if($_POST['action']==='get_sy'){$st=$db->prepare("SELECT * FROM school_years WHERE sy_id=?");$st->execute([(int)$_POST['id']]);echo json_encode($st->fetch());exit;}
     exit;
 }
 
 $syears = $db->query("SELECT * FROM school_years ORDER BY sy_id DESC")->fetchAll();
 
-// System stats
-$schoolCount=1; // Single school (DIHS)
-$userCount=$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
-$activeUsers=$db->query("SELECT COUNT(*) FROM users WHERE status='active'")->fetchColumn();
-$cycleCount=$db->query("SELECT COUNT(*) FROM sbm_cycles")->fetchColumn();
-$validatedCount=$db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='validated'")->fetchColumn();
-$responseCount=$db->query("SELECT COUNT(*) FROM sbm_responses")->fetchColumn();
-$currentSY=$db->query("SELECT label FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
+$userCount    = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+$activeUsers  = $db->query("SELECT COUNT(*) FROM users WHERE status='active'")->fetchColumn();
+$cycleCount   = $db->query("SELECT COUNT(*) FROM sbm_cycles")->fetchColumn();
+$validatedCount = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='validated'")->fetchColumn();
+$responseCount = $db->query("SELECT COUNT(*) FROM sbm_responses")->fetchColumn();
+$currentSY    = $db->query("SELECT label FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 
 $pageTitle='Settings'; $activePage='settings.php';
 include __DIR__.'/../includes/header.php';
 ?>
 <style>
-.sy-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  align-items: center;
-  gap: 12px;
-  padding: 13px 20px;
-  border-bottom: 1px solid var(--n-100);
-  transition: background 120ms;
-}
-.sy-row:last-child { border-bottom: none; }
-.sy-row:hover { background: var(--n-50); }
-.sy-label { font-size: 14px; font-weight: 700; color: var(--n-900); }
-.sy-dates { font-size: 12px; color: var(--n-400); margin-top: 2px; }
-.sy-actions { display: flex; gap: 5px; }
-.info-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--n-100);
-}
-.info-row:last-child { border-bottom: none; }
-.info-row:hover { background: var(--n-50); }
-.info-label { font-size: 13.5px; color: var(--n-600); }
-.info-value { font-size: 14px; font-weight: 700; color: var(--n-900); }
+.sy-row { display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px; padding:13px 20px; border-bottom:1px solid var(--n-100); transition:background 120ms; }
+.sy-row:last-child { border-bottom:none; }
+.sy-row:hover { background:var(--n-50); }
+.sy-label { font-size:14px; font-weight:700; color:var(--n-900); }
+.sy-dates { font-size:12px; color:var(--n-400); margin-top:2px; }
+.sy-actions { display:flex; gap:5px; }
+.info-row { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; border-bottom:1px solid var(--n-100); }
+.info-row:last-child { border-bottom:none; }
+.info-row:hover { background:var(--n-50); }
+.info-label { font-size:13.5px; color:var(--n-600); }
+.info-value { font-size:14px; font-weight:700; color:var(--n-900); }
 </style>
 
 <div class="ph2">
@@ -124,14 +92,10 @@ include __DIR__.'/../includes/header.php';
       <div>
         <div class="sy-label">
           <?= e($sy['label']) ?>
-          <?php if($sy['is_current']): ?>
-          <span class="pill pill-active" style="margin-left:6px;font-size:10.5px;">Current</span>
-          <?php endif; ?>
+          <?php if($sy['is_current']): ?><span class="pill pill-active" style="margin-left:6px;font-size:10.5px;">Current</span><?php endif; ?>
         </div>
         <div class="sy-dates">
-          <?= $sy['date_start'] ? date('M d, Y',strtotime($sy['date_start'])) : '—' ?>
-          →
-          <?= $sy['date_end'] ? date('M d, Y',strtotime($sy['date_end'])) : 'Ongoing' ?>
+          <?= $sy['date_start'] ? date('M d, Y',strtotime($sy['date_start'])) : '—' ?> → <?= $sy['date_end'] ? date('M d, Y',strtotime($sy['date_end'])) : 'Ongoing' ?>
         </div>
       </div>
       <div class="sy-actions">
@@ -141,16 +105,11 @@ include __DIR__.'/../includes/header.php';
     </div>
     <?php endforeach; ?>
     <?php if(!$syears): ?>
-    <div class="empty-state" style="padding:32px;">
-      <div class="empty-title">No school years</div>
-      <div class="empty-sub">Add a school year to enable the assessment cycle.</div>
-    </div>
+    <div class="empty-state" style="padding:32px;"><div class="empty-title">No school years</div><div class="empty-sub">Add a school year to enable the assessment cycle.</div></div>
     <?php endif; ?>
   </div>
 
-  <!-- Right column: System Info + Quick Stats -->
   <div style="display:flex;flex-direction:column;gap:16px;">
-
     <!-- System Stats -->
     <div class="settings-section">
       <div class="settings-section-header">
@@ -188,17 +147,13 @@ include __DIR__.'/../includes/header.php';
       <div class="info-row"><a href="workflow.php" style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">Workflow & Timeline</a><span style="font-size:12px;color:var(--n-400);">SBM 3-step cycle</span></div>
       <div class="info-row"><a href="analytics.php" style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">Analytics Dashboard</a><span style="font-size:12px;color:var(--n-400);">Performance insights</span></div>
     </div>
-
   </div>
 </div>
 
 <!-- School Year Modal -->
 <div class="overlay" id="mSY">
   <div class="modal" style="max-width:440px;">
-    <div class="modal-head">
-      <span class="modal-title" id="mSYTitle">Add School Year</span>
-      <button class="modal-close" onclick="closeModal('mSY')"><?= svgIcon('x') ?></button>
-    </div>
+    <div class="modal-head"><span class="modal-title" id="mSYTitle">Add School Year</span><button class="modal-close" onclick="closeModal('mSY')"><?= svgIcon('x') ?></button></div>
     <div class="modal-body">
       <input type="hidden" id="sy_id">
       <div class="fg"><label>Label *</label><input class="fc" id="sy_label" placeholder="e.g. 2025–2026"></div>
@@ -210,7 +165,6 @@ include __DIR__.'/../includes/header.php';
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;">
           <input type="checkbox" id="sy_current"> Set as current school year
         </label>
-        <div style="font-size:12px;color:var(--n-400);margin-top:4px;">This will update the active year for all assessments.</div>
       </div>
     </div>
     <div class="modal-foot">

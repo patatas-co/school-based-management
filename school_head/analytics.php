@@ -1,7 +1,9 @@
 <?php
+// school_head/analytics.php — Analytics for School Head
+// Moved from admin/analytics.php
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
-requireRole('admin','sdo','ro','sbm_coordinator');
+requireRole('school_head','sbm_coordinator');
 $db = getDB();
 
 $syId = (int)($_GET['sy'] ?? $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn());
@@ -21,7 +23,7 @@ $matDist = $db->prepare("SELECT maturity_level,COUNT(*) cnt FROM sbm_cycles WHER
 $matDist->execute([$syId, SCHOOL_ID]); $matDists = $matDist->fetchAll();
 
 $stmtHistory = $db->prepare("
-  SELECT sy.label as school_name, 'JHS' as classification,
+  SELECT sy.label as school_name,
          c.overall_score, c.maturity_level
   FROM sbm_cycles c JOIN school_years sy ON c.sy_id=sy.sy_id
   WHERE c.school_id=? AND c.overall_score IS NOT NULL
@@ -41,16 +43,13 @@ $weakIndicators = $db->prepare("
 ");
 $weakIndicators->execute([$syId]);
 $weakIndicatorRows = $weakIndicators->fetchAll();
-$weakIndicators = $weakIndicatorRows;
 
 $syears = $db->query("SELECT * FROM school_years ORDER BY sy_id DESC")->fetchAll();
 
-// KPI calculations
 $allPcts = array_filter(array_column($dimAvgs,'avg_pct'), fn($v) => $v !== null);
 $avgOverall = count($allPcts) > 0 ? round(array_sum($allPcts)/count($allPcts),1) : null;
-$topDim = !empty($allPcts) ? $dimAvgs[array_search(max($allPcts), array_column($dimAvgs,'avg_pct'))] : null;
+$topDim  = !empty($allPcts) ? $dimAvgs[array_search(max($allPcts), array_column($dimAvgs,'avg_pct'))] : null;
 $weakDim = !empty($allPcts) ? $dimAvgs[array_search(min($allPcts), array_column($dimAvgs,'avg_pct'))] : null;
-$schoolsWithData = 1; // Single-school system (DIHS)
 
 $pageTitle = 'Analytics'; $activePage = 'analytics.php';
 include __DIR__.'/../includes/header.php';
@@ -103,21 +102,12 @@ include __DIR__.'/../includes/header.php';
 <!-- Charts row -->
 <div class="grid2" style="margin-bottom:18px;">
   <div class="chart-card">
-    <div class="chart-card-head">
-      <span class="chart-card-title">Dimension Performance Radar</span>
-      <span style="font-size:12px;color:var(--n-400);">All 6 dimensions</span>
-    </div>
-    <div class="chart-card-body" style="display:flex;justify-content:center;">
-      <canvas id="radarChart" style="max-width:360px;"></canvas>
-    </div>
+    <div class="chart-card-head"><span class="chart-card-title">Dimension Performance Radar</span><span style="font-size:12px;color:var(--n-400);">All 6 dimensions</span></div>
+    <div class="chart-card-body" style="display:flex;justify-content:center;"><canvas id="radarChart" style="max-width:360px;"></canvas></div>
   </div>
   <div class="chart-card">
-    <div class="chart-card-head">
-      <span class="chart-card-title">Maturity Level Distribution</span>
-    </div>
-    <div class="chart-card-body" style="display:flex;justify-content:center;align-items:center;min-height:260px;">
-      <canvas id="maturityChart" style="max-width:260px;"></canvas>
-    </div>
+    <div class="chart-card-head"><span class="chart-card-title">Maturity Level Distribution</span></div>
+    <div class="chart-card-body" style="display:flex;justify-content:center;align-items:center;min-height:260px;"><canvas id="maturityChart" style="max-width:260px;"></canvas></div>
   </div>
 </div>
 
@@ -127,49 +117,28 @@ include __DIR__.'/../includes/header.php';
     <span class="chart-card-title">Dimension Score Comparison</span>
     <div class="chart-legend" style="margin-bottom:0;">
       <?php foreach($dimAvgs as $d): if(!$d['avg_pct']) continue; ?>
-      <div class="chart-legend-item">
-        <div class="chart-legend-swatch" style="background:<?= e($d['color_hex']) ?>;"></div>
-        D<?= $d['dimension_no'] ?>
-      </div>
+      <div class="chart-legend-item"><div class="chart-legend-swatch" style="background:<?= e($d['color_hex']) ?>;"></div>D<?= $d['dimension_no'] ?></div>
       <?php endforeach; ?>
     </div>
   </div>
-  <div class="chart-card-body">
-    <canvas id="dimBarChart" height="80"></canvas>
-  </div>
+  <div class="chart-card-body"><canvas id="dimBarChart" height="80"></canvas></div>
 </div>
 
 <!-- Bottom grid -->
 <div class="grid2" style="margin-bottom:18px;">
-
-  <!-- Top Schools -->
+  <!-- Assessment History -->
   <div class="card">
-    <div class="card-head">
-      <span class="card-title">Assessment History</span>
-      <span style="font-size:12px;color:var(--n-400);"><?= count($topSchools) ?> cycle(s)</span>
-    </div>
+    <div class="card-head"><span class="card-title">Assessment History</span><span style="font-size:12px;color:var(--n-400);"><?= count($topSchools) ?> cycle(s)</span></div>
     <?php if($topSchools): ?>
     <div class="tbl-wrap">
       <table class="tbl-enhanced">
         <thead><tr><th>#</th><th>Year</th><th>Score</th><th>Maturity</th></tr></thead>
         <tbody>
-        <?php foreach($topSchools as $i => $sc):
-          $mat = sbmMaturityLevel(floatval($sc['overall_score']));
-        ?>
+        <?php foreach($topSchools as $i => $sc): $mat = sbmMaturityLevel(floatval($sc['overall_score'])); ?>
         <tr>
-          <td style="width:36px;">
-            <span style="width:22px;height:22px;border-radius:6px;background:<?= $i===0?'#FEF3C7':($i===1?'#F3F4F6':'var(--n-100)') ?>;color:<?= $i===0?'#B45309':($i===1?'#6B7280':'var(--n-600)') ?>;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;"><?= $i+1 ?></span>
-          </td>
-          <td>
-            <div style="font-size:13px;font-weight:600;color:var(--n-900);">SY <?= e($sc['school_name']) ?></div>
-            <div style="font-size:11.5px;color:var(--n-400);">Dasmariñas Integrated HS</div>
-          </td>
-          <td>
-            <div class="score-bar-cell">
-              <div class="score-bar-track"><div class="score-bar-fill" style="width:<?= $sc['overall_score'] ?>%;background:<?= $mat['color'] ?>;"></div></div>
-              <span class="score-val" style="color:<?= $mat['color'] ?>;"><?= $sc['overall_score'] ?>%</span>
-            </div>
-          </td>
+          <td style="width:36px;"><span style="width:22px;height:22px;border-radius:6px;background:<?= $i===0?'#FEF3C7':($i===1?'#F3F4F6':'var(--n-100)') ?>;color:<?= $i===0?'#B45309':($i===1?'#6B7280':'var(--n-600)') ?>;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;"><?= $i+1 ?></span></td>
+          <td><div style="font-size:13px;font-weight:600;color:var(--n-900);">SY <?= e($sc['school_name']) ?></div><div style="font-size:11.5px;color:var(--n-400);">Dasmariñas Integrated HS</div></td>
+          <td><div class="score-bar-cell"><div class="score-bar-track"><div class="score-bar-fill" style="width:<?= $sc['overall_score'] ?>%;background:<?= $mat['color'] ?>;"></div></div><span class="score-val" style="color:<?= $mat['color'] ?>;"><?= $sc['overall_score'] ?>%</span></div></td>
           <td><span class="pill pill-<?= e($sc['maturity_level']) ?>"><?= e($sc['maturity_level']) ?></span></td>
         </tr>
         <?php endforeach; ?>
@@ -177,23 +146,16 @@ include __DIR__.'/../includes/header.php';
       </table>
     </div>
     <?php else: ?>
-    <div class="empty-state">
-      <div class="empty-icon"><?= svgIcon('bar-chart-2') ?></div>
-      <div class="empty-title">No school data yet</div>
-      <div class="empty-sub">Validated assessments will appear here once schools complete their SBM cycle.</div>
-    </div>
+    <div class="empty-state"><div class="empty-icon"><?= svgIcon('bar-chart-2') ?></div><div class="empty-title">No school data yet</div></div>
     <?php endif; ?>
   </div>
 
   <!-- Weak Indicators -->
   <div class="card">
-    <div class="card-head">
-      <span class="card-title">Indicators Needing Attention</span>
-      <span style="font-size:12px;color:var(--n-400);">Lowest average ratings</span>
-    </div>
-    <?php if($weakIndicators): ?>
+    <div class="card-head"><span class="card-title">Indicators Needing Attention</span><span style="font-size:12px;color:var(--n-400);">Lowest average ratings</span></div>
+    <?php if($weakIndicatorRows): ?>
     <div class="card-body" style="padding:0;">
-      <?php foreach($weakIndicators as $ind):
+      <?php foreach($weakIndicatorRows as $ind):
         $avgR = floatval($ind['avg_rating']);
         $pct = ($avgR/4)*100;
         $color = $avgR >= 3 ? 'var(--brand-600)' : ($avgR >= 2 ? 'var(--amber)' : 'var(--red)');
@@ -212,11 +174,7 @@ include __DIR__.'/../includes/header.php';
       <?php endforeach; ?>
     </div>
     <?php else: ?>
-    <div class="empty-state">
-      <div class="empty-icon"><?= svgIcon('alert-circle') ?></div>
-      <div class="empty-title">No indicator data yet</div>
-      <div class="empty-sub">Indicator ratings will appear once schools start submitting assessments.</div>
-    </div>
+    <div class="empty-state"><div class="empty-icon"><?= svgIcon('alert-circle') ?></div><div class="empty-title">No indicator data yet</div></div>
     <?php endif; ?>
   </div>
 </div>
@@ -228,67 +186,19 @@ const dimValues = <?= json_encode(array_map(fn($d)=> $d['avg_pct'] !== null ? fl
 const radarFullNames = <?= json_encode(array_map(fn($d)=>'D'.$d['dimension_no'].': '.$d['dimension_name'], $dimAvgs)) ?>;
 
 if (dimValues.some(v => v > 0)) {
-  new Chart(document.getElementById('radarChart'),{
-    type:'radar',
-    data:{
-      labels: <?= json_encode(array_map(fn($d)=>'D'.$d['dimension_no'], $dimAvgs)) ?>,
-      datasets:[{
-        label:'Avg Score (%)',
-        data:dimValues,
-        backgroundColor:'rgba(22,163,74,.12)',
-        borderColor:'#16A34A',
-        pointBackgroundColor:dimColors,
-        pointRadius:5,borderWidth:2
-      }]
-    },
-    options:{
-      scales:{r:{min:0,max:100,ticks:{font:{size:10},stepSize:25,backdropColor:'transparent'},
-        pointLabels:{font:{size:13,weight:'700',family:"'Manrope',sans-serif"},color:'#374151'}}},
-      plugins:{legend:{display:false},
-        tooltip:{callbacks:{title:ctx=>radarFullNames[ctx[0].dataIndex],label:ctx=>' '+ctx.raw+'%'}}},
-      maintainAspectRatio:true
-    }
-  });
+  new Chart(document.getElementById('radarChart'),{type:'radar',data:{labels:<?= json_encode(array_map(fn($d)=>'D'.$d['dimension_no'], $dimAvgs)) ?>,datasets:[{label:'Avg Score (%)',data:dimValues,backgroundColor:'rgba(22,163,74,.12)',borderColor:'#16A34A',pointBackgroundColor:dimColors,pointRadius:5,borderWidth:2}]},options:{scales:{r:{min:0,max:100,ticks:{font:{size:10},stepSize:25,backdropColor:'transparent'},pointLabels:{font:{size:13,weight:'700'},color:'#374151'}}},plugins:{legend:{display:false},tooltip:{callbacks:{title:ctx=>radarFullNames[ctx[0].dataIndex],label:ctx=>' '+ctx.raw+'%'}}},maintainAspectRatio:true}});
 } else {
-  document.getElementById('radarChart').closest('.chart-card-body').innerHTML =
-    '<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No dimension data for this school year.</p>';
+  document.getElementById('radarChart').closest('.chart-card-body').innerHTML='<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No dimension data for this school year.</p>';
 }
 
 const matData = <?= json_encode(array_column($matDists,'cnt','maturity_level')) ?>;
 const matTotal = ['Beginning','Developing','Maturing','Advanced'].reduce((s,l)=>(matData[l]||0)+s,0);
 if (matTotal > 0) {
-  new Chart(document.getElementById('maturityChart'),{
-    type:'doughnut',
-    data:{labels:['Beginning','Developing','Maturing','Advanced'],datasets:[{
-      data:['Beginning','Developing','Maturing','Advanced'].map(l=>matData[l]||0),
-      backgroundColor:['#DC2626','#D97706','#2563EB','#16A34A'],
-      borderWidth:3,borderColor:'#fff',hoverOffset:5
-    }]},
-    options:{
-      plugins:{legend:{position:'bottom',labels:{font:{family:"'Inter',sans-serif",size:12},padding:12,usePointStyle:true,pointStyleWidth:8}}},
-      cutout:'64%',maintainAspectRatio:true
-    }
-  });
+  new Chart(document.getElementById('maturityChart'),{type:'doughnut',data:{labels:['Beginning','Developing','Maturing','Advanced'],datasets:[{data:['Beginning','Developing','Maturing','Advanced'].map(l=>matData[l]||0),backgroundColor:['#DC2626','#D97706','#2563EB','#16A34A'],borderWidth:3,borderColor:'#fff',hoverOffset:5}]},options:{plugins:{legend:{position:'bottom',labels:{font:{size:12},padding:12,usePointStyle:true,pointStyleWidth:8}}},cutout:'64%',maintainAspectRatio:true}});
 } else {
-  document.getElementById('maturityChart').closest('.chart-card-body').innerHTML =
-    '<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No validated assessments yet.</p>';
+  document.getElementById('maturityChart').closest('.chart-card-body').innerHTML='<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No validated assessments yet.</p>';
 }
 
-new Chart(document.getElementById('dimBarChart'),{
-  type:'bar',
-  data:{labels:dimLabels,datasets:[{
-    label:'Average Score (%)',data:dimValues,
-    backgroundColor:dimColors.map(c=>c+'28'),
-    borderColor:dimColors,borderWidth:2,borderRadius:8,borderSkipped:false
-  }]},
-  options:{
-    scales:{
-      y:{min:0,max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'#F3F4F6'}},
-      x:{ticks:{font:{size:12,weight:'600'}},grid:{display:false}}
-    },
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw!==null?' '+ctx.raw+'%':' No data'}}},
-    responsive:true,maintainAspectRatio:true
-  }
-});
+new Chart(document.getElementById('dimBarChart'),{type:'bar',data:{labels:dimLabels,datasets:[{label:'Average Score (%)',data:dimValues,backgroundColor:dimColors.map(c=>c+'28'),borderColor:dimColors,borderWidth:2,borderRadius:8,borderSkipped:false}]},options:{scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'#F3F4F6'}},x:{ticks:{font:{size:12,weight:'600'}},grid:{display:false}}},plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:true}});
 </script>
 <?php include __DIR__.'/../includes/footer.php'; ?>

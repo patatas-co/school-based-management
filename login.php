@@ -276,7 +276,7 @@ body::before { content:''; position:fixed; top:0; left:0; right:0; height:3px; b
 
       <!-- Updated role pills: no SDO/RO -->
       <div class="roles">
-        <span class="role-pill"><span class="role-dot"></span>Admin</span>
+        <span class="role-pill"><span class="role-dot"></span>School Head</span>
         <span class="role-pill"><span class="role-dot" style="background:#16A34A;"></span>SBM Coordinator</span>
         <span class="role-pill"><span class="role-dot" style="background:#0D9488;"></span>Teacher</span>
         <span class="role-pill"><span class="role-dot" style="background:#2563EB;"></span>Stakeholder</span>

@@ -1,456 +1,410 @@
 <?php
 // ============================================================
-// school_head/dashboard.php — IMPROVED v2
-// Key improvements:
-// - Cleaner hero with assessment status prominence
-// - Progress ring instead of a flat bar
-// - Grouped dimension scores with maturity context
-// - Teacher submission status as a visual checklist
-// - Action CTAs tied to current workflow state
-// - Better information hierarchy
+// school_head/dashboard.php — School Head Top-Level Dashboard
+// Replaces admin/dashboard.php — school_head is now the top role
 // ============================================================
 require_once __DIR__.'/../config/db.php';
-require_once __DIR__.'/../config/sbm_indicators.php';
 require_once __DIR__.'/../includes/auth.php';
-requireRole('school_head','admin');
+requireRole('school_head');
 $db = getDB();
 
-$uid = $_SESSION['user_id'];
-$schoolId = SCHOOL_ID; // Always DIHS
+$totalUsers    = $db->query("SELECT COUNT(*) FROM users WHERE status='active'")->fetchColumn();
+$totalCycles   = $db->query("SELECT COUNT(*) FROM sbm_cycles")->fetchColumn();
+$submitted     = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status IN('submitted','validated')")->fetchColumn();
+$validated     = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='validated'")->fetchColumn();
+$inProgress    = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='in_progress'")->fetchColumn();
+$returned      = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='returned'")->fetchColumn();
 
-$school = $db->prepare("SELECT * FROM schools WHERE school_id=?");
-$school->execute([$schoolId]); $school = $school->fetch();
+$maturity = $db->query("SELECT maturity_level, COUNT(*) cnt FROM sbm_cycles WHERE maturity_level IS NOT NULL GROUP BY maturity_level ORDER BY FIELD(maturity_level,'Advanced','Maturing','Developing','Beginning')")->fetchAll();
 
-$syId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
-$syLabel = $syId ? $db->query("SELECT label FROM school_years WHERE sy_id=$syId")->fetchColumn() : '—';
+$recentCycles = $db->query("
+  SELECT c.*, s.school_name, sy.label sy_label
+  FROM sbm_cycles c
+  JOIN schools s ON c.school_id=s.school_id
+  JOIN school_years sy ON c.sy_id=sy.sy_id
+  ORDER BY c.created_at DESC LIMIT 8
+")->fetchAll();
 
-$cycle = null;
-if ($schoolId && $syId) {
-    $st = $db->prepare("SELECT c.*,sy.label sy_label FROM sbm_cycles c JOIN school_years sy ON c.sy_id=sy.sy_id WHERE c.school_id=? AND c.sy_id=? LIMIT 1");
-    $st->execute([$schoolId,$syId]); $cycle = $st->fetch();
-}
+$dimScores = $db->query("
+  SELECT d.dimension_no, d.dimension_name, d.color_hex,
+         ROUND(AVG(ds.percentage),1) avg_pct
+  FROM sbm_dimensions d
+  LEFT JOIN sbm_dimension_scores ds ON d.dimension_id=ds.dimension_id
+  GROUP BY d.dimension_id ORDER BY d.dimension_no
+")->fetchAll();
 
-$dimScores = [];
-if ($cycle) {
-    $st = $db->prepare("SELECT ds.*,d.dimension_no,d.dimension_name,d.color_hex,d.indicator_count FROM sbm_dimension_scores ds JOIN sbm_dimensions d ON ds.dimension_id=d.dimension_id WHERE ds.cycle_id=? ORDER BY d.dimension_no");
-    $st->execute([$cycle['cycle_id']]); $dimScores = $st->fetchAll();
-}
+$recentActivity = $db->query("
+  SELECT l.*, u.full_name FROM activity_log l
+  LEFT JOIN users u ON l.user_id=u.user_id
+  ORDER BY l.created_at DESC LIMIT 10
+")->fetchAll();
 
-$totalResponded = 0;
-if ($cycle) {
-    $t = $db->prepare("SELECT COUNT(*) FROM sbm_responses WHERE cycle_id=?");
-    $t->execute([$cycle['cycle_id']]); $totalResponded = $t->fetchColumn();
-}
-$totalIndicators = 42;
-$progress = $totalIndicators > 0 ? round(($totalResponded/$totalIndicators)*100) : 0;
+$submissionRate = round(($submitted / max(1,1)) * 100);
+$validationRate = $submitted > 0 ? round(($validated / $submitted) * 100) : 0;
 
-$anns = $db->query("SELECT a.*,u.full_name FROM announcements a JOIN users u ON a.posted_by=u.user_id WHERE a.target_role IN('all','school_head') ORDER BY a.created_at DESC LIMIT 5")->fetchAll();
+$currentSY = $db->query("SELECT label FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 
-// Teacher submissions
-$teacherList = [];
-if ($cycle) {
-    $tq = $db->prepare("
-        SELECT u.user_id, u.full_name,
-               ts.status sub_status, ts.submitted_at, ts.response_count,
-               (SELECT COUNT(*) FROM teacher_responses tr WHERE tr.cycle_id=? AND tr.teacher_id=u.user_id) live_count
-        FROM users u
-        LEFT JOIN teacher_submissions ts ON ts.teacher_id=u.user_id AND ts.cycle_id=?
-        WHERE u.school_id=? AND u.role='teacher' AND u.status='active'
-        ORDER BY ts.status DESC, u.full_name ASC
-    ");
-    $tq->execute([$cycle['cycle_id'],$cycle['cycle_id'],$schoolId]);
-    $teacherList = $tq->fetchAll();
-}
-$submittedTeachers = count(array_filter($teacherList, fn($t) => $t['sub_status'] === 'submitted'));
-$totalTeachers = count($teacherList);
-
-$pageTitle = 'Dashboard'; $activePage = 'dashboard.php';
+$pageTitle  = 'Dashboard';
+$activePage = 'dashboard.php';
 include __DIR__.'/../includes/header.php';
 ?>
 
 <style>
-/* ── Assessment Status Hero ── */
-.sh-hero {
-  background: var(--white);
-  border: 1px solid var(--n-200);
-  border-radius: var(--radius-lg);
-  padding: 24px 28px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  flex-wrap: wrap;
-  box-shadow: var(--shadow-xs);
+.db-hero {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F4C25 100%);
+  border-radius: var(--radius-lg); padding: 28px 32px; color: #fff;
+  margin-bottom: 24px; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; flex-wrap: wrap;
 }
-.sh-hero-progress {
-  flex-shrink: 0;
-  position: relative;
-  width: 100px; height: 100px;
-}
-.sh-hero-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.sh-hero-svg circle { fill: none; stroke-width: 9; stroke-linecap: round; }
-.sh-progress-track { stroke: var(--n-100); }
-.sh-progress-fill { stroke: var(--brand-500); stroke-dasharray: 283; transition: stroke-dashoffset .8s cubic-bezier(.4,0,.2,1); }
-.sh-hero-center {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%,-50%);
-  text-align: center;
-}
-.sh-hero-pct {
-  font-family: var(--font-display);
-  font-size: 20px; font-weight: 800;
-  color: var(--n-900); line-height: 1;
-}
-.sh-hero-pct-label { font-size: 10px; color: var(--n-400); font-weight: 600; }
-.sh-hero-info { flex: 1; min-width: 200px; }
-.sh-hero-school { font-family: var(--font-display); font-size: 18px; font-weight: 800; color: var(--n-900); margin-bottom: 4px; }
-.sh-hero-sy { font-size: 13px; color: var(--n-500); margin-bottom: 14px; }
-.sh-hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.db-hero::before { content:''; position:absolute; right:-80px; top:-80px; width:280px; height:280px; border-radius:50%; background:rgba(22,163,74,.08); pointer-events:none; }
+.db-hero-left { position:relative; z-index:1; }
+.db-hero-greeting { font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:rgba(74,222,128,.8); margin-bottom:8px; }
+.db-hero-title { font-family:var(--font-display); font-size:26px; font-weight:800; letter-spacing:-.5px; margin-bottom:6px; line-height:1.15; }
+.db-hero-sub { font-size:13.5px; color:rgba(255,255,255,.55); line-height:1.5; }
+.db-hero-right { position:relative; z-index:1; display:flex; gap:10px; flex-wrap:wrap; flex-shrink:0; }
+.db-hero-btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; transition:all 140ms; white-space:nowrap; }
+.db-hero-btn-primary { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.2); }
+.db-hero-btn-primary:hover { background:rgba(255,255,255,.2); }
+.db-hero-btn-secondary { background:rgba(255,255,255,.05); color:rgba(255,255,255,.75); border:1px solid rgba(255,255,255,.1); }
+.db-hero-btn-secondary:hover { background:rgba(255,255,255,.12); }
+.db-hero-btn svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 
-/* ── Overall Score Badge ── */
-.overall-score-badge {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 20px 28px;
-  border-radius: var(--radius-lg);
-  border: 2px solid;
-  text-align: center;
-  flex-shrink: 0;
-}
-.overall-score-num {
-  font-family: var(--font-display);
-  font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -1px;
-}
-.overall-score-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin-top: 6px; }
-.overall-maturity { font-size: 12px; font-weight: 600; margin-top: 4px; opacity: .75; }
+.stats-v2 { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:14px; margin-bottom:24px; }
+.stat-v2 { background:#fff; border:1px solid var(--n-200); border-radius:var(--radius-lg); padding:20px 20px 16px; box-shadow:var(--shadow-xs); transition:transform 160ms,box-shadow 160ms; position:relative; overflow:hidden; }
+.stat-v2:hover { transform:translateY(-2px); box-shadow:var(--shadow-sm); }
+.stat-v2-accent { position:absolute; top:0; left:0; right:0; height:3px; border-radius:var(--radius-lg) var(--radius-lg) 0 0; }
+.stat-v2-label { font-size:11.5px; font-weight:600; color:var(--n-500); text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px; }
+.stat-v2-value { font-family:var(--font-display); font-size:32px; font-weight:800; color:var(--n-900); line-height:1; letter-spacing:-.8px; margin-bottom:8px; }
+.stat-v2-meta { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--n-500); }
+.stat-v2-badge { display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border-radius:999px; font-size:11px; font-weight:700; }
+.badge-green { background:var(--brand-100); color:var(--brand-700); }
+.badge-amber { background:var(--amber-bg); color:var(--amber); }
+.badge-blue  { background:var(--blue-bg); color:var(--blue); }
+.kpi-bar { height:5px; background:var(--n-100); border-radius:999px; overflow:hidden; margin-top:10px; }
+.kpi-bar-fill { height:100%; border-radius:999px; }
 
-/* ── Dimension Grid ── */
-.dim-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-.dim-tile {
-  background: var(--white);
-  border: 1px solid var(--n-200);
-  border-radius: var(--radius);
-  padding: 14px;
-  border-top: 3px solid;
-  box-shadow: var(--shadow-xs);
-  transition: transform 150ms, box-shadow 150ms;
-}
-.dim-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
-.dim-tile-num { font-size: 10.5px; font-weight: 700; color: var(--n-400); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
-.dim-tile-name { font-size: 12.5px; font-weight: 700; color: var(--n-800); margin-bottom: 10px; line-height: 1.35; min-height: 32px; }
-.dim-tile-score { font-family: var(--font-display); font-size: 22px; font-weight: 800; line-height: 1; margin-bottom: 8px; }
-.dim-tile-prog { height: 5px; background: var(--n-100); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
-.dim-tile-fill { height: 100%; border-radius: 999px; }
-.dim-tile-mat { font-size: 11px; font-weight: 600; color: var(--n-500); }
+.pipeline { display:flex; align-items:stretch; gap:0; margin-bottom:6px; }
+.pipeline-step { flex:1; text-align:center; padding:14px 8px; position:relative; }
+.pipeline-step:not(:last-child)::after { content:'→'; position:absolute; right:-10px; top:50%; transform:translateY(-50%); color:var(--n-300); font-size:16px; z-index:1; }
+.pipeline-val { font-family:var(--font-display); font-size:24px; font-weight:800; line-height:1; margin-bottom:4px; }
+.pipeline-lbl { font-size:11px; font-weight:600; color:var(--n-500); text-transform:uppercase; letter-spacing:.05em; }
 
-/* ── Teacher Panel ── */
-.teacher-panel { display: flex; flex-direction: column; gap: 6px; }
-.teacher-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-radius: 8px;
-  border: 1px solid var(--n-200); background: var(--n-50);
-}
-.teacher-row.submitted { background: #F0FDF4; border-color: #86EFAC; }
-.teacher-avatar {
-  width: 32px; height: 32px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; flex-shrink: 0;
-}
-.teacher-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--n-800); }
-.teacher-status {
-  font-size: 11px; font-weight: 700; padding: 3px 9px;
-  border-radius: 999px; flex-shrink: 0;
-}
-.t-submitted { background: #DCFCE7; color: #16A34A; }
-.t-progress  { background: #DBEAFE; color: #2563EB; }
-.t-pending   { background: var(--n-100); color: var(--n-500); }
+.dim-list { display:flex; flex-direction:column; gap:14px; }
+.dim-row { display:flex; align-items:center; gap:12px; }
+.dim-num { width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; color:#fff; }
+.dim-info { flex:1; min-width:0; }
+.dim-name { font-size:13px; font-weight:600; color:var(--n-800); margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dim-prog { height:7px; background:var(--n-100); border-radius:999px; overflow:hidden; }
+.dim-prog-fill { height:100%; border-radius:999px; }
+.dim-pct { font-size:13px; font-weight:700; text-align:right; flex-shrink:0; min-width:38px; }
 
-/* ── Announcement Card ── */
-.ann-item {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--n-100);
-}
-.ann-item:last-child { border-bottom: none; }
-.ann-title { font-size: 13.5px; font-weight: 600; color: var(--n-900); margin: 4px 0 3px; }
-.ann-meta { font-size: 11.5px; color: var(--n-400); }
+.activity-feed { display:flex; flex-direction:column; gap:0; }
+.activity-item { display:flex; align-items:flex-start; gap:11px; padding:10px 0; border-bottom:1px solid var(--n-100); }
+.activity-item:last-child { border-bottom:none; }
+.activity-avatar { width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; background:var(--brand-100); color:var(--brand-700); }
+.activity-action { font-size:12.5px; color:var(--n-700); line-height:1.45; }
+.activity-action strong { color:var(--n-900); font-weight:600; }
+.activity-time { font-size:11px; color:var(--n-400); margin-top:2px; }
 
-/* ── Stat Cards (small) ── */
-.sh-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.sh-stat {
-  background: var(--white);
-  border: 1px solid var(--n-200);
-  border-radius: var(--radius-lg);
-  padding: 16px 18px;
-  box-shadow: var(--shadow-xs);
-}
-.sh-stat-val {
-  font-family: var(--font-display);
-  font-size: 26px; font-weight: 800;
-  color: var(--n-900); line-height: 1; margin-bottom: 4px;
-}
-.sh-stat-lbl { font-size: 11.5px; color: var(--n-500); font-weight: 500; }
+.quick-actions { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.quick-action-btn { display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:9px; border:1px solid var(--n-200); background:var(--n-50); text-decoration:none; font-size:13px; font-weight:600; color:var(--n-700); transition:all 140ms; }
+.quick-action-btn:hover { background:#fff; border-color:var(--n-300); color:var(--n-900); box-shadow:var(--shadow-xs); }
+.quick-action-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.quick-action-icon svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 
-/* ── Returned Alert ── */
-.returned-alert {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 14px 16px; border-radius: 9px;
-  background: #FEF3C7; border: 1px solid #FDE68A;
-  margin-bottom: 16px;
-}
-.returned-alert svg { width: 16px; height: 16px; stroke: #D97706; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; margin-top: 1px; }
-.returned-alert-text { font-size: 13.5px; color: #92400E; line-height: 1.5; }
-.returned-alert-text strong { color: #78350F; }
-
-@media (max-width: 768px) {
-  .dim-grid { grid-template-columns: repeat(2, 1fr); }
-  .sh-stats { grid-template-columns: repeat(2, 1fr); }
-  .sh-hero { flex-direction: column; align-items: flex-start; }
-}
-@media (max-width: 480px) {
-  .dim-grid { grid-template-columns: 1fr; }
-}
+.score-inline { display:flex; align-items:center; gap:8px; }
+.score-inline-bar { width:56px; height:5px; background:var(--n-100); border-radius:999px; overflow:hidden; flex-shrink:0; }
+.score-inline-fill { height:100%; border-radius:999px; }
 </style>
 
-<?php
-$isLocked = $cycle && in_array($cycle['status'], ['submitted','validated']);
-$hasScore = $cycle && $cycle['overall_score'];
-$mat = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : null;
-?>
-
-<?php if ($cycle && $cycle['status'] === 'returned'): ?>
-<div class="returned-alert">
-  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-  <div class="returned-alert-text">
-    <strong>Assessment Returned for Revision</strong><br>
-    <?php if ($cycle['validator_remarks']): ?>
-    SDO Remarks: <?= e($cycle['validator_remarks']) ?>
-    <?php endif; ?>
-    <br><a href="self_assessment.php" style="color:#78350F;font-weight:700;">Revise your assessment →</a>
+<!-- HERO BANNER -->
+<div class="db-hero">
+  <div class="db-hero-left">
+    <div class="db-hero-greeting">SBM Online Monitoring System</div>
+    <div class="db-hero-title">School Head Dashboard</div>
+    <div class="db-hero-sub">
+      <?= date('l, F j, Y') ?>
+      <?php if ($currentSY): ?> &nbsp;·&nbsp; SY <?= e($currentSY) ?><?php endif; ?>
+      &nbsp;·&nbsp; Dasmariñas Integrated High School
+    </div>
   </div>
+  <div class="db-hero-right">
+    <a href="assessment.php?status=submitted" class="db-hero-btn db-hero-btn-primary">
+      <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Review Submissions
+      <?php if($submitted - $validated > 0): ?>
+      <span style="background:rgba(255,255,255,.2);border-radius:999px;padding:1px 7px;font-size:11px;"><?= $submitted - $validated ?></span>
+      <?php endif; ?>
+    </a>
+    <a href="analytics.php" class="db-hero-btn db-hero-btn-secondary">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Analytics
+    </a>
+    <a href="reports.php" class="db-hero-btn db-hero-btn-secondary">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Reports
+    </a>
+  </div>
+</div>
+
+<?php if ($returned > 0): ?>
+<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:var(--amber-bg);border:1px solid #FDE68A;margin-bottom:14px;font-size:13px;">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  <span><strong><?= $returned ?> assessment<?= $returned !== 1 ? 's' : '' ?></strong> returned for revision — awaiting SDO feedback.</span>
+  <a href="assessment.php?status=returned" style="margin-left:auto;font-weight:700;color:var(--amber);white-space:nowrap;">View →</a>
 </div>
 <?php endif; ?>
 
-<!-- ── HERO: School + Assessment Status ── -->
-<div class="sh-hero">
-  <!-- Progress Ring -->
-  <div class="sh-hero-progress">
-    <?php
-    $circumference = 2 * 3.14159 * 45; // ~283
-    $offset = $circumference - ($progress / 100) * $circumference;
-    $strokeColor = $progress >= 100 ? '#16A34A' : ($progress >= 50 ? '#2563EB' : '#D97706');
-    ?>
-    <svg class="sh-hero-svg" viewBox="0 0 100 100">
-      <circle class="sh-progress-track" cx="50" cy="50" r="45"/>
-      <circle class="sh-progress-fill"
-              cx="50" cy="50" r="45"
-              stroke="<?= $strokeColor ?>"
-              stroke-dashoffset="<?= $offset ?>"/>
-    </svg>
-    <div class="sh-hero-center">
-      <div class="sh-hero-pct"><?= $progress ?>%</div>
-      <div class="sh-hero-pct-label">done</div>
-    </div>
+<!-- KPI STAT CARDS -->
+<div class="stats-v2">
+  <div class="stat-v2">
+    <div class="stat-v2-accent" style="background:#16A34A;"></div>
+    <div class="stat-v2-label">DIHS Enrollment</div>
+    <div class="stat-v2-value">2,500</div>
+    <div class="stat-v2-meta" style="color:var(--n-400);">Dasmariñas Integrated HS</div>
   </div>
-
-  <!-- School Info -->
-  <div class="sh-hero-info">
-    <div class="sh-hero-school">Dasmariñas Integrated High School</div>
-    <div class="sh-hero-sy">
-      School Year <?= e($syLabel) ?>
-      &nbsp;·&nbsp;
-      <?= $totalResponded ?>/<?= $totalIndicators ?> indicators rated
-      &nbsp;·&nbsp;
-      <?php if ($cycle): ?>
-      <span class="pill pill-<?= e($cycle['status']) ?>"><?= ucfirst(str_replace('_',' ',$cycle['status'])) ?></span>
-      <?php else: ?>
-      <span class="pill pill-draft">Not Started</span>
-      <?php endif; ?>
-    </div>
-    <div class="sh-hero-actions">
-      <?php if (!$cycle || $cycle['status'] === 'draft' || $cycle['status'] === 'in_progress' || $cycle['status'] === 'returned'): ?>
-      <a href="self_assessment.php" class="btn btn-primary">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        <?= $cycle && $cycle['status'] === 'in_progress' ? 'Continue Assessment' : 'Start Assessment' ?>
-      </a>
-      <?php endif; ?>
-      <a href="improvement.php" class="btn btn-secondary">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-        Improvement Plan
-      </a>
-      <a href="reports.php" class="btn btn-secondary">Reports</a>
-    </div>
+  <div class="stat-v2">
+    <div class="stat-v2-accent" style="background:#2563EB;"></div>
+    <div class="stat-v2-label">Assessment Cycles</div>
+    <div class="stat-v2-value" data-live="total-cycles"><?= number_format($totalCycles) ?></div>
+    <div class="stat-v2-meta"><span class="stat-v2-badge badge-blue"><?= $inProgress ?> in progress</span></div>
+    <div class="kpi-bar"><div class="kpi-bar-fill" style="width:<?= min(100,$totalCycles*10) ?>%;background:#2563EB;"></div></div>
   </div>
-
-  <!-- Overall Score -->
-  <?php if ($hasScore): ?>
-  <div class="overall-score-badge" style="border-color:<?= $mat['color'] ?>;background:<?= $mat['bg'] ?>;">
-    <div class="overall-score-num" style="color:<?= $mat['color'] ?>;"><?= number_format($cycle['overall_score'],1) ?>%</div>
-    <div class="overall-score-label" style="color:<?= $mat['color'] ?>;">Overall Score</div>
-    <div class="overall-maturity" style="color:<?= $mat['color'] ?>;"><?= e($cycle['maturity_level']) ?></div>
+  <div class="stat-v2">
+    <div class="stat-v2-accent" style="background:#D97706;"></div>
+    <div class="stat-v2-label">Awaiting Validation</div>
+    <div class="stat-v2-value" style="color:<?= ($submitted - $validated) > 0 ? 'var(--amber)' : 'var(--n-900)' ?>;"><?= $submitted - $validated ?></div>
+    <div class="stat-v2-meta"><span class="stat-v2-badge badge-amber"><?= $submitted ?> total submitted</span></div>
+    <div class="kpi-bar"><div class="kpi-bar-fill" style="width:<?= $validationRate ?>%;background:#D97706;"></div></div>
   </div>
-  <?php endif; ?>
-</div>
-
-<!-- ── STAT CARDS ── -->
-<div class="sh-stats">
-  <div class="sh-stat">
-    <div class="sh-stat-val"><?= $totalResponded ?></div>
-    <div class="sh-stat-lbl">Indicators Rated</div>
+  <div class="stat-v2">
+    <div class="stat-v2-accent" style="background:#16A34A;"></div>
+    <div class="stat-v2-label">Validated</div>
+    <div class="stat-v2-value" data-live="validated"><?= number_format($validated) ?></div>
+    <div class="stat-v2-meta"><span class="stat-v2-badge badge-green"><?= $validationRate ?>% of submitted</span></div>
+    <div class="kpi-bar"><div class="kpi-bar-fill" style="width:<?= $validationRate ?>%;background:#16A34A;"></div></div>
   </div>
-  <div class="sh-stat">
-    <div class="sh-stat-val" style="color:<?= $hasScore ? $mat['color'] : 'var(--n-900)' ?>;"><?= $hasScore ? $cycle['overall_score'].'%' : '—' ?></div>
-    <div class="sh-stat-lbl">SBM Score</div>
-  </div>
-  <div class="sh-stat">
-    <div class="sh-stat-val" style="color:<?= $submittedTeachers === $totalTeachers && $totalTeachers > 0 ? 'var(--brand-700)' : 'var(--amber)' ?>;"><?= $submittedTeachers ?>/<?= $totalTeachers ?></div>
-    <div class="sh-stat-lbl">Teachers Submitted</div>
-  </div>
-  <div class="sh-stat">
-    <div class="sh-stat-val"><?= count($dimScores) ?></div>
-    <div class="sh-stat-lbl">Dimensions Scored</div>
+  <div class="stat-v2">
+    <div class="stat-v2-accent" style="background:#7C3AED;"></div>
+    <div class="stat-v2-label">Active Users</div>
+    <div class="stat-v2-value" data-live="total-users"><?= number_format($totalUsers) ?></div>
+    <div class="stat-v2-meta" style="color:var(--n-400);">Across all roles</div>
   </div>
 </div>
 
-<!-- ── MAIN GRID ── -->
-<div style="display:grid;grid-template-columns:1fr 320px;gap:18px;margin-bottom:20px;" class="db-layout-main">
+<!-- ASSESSMENT PIPELINE -->
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-head"><span class="card-title">Assessment Pipeline</span><a href="assessment.php" class="btn btn-ghost btn-sm">View all →</a></div>
+  <div class="card-body" style="padding:8px 0;">
+    <div class="pipeline">
+      <div class="pipeline-step"><div class="pipeline-val" style="color:var(--n-500);"><?= $inProgress ?></div><div class="pipeline-lbl">In Progress</div></div>
+      <div class="pipeline-step"><div class="pipeline-val" style="color:var(--amber);"><?= $submitted - $validated ?></div><div class="pipeline-lbl">Pending Review</div></div>
+      <div class="pipeline-step"><div class="pipeline-val" style="color:var(--brand-600);"><?= $validated ?></div><div class="pipeline-lbl">Validated</div></div>
+      <?php if($returned > 0): ?>
+      <div class="pipeline-step"><div class="pipeline-val" style="color:var(--red);"><?= $returned ?></div><div class="pipeline-lbl">Returned</div></div>
+      <?php endif; ?>
+    </div>
+  </div>
+</div>
 
+<!-- MAIN CONTENT GRID -->
+<div style="display:grid;grid-template-columns:1fr 380px;gap:18px;margin-bottom:20px;" class="db-layout-main">
   <div style="display:flex;flex-direction:column;gap:18px;">
 
-    <!-- Dimension Grid -->
-    <?php if ($dimScores): ?>
-    <div>
-      <div class="section-hd" style="margin-bottom:14px;">
-        <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--n-900);">Dimension Performance</span>
-        <a href="dimensions.php" class="btn btn-ghost btn-sm">View details →</a>
-      </div>
-      <div class="dim-grid">
-        <?php
-// Load all dimension response counts in one query before the loop
-$dimCompletionData = [];
-if ($cycle) {
-    $dcStmt = $db->prepare("
-        SELECT i.dimension_id, COUNT(*) cnt
-        FROM sbm_responses r
-        JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
-        WHERE r.cycle_id = ?
-        GROUP BY i.dimension_id
-    ");
-    $dcStmt->execute([$cycle['cycle_id']]);
-    foreach ($dcStmt->fetchAll() as $dc) {
-        $dimCompletionData[$dc['dimension_id']] = $dc['cnt'];
-    }
-}
-?>
-<?php foreach($dimScores as $ds):
-  $pct = floatval($ds['percentage']);
-  $mat2 = sbmMaturityLevel($pct);
-  $done = $dimCompletionData[$ds['dimension_id']] ?? 0;
-?>
-        <a href="self_assessment.php#dim<?= $ds['dimension_no'] ?>" class="dim-tile" style="border-top-color:<?= e($ds['color_hex']) ?>;text-decoration:none;">
-          <div class="dim-tile-num">Dimension <?= $ds['dimension_no'] ?></div>
-          <div class="dim-tile-name" style="color:<?= e($ds['color_hex']) ?>;"><?= e($ds['dimension_name']) ?></div>
-          <div class="dim-tile-score" style="color:<?= $mat2['color'] ?>;"><?= $pct > 0 ? $pct.'%' : '—' ?></div>
-          <div class="dim-tile-prog"><div class="dim-tile-fill" style="width:<?= min(100,$pct) ?>%;background:<?= e($ds['color_hex']) ?>;"></div></div>
-          <div class="dim-tile-mat"><?= $mat2['label'] ?> · <?= $done ?>/<?= $ds['indicator_count'] ?> rated</div>
-        </a>
-        <?php endforeach; ?>
-      </div>
-    </div>
-    <?php else: ?>
+    <!-- Dimension Performance -->
     <div class="card">
-      <div class="card-body" style="text-align:center;padding:40px;">
-        <div style="font-size:36px;margin-bottom:12px;"></div>
-        <h3 style="font-size:16px;font-weight:700;color:var(--n-700);margin-bottom:8px;">No dimension data yet</h3>
-        <p style="font-size:13.5px;color:var(--n-400);margin-bottom:16px;">Start your self-assessment to see scores across all 6 SBM dimensions.</p>
-        <a href="self_assessment.php" class="btn btn-primary">Start Assessment</a>
-      </div>
-    </div>
-    <?php endif; ?>
-
-    <!-- Teacher Submissions -->
-    <?php if ($teacherList): ?>
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">Teacher Submissions</span>
-        <span style="font-size:13px;font-weight:700;color:<?= $submittedTeachers === $totalTeachers ? 'var(--brand-700)' : 'var(--amber)' ?>;">
-          <?= $submittedTeachers ?>/<?= $totalTeachers ?> submitted
-        </span>
-      </div>
-      <div class="card-body" style="padding:12px 16px;">
-        <div class="teacher-panel">
-          <?php foreach($teacherList as $t):
-            $done = $t['sub_status'] === 'submitted';
-            $inProg = !$done && $t['live_count'] > 0;
-            $pctT = $t['live_count'] > 0 ? round(($t['live_count'] / count(TEACHER_INDICATOR_CODES)) * 100) : 0;
+      <div class="card-head"><span class="card-title">Dimension Performance</span><span style="font-size:12px;color:var(--n-400);">System-wide averages</span></div>
+      <div class="card-body">
+        <div class="dim-list">
+          <?php foreach($dimScores as $d):
+            $pct = floatval($d['avg_pct']);
+            $matColor = $pct >= 76 ? '#16A34A' : ($pct >= 51 ? '#2563EB' : ($pct >= 26 ? '#D97706' : '#DC2626'));
           ?>
-          <div class="teacher-row <?= $done ? 'submitted' : '' ?>">
-            <div class="teacher-avatar" style="background:<?= $done ? '#DCFCE7' : ($inProg ? '#DBEAFE' : 'var(--n-100)') ?>;color:<?= $done ? '#16A34A' : ($inProg ? '#2563EB' : 'var(--n-500)') ?>;">
-              <?= strtoupper(substr($t['full_name'],0,1)) ?>
+          <div class="dim-row">
+            <div class="dim-num" style="background:<?= e($d['color_hex']) ?>;"><?= $d['dimension_no'] ?></div>
+            <div class="dim-info">
+              <div class="dim-name"><?= e($d['dimension_name']) ?></div>
+              <div class="dim-prog"><div class="dim-prog-fill" style="width:<?= min(100,$pct) ?>%;background:<?= e($d['color_hex']) ?>;"></div></div>
             </div>
-            <div style="flex:1;min-width:0;">
-              <div class="teacher-name"><?= e($t['full_name']) ?></div>
-              <?php if (!$done && $inProg): ?>
-              <div style="height:4px;background:var(--n-200);border-radius:999px;margin-top:4px;width:120px;overflow:hidden;">
-                <div style="height:100%;width:<?= $pctT ?>%;background:#2563EB;border-radius:999px;"></div>
-              </div>
-              <?php endif; ?>
-            </div>
-            <span class="teacher-status <?= $done ? 't-submitted' : ($inProg ? 't-progress' : 't-pending') ?>">
-              <?= $done ? '✓ Done' : ($inProg ? $t['live_count'].' rated' : 'Pending') ?>
-            </span>
+            <div class="dim-pct" style="color:<?= $pct > 0 ? $matColor : 'var(--n-400)' ?>;"><?= $pct > 0 ? $pct.'%' : '—' ?></div>
           </div>
           <?php endforeach; ?>
         </div>
       </div>
     </div>
-    <?php endif; ?>
 
+    <!-- Dimension Bar Chart -->
+    <div class="card">
+      <div class="card-head"><span class="card-title">Dimension Score Comparison</span></div>
+      <div class="card-body"><div style="position:relative;height:220px;"><canvas id="dimBarChart"></canvas></div></div>
+    </div>
   </div>
 
-  <!-- RIGHT: Announcements + Quick Actions -->
+  <!-- RIGHT COLUMN -->
   <div style="display:flex;flex-direction:column;gap:18px;">
 
+    <!-- Maturity Distribution -->
     <div class="card">
-      <div class="card-head"><span class="card-title">Quick Actions</span></div>
-      <div class="card-body" style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
-        <a href="self_assessment.php" class="btn btn-primary" style="justify-content:center;"><?= svgIcon('check-circle') ?> Self-Assessment</a>
-        <a href="improvement.php" class="btn btn-secondary" style="justify-content:center;"><?= svgIcon('trending-up') ?> Improvement Plan</a>
-        <a href="reports.php" class="btn btn-secondary" style="justify-content:center;"><?= svgIcon('file-text') ?> View Report</a>
-        <a href="evidence.php" class="btn btn-secondary" style="justify-content:center;"><?= svgIcon('paperclip') ?> Evidence Files</a>
+      <div class="card-head"><span class="card-title">Maturity Distribution</span></div>
+      <div class="card-body" style="padding:16px 18px;">
+        <?php
+        $matData   = array_column($maturity,'cnt','maturity_level');
+        $matTotal  = array_sum(array_column($maturity,'cnt'));
+        $matColors = ['Beginning'=>'#DC2626','Developing'=>'#D97706','Maturing'=>'#2563EB','Advanced'=>'#16A34A'];
+        ?>
+        <?php if ($matTotal > 0): ?>
+        <div style="position:relative;max-width:180px;margin:0 auto 16px;">
+          <canvas id="maturityChart" style="height:180px;"></canvas>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+            <div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--n-900);line-height:1;"><?= $matTotal ?></div>
+            <div style="font-size:10px;color:var(--n-400);font-weight:600;">cycles</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <?php foreach(['Beginning','Developing','Maturing','Advanced'] as $lv):
+            $cnt = $matData[$lv] ?? 0;
+            $pct2 = $matTotal > 0 ? round(($cnt/$matTotal)*100) : 0;
+          ?>
+          <div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--n-700);">
+            <span style="width:10px;height:10px;border-radius:3px;background:<?= $matColors[$lv] ?>;flex-shrink:0;"></span>
+            <span><?= $lv ?></span>
+            <span style="margin-left:auto;font-weight:700;font-size:13px;color:<?= $matColors[$lv] ?>;"><?= $cnt ?></span>
+            <span style="font-size:11px;color:var(--n-400);"><?= $pct2 ?>%</span>
+          </div>
+          <?php endforeach; ?>
+        </div>
+        <?php else: ?>
+        <p style="text-align:center;color:var(--n-400);font-size:13px;padding:24px 0;">No validated assessments yet.</p>
+        <?php endif; ?>
       </div>
     </div>
 
-    <!-- Announcements -->
+    <!-- Quick Actions -->
     <div class="card">
-      <div class="card-head">
-        <span class="card-title">Announcements</span>
-        <a href="announcements.php" class="btn btn-ghost btn-sm">All →</a>
-      </div>
-      <div class="card-body" style="padding:10px 16px;">
-        <?php if ($anns): ?>
-        <?php foreach($anns as $a): ?>
-        <div class="ann-item">
-          <span class="pill pill-<?= e($a['category']) ?>" style="font-size:10.5px;"><?= ucfirst($a['category']) ?></span>
-          <div class="ann-title"><?= e($a['title']) ?></div>
-          <div class="ann-meta"><?= e($a['full_name']) ?> · <?= timeAgo($a['created_at']) ?></div>
+      <div class="card-head"><span class="card-title">Quick Actions</span></div>
+      <div class="card-body" style="padding:12px 16px;">
+        <div class="quick-actions">
+          <a href="users.php?action=create" class="quick-action-btn">
+            <div class="quick-action-icon" style="background:var(--purple-bg);color:var(--purple);">
+              <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            </div>
+            Add User
+          </a>
+          <a href="school_profile.php" class="quick-action-btn">
+            <div class="quick-action-icon" style="background:var(--brand-100);color:var(--brand-700);">
+              <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            School Profile
+          </a>
+          <a href="announcements.php" class="quick-action-btn">
+            <div class="quick-action-icon" style="background:var(--amber-bg);color:var(--amber);">
+              <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            Announce
+          </a>
+          <a href="settings.php" class="quick-action-btn">
+            <div class="quick-action-icon" style="background:var(--n-100);color:var(--n-600);">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </div>
+            Settings
+          </a>
         </div>
-        <?php endforeach; ?>
-        <?php else: ?>
-        <p style="font-size:13px;color:var(--n-400);padding:12px 0;">No announcements.</p>
-        <?php endif; ?>
       </div>
     </div>
 
   </div>
 </div>
+
+<!-- BOTTOM: Recent Cycles + Activity -->
+<div style="display:grid;grid-template-columns:1fr 340px;gap:18px;margin-bottom:20px;" class="db-layout-main">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Recent Assessment Cycles</span>
+      <div class="flex-c" style="gap:8px;">
+        <div class="search" style="min-width:180px;">
+          <span class="si"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          <input type="text" placeholder="Search…" oninput="filterTable(this.value,'tblRecent')">
+        </div>
+        <a href="assessment.php" class="btn btn-secondary btn-sm">View all</a>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table id="tblRecent" class="tbl-enhanced">
+        <thead><tr><th>School</th><th>Year</th><th>Status</th><th>Score</th><th>Maturity</th><th>Updated</th><th></th></tr></thead>
+        <tbody>
+        <?php foreach($recentCycles as $c): ?>
+        <tr>
+          <td><div style="font-size:13px;font-weight:600;color:var(--n-900);"><?= e($c['school_name']) ?></div></td>
+          <td style="color:var(--n-500);font-size:12.5px;"><?= e($c['sy_label']) ?></td>
+          <td><span class="pill pill-<?= e($c['status']) ?>"><?= ucfirst(str_replace('_',' ',$c['status'])) ?></span></td>
+          <td>
+            <?php if($c['overall_score']): ?>
+            <div class="score-inline">
+              <div class="score-inline-bar"><div class="score-inline-fill" style="width:<?= $c['overall_score'] ?>%;background:<?= sbmMaturityLevel(floatval($c['overall_score']))['color'] ?>;"></div></div>
+              <span style="font-family:var(--font-display);font-size:14px;font-weight:800;color:<?= sbmMaturityLevel(floatval($c['overall_score']))['color'] ?>;"><?= $c['overall_score'] ?>%</span>
+            </div>
+            <?php else: ?><span style="color:var(--n-300);">—</span><?php endif; ?>
+          </td>
+          <td><?php if($c['maturity_level']): ?><span class="pill pill-<?= e($c['maturity_level']) ?>"><?= e($c['maturity_level']) ?></span><?php else: ?><span style="color:var(--n-300);">—</span><?php endif; ?></td>
+          <td style="font-size:12px;color:var(--n-400);"><?= timeAgo($c['created_at']) ?></td>
+          <td><a href="view_assessment.php?id=<?= $c['cycle_id'] ?>" class="btn btn-ghost btn-sm">View</a></td>
+        </tr>
+        <?php endforeach; ?>
+        <?php if(!$recentCycles): ?>
+        <tr><td colspan="7" style="text-align:center;color:var(--n-400);padding:40px;font-size:13px;">No assessments yet.</td></tr>
+        <?php endif; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Activity Feed -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">Recent Activity</span></div>
+    <div class="card-body" style="padding:12px 16px;">
+      <div class="activity-feed">
+        <?php foreach($recentActivity as $log):
+          $initials = strtoupper(substr($log['full_name'] ?? 'S', 0, 1));
+          $bgColors  = ['A'=>'#EDE9FE','B'=>'#DBEAFE','C'=>'#DCFCE7','D'=>'#FEF3C7','E'=>'#FEE2E2','F'=>'#CCFBF1'];
+          $textColors = ['A'=>'#7C3AED','B'=>'#2563EB','C'=>'#16A34A','D'=>'#D97706','E'=>'#DC2626','F'=>'#0D9488'];
+          $bg = $bgColors[$initials] ?? '#DCFCE7';
+          $tx = $textColors[$initials] ?? '#16A34A';
+        ?>
+        <div class="activity-item">
+          <div class="activity-avatar" style="background:<?= $bg ?>;color:<?= $tx ?>;"><?= $initials ?></div>
+          <div style="flex:1;min-width:0;">
+            <div class="activity-action"><strong><?= e($log['full_name'] ?? 'System') ?></strong> — <?= e($log['action']) ?></div>
+            <div class="activity-time"><?= timeAgo($log['created_at']) ?></div>
+          </div>
+        </div>
+        <?php endforeach; ?>
+        <?php if(!$recentActivity): ?>
+        <p style="text-align:center;color:var(--n-400);font-size:13px;padding:24px 0;">No activity yet.</p>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const dimLabels = <?= json_encode(array_map(fn($d) => 'D'.$d['dimension_no'], $dimScores)) ?>;
+const dimValues = <?= json_encode(array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $dimScores)) ?>;
+const dimColors = <?= json_encode(array_column($dimScores,'color_hex')) ?>;
+
+new Chart(document.getElementById('dimBarChart'), {
+  type: 'bar',
+  data: { labels: dimLabels, datasets: [{ label: 'Average Score (%)', data: dimValues, backgroundColor: dimColors.map(c => c+'33'), borderColor: dimColors, borderWidth: 2, borderRadius: 7, borderSkipped: false }] },
+  options: { responsive: true, maintainAspectRatio: false, scales: { y: { min:0, max:100, ticks:{ callback: v => v+'%', font:{ size:11 } }, grid:{ color:'#F3F4F6' } }, x: { ticks:{ font:{ size:12, weight:'600' } }, grid:{ display:false } } }, plugins: { legend:{ display:false } } }
+});
+
+<?php if ($matTotal > 0): ?>
+new Chart(document.getElementById('maturityChart'), {
+  type: 'doughnut',
+  data: { labels: ['Beginning','Developing','Maturing','Advanced'], datasets: [{ data: [<?= $matData['Beginning']??0 ?>,<?= $matData['Developing']??0 ?>,<?= $matData['Maturing']??0 ?>,<?= $matData['Advanced']??0 ?>], backgroundColor: ['#DC2626','#D97706','#2563EB','#16A34A'], borderWidth: 3, borderColor: '#fff', hoverOffset: 6 }] },
+  options: { responsive: true, maintainAspectRatio: false, cutout: '72%', plugins: { legend: { display: false } } }
+});
+<?php endif; ?>
+</script>
 
 <?php include __DIR__.'/../includes/footer.php'; ?>

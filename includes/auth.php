@@ -37,10 +37,9 @@ function baseUrl(): string {
     }
     $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $host  = $_SERVER['HTTP_HOST'];
-    // Find the project root by stripping known subdirectory names
     $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
     $dir = preg_replace(
-        '#/(admin|coordinator|teacher|stakeholder|school_head|includes|config|ml)(/.*)?$#',
+        '#/(school_head|coordinator|teacher|stakeholder|includes|config|ml)(/.*)?$#',
         '',
         dirname($script)
     );
@@ -50,7 +49,7 @@ function baseUrl(): string {
 
 function roleHome(string $role): string {
     return match($role) {
-        'admin'                => 'admin/dashboard.php',
+        'school_head'          => 'school_head/dashboard.php',
         'sbm_coordinator'      => 'coordinator/dashboard.php',
         'teacher'              => 'teacher/dashboard.php',
         'external_stakeholder' => 'stakeholder/dashboard.php',

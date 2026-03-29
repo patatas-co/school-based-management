@@ -1,10 +1,9 @@
 <?php
-// ============================================================
-// admin/assessment.php — REDESIGNED v3
-// ============================================================
+// school_head/assessment.php — SBM Assessment Management
+// Moved from admin/assessment.php — school_head is now top role
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
-requireRole('admin','sdo','ro');
+requireRole('school_head');
 $db = getDB();
 
 if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
@@ -24,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     exit;
 }
 
-$syId  = (int)($_GET['sy'] ?? $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn());
+$syId   = (int)($_GET['sy'] ?? $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn());
 $status = $_GET['status'] ?? '';
 
 $sql = "SELECT c.*,s.school_name,s.classification,sy.label sy_label,u.full_name validator_name
@@ -38,7 +37,6 @@ if ($status) { $sql .= " AND c.status=?"; $p[] = $status; }
 $sql .= " ORDER BY c.submitted_at DESC, c.created_at DESC";
 $stmt = $db->prepare($sql); $stmt->execute($p); $cycles = $stmt->fetchAll();
 
-// Status counts
 $statusCounts = $db->prepare("SELECT status, COUNT(*) cnt FROM sbm_cycles WHERE sy_id=? AND school_id=? GROUP BY status");
 $statusCounts->execute([$syId, SCHOOL_ID]);
 $counts = array_column($statusCounts->fetchAll(), 'cnt', 'status');
@@ -64,11 +62,9 @@ include __DIR__.'/../includes/header.php';
   </div>
 </div>
 
-<!-- Status filter tabs -->
 <div class="status-tabs">
   <?php
   $statuses = [''=> 'All', 'draft'=>'Draft','in_progress'=>'In Progress','submitted'=>'Submitted','validated'=>'Validated','returned'=>'Returned'];
-  $tabColors = ['submitted'=>'amber','validated'=>'active','returned'=>'returned','in_progress'=>'in_progress'];
   foreach($statuses as $sv => $sl):
     $cnt = $sv === '' ? $totalCount : ($counts[$sv] ?? 0);
   ?>
@@ -80,7 +76,6 @@ include __DIR__.'/../includes/header.php';
   <?php endforeach; ?>
 </div>
 
-<!-- Search + table -->
 <div class="card">
   <div class="card-head">
     <span class="card-title">
@@ -89,21 +84,14 @@ include __DIR__.'/../includes/header.php';
     </span>
     <div class="search">
       <span class="si"><?= svgIcon('search') ?></span>
-      <input type="text" placeholder="Search schools…" oninput="filterTable(this.value,'tblAssessments')">
+      <input type="text" placeholder="Search…" oninput="filterTable(this.value,'tblAssessments')">
     </div>
   </div>
   <div class="tbl-wrap">
     <table id="tblAssessments" class="tbl-enhanced">
       <thead>
         <tr>
-          <th>Assessment Round</th>
-          <th>School Year</th>
-          <th>Status</th>
-          <th>Score</th>
-          <th>Maturity</th>
-          <th>Submitted</th>
-          <th>Validated By</th>
-          <th></th>
+          <th>Assessment Round</th><th>School Year</th><th>Status</th><th>Score</th><th>Maturity</th><th>Submitted</th><th>Validated By</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -118,9 +106,7 @@ include __DIR__.'/../includes/header.php';
         <td style="font-size:13px;"><?= e($c['sy_label']) ?></td>
         <td><span class="pill pill-<?= e($c['status']) ?>"><?= ucfirst(str_replace('_',' ',$c['status'])) ?></span></td>
         <td>
-          <?php if($c['overall_score']):
-            $mat = sbmMaturityLevel(floatval($c['overall_score']));
-          ?>
+          <?php if($c['overall_score']): $mat = sbmMaturityLevel(floatval($c['overall_score'])); ?>
           <div class="score-bar-cell">
             <div class="score-bar-track"><div class="score-bar-fill" style="width:<?= $c['overall_score'] ?>%;background:<?= $mat['color'] ?>;"></div></div>
             <span class="score-val" style="font-size:14px;color:<?= $mat['color'] ?>;"><?= $c['overall_score'] ?>%</span>
@@ -139,22 +125,14 @@ include __DIR__.'/../includes/header.php';
             <a href="view_assessment.php?id=<?= $c['cycle_id'] ?>" class="btn btn-secondary btn-sm"><?= svgIcon('eye') ?> View</a>
             <?php if($c['status']==='submitted'): ?>
             <button class="btn btn-success btn-sm" onclick="validateCycle(<?= $c['cycle_id'] ?>,'validate')"><?= svgIcon('check') ?> Validate</button>
-            <button class="btn btn-danger btn-sm"  onclick="validateCycle(<?= $c['cycle_id'] ?>,'return')"><?= svgIcon('x') ?></button>
+            <button class="btn btn-danger btn-sm" onclick="validateCycle(<?= $c['cycle_id'] ?>,'return')"><?= svgIcon('x') ?></button>
             <?php endif; ?>
           </div>
         </td>
       </tr>
       <?php endforeach; ?>
       <?php if(!$cycles): ?>
-      <tr>
-        <td colspan="8">
-          <div class="empty-state">
-            <div class="empty-icon"><?= svgIcon('check-circle') ?></div>
-            <div class="empty-title">No assessments found</div>
-            <div class="empty-sub">No <?= $status ? e($status) : '' ?> assessments for this school year.</div>
-          </div>
-        </td>
-      </tr>
+      <tr><td colspan="8"><div class="empty-state"><div class="empty-icon"><?= svgIcon('check-circle') ?></div><div class="empty-title">No assessments found</div><div class="empty-sub">No <?= $status ? e($status) : '' ?> assessments for this school year.</div></div></td></tr>
       <?php endif; ?>
       </tbody>
     </table>
