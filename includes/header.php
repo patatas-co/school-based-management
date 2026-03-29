@@ -46,9 +46,8 @@ elseif ($__role === 'school_head') {
             ['SBM Dimensions',   'school_head/dimensions.php',        'layers'],
         ]],
         ['Evaluation', 'check-circle', [
-            ['Self-Assessment',  'school_head/self_assessment.php',        'check-circle'],
-            ['Submission Status',   'school_head/teacher_status.php',         'users'],
-            ['Evidence & MOV',   'school_head/evidence.php',               'paperclip'],
+            ['Self-Assessment',  'school_head/self_assessment.php',   'check-circle'],
+            ['Evidence & MOV',   'school_head/evidence.php',          'paperclip'],
         ]],
         ['Planning', 'trending-up', [
             ['Improvement Plan', 'school_head/improvement.php',       'trending-up'],
@@ -70,6 +69,43 @@ elseif ($__role === 'teacher') {
         ]],
         ['Communication', 'bell', [
             ['Announcements',    'teacher/announcements.php',        'bell'],
+        ]],
+    ];
+}
+
+elseif ($__role === 'sdo') {
+    $__navGroups = [
+        ['Overview', 'grid', [
+            ['Dashboard',        'sdo/dashboard.php',                'grid'],
+            ['School Monitor',   'sdo/monitoring.php',              'eye'],
+        ]],
+        ['Evaluation', 'check-circle', [
+            ['Assessments',      'sdo/assessments.php',             'check-circle'],
+            ['Workflow & SIP',   'sdo/workflow.php',                'trending-up'],
+        ]],
+        ['Support', 'briefcase', [
+            ['Technical Assist', 'sdo/technical_assistance.php',    'briefcase'],
+            ['TA Requests',      'sdo/ta_requests.php',             'send'],
+        ]],
+        ['Reports', 'file-text', [
+            ['Reports',          'sdo/reports.php',                 'file-text'],
+        ]],
+        ['Communication', 'bell', [
+            ['Announcements',    'sdo/announcements.php',           'bell'],
+        ]],
+    ];
+}
+
+elseif ($__role === 'ro') {
+    $__navGroups = [
+        ['Overview', 'grid', [
+            ['Dashboard',        'ro/dashboard.php',                 'grid'],
+        ]],
+        ['Reports', 'file-text', [
+            ['Regional Reports', 'ro/reports.php',                   'file-text'],
+        ]],
+        ['Communication', 'bell', [
+            ['Announcements',    'ro/announcements.php',             'bell'],
         ]],
     ];
 }
