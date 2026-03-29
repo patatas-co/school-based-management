@@ -16,13 +16,12 @@ if ($token) {
         "SELECT pst.*, u.email, u.full_name, u.user_id AS uid
          FROM password_setup_tokens pst
          JOIN users u ON pst.user_id = u.user_id
-         WHERE pst.token    = ?
-           AND pst.type     = ?
-           AND pst.used_at  IS NULL
+         WHERE pst.token      = ?
+           AND pst.used_at    IS NULL
            AND pst.expires_at > NOW()
          LIMIT 1"
     );
-    $st->execute([$token, $mode]);
+    $st->execute([$token]);
     $tokenRow = $st->fetch();
 }
 
@@ -76,7 +75,7 @@ if (isset($_GET['resend']) && $mode === 'reset' && $token) {
         "SELECT u.user_id, u.email, u.full_name
          FROM password_setup_tokens pst
          JOIN users u ON pst.user_id = u.user_id
-         WHERE pst.token = ? AND pst.type = 'reset'
+         WHERE pst.token = ?
          LIMIT 1"
     );
     $st->execute([$token]);
@@ -117,7 +116,6 @@ $successMsg   = $mode === 'reset'
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
   <style>
-    <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {

@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
 }
 
 $q=$_GET['q']??''; $rf=$_GET['role']??'';
-$sql="SELECT u.*,s.school_name FROM users u LEFT JOIN schools s ON u.school_id=s.school_id WHERE 1=1";
+$sql="SELECT u.user_id,u.username,u.email,u.full_name,u.role,u.status,u.school_id,u.last_login,u.created_at,u.email_verified,u.force_password_change,s.school_name FROM users u LEFT JOIN schools s ON u.school_id=s.school_id WHERE 1=1";
 $p=[];
 if($q){$qE='%'.str_replace(['\\','%','_'],['\\\\','\\%','\\_'],trim($q)).'%';$sql.=" AND (u.full_name LIKE ? OR u.username LIKE ? OR u.email LIKE ?)";$p=array_merge($p,[$qE,$qE,$qE]);}
 if($rf){$sql.=" AND u.role=?";$p[]=$rf;}

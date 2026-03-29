@@ -11,12 +11,12 @@ function generateSetupToken(PDO $db, int $userId): string {
         time() + ((int)($_ENV['SBM_TOKEN_EXPIRY_HOURS'] ?? 48) * 3600)
     );
     $db->prepare("UPDATE password_setup_tokens SET used_at=NOW()
-                  WHERE user_id=? AND used_at IS NULL")
-       ->execute([$userId]);
-    $db->prepare("INSERT INTO password_setup_tokens
-                    (user_id, token, type, expires_at)
-                  VALUES (?, ?, 'setup', ?)")
-       ->execute([$userId, $token, $expiresAt]);
+              WHERE user_id=? AND used_at IS NULL")
+   ->execute([$userId]);
+$db->prepare("INSERT INTO password_setup_tokens
+                (user_id, token, expires_at)
+              VALUES (?, ?, ?)")
+   ->execute([$userId, $token, $expiresAt]);
     return $token;
 }
 
@@ -82,16 +82,16 @@ function generateResetToken(PDO $db, int $userId): string {
  
     // Invalidate all previous unused reset tokens for this user FIRST
     $db->prepare(
-        "UPDATE password_setup_tokens
-         SET used_at = NOW()
-         WHERE user_id = ? AND type = 'reset' AND used_at IS NULL"
-    )->execute([$userId]);
+    "UPDATE password_setup_tokens
+     SET used_at = NOW()
+     WHERE user_id = ? AND used_at IS NULL"
+)->execute([$userId]);
  
     // Insert the new token AFTER invalidating old ones
     $db->prepare(
-        "INSERT INTO password_setup_tokens (user_id, token, type, expires_at)
-         VALUES (?, ?, 'reset', ?)"
-    )->execute([$userId, $token, $expiresAt]);
+    "INSERT INTO password_setup_tokens (user_id, token, expires_at)
+     VALUES (?, ?, ?)"
+)->execute([$userId, $token, $expiresAt]);
 
     // Verify the token was actually saved correctly
     $check = $db->prepare(

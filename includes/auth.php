@@ -32,9 +32,19 @@ function me(): array {
 }
 
 function baseUrl(): string {
+    if (!empty($_ENV['SBM_BASE_URL'])) {
+        return rtrim($_ENV['SBM_BASE_URL'], '/');
+    }
     $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $host  = $_SERVER['HTTP_HOST'];
-    $dir   = rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'])), '/\\');
+    // Find the project root by stripping known subdirectory names
+    $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
+    $dir = preg_replace(
+        '#/(admin|coordinator|teacher|stakeholder|school_head|includes|config|ml)(/.*)?$#',
+        '',
+        dirname($script)
+    );
+    $dir = rtrim($dir, '/');
     return $proto . '://' . $host . $dir;
 }
 
