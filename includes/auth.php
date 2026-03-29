@@ -1,7 +1,6 @@
 <?php
-// includes/auth.php — Updated with roles.php integration
+// includes/auth.php
 require_once __DIR__ . '/../config/db.php';
-// Load centralized role permissions
 if (file_exists(__DIR__ . '/../config/roles.php')) {
     require_once __DIR__ . '/../config/roles.php';
 }
@@ -24,13 +23,11 @@ function requireRole(string ...$roles): void {
 
 function me(): array {
     return [
-        'id'          => $_SESSION['user_id']    ?? null,
-        'name'        => $_SESSION['full_name']   ?? '',
-        'role'        => $_SESSION['role']        ?? '',
-        'user'        => $_SESSION['username']    ?? '',
-        'school_id'   => $_SESSION['school_id']   ?? null,
-        'division_id' => $_SESSION['division_id'] ?? null,
-        'region_id'   => $_SESSION['region_id']   ?? null,
+        'id'        => $_SESSION['user_id']  ?? null,
+        'name'      => $_SESSION['full_name'] ?? '',
+        'role'      => $_SESSION['role']      ?? '',
+        'user'      => $_SESSION['username']  ?? '',
+        'school_id' => $_SESSION['school_id'] ?? null,
     ];
 }
 
@@ -42,13 +39,10 @@ function baseUrl(): string {
 }
 
 function roleHome(string $role): string {
-    $base = baseUrl();
     return match($role) {
         'admin'                => 'admin/dashboard.php',
-        'school_head'          => 'school_head/dashboard.php',
+        'sbm_coordinator'      => 'coordinator/dashboard.php',
         'teacher'              => 'teacher/dashboard.php',
-        'sdo'                  => 'admin/dashboard.php',  // SDO uses same admin view
-        'ro'                   => 'admin/analytics.php',  // RO goes straight to analytics
         'external_stakeholder' => 'stakeholder/dashboard.php',
         default                => 'login.php',
     };
@@ -67,11 +61,11 @@ function timeAgo(string $dt): string {
         return '—';
     }
     $diff = $now->getTimestamp() - $past->getTimestamp();
-    if ($diff < 0)     return 'just now';
-    if ($diff < 10)    return 'just now';
-    if ($diff < 60)    return $diff . 's ago';
-    if ($diff < 3600)  return floor($diff / 60) . 'm ago';
-    if ($diff < 86400) return floor($diff / 3600) . 'h ago';
+    if ($diff < 0)      return 'just now';
+    if ($diff < 10)     return 'just now';
+    if ($diff < 60)     return $diff . 's ago';
+    if ($diff < 3600)   return floor($diff / 60) . 'm ago';
+    if ($diff < 86400)  return floor($diff / 3600) . 'h ago';
     if ($diff < 604800) return floor($diff / 86400) . 'd ago';
     return $past->format('M d, Y');
 }
@@ -98,7 +92,8 @@ function csrfToken(): string {
     if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     return $_SESSION['csrf_token'];
 }
-function verifyCsrf(): void {
+
+function verifyCsrf(bool $lenient = false): void {
     if (!hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? '')) {
         ob_clean();
         http_response_code(403);
