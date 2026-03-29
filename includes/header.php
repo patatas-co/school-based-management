@@ -16,34 +16,7 @@ if (isset($__role) && defined('SBM_NAV')) {
     $__navGroups = SBM_NAV[$__role] ?? [];
 } else {
     // Fallback navigation (should not happen with proper setup)
-    if ($__role === 'admin') {
-        $__navGroups = [
-            ['Overview', 'grid', [
-                ['Dashboard',        'admin/dashboard.php',     'grid'],
-                ['Analytics',        'admin/analytics.php',     'bar-chart-2'],
-            ]],
-            ['Management', 'users', [
-                ['User Accounts',    'admin/users.php',         'users'],
-                ['School Profile',   'admin/school_profile.php','home'],
-                ['School Years',     'admin/settings.php',      'calendar'],
-            ]],
-            ['Evaluation', 'check-circle', [
-                ['Self-Assessment',  'admin/self_assessment.php',   'check-circle'],
-                ['SBM Assessments',  'admin/assessment.php',    'check-circle'],
-                ['Assign Indicators','coordinator/assign_indicators.php', 'check-square'],
-                ['Workflow & SIP',   'admin/workflow.php',      'trending-up'],
-                ['Reports',          'admin/reports.php',       'file-text'],
-            ]],
-            ['Communication', 'bell', [
-                ['Announcements',    'admin/announcements.php', 'bell'],
-            ]],
-            ['System', 'settings', [
-                ['Settings',         'admin/settings.php',      'settings'],
-            ]],
-        ];
-    }
-
-    elseif ($__role === 'sbm_coordinator') {
+   if ($__role === 'sbm_coordinator') {
         $__navGroups = [
             ['Overview', 'grid', [
                 ['Dashboard',        'coordinator/dashboard.php',         'grid'],
@@ -111,7 +84,6 @@ $__initials  = strtoupper(
 
 // ── Role display label ────────────────────────────────────────
 $__roleLabel = [
-    'admin'                => 'Administrator',
     'sbm_coordinator'      => 'SBM Coordinator',
     'teacher'              => 'Teacher / Evaluator',
     'external_stakeholder' => 'External Stakeholder',
@@ -119,7 +91,6 @@ $__roleLabel = [
 
 // ── Role accent color ─────────────────────────────────────────
 $__roleColor = [
-    'admin'                => '#7C3AED',
     'sbm_coordinator'      => '#16A34A',
     'teacher'              => '#0D9488',
     'external_stakeholder' => '#2563EB',
@@ -757,6 +728,7 @@ tbody tr:hover td { background:var(--brand-50); }
       'alert-triangle'=> '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
       'award'         => '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
       'arrow-left'    => '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+      'award' => '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
       'clipboard'     => '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>',
       'filter'        => '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
       'link'          => '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',

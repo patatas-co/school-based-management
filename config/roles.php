@@ -109,11 +109,13 @@ define('SBM_NAV', [
             ['SBM Assessments',        'school_head/assessment.php',           'check-circle'],
             ['Assign Indicators',      'coordinator/assign_indicators.php',    'check-square'],
             ['Indicator Assignments',  'school_head/view_assignments.php',     'list'],
-            ['Workflow & SIP',         'school_head/workflow.php',             'trending-up'],
             ['Reports',                'school_head/reports.php',              'file-text'],
         ]],
-        ['Planning', 'trending-up', [
+        ['Workflow & SIP', 'trending-up', [
+            ['Workflow Overview',      'school_head/workflow.php',             'trending-up'],
             ['Improvement Plan',       'school_head/improvement.php',          'trending-up'],
+            ['TA Requests',            'school_head/improvement.php',          'briefcase'],
+            ['Timeline',               'school_head/workflow.php',             'calendar'],
         ]],
         ['Communication', 'bell', [
             ['Announcements',          'school_head/announcements.php',        'bell'],

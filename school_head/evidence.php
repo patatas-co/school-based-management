@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
-requireRole('school_head', 'admin', 'sbm_coordinator');
+requireRole('school_head', 'sbm_coordinator');
 $db = getDB();
 $schoolId = $_SESSION['school_id'] ?? 0;
 $sy = $db->query("SELECT * FROM school_years WHERE is_current=1 LIMIT 1")->fetch();

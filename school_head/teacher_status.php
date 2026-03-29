@@ -4,7 +4,7 @@ require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../config/sbm_indicators.php';
 require_once __DIR__.'/../includes/auth.php';
 
-requireRole('school_head', 'admin', 'sbm_coordinator');
+requireRole('school_head', 'sbm_coordinator');
 $db       = getDB();
 $schoolId = SCHOOL_ID;
 $syId     = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();

@@ -5,7 +5,7 @@ require_once __DIR__.'/../includes/auth.php';
 function buildInPlaceholders(array $arr): string {
     return implode(',', array_fill(0, count($arr), '?'));
 }
-requireRole('school_head','admin','sbm_coordinator');
+requireRole('school_head', 'sbm_coordinator');
 $db = getDB();
 
 // Rating constants
@@ -1343,7 +1343,7 @@ $ovData      = $hasOverride
 
 <!-- ── SUBMIT BUTTON ─────────────────────────────────────── -->
 <div style="text-align:center;padding:20px 0;margin-top:8px;">
-  <?php if(!$isLocked && $_SESSION['role'] === 'admin'): ?>
+  <?php if(!$isLocked && $_SESSION['role'] === 'school_head'): ?>
   <button class="btn btn-primary"
           style="padding:12px 32px;font-size:15px;"
           onclick="submitAssessment()">
@@ -1352,7 +1352,7 @@ $ovData      = $hasOverride
   </button>
   <?php elseif(!$isLocked && $_SESSION['role'] === 'sbm_coordinator'): ?>
   <div style="font-size:13px;color:var(--n500);font-style:italic;">
-    Only the School Head (Admin) can submit the final assessment.
+    Only the School Head can submit the final assessment.
   </div>
   <?php endif; ?>
 </div>

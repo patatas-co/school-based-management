@@ -2,7 +2,7 @@
 // school_head/announcements.php
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
-requireRole('school_head','sbm_coordinator');
+requireRole('school_head', 'sbm_coordinator');
 // Reuse admin announcements logic with school_head role
 $_SCHOOL_HEAD_VIEW = true;
 // Pull in the full announcements page (same logic as admin/announcements.php)

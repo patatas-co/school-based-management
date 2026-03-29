@@ -7,7 +7,7 @@
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../config/sbm_indicators.php';
 require_once __DIR__.'/../includes/auth.php';
-requireRole('sbm_coordinator', 'admin');
+requireRole('sbm_coordinator');
 $db = getDB();
 
 $uid      = $_SESSION['user_id'];
@@ -39,7 +39,7 @@ if ($cycle) {
 $totalIndicators = 42;
 $progress = $totalIndicators > 0 ? round(($totalResponded/$totalIndicators)*100) : 0;
 
-$anns = $db->query("SELECT a.*,u.full_name FROM announcements a JOIN users u ON a.posted_by=u.user_id WHERE a.target_role IN('all','sbm_coordinator','admin') ORDER BY a.created_at DESC LIMIT 5")->fetchAll();
+$anns = $db->query("SELECT a.*,u.full_name FROM announcements a JOIN users u ON a.posted_by=u.user_id WHERE a.target_role IN('all','sbm_coordinator','school_head') ORDER BY a.created_at DESC LIMIT 5")->fetchAll();
 
 // Teacher submissions
 $teacherList = [];
