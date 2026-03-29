@@ -10,13 +10,52 @@ function generateSetupToken(PDO $db, int $userId): string {
     $expiresAt = date('Y-m-d H:i:s',
         time() + ((int)($_ENV['SBM_TOKEN_EXPIRY_HOURS'] ?? 48) * 3600)
     );
-    $db->prepare("UPDATE password_setup_tokens SET used_at=NOW()
-              WHERE user_id=? AND used_at IS NULL")
-   ->execute([$userId]);
-$db->prepare("INSERT INTO password_setup_tokens
-                (user_id, token, type, expires_at)
-              VALUES (?, ?, ?, ?)")
-   ->execute([$userId, $token, 'setup', $expiresAt]);
+
+    try {
+        $db->beginTransaction();
+
+        // Invalidate all previous unused setup tokens for this user
+        $db->prepare("UPDATE password_setup_tokens SET used_at = NOW()
+                      WHERE user_id = ? AND used_at IS NULL")
+           ->execute([$userId]);
+
+        // Insert the new token
+        $ins = $db->prepare("INSERT INTO password_setup_tokens
+                                (user_id, token, type, expires_at)
+                              VALUES (:uid, :tok, 'setup', :exp)");
+        $ins->execute([
+            ':uid' => $userId,
+            ':tok' => $token,
+            ':exp' => $expiresAt,
+        ]);
+
+        // Check connection-level error after INSERT
+        if ($db->errorCode() !== '00000') {
+            error_log('DB error after INSERT (conn): ' . json_encode($db->errorInfo()));
+            $db->rollBack();
+            throw new \RuntimeException('DB error after INSERT: ' . json_encode($db->errorInfo()));
+        }
+
+        // Verify the token exists
+        $check = $db->prepare("SELECT token FROM password_setup_tokens
+                                WHERE token = ? AND used_at IS NULL AND expires_at > NOW()");
+        $check->execute([$token]);
+        $found = $check->fetch();
+
+        if (!$found) {
+            $debug = $db->prepare("SELECT token_id, token, type, expires_at, used_at FROM password_setup_tokens WHERE user_id = ?");
+            $debug->execute([$userId]);
+            error_log('Token not found after INSERT for user_id=' . $userId . ': ' . json_encode($debug->fetchAll()));
+            $db->rollBack();
+            throw new \RuntimeException('Setup token generation failed — token not found after INSERT.');
+        }
+
+        $db->commit();
+    } catch (\Throwable $e) {
+        try { $db->rollBack(); } catch (\Throwable $t) {}
+        throw $e;
+    }
+
     return $token;
 }
 
