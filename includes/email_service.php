@@ -14,9 +14,9 @@ function generateSetupToken(PDO $db, int $userId): string {
               WHERE user_id=? AND used_at IS NULL")
    ->execute([$userId]);
 $db->prepare("INSERT INTO password_setup_tokens
-                (user_id, token, expires_at)
-              VALUES (?, ?, ?)")
-   ->execute([$userId, $token, $expiresAt]);
+                (user_id, token, type, expires_at)
+              VALUES (?, ?, ?, ?)")
+   ->execute([$userId, $token, 'setup', $expiresAt]);
     return $token;
 }
 
@@ -89,9 +89,9 @@ function generateResetToken(PDO $db, int $userId): string {
  
     // Insert the new token AFTER invalidating old ones
     $db->prepare(
-    "INSERT INTO password_setup_tokens (user_id, token, expires_at)
-     VALUES (?, ?, ?)"
-)->execute([$userId, $token, $expiresAt]);
+    "INSERT INTO password_setup_tokens (user_id, token, type, expires_at)
+     VALUES (?, ?, ?, ?)"
+)->execute([$userId, $token, 'reset', $expiresAt]);
 
     // Verify the token was actually saved correctly
     $check = $db->prepare(
