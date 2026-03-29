@@ -47,7 +47,8 @@ if ($cycle) {
     $tq = $db->prepare("
         SELECT u.user_id, u.full_name,
                ts.status sub_status, ts.submitted_at, ts.response_count,
-               (SELECT COUNT(*) FROM teacher_responses tr WHERE tr.cycle_id=? AND tr.teacher_id=u.user_id) live_count
+               (SELECT COUNT(*) FROM teacher_responses tr WHERE tr.cycle_id=? AND tr.teacher_id=u.user_id) live_count,
+               (SELECT COUNT(*) FROM teacher_indicator_assignments tia WHERE tia.teacher_id=u.user_id) assigned_count
         FROM users u
         LEFT JOIN teacher_submissions ts ON ts.teacher_id=u.user_id AND ts.cycle_id=?
         WHERE u.school_id=? AND u.role='teacher' AND u.status='active'
@@ -124,6 +125,16 @@ include __DIR__.'/../includes/header.php';
 $isLocked = $cycle && in_array($cycle['status'], ['submitted','validated']);
 $hasScore = $cycle && $cycle['overall_score'];
 $mat      = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : null;
+
+// Fetch AI Recommendations
+$recommendations = [];
+if ($cycle) {
+    try {
+        $recStmt = $db->prepare("SELECT * FROM ml_recommendations WHERE cycle_id=? ORDER BY priority_score DESC LIMIT 4");
+        $recStmt->execute([$cycle['cycle_id']]);
+        $recommendations = $recStmt->fetchAll();
+    } catch(Exception $e) {}
+}
 ?>
 
 <?php if ($cycle && $cycle['status'] === 'returned'): ?>
@@ -134,7 +145,7 @@ $mat      = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : nu
     <?php if($cycle['validator_remarks']): ?>
     Admin Remarks: <?= e($cycle['validator_remarks']) ?>
     <?php endif; ?>
-    <br><a href="self_assessment.php" style="color:#78350F;font-weight:700;">Revise assessment →</a>
+    <br><a href="javascript:void(0)" style="color:#78350F;font-weight:700;">Please instruct the School Head to revise it →</a>
   </div>
 </div>
 <?php endif; ?>
@@ -169,10 +180,10 @@ $mat      = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : nu
       <?php endif; ?>
     </div>
     <div class="sh-hero-actions">
-      <?php if(!$cycle || in_array($cycle['status'],['draft','in_progress','returned'])): ?>
+      <?php if($cycle && $cycle['status'] === 'in_progress'): ?>
       <a href="self_assessment.php" class="btn btn-primary">
         <?= svgIcon('check-circle') ?>
-        <?= $cycle && $cycle['status']==='in_progress' ? 'Continue Assessment' : 'Start Assessment' ?>
+        Continue Assessment
       </a>
       <?php endif; ?>
       <a href="improvement.php" class="btn btn-secondary"><?= svgIcon('trending-up') ?> Improvement Plan</a>
@@ -214,46 +225,149 @@ $mat      = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : nu
 
   <div style="display:flex;flex-direction:column;gap:18px;">
 
-    <!-- Dimension tiles -->
+    <!-- Dimension tiles & Visual Analytics -->
     <?php if($dimScores): ?>
-    <div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-        <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--n-900);">Dimension Performance</span>
+    <div class="card">
+      <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="card-title">Dimension Performance & Analytics</span>
         <a href="dimensions.php" class="btn btn-ghost btn-sm">View details →</a>
       </div>
-      <div class="dim-grid">
-        <?php
-        $dimCompletionData = [];
-        if ($cycle) {
-            $dcStmt = $db->prepare("SELECT i.dimension_id, COUNT(*) cnt FROM sbm_responses r JOIN sbm_indicators i ON r.indicator_id=i.indicator_id WHERE r.cycle_id=? GROUP BY i.dimension_id");
-            $dcStmt->execute([$cycle['cycle_id']]);
-            foreach ($dcStmt->fetchAll() as $dc) $dimCompletionData[$dc['dimension_id']] = $dc['cnt'];
-        }
-        ?>
-        <?php foreach($dimScores as $ds):
-          $pct  = floatval($ds['percentage']);
-          $mat2 = sbmMaturityLevel($pct);
-          $done = $dimCompletionData[$ds['dimension_id']] ?? 0;
-        ?>
-        <a href="self_assessment.php#dim<?= $ds['dimension_no'] ?>" class="dim-tile" style="border-top-color:<?= e($ds['color_hex']) ?>;text-decoration:none;">
-          <div class="dim-tile-num">Dimension <?= $ds['dimension_no'] ?></div>
-          <div class="dim-tile-name" style="color:<?= e($ds['color_hex']) ?>;"><?= e($ds['dimension_name']) ?></div>
-          <div class="dim-tile-score" style="color:<?= $mat2['color'] ?>;"><?= $pct > 0 ? $pct.'%' : '—' ?></div>
-          <div class="dim-tile-prog"><div class="dim-tile-fill" style="width:<?= min(100,$pct) ?>%;background:<?= e($ds['color_hex']) ?>;"></div></div>
-          <div class="dim-tile-mat"><?= $mat2['label'] ?> · <?= $done ?>/<?= $ds['indicator_count'] ?> rated</div>
-        </a>
-        <?php endforeach; ?>
+      <div class="card-body" style="padding:16px;">
+        <div class="dim-grid" style="margin-bottom:20px;">
+          <?php
+          $dimCompletionData = [];
+          $chartLabels = [];
+          $chartData = [];
+          $chartColors = [];
+          
+          if ($cycle) {
+              $dcStmt = $db->prepare("SELECT i.dimension_id, COUNT(*) cnt FROM sbm_responses r JOIN sbm_indicators i ON r.indicator_id=i.indicator_id WHERE r.cycle_id=? GROUP BY i.dimension_id");
+              $dcStmt->execute([$cycle['cycle_id']]);
+              foreach ($dcStmt->fetchAll() as $dc) $dimCompletionData[$dc['dimension_id']] = $dc['cnt'];
+          }
+          ?>
+          <?php foreach($dimScores as $ds):
+            $pct  = floatval($ds['percentage']);
+            $mat2 = sbmMaturityLevel($pct);
+            $done = $dimCompletionData[$ds['dimension_id']] ?? 0;
+            
+            // For chart
+            $chartLabels[] = "Dim " . $ds['dimension_no'];
+            $chartData[] = $pct;
+            $chartColors[] = $ds['color_hex'];
+          ?>
+          <a href="dimensions.php" class="dim-tile" style="border-top-color:<?= e($ds['color_hex']) ?>;text-decoration:none;">
+            <div class="dim-tile-num">Dimension <?= $ds['dimension_no'] ?></div>
+            <div class="dim-tile-name" style="color:<?= e($ds['color_hex']) ?>;"><?= e($ds['dimension_name']) ?></div>
+            <div class="dim-tile-score" style="color:<?= $mat2['color'] ?>;"><?= $pct > 0 ? $pct.'%' : '—' ?></div>
+            <div class="dim-tile-prog"><div class="dim-tile-fill" style="width:<?= min(100,$pct) ?>%;background:<?= e($ds['color_hex']) ?>;"></div></div>
+            <div class="dim-tile-mat"><?= $mat2['label'] ?> · <?= $done ?>/<?= $ds['indicator_count'] ?> rated</div>
+          </a>
+          <?php endforeach; ?>
+        </div>
       </div>
     </div>
     <?php else: ?>
     <div class="card">
+      <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="card-title">Dimension Performance & Analytics</span>
+      </div>
       <div class="card-body" style="text-align:center;padding:40px;">
         <h3 style="font-size:16px;font-weight:700;color:var(--n-700);margin-bottom:8px;">No dimension data yet</h3>
-        <p style="font-size:13.5px;color:var(--n-400);margin-bottom:16px;">Start the self-assessment to see scores across all 6 SBM dimensions.</p>
-        <a href="self_assessment.php" class="btn btn-primary">Start Assessment</a>
+        <p style="font-size:13.5px;color:var(--n-400);margin-bottom:16px;">Wait for the School Head to start the self-assessment to see scores across all 6 SBM dimensions.</p>
       </div>
     </div>
     <?php endif; ?>
+
+    <!-- CHART CONTAINER ALONE -->
+    <div class="card" style="background:var(--n-50);border-radius:12px;padding:16px;border:1px solid var(--n-200);">
+        <div style="font-size:13px;font-weight:700;color:var(--n-800);margin-bottom:10px;">Visual Analytics: Dimension Comparison</div>
+        <?php if($dimScores): ?>
+        <div style="height:250px;width:100%;position:relative;">
+            <canvas id="dimChart"></canvas>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                const ctx = document.getElementById('dimChart');
+                if(ctx) {
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: <?= json_encode($chartLabels) ?>,
+                            datasets: [{
+                                label: 'Score Percentage',
+                                data: <?= json_encode($chartData) ?>,
+                                backgroundColor: <?= json_encode($chartColors) ?>,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: { beginAtZero: true, max: 100 }
+                            }
+                        }
+                    });
+                }
+            });
+        </script>
+        <?php else: ?>
+        <div style="height:250px;width:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;border:2px dashed var(--n-200);border-radius:8px;background:var(--white);opacity:0.7;">
+            <?= svgIcon('bar-chart-2', 32, 'var(--n-300)') ?>
+            <div style="margin-top:10px;font-size:13px;font-weight:600;color:var(--n-500);">Chart data unavailable</div>
+            <div style="font-size:12px;color:var(--n-400);">Scores will be visualized here once evaluations begin.</div>
+        </div>
+        <?php endif; ?>
+
+    <!-- AI Recommendations block -->
+    <div class="card" style="border:1.5px solid #E0E7FF;margin-top:18px;">
+        <div class="card-head" style="background:#EEF2FF;border-bottom:1px solid #E0E7FF;display:flex;align-items:center;">
+            <span class="card-title" style="color:#3730A3;">✨ AI Recommendations & ML Insights</span>
+        </div>
+        <div class="card-body" style="padding:16px;">
+            <?php if(!empty($recommendations)): ?>
+            <p style="font-size:12.5px;color:var(--n-500);margin-bottom:16px;">
+                Based on machine learning analysis of SBM patterns and current cycle performance, the following priority areas are suggested for your Improvement Plan.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <?php foreach($recommendations as $rec): ?>
+                <div style="padding:12px;border:1px solid var(--n-200);border-radius:8px;background:var(--white);box-shadow:var(--shadow-xs);">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                        <span class="pill pill-draft" style="background:#DBEAFE;color:#1E40AF;border-color:#BFDBFE;">Dim <?= e($rec['dimension_id']) ?></span>
+                        <strong style="font-size:13.5px;color:var(--n-800);"><?= e($rec['indicator_code'] ?? 'Priority Focus') ?></strong>
+                        <?php if($rec['priority_score'] > 0.7): ?>
+                        <span style="margin-left:auto;font-size:11px;color:#DC2626;font-weight:700;display:flex;align-items:center;gap:3px;">
+                            <?= svgIcon('trending-down', 13) ?> High Priority
+                        </span>
+                        <?php endif; ?>
+                    </div>
+                    <div style="font-size:13px;color:var(--n-600);line-height:1.4;">
+                        <?= e($rec['recommendation_text']) ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <div style="margin-top:16px;text-align:center;">
+                <a href="improvement.php" class="btn btn-primary btn-sm">Add to Improvement Plan</a>
+            </div>
+            <?php else: ?>
+            <div style="text-align:center;padding:30px 10px;opacity:0.8;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:40px;height:40px;margin:0 auto 12px;opacity:0.6;">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <div style="font-size:14px;font-weight:700;color:var(--n-700);">Gathering Data Model...</div>
+                <div style="font-size:13px;color:var(--n-500);max-width:300px;margin:8px auto 0;">
+                    Complete initial scoring data to unlock predictive Priority Areas and intelligent machine learning recommendations.
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
 
     <!-- Teacher Submissions -->
     <?php if($teacherList): ?>
@@ -276,9 +390,11 @@ $mat      = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : nu
             </div>
             <div style="flex:1;min-width:0;">
               <div class="teacher-name"><?= e($t['full_name']) ?></div>
-              <?php if(!$done&&$inProg): ?>
+              <?php if(!$done&&$inProg): 
+                  $assignCountCap = $t['assigned_count'] > 0 ? $t['assigned_count'] : count(TEACHER_INDICATOR_CODES);
+              ?>
               <div style="height:4px;background:var(--n-200);border-radius:999px;margin-top:4px;width:120px;overflow:hidden;">
-                <div style="height:100%;width:<?= round(($t['live_count']/count(TEACHER_INDICATOR_CODES))*100) ?>%;background:#2563EB;border-radius:999px;"></div>
+                <div style="height:100%;width:<?= min(100, round(($t['live_count']/$assignCountCap)*100)) ?>%;background:#2563EB;border-radius:999px;"></div>
               </div>
               <?php endif; ?>
             </div>

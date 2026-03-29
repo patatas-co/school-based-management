@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
-requireRole('school_head','admin');
+requireRole('school_head', 'admin', 'sbm_coordinator');
 $db = getDB();
 
 // ── Helper functions (must be defined before any call site) ──

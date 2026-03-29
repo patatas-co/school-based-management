@@ -51,18 +51,27 @@ define('SBM_MODULE_ACCESS', [
     'analytics_export'          => [ROLE_ADMIN],
 
     // ── Assessment Lifecycle ─────────────────────────────────
-    // Start/manage cycle: Admin + Coordinator
-    'start_assessment'          => [ROLE_ADMIN, ROLE_COORDINATOR],
+    // Start/manage cycle: Admin only (School Head)
+    'start_assessment'          => [ROLE_ADMIN],
+    // Close/lock assessment: Admin only
+    'close_assessment'          => [ROLE_ADMIN],
+    // Reopen assessment: Admin only
+    'reopen_assessment'         => [ROLE_ADMIN],
     // Fill SH/coordinator indicators
     'sh_self_assessment'        => [ROLE_ADMIN, ROLE_COORDINATOR],
     // Fill teacher indicators
     'teacher_self_assessment'   => [ROLE_TEACHER],
     // Fill stakeholder indicators
     'stakeholder_assessment'    => [ROLE_STAKEHOLDER],
-    // Submit final assessment: Admin + Coordinator
-    'submit_assessment'         => [ROLE_ADMIN, ROLE_COORDINATOR],
+    // Submit final assessment: Admin only
+    'submit_assessment'         => [ROLE_ADMIN],
     // Override teacher ratings: Admin + Coordinator
     'override_teacher_rating'   => [ROLE_ADMIN, ROLE_COORDINATOR],
+    // Override coordinator assignments: Admin only
+    'override_coordinator_assignments' => [ROLE_ADMIN],
+
+    // Assign indicators to teachers: Admin + Coordinator
+    'assign_indicators'         => [ROLE_ADMIN, ROLE_COORDINATOR],
 
     // ── Assessment Validation ────────────────────────────────
     // View submitted assessments: Admin + Coordinator
@@ -107,9 +116,16 @@ define('SBM_NAV', [
             ['School Years',      'admin/settings.php',       'calendar'],
         ]],
         ['Evaluation', 'check-circle', [
-            ['SBM Assessments',   'admin/assessment.php',     'check-circle'],
-            ['Workflow & SIP',    'admin/workflow.php',       'trending-up'],
-            ['Reports',           'admin/reports.php',        'file-text'],
+            ['Self-Assessment',   'admin/self_assessment.php',   'check-circle'],
+            ['SBM Assessments',   'admin/assessment.php',        'check-circle'],
+            ['Assign Indicators', 'coordinator/assign_indicators.php','check-square'],
+            ['Indicator Assignments', 'admin/view_assignments.php','list'],
+            ['Workflow & SIP',    'admin/workflow.php',          'trending-up'],
+            ['Reports',           'admin/reports.php',           'file-text'],
+        ]],
+        ['Planning', 'trending-up', [
+            ['Improvement Plan',  'school_head/improvement.php',      'trending-up'],
+            ['Reports',           'coordinator/reports.php',           'file-text'],
         ]],
         ['Communication', 'bell', [
             ['Announcements',     'admin/announcements.php',  'bell'],
@@ -127,6 +143,7 @@ define('SBM_NAV', [
         ]],
         ['Evaluation', 'check-circle', [
             ['Self-Assessment',   'coordinator/self_assessment.php',   'check-circle'],
+            ['Assign Indicators', 'coordinator/assign_indicators.php', 'check-square'],
             ['Teacher Status',    'coordinator/teacher_status.php',    'users'],
             ['Evidence & MOV',    'coordinator/evidence.php',          'paperclip'],
         ]],

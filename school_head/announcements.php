@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
-requireRole('school_head','teacher');
+requireRole('school_head', 'admin', 'sbm_coordinator', 'teacher');
 $db = getDB();
 
 $anns = $db->query("SELECT a.*,u.full_name FROM announcements a JOIN users u ON a.posted_by=u.user_id WHERE a.target_role IN('all','school_head') AND a.is_published=1 ORDER BY a.created_at DESC")->fetchAll();

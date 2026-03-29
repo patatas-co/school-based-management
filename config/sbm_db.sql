@@ -573,6 +573,22 @@ CREATE TABLE `system_config` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `teacher_indicator_assignments`
+--
+
+CREATE TABLE `teacher_indicator_assignments` (
+  `assignment_id` int(11) NOT NULL AUTO_INCREMENT,
+  `teacher_id` int(11) NOT NULL,
+  `indicator_code` varchar(10) NOT NULL,
+  `assigned_by` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`assignment_id`),
+  UNIQUE KEY `unique_teacher_indicator` (`teacher_id`, `indicator_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `teacher_responses`
 --
 
@@ -790,6 +806,12 @@ ALTER TABLE `sbm_responses`
   ADD KEY `indicator_id` (`indicator_id`),
   ADD KEY `school_id` (`school_id`),
   ADD KEY `rated_by` (`rated_by`);
+
+--
+-- Indexes for table `teacher_indicator_assignments`
+--
+ALTER TABLE `teacher_indicator_assignments`
+  ADD KEY `assigned_by` (`assigned_by`);
 
 --
 -- Indexes for table `sbm_workflow_phases`

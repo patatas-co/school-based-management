@@ -8,7 +8,7 @@
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../config/roles.php';
 require_once __DIR__.'/../includes/auth.php';
-requireRole('school_head', 'admin');
+requireRole('school_head', 'admin', 'sbm_coordinator');
 $db = getDB();
 
 // School Head can only edit THEIR school; admin can edit any

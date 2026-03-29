@@ -5,7 +5,7 @@ require_once __DIR__.'/../includes/auth.php';
 function buildInPlaceholders(array $arr): string {
     return implode(',', array_fill(0, count($arr), '?'));
 }
-requireRole('school_head','admin');
+requireRole('school_head','admin','sbm_coordinator');
 $db = getDB();
 
 // Rating constants
@@ -29,6 +29,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     try {
 
     if ($_POST['action'] === 'start_assessment') {
+        // Check if user has permission to start assessment
+        if (!hasAccess('start_assessment')) {
+            echo json_encode(['ok'=>false,'msg'=>'Access denied. Only School Head can start assessments.']); exit;
+        }
+        
         if (!$syId) {
             echo json_encode(['ok'=>false,'msg'=>'No active school year found.']); exit;
         }
@@ -860,10 +865,12 @@ include __DIR__.'/../includes/header.php';
   </div>
   <div class="page-head-actions">
     <?php if(!$cycle): ?>
+    <?php if(hasAccess('start_assessment')): ?>
     <button class="btn btn-primary" onclick="openModal('mStartAssessment')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-right:6px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
       Start Assessment
     </button>
+    <?php endif; ?>
     <?php elseif(!$isLocked): ?>
     <button class="btn btn-primary" onclick="submitAssessment()">
       <?= svgIcon('check') ?> Submit Assessment
@@ -889,10 +896,12 @@ include __DIR__.'/../includes/header.php';
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px; margin-left:4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
     </div>
     <h3 style="font-size: 22px; font-weight: 800; color: var(--n800); margin-bottom: 12px;">Start New Assessment Cycle</h3>
-    <p style="font-size: 15px; color: var(--n500); max-width: 480px; margin: 0 auto 30px; line-height: 1.6;">There is currently no active assessment cycle for this school year. Click the button below to explicitly start the assessment. This will instantly make the indicators available for all active teachers to answer.</p>
+    <p style="font-size: 15px; color: var(--n500); max-width: 480px; margin: 0 auto 30px; line-height: 1.6;">There is currently no active assessment cycle for this school year.<?php if(hasAccess('start_assessment')): ?> Click the button below to explicitly start the assessment. This will instantly make the indicators available for all active teachers to answer.<?php else: ?> Please wait for the School Head to start the assessment cycle.<?php endif; ?></p>
+    <?php if(hasAccess('start_assessment')): ?>
     <button class="btn btn-primary" onclick="openModal('mStartAssessment')" style="padding: 12px 28px; font-size: 15.5px;">
       Start Assessment Cycle
     </button>
+    <?php endif; ?>
   </div>
 </div>
 <?php else: ?>
@@ -1334,13 +1343,17 @@ $ovData      = $hasOverride
 
 <!-- ── SUBMIT BUTTON ─────────────────────────────────────── -->
 <div style="text-align:center;padding:20px 0;margin-top:8px;">
-  <?php if(!$isLocked): ?>
+  <?php if(!$isLocked && $_SESSION['role'] === 'admin'): ?>
   <button class="btn btn-primary"
           style="padding:12px 32px;font-size:15px;"
           onclick="submitAssessment()">
     <?= svgIcon('check') ?> Submit Self-Assessment
     <span id="submitCount">(<?= $shResponded ?>/<?= $shTotal ?> your indicators rated)</span>
   </button>
+  <?php elseif(!$isLocked && $_SESSION['role'] === 'sbm_coordinator'): ?>
+  <div style="font-size:13px;color:var(--n500);font-style:italic;">
+    Only the School Head (Admin) can submit the final assessment.
+  </div>
   <?php endif; ?>
 </div>
 

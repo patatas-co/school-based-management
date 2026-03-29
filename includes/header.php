@@ -11,82 +11,92 @@ $__base = baseUrl();
 // ── Role-based navigation ─────────────────────────────────────
 $__navGroups = [];
 
-if ($__role === 'admin') {
-    $__navGroups = [
-        ['Overview', 'grid', [
-            ['Dashboard',        'admin/dashboard.php',     'grid'],
-            ['Analytics',        'admin/analytics.php',     'bar-chart-2'],
-        ]],
-        ['Management', 'users', [
-            ['User Accounts',    'admin/users.php',         'users'],
-            ['School Profile',   'admin/school_profile.php','home'],
-            ['School Years',     'admin/settings.php',      'calendar'],
-        ]],
-        ['Evaluation', 'check-circle', [
-            ['SBM Assessments',  'admin/assessment.php',    'check-circle'],
-            ['Workflow & SIP',   'admin/workflow.php',      'trending-up'],
-            ['Reports',          'admin/reports.php',       'file-text'],
-        ]],
-        ['Communication', 'bell', [
-            ['Announcements',    'admin/announcements.php', 'bell'],
-        ]],
-        ['System', 'settings', [
-            ['Settings',         'admin/settings.php',      'settings'],
-        ]],
-    ];
-}
+// Use centralized navigation from config/roles.php
+if (isset($__role) && defined('SBM_NAV')) {
+    $__navGroups = SBM_NAV[$__role] ?? [];
+} else {
+    // Fallback navigation (should not happen with proper setup)
+    if ($__role === 'admin') {
+        $__navGroups = [
+            ['Overview', 'grid', [
+                ['Dashboard',        'admin/dashboard.php',     'grid'],
+                ['Analytics',        'admin/analytics.php',     'bar-chart-2'],
+            ]],
+            ['Management', 'users', [
+                ['User Accounts',    'admin/users.php',         'users'],
+                ['School Profile',   'admin/school_profile.php','home'],
+                ['School Years',     'admin/settings.php',      'calendar'],
+            ]],
+            ['Evaluation', 'check-circle', [
+                ['Self-Assessment',  'admin/self_assessment.php',   'check-circle'],
+                ['SBM Assessments',  'admin/assessment.php',    'check-circle'],
+                ['Assign Indicators','coordinator/assign_indicators.php', 'check-square'],
+                ['Workflow & SIP',   'admin/workflow.php',      'trending-up'],
+                ['Reports',          'admin/reports.php',       'file-text'],
+            ]],
+            ['Communication', 'bell', [
+                ['Announcements',    'admin/announcements.php', 'bell'],
+            ]],
+            ['System', 'settings', [
+                ['Settings',         'admin/settings.php',      'settings'],
+            ]],
+        ];
+    }
 
-elseif ($__role === 'sbm_coordinator') {
-    $__navGroups = [
-        ['Overview', 'grid', [
-            ['Dashboard',        'coordinator/dashboard.php',         'grid'],
-            ['Analytics',        'coordinator/analytics.php',         'bar-chart-2'],
-            ['SBM Dimensions',   'coordinator/dimensions.php',        'layers'],
-        ]],
-        ['Evaluation', 'check-circle', [
-            ['Self-Assessment',  'coordinator/self_assessment.php',   'check-circle'],
-            ['Teacher Status',   'coordinator/teacher_status.php',    'users'],
-            ['Evidence & MOV',   'coordinator/evidence.php',          'paperclip'],
-        ]],
-        ['Planning', 'trending-up', [
-            ['Improvement Plan', 'coordinator/improvement.php',       'trending-up'],
-            ['Reports',          'coordinator/reports.php',           'file-text'],
-        ]],
-        ['School', 'home', [
-            ['School Profile',   'coordinator/school_profile.php',    'home'],
-        ]],
-        ['Communication', 'bell', [
-            ['Announcements',    'coordinator/announcements.php',     'bell'],
-        ]],
-    ];
-}
+    elseif ($__role === 'sbm_coordinator') {
+        $__navGroups = [
+            ['Overview', 'grid', [
+                ['Dashboard',        'coordinator/dashboard.php',         'grid'],
+                ['Analytics',        'coordinator/analytics.php',         'bar-chart-2'],
+                ['SBM Dimensions',   'coordinator/dimensions.php',        'layers'],
+            ]],
+            ['Evaluation', 'check-circle', [
+                ['Self-Assessment',  'coordinator/self-assessment.php',   'check-circle'],
+                ['Assign Indicators','coordinator/assign_indicators.php', 'check-square'],
+                ['Teacher Status',   'coordinator/teacher_status.php',    'users'],
+                ['Evidence & MOV',   'coordinator/evidence.php',          'paperclip'],
+            ]],
+            ['Planning', 'trending-up', [
+                ['Improvement Plan', 'coordinator/improvement.php',       'trending-up'],
+                ['Reports',          'coordinator/reports.php',           'file-text'],
+            ]],
+            ['School', 'home', [
+                ['School Profile',   'coordinator/school_profile.php',    'home'],
+            ]],
+            ['Communication', 'bell', [
+                ['Announcements',    'coordinator/announcements.php',     'bell'],
+                ['Meetings',         'coordinator/meetings.php',          'calendar'],
+            ]],
+        ];
+    }
 
-elseif ($__role === 'teacher') {
-    $__navGroups = [
-        ['Overview', 'grid', [
-            ['Dashboard',        'teacher/dashboard.php',            'grid'],
-        ]],
-        ['Evaluation', 'check-circle', [
-            ['Self-Assessment',  'teacher/self_assessment.php',      'check-circle'],
-        ]],
-        ['Communication', 'bell', [
-            ['Announcements',    'teacher/announcements.php',        'bell'],
-        ]],
-    ];
-}
+    elseif ($__role === 'teacher') {
+        $__navGroups = [
+            ['Overview', 'grid', [
+                ['Dashboard',        'teacher/dashboard.php',            'grid'],
+            ]],
+            ['Evaluation', 'check-circle', [
+                ['Self-Assessment',  'teacher/self_assessment.php',      'check-circle'],
+            ]],
+            ['Communication', 'bell', [
+                ['Announcements',    'teacher/announcements.php',        'bell'],
+            ]],
+        ];
+    }
 
-elseif ($__role === 'external_stakeholder') {
-    $__navGroups = [
-        ['Overview', 'grid', [
-            ['Dashboard',        'stakeholder/dashboard.php',        'grid'],
-        ]],
-        ['Participation', 'users', [
-            ['Self-Assessment',  'stakeholder/self_assessment.php',  'check-circle'],
-        ]],
-        ['Communication', 'bell', [
-            ['Announcements',    'stakeholder/announcement.php',     'bell'],
-        ]],
-    ];
+    elseif ($__role === 'external_stakeholder') {
+        $__navGroups = [
+            ['Overview', 'grid', [
+                ['Dashboard',        'stakeholder/dashboard.php',        'grid'],
+            ]],
+            ['Participation', 'users', [
+                ['Self-Assessment',  'stakeholder/self_assessment.php',  'check-circle'],
+            ]],
+            ['Communication', 'bell', [
+                ['Announcements',    'stakeholder/announcement.php',     'bell'],
+            ]],
+        ];
+    }
 }
 
 // ── Active page detection ─────────────────────────────────────
@@ -722,6 +732,7 @@ tbody tr:hover td { background:var(--brand-50); }
       'home'          => '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
       'calendar'      => '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
       'check-circle'  => '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+      'shield'        => '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
       'trending-up'   => '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
       'file-text'     => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
       'bell'          => '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',

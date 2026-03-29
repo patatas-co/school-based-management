@@ -14,6 +14,16 @@ if (!$syId) {
     include __DIR__.'/../includes/footer.php'; exit;
 }
 
+// ── FETCH ASSIGNED INDICATORS ─────────────────────────────────
+$assignStmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignments WHERE teacher_id = ?");
+$assignStmt->execute([$uid]);
+$assignedCodes = $assignStmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Fallback to all teacher codes if none specifically assigned
+if (empty($assignedCodes)) {
+    $assignedCodes = TEACHER_INDICATOR_CODES;
+}
+
 // ── AJAX HANDLERS ─────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
@@ -25,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $chk = $db->prepare("SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?");
         $chk->execute([$indicatorId]);
         $code = $chk->fetchColumn();
-        if (!in_array($code, TEACHER_INDICATOR_CODES)) {
+        if (!in_array($code, $assignedCodes)) {
             echo json_encode(['ok'=>false,'msg'=>'Not a teacher indicator.']); exit;
         }
 
@@ -67,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     // Count how many teacher indicators this teacher has answered
     $placeholders = implode(
-        ',', array_fill(0, count(TEACHER_INDICATOR_CODES), '?')
+        ',', array_fill(0, count($assignedCodes), '?')
     );
     $countStmt = $db->prepare("
         SELECT COUNT(*) FROM teacher_responses tr
@@ -77,10 +87,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
           AND i.indicator_code IN ($placeholders)
     ");
     $countStmt->execute(
-        array_merge([$cycleId, $uid], TEACHER_INDICATOR_CODES)
+        array_merge([$cycleId, $uid], $assignedCodes)
     );
     $answered = (int) $countStmt->fetchColumn();
-    $required = count(TEACHER_INDICATOR_CODES);
+    $required = count($assignedCodes);
 
     if ($answered < $required) {
         echo json_encode([
@@ -132,7 +142,7 @@ $db->prepare("
         $chk->execute([$indicatorId]);
         $code = $chk->fetchColumn();
 
-        if (!in_array($code, TEACHER_INDICATOR_CODES)) {
+        if (!in_array($code, $assignedCodes)) {
             echo json_encode(['ok'=>false,'msg'=>'You are not allowed to answer this indicator.']); exit;
         }
 
@@ -168,7 +178,7 @@ $db->prepare("
 }
 
 // ── LOAD DATA ─────────────────────────────────────────────────
-$placeholders = implode(',', array_fill(0, count(TEACHER_INDICATOR_CODES), '?'));
+$placeholders = implode(',', array_fill(0, count($assignedCodes), '?'));
 $indicators   = $db->prepare("
     SELECT i.*, d.dimension_no, d.dimension_name, d.color_hex
     FROM sbm_indicators i
@@ -177,7 +187,7 @@ $indicators   = $db->prepare("
       AND i.indicator_code IN ($placeholders)
     ORDER BY d.dimension_no, i.sort_order
 ");
-$indicators->execute(TEACHER_INDICATOR_CODES);
+$indicators->execute($assignedCodes);
 $indicators = $indicators->fetchAll();
 
 $cycle = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
