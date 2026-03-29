@@ -1,45 +1,48 @@
 <?php
 // ============================================================
-// admin/school_profile.php — ADMIN version
-// Admin manages STRUCTURAL fields: name, DepEd ID, classification,
-// division assignment.
-// Operational fields (contacts, enrollment) can also be edited
-// by the School Head via school_head/school_profile.php.
+// school_head/school_profile.php
+// School-level profile management for School Head role.
+// (System-level config stays in admin/school_profile.php)
+// Transfer: School Head now manages their own school's info.
 // ============================================================
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../config/roles.php';
 require_once __DIR__.'/../includes/auth.php';
-requireRole('admin');   // ADMIN ONLY — School Head uses their own page
+requireRole('school_head', 'admin');
 $db = getDB();
+
+// School Head can only edit THEIR school; admin can edit any
+$schoolId = SCHOOL_ID;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     verifyCsrf();
+
     if ($_POST['action'] === 'save') {
-        // Admin can edit ALL fields including structural ones
-        $db->prepare("UPDATE schools SET
-            school_name       = ?,
-            school_id_deped   = ?,
-            address           = ?,
-            school_head_name  = ?,
-            contact_no        = ?,
-            email             = ?,
-            total_enrollment  = ?,
-            total_teachers    = ?
-            WHERE school_id   = ?")
-           ->execute([
-               trim($_POST['school_name']),
-               trim($_POST['school_id_deped']),
-               trim($_POST['address']),
-               trim($_POST['school_head_name']),
-               trim($_POST['contact_no']),
-               trim($_POST['email']),
-               (int)$_POST['total_enrollment'],
-               (int)$_POST['total_teachers'],
-               SCHOOL_ID,
-           ]);
-        logActivity('admin_update_school_profile', 'school_profile',
-            'Admin updated full school profile for school_id: '.SCHOOL_ID);
+        // School Head can update operational info — NOT school_id_deped or classification
+        // (those remain admin-only structural fields)
+        $db->prepare("
+            UPDATE schools SET
+                school_head_name  = ?,
+                contact_no        = ?,
+                email             = ?,
+                total_enrollment  = ?,
+                total_teachers    = ?,
+                address           = ?
+            WHERE school_id = ?
+        ")->execute([
+            trim($_POST['school_head_name']),
+            trim($_POST['contact_no']),
+            trim($_POST['email']),
+            (int)$_POST['total_enrollment'],
+            (int)$_POST['total_teachers'],
+            trim($_POST['address']),
+            $schoolId,
+        ]);
+
+        logActivity('sh_update_school_profile', 'school_profile',
+            'School Head updated school profile for school_id: ' . $schoolId);
+
         echo json_encode(['ok' => true, 'msg' => 'School profile updated.']);
         exit;
     }
@@ -52,33 +55,35 @@ $school = $db->prepare("
     LEFT JOIN divisions d ON s.division_id = d.division_id
     WHERE s.school_id = ?
 ");
-$school->execute([SCHOOL_ID]);
+$school->execute([$schoolId]);
 $school = $school->fetch();
 
+// Stats
 $totalTeachers = $db->query(
     "SELECT COUNT(*) FROM users WHERE role='teacher' AND status='active'"
 )->fetchColumn();
 
 $currentCycle = $db->query(
-    "SELECT c.*, sy.label FROM sbm_cycles c
+    "SELECT c.*, sy.label
+     FROM sbm_cycles c
      JOIN school_years sy ON c.sy_id = sy.sy_id
-     WHERE c.school_id = ".SCHOOL_ID."
+     WHERE c.school_id = " . $schoolId . "
      ORDER BY c.created_at DESC LIMIT 1"
 )->fetch();
 
-$pageTitle  = 'School Profile (Admin)';
+$pageTitle  = 'School Profile';
 $activePage = 'school_profile.php';
-include __DIR__.'/../includes/header.php';
+include __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="ph2">
   <div class="ph2-left">
-    <div class="ph2-eyebrow">Configuration</div>
+    <div class="ph2-eyebrow">School Configuration</div>
     <div class="ph2-title">School Profile</div>
     <div class="ph2-sub">
-      Manage DIHS institutional information and system settings.
-      <span style="font-size:12px;color:var(--amber);display:block;margin-top:3px;">
-        ⚠ Admin view — all fields are editable here. School Head can edit operational fields via their own portal.
+      Manage your school's operational information.
+      <span style="font-size:12px;color:var(--n-400);display:block;margin-top:3px;">
+        Note: School ID, classification, and division are managed by the System Administrator.
       </span>
     </div>
   </div>
@@ -92,23 +97,27 @@ include __DIR__.'/../includes/header.php';
   <div class="card">
     <div class="card-head">
       <span class="card-title">Institutional Information</span>
-      <span style="font-size:11px;color:var(--n-400);">Admin-managed fields</span>
     </div>
     <div style="padding:0;">
       <?php $fields = [
-        ['School Name',       $school['school_name']],
-        ['DepEd School ID',   $school['school_id_deped']],
-        ['Address',           $school['address']],
-        ['Classification',    $school['classification']],
-        ['School Head',       $school['school_head_name']],
-        ['Contact Number',    $school['contact_no'] ?? '—'],
-        ['Email',             $school['email'] ?? '—'],
-        ['Division',          $school['division_name'] ?? '—'],
+        ['School Name',       $school['school_name'],       false],
+        ['DepEd School ID',   $school['school_id_deped'],   true],   // read-only for SH
+        ['Address',           $school['address'],            false],
+        ['Classification',    $school['classification'],     true],   // read-only for SH
+        ['School Head',       $school['school_head_name'],  false],
+        ['Contact Number',    $school['contact_no'] ?? '—', false],
+        ['Email',             $school['email'] ?? '—',      false],
+        ['Division',          $school['division_name'] ?? '—', true],
       ];
-      foreach($fields as [$label, $val]): ?>
+      foreach($fields as [$label, $val, $readonly]): ?>
       <div style="display:flex;align-items:center;justify-content:space-between;
                   padding:12px 20px;border-bottom:1px solid var(--n-100);">
-        <span style="font-size:13px;color:var(--n-500);font-weight:500;"><?= $label ?></span>
+        <span style="font-size:13px;color:var(--n-500);font-weight:500;">
+          <?= $label ?>
+          <?php if($readonly): ?>
+          <span style="font-size:10px;color:var(--n-400);font-weight:400;margin-left:4px;">(admin only)</span>
+          <?php endif; ?>
+        </span>
         <span style="font-size:13.5px;font-weight:600;color:var(--n-900);"><?= e($val ?? '—') ?></span>
       </div>
       <?php endforeach; ?>
@@ -149,7 +158,7 @@ include __DIR__.'/../includes/header.php';
         <div class="flex-cb" style="margin-top:8px;"><span style="font-size:13px;color:var(--n-500);">Maturity Level</span><?= sbmMaturityBadge($currentCycle['maturity_level']) ?></div>
         <?php endif; ?>
         <div style="margin-top:12px;">
-          <a href="assessment.php" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;"><?= svgIcon('eye') ?> View Assessment</a>
+          <a href="self_assessment.php" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;"><?= svgIcon('eye') ?> View Assessment</a>
         </div>
       </div>
     </div>
@@ -157,20 +166,31 @@ include __DIR__.'/../includes/header.php';
   </div>
 </div>
 
-<!-- Edit Modal (admin — ALL fields) -->
+<!-- Edit Modal — School Head can only edit operational fields -->
 <div class="overlay" id="mEdit">
-  <div class="modal" style="max-width:560px;">
+  <div class="modal" style="max-width:520px;">
     <div class="modal-head">
-      <span class="modal-title">Edit School Profile (Admin)</span>
+      <span class="modal-title">Edit School Profile</span>
       <button class="modal-close" onclick="closeModal('mEdit')"><?= svgIcon('x') ?></button>
     </div>
     <div class="modal-body">
-      <div class="form-row">
-        <div class="fg"><label>School Name</label><input class="fc" id="s_name" value="<?= e($school['school_name']) ?>"></div>
-        <div class="fg"><label>DepEd School ID</label><input class="fc" id="s_deped" value="<?= e($school['school_id_deped'] ?? '') ?>"></div>
+
+      <!-- Read-only admin fields shown for reference -->
+      <div style="background:var(--n-50);border:1px solid var(--n-200);border-radius:8px;
+                  padding:12px 14px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;color:var(--n-400);text-transform:uppercase;
+                    letter-spacing:.06em;margin-bottom:8px;">
+          Fields managed by System Administrator
+        </div>
+        <div style="font-size:13px;color:var(--n-600);">
+          <strong>School Name:</strong> <?= e($school['school_name']) ?><br>
+          <strong>DepEd ID:</strong> <?= e($school['school_id_deped'] ?? '—') ?>  &nbsp;·&nbsp;
+          <strong>Classification:</strong> <?= e($school['classification']) ?>
+        </div>
       </div>
+
+      <div class="fg"><label>School Head Name</label><input class="fc" id="s_head" value="<?= e($school['school_head_name'] ?? '') ?>"></div>
       <div class="fg"><label>Address</label><input class="fc" id="s_addr" value="<?= e($school['address'] ?? '') ?>"></div>
-      <div class="fg"><label>School Head</label><input class="fc" id="s_head" value="<?= e($school['school_head_name'] ?? '') ?>"></div>
       <div class="form-row">
         <div class="fg"><label>Contact No.</label><input class="fc" id="s_contact" value="<?= e($school['contact_no'] ?? '') ?>"></div>
         <div class="fg"><label>Email</label><input class="fc" type="email" id="s_email" value="<?= e($school['email'] ?? '') ?>"></div>
@@ -191,10 +211,8 @@ include __DIR__.'/../includes/header.php';
 async function saveProfile() {
   const r = await apiPost('school_profile.php', {
     action:           'save',
-    school_name:      $('s_name'),
-    school_id_deped:  $('s_deped'),
-    address:          $('s_addr'),
     school_head_name: $('s_head'),
+    address:          $('s_addr'),
     contact_no:       $('s_contact'),
     email:            $('s_email'),
     total_enrollment: $('s_enroll'),
