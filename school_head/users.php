@@ -35,15 +35,23 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             $schoolName = $schoolStmt->fetchColumn() ?: '—';
 
             if (!$pw) {
-                require_once __DIR__.'/../includes/email_service.php';
+                // Send response immediately, then send email
                 $newUser  = ['user_id'=>$newId,'full_name'=>trim($_POST['full_name']),'email'=>trim($_POST['email'])];
-                $emailSent = sendAccountCreationEmail($db, $newUser);
-                $emailMsg  = $emailSent ? 'User created. A password setup link was sent via email.' : 'User created, but the welcome email could not be sent.';
+                $emailMsg = 'User created. A password setup link will be sent via email.';
+                echo json_encode(['ok'=>true,'msg'=>$emailMsg,'emailSent'=>true,'user'=>['id'=>$newId,'full_name'=>trim($_POST['full_name']),'username'=>trim($_POST['username']),'email'=>trim($_POST['email']),'role'=>$role,'status'=>$initialStatus,'school'=>$schoolName]]);
+                
+                // Flush response to browser before sending email
+                if (ob_get_level()) ob_end_flush();
+                flush();
+                if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+
+                // Send email after response is sent
+                require_once __DIR__.'/../includes/email_service.php';
+                sendAccountCreationEmail($db, $newUser);
             } else {
-                $emailSent = false;
                 $emailMsg  = 'User created with the provided password.';
+                echo json_encode(['ok'=>true,'msg'=>$emailMsg,'emailSent'=>false,'user'=>['id'=>$newId,'full_name'=>trim($_POST['full_name']),'username'=>trim($_POST['username']),'email'=>trim($_POST['email']),'role'=>$role,'status'=>$initialStatus,'school'=>$schoolName]]);
             }
-            echo json_encode(['ok'=>true,'msg'=>$emailMsg,'emailSent'=>$emailSent,'user'=>['id'=>$newId,'full_name'=>trim($_POST['full_name']),'username'=>trim($_POST['username']),'email'=>trim($_POST['email']),'role'=>$role,'status'=>$initialStatus,'school'=>$schoolName]]);
             exit;
         } catch (Exception $e) {
             echo json_encode(['ok'=>false,'msg'=>'Error: '.$e->getMessage()]); exit;

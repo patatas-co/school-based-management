@@ -122,6 +122,13 @@ $successTitle = $mode === 'reset' ? 'Password Reset!'            : 'Password Set
 $successMsg   = $mode === 'reset'
     ? 'Your password has been updated. You can now sign in with your new credentials.'
     : 'Your account is now active. You can sign in to the DIHS SBM Portal.';
+
+// Destroy any existing session so a different user can log in
+if (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['user_id'])) {
+    session_unset();
+    session_destroy();
+    session_start();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -283,7 +290,7 @@ $successMsg   = $mode === 'reset'
         </div>
         <h3><?= e($successTitle) ?></h3>
         <p><?= e($successMsg) ?></p>
-        <a href="<?= baseUrl() ?>/login.php" class="btn-login">
+        <a href="<?= baseUrl() ?>/login.php?session_cleared=1" class="btn-login">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
           Sign In Now
         </a>

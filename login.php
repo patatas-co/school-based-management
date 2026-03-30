@@ -3,6 +3,13 @@ session_start();
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/auth.php';
 
+// Clear session if redirected from password setup (so a different user can log in)
+if (isset($_GET['session_cleared'])) {
+    session_unset();
+    session_destroy();
+    session_start();
+}
+
 if (!empty($_SESSION['user_id'])) {
     header('Location: ' . roleHome($_SESSION['role'])); exit;
 }
