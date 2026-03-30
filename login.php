@@ -86,7 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   --white:#FFFFFF; --font:'DM Sans',sans-serif; --serif:'Instrument Serif',Georgia,serif;
 }
 html,body { height:100%; font-family:var(--font); background:var(--white); color:var(--dark); -webkit-font-smoothing:antialiased; }
-body::before { content:''; position:fixed; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,#166534 0%,#22C55E 40%,#FFD700 70%,#CE1126 100%); z-index:999; }
 
 .layout { display:grid; grid-template-columns:1fr 1fr; min-height:100vh; }
 
@@ -229,7 +228,7 @@ body::before { content:''; position:fixed; top:0; left:0; right:0; height:3px; b
 
       <div class="form-eyebrow"><span class="form-dot"></span><span class="form-eyebrow-text">Secure Portal Access</span></div>
       <h2 class="form-title">Welcome back</h2>
-      <p class="form-sub">Sign in with your DepEd credentials to continue.</p>
+      <p class="form-sub">Sign in with your credentials to continue.</p>
 
       <?php if ($error): ?>
       <div class="alert-err">

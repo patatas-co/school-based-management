@@ -143,7 +143,6 @@ $successMsg   = $mode === 'reset'
       --font: 'DM Sans', sans-serif; --serif: 'Instrument Serif', Georgia, serif;
     }
     html, body { height: 100%; font-family: var(--font); background: #FAFDFB; color: var(--dark); -webkit-font-smoothing: antialiased; overflow: hidden; }
-    body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,#166534 0%,#22C55E 40%,#FFD700 70%,#CE1126 100%); z-index: 999; }
 
     .layout { display: grid; grid-template-columns: 1fr 1fr; height: 100vh; overflow: hidden; }
 

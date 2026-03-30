@@ -669,6 +669,34 @@ tbody tr:hover td { background:var(--brand-50); }
   .stats { grid-template-columns:1fr 1fr; }
 }
 
+/* ── Evidence Attachments ── */
+.attach-zone {
+  border:2px dashed var(--n200);border-radius:8px;
+  padding:10px 14px;margin-top:8px;background:var(--n50);
+  transition:border-color .15s,background .15s;
+}
+.attach-zone.dragover { border-color:var(--blue);background:var(--blueb); }
+.attach-list { display:flex;flex-direction:column;gap:5px;margin-top:8px; }
+.attach-item {
+  display:flex;align-items:center;gap:8px;padding:6px 10px;
+  background:var(--white);border:1px solid var(--n200);border-radius:7px;
+  font-size:12.5px;transition:background .12s;
+}
+.attach-item:hover { background:var(--n50); }
+.attach-item-icon { font-size:15px;flex-shrink:0; }
+.attach-item-name { flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--n800);font-weight:600; }
+.attach-item-size { font-size:11px;color:var(--n400);flex-shrink:0; }
+.attach-item-del  { background:none;border:none;cursor:pointer;color:var(--n400);padding:2px 4px;border-radius:4px;flex-shrink:0; }
+.attach-item-del:hover { color:var(--red);background:var(--redb); }
+.attach-upload-btn {
+  display:inline-flex;align-items:center;gap:6px;padding:6px 12px;
+  border:1.5px dashed var(--n300);border-radius:7px;background:transparent;
+  font-size:12px;font-weight:600;color:var(--n500);cursor:pointer;
+  transition:all .15s;
+}
+.attach-upload-btn:hover { border-color:var(--blue);color:var(--blue);background:var(--blueb); }
+.attach-upload-btn svg { width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round; }
+
 @media print {
   .sb,.topbar,.deped-stripe,.page-head-actions,.btn { display:none !important; }
   .main-wrap { margin-left:0 !important; }
@@ -964,6 +992,155 @@ async function pollUpdates() {
   } catch(e) {}
 }
 setInterval(pollUpdates, 8000);
+
+// ── Evidence Attachment Widget ───────────────────────────────
+function formatBytes(b) {
+  if (b < 1024) return b+' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1)+' KB';
+  return (b/1024/1024).toFixed(1)+' MB';
+}
+function attachIcon(mime) {
+  if (mime.startsWith('image/'))          return '🖼️';
+  if (mime === 'application/pdf')         return '📄';
+  if (mime.includes('word'))              return '📝';
+  if (mime.includes('sheet') || mime.includes('excel')) return '📊';
+  if (mime.includes('presentation') || mime.includes('powerpoint')) return '📊';
+  return '📎';
+}
+
+/**
+ * Renders the attachment widget below a textarea.
+ * @param {number} indicatorId
+ * @param {number} cycleId
+ * @param {Array}  existingAttachments  [{attachment_id, original_name, file_size, mime_type}]
+ * @param {boolean} locked
+ */
+function renderAttachWidget(indicatorId, cycleId, existingAttachments, locked) {
+  const containerId = `attachWidget_${indicatorId}`;
+  let container = document.getElementById(containerId);
+  if (!container) return;
+
+  const items = existingAttachments || [];
+
+  let listHtml = '';
+  items.forEach(a => {
+    listHtml += `<div class="attach-item" id="attItem_${a.attachment_id}">
+      <span class="attach-item-icon">${attachIcon(a.mime_type||'')}</span>
+      <a class="attach-item-name"
+         href="/includes/serve_attachment.php?id=${a.attachment_id}"
+         target="_blank" title="${_e(a.original_name)}">${_e(a.original_name)}</a>
+      <span class="attach-item-size">${formatBytes(a.file_size||0)}</span>
+      ${!locked ? `<button class="attach-item-del" onclick="deleteAttachment(${a.attachment_id},${indicatorId},${cycleId})" title="Remove">✕</button>` : ''}
+    </div>`;
+  });
+
+  container.innerHTML = `
+    <div class="attach-zone" id="attachZone_${indicatorId}">
+      <div class="attach-list" id="attachList_${indicatorId}">${listHtml}</div>
+      ${!locked ? `
+      <div style="margin-top:${items.length>0?'8px':'0'};">
+        <label class="attach-upload-btn" for="attachInput_${indicatorId}">
+          <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          Attach file
+        </label>
+        <input type="file" id="attachInput_${indicatorId}" style="display:none;"
+               accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+               onchange="uploadAttachment(this, ${indicatorId}, ${cycleId})">
+        <span style="font-size:11px;color:var(--n400);margin-left:8px;">
+          Max 10MB · JPG, PNG, PDF, DOC, XLS, PPT, TXT
+        </span>
+      </div>` : ''}
+    </div>`;
+
+  // Drag-and-drop
+  if (!locked) {
+    const zone = document.getElementById('attachZone_'+indicatorId);
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) uploadAttachmentFile(file, indicatorId, cycleId);
+    });
+  }
+}
+
+function _e(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function uploadAttachment(input, indicatorId, cycleId) {
+  const file = input.files[0]; if (!file) return;
+  await uploadAttachmentFile(file, indicatorId, cycleId);
+  input.value = '';
+}
+
+async function uploadAttachmentFile(file, indicatorId, cycleId) {
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  const fd   = new FormData();
+  fd.append('action',       'upload_attachment');
+  fd.append('csrf_token',   csrf);
+  fd.append('indicator_id', indicatorId);
+  fd.append('cycle_id',     cycleId);
+  fd.append('attachment',   file);
+
+  // Optimistic loading indicator
+  const list = document.getElementById('attachList_'+indicatorId);
+  const tempId = 'temp_'+Date.now();
+  if (list) list.insertAdjacentHTML('beforeend',
+    `<div class="attach-item" id="${tempId}">
+       <span class="attach-item-icon">⏳</span>
+       <span class="attach-item-name">${_e(file.name)}</span>
+       <span class="attach-item-size">Uploading…</span>
+     </div>`);
+
+  try {
+    const res  = await fetch('/includes/upload_handler.php', { method:'POST', body:fd });
+    const data = await res.json();
+    const temp = document.getElementById(tempId);
+    if (temp) temp.remove();
+
+    if (data.ok) {
+      toast('File attached.', 'ok');
+      if (list) {
+        list.insertAdjacentHTML('beforeend',
+          `<div class="attach-item" id="attItem_${data.attachment_id}">
+             <span class="attach-item-icon">${attachIcon(data.mime_type||'')}</span>
+             <a class="attach-item-name"
+                href="/includes/serve_attachment.php?id=${data.attachment_id}"
+                target="_blank">${_e(data.original_name)}</a>
+             <span class="attach-item-size">${formatBytes(data.file_size||0)}</span>
+             <button class="attach-item-del"
+                     onclick="deleteAttachment(${data.attachment_id},${indicatorId},${cycleId})"
+                     title="Remove">✕</button>
+           </div>`);
+      }
+    } else {
+      toast(data.msg || 'Upload failed.', 'err');
+    }
+  } catch(e) {
+    const temp = document.getElementById(tempId);
+    if (temp) temp.remove();
+    toast('Network error during upload.', 'err');
+  }
+}
+
+async function deleteAttachment(attId, indicatorId, cycleId) {
+  if (!confirm('Remove this attachment?')) return;
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  const fd   = new FormData();
+  fd.append('action',        'delete_attachment');
+  fd.append('csrf_token',    csrf);
+  fd.append('attachment_id', attId);
+  try {
+    const res  = await fetch('/includes/upload_handler.php', { method:'POST', body:fd });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('attItem_'+attId)?.remove();
+      toast('Attachment removed.', 'ok');
+    } else {
+      toast(data.msg||'Failed.', 'err');
+    }
+  } catch(e) { toast('Network error.', 'err'); }
+}
 
 function sbmMaturityBadge(level) {
   const map = { 'Beginning':['#FEE2E2','#DC2626','#FECACA'], 'Developing':['#FEF3C7','#D97706','#FDE68A'], 'Maturing':['#DBEAFE','#2563EB','#BFDBFE'], 'Advanced':['#DCFCE7','#16A34A','#BBF7D0'] };

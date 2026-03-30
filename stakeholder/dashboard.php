@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/../config/db.php';
+require_once __DIR__.'/../config/sbm_indicators.php';
 require_once __DIR__.'/../includes/auth.php';
 requireRole('external_stakeholder');
 $db  = getDB();
@@ -59,8 +60,8 @@ include __DIR__.'/../includes/header.php';
     </p>
   </div>
   <div class="page-head-actions">
-    <?php if (!$mySubmission || 
-              $mySubmission['status'] !== 'submitted'): ?>
+    <?php if ($cycle && (!$mySubmission || 
+              $mySubmission['status'] !== 'submitted')): ?>
     <a href="self_assessment.php" class="btn btn-primary">
         <?= svgIcon('check-circle') ?> Fill Assessment
     </a>
@@ -114,19 +115,20 @@ include __DIR__.'/../includes/header.php';
     </span>
 </div>
 <?php else: ?>
-<div class="alert alert-info" style="margin-bottom:16px;">
-    <?= svgIcon('info') ?>
+<div class="alert alert-<?= $cycle ? 'info' : 'warning' ?>" style="margin-bottom:16px;">
+    <?= svgIcon($cycle ? 'info' : 'alert-circle') ?>
     <span>
-        You have 
-        <strong>
-            <?= count(STAKEHOLDER_INDICATOR_CODES ?? []) ?> 
-            indicators
-        </strong> 
-        to rate as part of the SBM self-assessment.
-        <a href="self_assessment.php" 
-           style="color:var(--blue);font-weight:600;">
-            Start now →
-        </a>
+        <?php if ($cycle): ?>
+            You have 
+            <strong><?= count(STAKEHOLDER_INDICATOR_CODES ?? []) ?> indicators</strong> 
+            to rate as part of the SBM self-assessment.
+            <a href="self_assessment.php" style="color:var(--blue);font-weight:600;">
+                Start now →
+            </a>
+        <?php else: ?>
+            The assessment has not been started yet by the School Head.
+            Please check back later.
+        <?php endif; ?>
     </span>
 </div>
 <?php endif; ?>

@@ -29,12 +29,20 @@ if ($cycle) {
     $st->execute([$cycle['cycle_id']]); $dimScores = $st->fetchAll();
 }
 
+$totalIndicators = $db->query("SELECT COUNT(*) FROM sbm_indicators WHERE is_active=1")->fetchColumn();
 $totalResponded = 0;
 if ($cycle) {
-    $t = $db->prepare("SELECT COUNT(*) FROM sbm_responses WHERE cycle_id=?");
-    $t->execute([$cycle['cycle_id']]); $totalResponded = $t->fetchColumn();
+    $t = $db->prepare("
+        SELECT COUNT(DISTINCT indicator_id)
+        FROM (
+            SELECT indicator_id FROM sbm_responses WHERE cycle_id=?
+            UNION
+            SELECT indicator_id FROM teacher_responses WHERE cycle_id=?
+        ) AS all_responses
+    ");
+    $t->execute([$cycle['cycle_id'], $cycle['cycle_id']]);
+    $totalResponded = $t->fetchColumn();
 }
-$totalIndicators = 42;
 $progress = $totalIndicators > 0 ? round(($totalResponded/$totalIndicators)*100) : 0;
 
 $anns = $db->query("SELECT a.*,u.full_name FROM announcements a JOIN users u ON a.posted_by=u.user_id WHERE a.target_role IN('all','sbm_coordinator','school_head') ORDER BY a.created_at DESC LIMIT 5")->fetchAll();

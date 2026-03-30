@@ -105,15 +105,6 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-body::before {
-  content: '';
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg,#166534 0%,#22C55E 40%,#FFD700 70%,#CE1126 100%);
-  z-index: 999;
-}
-
 /* ── Layout ── */
 .layout {
   display: grid;

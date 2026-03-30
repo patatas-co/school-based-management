@@ -14,6 +14,51 @@ if (!$syId) {
     include __DIR__.'/../includes/footer.php'; exit;
 }
 
+// ── Check if cycle exists and is started ──────────────────────
+$cycleCheck = $db->prepare("SELECT cycle_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+$cycleCheck->execute([$schoolId, $syId]);
+$cycleCheck = $cycleCheck->fetch();
+
+if (!$cycleCheck) {
+    $pageTitle  = 'SBM Self-Assessment';
+    $activePage = 'self_assessment.php';
+    include __DIR__.'/../includes/header.php';
+    ?>
+    <div class="page-head">
+      <div class="page-head-text">
+        <h2>SBM Self-Assessment</h2>
+        <p>Dasmariñas Integrated High School &nbsp;·&nbsp; SY <?= e($db->query("SELECT label FROM school_years WHERE sy_id=$syId")->fetchColumn()) ?></p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body" style="text-align:center;padding:70px 20px;">
+        <div style="width:72px;height:72px;border-radius:50%;background:var(--amber-bg);
+                    display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round"
+               style="width:32px;height:32px;">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <h3 style="font-size:20px;font-weight:800;color:var(--n800);margin-bottom:10px;">
+          Assessment Not Started Yet
+        </h3>
+        <p style="font-size:14px;color:var(--n500);max-width:420px;margin:0 auto 8px;line-height:1.7;">
+          The School Head has not started the SBM Self-Assessment cycle for this school year yet.
+          You will be notified once it becomes available.
+        </p>
+        <p style="font-size:12.5px;color:var(--n400);">
+          Please check back later or contact your School Head.
+        </p>
+      </div>
+    </div>
+    <?php
+    include __DIR__.'/../includes/footer.php';
+    exit;
+}
+
 // ── FETCH ASSIGNED INDICATORS ─────────────────────────────────
 $assignStmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignments WHERE teacher_id = ?");
 $assignStmt->execute([$uid]);
@@ -533,6 +578,9 @@ include __DIR__ . '/../includes/header.php';
                       <?= $isLocked ? 'disabled' : '' ?>
                       onblur="saveResponse(<?= $ind['indicator_id'] ?>)"
                       style="margin-top:4px;"><?= e($resp['remarks'] ?? '') ?></textarea>
+
+            <!-- Attachments -->
+            <div id="attachWidget_<?= $ind['indicator_id'] ?>"></div>
         </div>
         <?php endforeach; ?>
     </div>
@@ -826,6 +874,35 @@ function toggleDim(n) {
     body.classList.toggle('collapsed', isOpen);
     chevron.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
 }
+
+// ── Load attachments for all indicators ──────────────────────
+(async function loadTeacherAttachments() {
+  if (!<?= $cycle ? $cycle['cycle_id'] : 0 ?>) return;
+  const cycleId  = <?= $cycle ? $cycle['cycle_id'] : 0 ?>;
+  const isLocked = <?= $isLocked ? 'true' : 'false' ?>;
+  const indIds   = <?= json_encode(array_column($indicators, 'indicator_id')) ?>;
+
+  try {
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const fd   = new FormData();
+    fd.append('action',    'get_attachments');
+    fd.append('csrf_token', csrf);
+    fd.append('cycle_id',  cycleId);
+    fd.append('uploader_only', '1'); // teachers only see their own
+    const res  = await fetch('/includes/upload_handler.php', { method:'POST', body:fd });
+    const data = await res.json();
+    const byInd = {};
+    (data.attachments||[]).forEach(a => {
+      if (!byInd[a.indicator_id]) byInd[a.indicator_id] = [];
+      byInd[a.indicator_id].push(a);
+    });
+    indIds.forEach(id => {
+      renderAttachWidget(id, cycleId, byInd[id]||[], isLocked);
+    });
+  } catch(e) {
+    indIds.forEach(id => renderAttachWidget(id, cycleId, [], isLocked));
+  }
+})();
 
 async function submitMyAssessment() {
     if (!confirm(

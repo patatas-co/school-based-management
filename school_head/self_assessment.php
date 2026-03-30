@@ -1332,6 +1332,7 @@ $ovData      = $hasOverride
                 placeholder="Describe evidence or attach MOV reference…"
                 <?= $isLocked ? 'disabled' : '' ?>
                 onblur="saveResponse(<?= $ind['indicator_id'] ?>)"><?= e($resp['evidence_text'] ?? '') ?></textarea>
+      <div id="attachWidget_<?= $ind['indicator_id'] ?>"></div>
 
       <?php endif; ?>
     </div><!-- /.indicator-row -->
@@ -1858,6 +1859,34 @@ async function submitAssessment(force = false) {
 (function() {
   const saved = sessionStorage.getItem('sbmFilter');
   if (saved && saved !== 'all') setFilter(saved);
+})();
+
+// ── Load attachments for all indicators (SH view) ────────────
+(async function loadSHAttachments() {
+  if (!<?= $cycle ? $cycle['cycle_id'] : 0 ?>) return;
+  const cycleId  = <?= $cycle ? $cycle['cycle_id'] : 0 ?>;
+  const isLocked = <?= $isLocked ? 'true' : 'false' ?>;
+  const indIds   = <?= json_encode(array_column($indicators, 'indicator_id')) ?>;
+  try {
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const fd   = new FormData();
+    fd.append('action',    'get_attachments');
+    fd.append('csrf_token', csrf);
+    fd.append('cycle_id',  cycleId);
+    fd.append('uploader_only', '0'); // SH sees all attachments
+    const res  = await fetch('/includes/upload_handler.php', { method:'POST', body:fd });
+    const data = await res.json();
+    const byInd = {};
+    (data.attachments||[]).forEach(a => {
+      if (!byInd[a.indicator_id]) byInd[a.indicator_id] = [];
+      byInd[a.indicator_id].push(a);
+    });
+    indIds.forEach(id => {
+      renderAttachWidget(id, cycleId, byInd[id]||[], isLocked);
+    });
+  } catch(e) {
+    indIds.forEach(id => renderAttachWidget(id, cycleId, [], isLocked));
+  }
 })();
 
 // ── Override functions ─────────────────────────────────────
