@@ -58,10 +58,21 @@ $school = $db->prepare("
 $school->execute([$schoolId]);
 $school = $school->fetch();
 
-// Stats
-$totalTeachers = $db->query(
-    "SELECT COUNT(*) FROM users WHERE role='teacher' AND status='active'"
-)->fetchColumn();
+// Stats — dynamic count broken down by status
+$teacherCountStmt = $db->prepare("
+    SELECT
+        COUNT(*)                                                AS total_teachers,
+        SUM(CASE WHEN status = 'active'    THEN 1 ELSE 0 END) AS active_teachers,
+        SUM(CASE WHEN status = 'inactive'  THEN 1 ELSE 0 END) AS inactive_teachers,
+        SUM(CASE WHEN status = 'suspended' THEN 1 ELSE 0 END) AS suspended_teachers
+    FROM users
+    WHERE school_id = ?
+      AND role = 'teacher'
+");
+$teacherCountStmt->execute([SCHOOL_ID]);
+$teacherCounts   = $teacherCountStmt->fetch();
+$totalTeachers   = (int) $teacherCounts['total_teachers'];
+$activeTeachers  = (int) $teacherCounts['active_teachers'];
 
 $currentCycle = $db->query(
     "SELECT c.*, sy.label
@@ -130,12 +141,19 @@ include __DIR__ . '/../includes/header.php';
         <div class="kpi-mini-val"><?= number_format($school['total_enrollment']) ?></div>
         <div class="kpi-mini-lbl">Total Enrollment</div>
       </div>
-      <div class="kpi-mini">
-        <div class="kpi-mini-val"><?= $school['total_teachers'] ?></div>
-        <div class="kpi-mini-lbl">Teaching Staff</div>
+      <div class="kpi-mini" id="teacherCountCard">
+        <div class="kpi-mini-val" id="liveTeacherCount"><?= $totalTeachers ?></div>
+        <div class="kpi-mini-lbl">
+          Total Teachers
+          <span id="liveTeacherActive"
+                style="display:block;font-size:10px;color:var(--brand-600);
+                       font-weight:600;margin-top:2px;">
+            <?= $activeTeachers ?> active
+          </span>
+        </div>
       </div>
       <div class="kpi-mini">
-        <div class="kpi-mini-val"><?= $totalTeachers ?></div>
+        <div class="kpi-mini-val" id="liveActiveTeachers"><?= $activeTeachers ?></div>
         <div class="kpi-mini-lbl">Active in Portal</div>
       </div>
       <div class="kpi-mini">
@@ -208,6 +226,61 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
+
+// ── Live teacher count polling ─────────────────────────────
+(function startTeacherCountPolling() {
+  const BASE = '<?= baseUrl() ?>';
+
+  async function fetchCount() {
+    try {
+      const res  = await fetch(BASE + '/includes/get_teacher_count.php');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.ok) return;
+
+      // Update total count
+      const totalEl = document.getElementById('liveTeacherCount');
+      if (totalEl) {
+        const prev = parseInt(totalEl.textContent, 10);
+        if (prev !== data.total_teachers) {
+          totalEl.textContent = data.total_teachers;
+          flashEl(totalEl);
+        }
+      }
+
+      // Update active sub-label
+      const activeSubEl = document.getElementById('liveTeacherActive');
+      if (activeSubEl) {
+        activeSubEl.textContent = data.active_teachers + ' active';
+      }
+
+      // Update "Active in Portal" card
+      const activeEl = document.getElementById('liveActiveTeachers');
+      if (activeEl) {
+        const prev = parseInt(activeEl.textContent, 10);
+        if (prev !== data.active_teachers) {
+          activeEl.textContent = data.active_teachers;
+          flashEl(activeEl);
+        }
+      }
+
+    } catch (e) {
+      // Silently ignore network errors between polls
+    }
+  }
+
+  // Flash animation to signal an update
+  function flashEl(el) {
+    el.style.transition = 'color 0.3s ease';
+    el.style.color = 'var(--brand-600)';
+    setTimeout(() => { el.style.color = ''; }, 1400);
+  }
+
+  // Poll every 10 seconds
+  fetchCount(); // immediate first call
+  setInterval(fetchCount, 10000);
+})();
+
 async function saveProfile() {
   const r = await apiPost('school_profile.php', {
     action:           'save',
@@ -219,7 +292,7 @@ async function saveProfile() {
     total_teachers:   $('s_teachers'),
   });
   toast(r.msg, r.ok ? 'ok' : 'err');
-  if (r.ok) { closeModal('mEdit'); setTimeout(() => location.reload(), 800); }
+  if(r.ok){closeModal('mCreate');['c_name','c_user','c_email','c_pass'].forEach(id=>$v(id,''));setTimeout(()=>location.reload(),800);}
 }
 </script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
