@@ -226,9 +226,10 @@ function buildWelcomeEmailHtml(string $name, string $email,
           <tr><td align="center" style="padding-bottom:18px;">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
               <tr><td style="width:76px;height:76px;border-radius:50%;
-                             background:rgba(255,255,255,0.1);
-                             border:1.5px solid rgba(255,255,255,0.2);
-                             text-align:center;vertical-align:middle;">
+               background:#ffffff;
+               border:3px solid rgba(255,255,255,0.9);
+               text-align:center;vertical-align:middle;
+               box-shadow:0 2px 12px rgba(0,0,0,0.18);">
                 <img src="cid:school_logo_cid" width="52" height="52" alt="DIHS"
                      style="display:block;margin:12px auto;border-radius:50%;object-fit:contain;">
               </td></tr>
@@ -352,7 +353,7 @@ function buildWelcomeEmailHtml(string $name, string $email,
                       font-family:Arial,sans-serif;font-size:15px;font-weight:700;
                       padding:16px 52px;border-radius:100px;
                       letter-spacing:0.3px;">
-              &#128274; Set My Password
+              Set My Password
             </a>
           </td></tr>
         </table>
@@ -374,7 +375,7 @@ function buildWelcomeEmailHtml(string $name, string $email,
             <td style="padding:14px 18px;">
               <p style="margin:0;font-family:Arial,sans-serif;font-size:13.5px;
                         color:#78350f;line-height:1.65;">
-                &#9888;&#65039; <strong style="color:#92400e;">Didn't expect this?</strong>
+                <strong style="color:#92400e;">Didn't expect this?</strong>
                 Contact your school administrator immediately.
                 Do not share this link with anyone.
               </p>
@@ -467,9 +468,10 @@ function buildResetEmailHtml(string $name, string $email,
           <tr><td align="center" style="padding-bottom:18px;">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
               <tr><td style="width:76px;height:76px;border-radius:50%;
-                             background:rgba(255,255,255,0.1);
-                             border:1.5px solid rgba(255,255,255,0.2);
-                             text-align:center;vertical-align:middle;">
+               background:#ffffff;
+               border:3px solid rgba(255,255,255,0.9);
+               text-align:center;vertical-align:middle;
+               box-shadow:0 2px 12px rgba(0,0,0,0.18);">
                 <img src="cid:school_logo_cid" width="52" height="52" alt="DIHS"
                      style="display:block;margin:12px auto;border-radius:50%;object-fit:contain;">
               </td></tr>
@@ -538,7 +540,7 @@ function buildResetEmailHtml(string $name, string $email,
                       font-family:Arial,sans-serif;font-size:15px;font-weight:700;
                       padding:16px 52px;border-radius:100px;
                       letter-spacing:0.3px;">
-              &#128272; Reset My Password
+              Reset My Password
             </a>
           </td></tr>
         </table>
@@ -560,7 +562,7 @@ function buildResetEmailHtml(string $name, string $email,
             <td style="padding:14px 18px;">
               <p style="margin:0;font-family:Arial,sans-serif;font-size:13.5px;
                         color:#78350f;line-height:1.65;">
-                &#9888;&#65039; <strong style="color:#92400e;">Didn't request this?</strong>
+                <strong style="color:#92400e;">Didn't request this?</strong>
                 Ignore this email &mdash; your account is safe and no changes have been made.
                 If you keep receiving these emails, contact your school administrator.
               </p>
