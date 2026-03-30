@@ -17,7 +17,7 @@ if ($schoolId) {
 // Responses with evidence
 $responses = [];
 if ($cycle) {
-    $st = $db->prepare("SELECT r.*,i.indicator_code,i.indicator_text,d.dimension_name,d.dimension_no,d.color_hex FROM sbm_responses r JOIN sbm_indicators i ON r.indicator_id=i.indicator_id JOIN sbm_dimensions d ON i.dimension_id=d.dimension_id WHERE r.cycle_id=? AND (r.evidence_text IS NOT NULL OR r.file_path IS NOT NULL) ORDER BY d.dimension_no,i.sort_order");
+    $st = $db->prepare("SELECT r.*,i.indicator_code,i.indicator_text,d.dimension_name,d.dimension_no,d.color_hex FROM sbm_responses r JOIN sbm_indicators i ON r.indicator_id=i.indicator_id JOIN sbm_dimensions d ON i.dimension_id=d.dimension_id WHERE r.cycle_id=? AND r.evidence_text IS NOT NULL ORDER BY d.dimension_no,i.sort_order");
     $st->execute([$cycle['cycle_id']]); $responses = $st->fetchAll();
 }
 
