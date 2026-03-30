@@ -407,7 +407,6 @@ body {
   background:linear-gradient(90deg, #166534 0%, #22C55E 40%, #FFD700 70%, #CE1126 100%);
   position:sticky; top:0; z-index:60; flex-shrink:0;
 }
-
 .topbar {
   height:var(--topbar-h); background:#fff; border-bottom:1px solid var(--n-200);
   display:flex; align-items:center; justify-content:space-between;
@@ -809,8 +808,6 @@ tbody tr:hover td { background:var(--brand-50); }
 
 <!-- ── MAIN WRAPPER ── -->
 <div class="main-wrap <?= $__sbCollapsed ? 'expanded' : '' ?>" id="mainWrap">
-
-  <div class="deped-stripe"></div>
 
   <header class="topbar">
     <div class="topbar-left">

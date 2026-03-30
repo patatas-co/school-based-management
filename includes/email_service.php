@@ -32,14 +32,12 @@ function generateSetupToken(PDO $db, int $userId): string {
     $token       = bin2hex(random_bytes(32));
     $expiryHours = (int)($_ENV['SBM_TOKEN_EXPIRY_HOURS'] ?? 48);
 
-    // Invalidate previous unused setup tokens for this user
     $db->prepare(
         "UPDATE password_setup_tokens
          SET used_at = NOW()
          WHERE user_id = ? AND used_at IS NULL AND type = 'setup'"
     )->execute([$userId]);
 
-    // Let the DB compute expires_at in its own timezone — no PHP date() needed
     $db->prepare(
         "INSERT INTO password_setup_tokens (user_id, token, type, expires_at)
          VALUES (?, ?, 'setup', DATE_ADD(NOW(), INTERVAL ? HOUR))"
@@ -48,21 +46,15 @@ function generateSetupToken(PDO $db, int $userId): string {
     return $token;
 }
 
-/**
- * Generate a 30-minute password reset token.
- * Same fix: DB-native expiry, no post-INSERT verification.
- */
 function generateResetToken(PDO $db, int $userId): string {
     $token = bin2hex(random_bytes(32));
 
-    // Invalidate previous unused tokens for this user
     $db->prepare(
         "UPDATE password_setup_tokens
          SET used_at = NOW()
          WHERE user_id = ? AND used_at IS NULL"
     )->execute([$userId]);
 
-    // DB-native 30-minute expiry
     $db->prepare(
         "INSERT INTO password_setup_tokens (user_id, token, type, expires_at)
          VALUES (?, ?, 'reset', DATE_ADD(NOW(), INTERVAL 30 MINUTE))"
@@ -167,7 +159,6 @@ function sendPasswordResetEmail(PDO $db, array $user): bool {
     }
 }
 
-/** Shared SMTP configuration. */
 function _configureMailer(PHPMailer $mail): void {
     $mail->isSMTP();
     $mail->Host       = $_ENV['SBM_MAIL_HOST'] ?? 'smtp.gmail.com';
@@ -182,7 +173,20 @@ function _configureMailer(PHPMailer $mail): void {
     );
 }
 
-// ── Email HTML builders ───────────────────────────────────────────────────
+// ── Email HTML builders ──────────────────────────────────────────────────────
+
+/**
+ * Shared inline styles — Google Fonts aren't reliable in email clients,
+ * so we fall back to a clean serif + sans-serif stack that renders well
+ * in Gmail, Outlook, and Apple Mail.
+ */
+function _emailBaseStyles(): string {
+    return '
+    body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
+    table,td{mso-table-lspace:0;mso-table-rspace:0;}
+    img{-ms-interpolation-mode:bicubic;border:0;outline:none;text-decoration:none;}
+    ';
+}
 
 function buildWelcomeEmailHtml(string $name, string $email,
                                string $link, string $expiry): string {
@@ -190,73 +194,236 @@ function buildWelcomeEmailHtml(string $name, string $email,
     $safeEmail = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
     $safeLink  = htmlspecialchars($link,  ENT_QUOTES, 'UTF-8');
     $year      = date('Y');
+    $base      = _emailBaseStyles();
 
     return <<<HTML
 <!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><title>Your DIHS SBM Portal Account</title></head>
-<body style="margin:0;padding:0;background:#F0F7F1;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
-<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F0F7F1;padding:40px 16px;">
-  <tr><td align="center">
-    <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;width:100%;">
-      <tr>
-        <td style="background:linear-gradient(150deg,#0D5C28 0%,#16A34A 60%,#22C55E 100%);border-radius:14px 14px 0 0;padding:36px 40px 32px;text-align:center;">
-          <img src="cid:school_logo_cid" width="64" height="64" alt="DIHS"
-               style="display:block;margin:0 auto 16px;border-radius:50%;object-fit:contain;">
-          <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">DIHS SBM Online Monitoring System</h1>
-          <p style="margin:6px 0 0;color:rgba(255,255,255,.75);font-size:13px;">Dasmariñas Integrated High School · DepEd Cavite</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="background:#fff;padding:40px 40px 32px;">
-          <h2 style="margin:0 0 6px;color:#0D5C28;font-size:22px;font-weight:700;">Welcome, {$safeName}!</h2>
-          <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.75;">
-            Your account has been created in the <strong style="color:#0D5C28;">DIHS SBM Portal</strong>
-            using <strong style="color:#0D5C28;">{$safeEmail}</strong>.
-            Click the button below to set your password and activate your account.
-          </p>
-          <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
-                 style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;margin-bottom:24px;">
-            <tr><td style="padding:14px 18px;">
-              <p style="margin:0 0 3px;color:#6B7280;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;">Your Login Email</p>
-              <p style="margin:0;color:#0D5C28;font-size:15px;font-weight:600;">{$safeEmail}</p>
-            </td></tr>
-          </table>
-          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:28px;">
-            <tr><td align="center">
-              <a href="{$safeLink}"
-                 style="display:inline-block;background:linear-gradient(135deg,#16A34A 0%,#15803D 100%);
-                        color:#fff;text-decoration:none;font-size:15px;font-weight:700;
-                        padding:15px 40px;border-radius:9px;box-shadow:0 4px 12px rgba(22,163,74,.35);">
-                🔒 Set My Password
-              </a>
-            </td></tr>
-          </table>
-          <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
-                 style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;margin-bottom:24px;">
-            <tr><td style="padding:14px 18px;">
-              <p style="margin:0;color:#92400E;font-size:13.5px;line-height:1.6;">
-                ⚠️ This link will expire in <strong>{$expiry}</strong>.
-                If you did not expect this email, contact your School Administrator immediately.
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Your DIHS SBM Portal Account is Ready</title>
+<style>{$base}</style>
+</head>
+<body style="margin:0;padding:0;background-color:#f0f7f1;font-family:Georgia,'Times New Roman',serif;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="background-color:#f0f7f1;padding:40px 16px;">
+<tr><td align="center">
+
+  <!-- Shell -->
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600"
+         style="max-width:600px;width:100%;">
+
+    <!-- ── HEADER ── -->
+    <tr>
+      <td style="background:linear-gradient(160deg,#052e16 0%,#064e1e 38%,#0d5c28 68%,#15803d 100%);
+                 border-radius:18px 18px 0 0;padding:44px 48px 40px;text-align:center;">
+
+        <!-- Logo -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr><td align="center" style="padding-bottom:18px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr><td style="width:76px;height:76px;border-radius:50%;
+                             background:rgba(255,255,255,0.1);
+                             border:1.5px solid rgba(255,255,255,0.2);
+                             text-align:center;vertical-align:middle;">
+                <img src="cid:school_logo_cid" width="52" height="52" alt="DIHS"
+                     style="display:block;margin:12px auto;border-radius:50%;object-fit:contain;">
+              </td></tr>
+            </table>
+          </td></tr>
+        </table>
+
+        <!-- Badge -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr><td align="center" style="padding-bottom:12px;">
+            <span style="display:inline-block;background:rgba(255,255,255,0.12);
+                         border:1px solid rgba(255,255,255,0.22);
+                         color:rgba(255,255,255,0.8);
+                         font-family:Arial,sans-serif;font-size:10px;
+                         font-weight:700;letter-spacing:1.8px;text-transform:uppercase;
+                         padding:5px 16px;border-radius:100px;">Account Ready</span>
+          </td></tr>
+        </table>
+
+        <h1 style="margin:0 0 4px;color:#ffffff;
+                   font-family:Georgia,'Times New Roman',serif;
+                   font-size:26px;font-weight:400;letter-spacing:-0.3px;line-height:1.2;">
+          DIHS SBM Online<br>Monitoring System
+        </h1>
+        <p style="margin:8px 0 0;color:rgba(255,255,255,0.5);
+                  font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.3px;">
+          Dasmariñas Integrated High School &middot; DepEd Cavite
+        </p>
+      </td>
+    </tr>
+
+    <!-- Accent strip -->
+    <tr>
+      <td style="height:3px;background:linear-gradient(90deg,#052e16,#16a34a 50%,#052e16);
+                 font-size:0;line-height:0;">&nbsp;</td>
+    </tr>
+
+    <!-- ── BODY ── -->
+    <tr>
+      <td style="background:#ffffff;padding:44px 48px 36px;">
+
+        <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:10.5px;
+                  font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#16a34a;">
+          Welcome Aboard
+        </p>
+        <h2 style="margin:0 0 20px;font-family:Georgia,'Times New Roman',serif;
+                   font-size:30px;font-weight:400;color:#0a1f0e;
+                   letter-spacing:-0.5px;line-height:1.15;">
+          Your Account<br>Is Ready
+        </h2>
+
+        <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:15px;
+                  color:#4b5563;line-height:1.8;">
+          Hi <strong style="color:#0d5c28;font-weight:600;">{$safeName}</strong>,
+          your DIHS SBM Portal account has been created using
+          <strong style="color:#0d5c28;font-weight:600;">{$safeEmail}</strong>.
+          Click the button below to set your password and activate your account.
+        </p>
+
+        <!-- Login email card -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+               style="background:#f0fdf4;border:1px solid #bbf7d0;
+                      border-left:3px solid #16a34a;
+                      border-radius:10px;margin-bottom:28px;">
+          <tr>
+            <td style="padding:16px 20px;">
+              <p style="margin:0 0 3px;font-family:Arial,sans-serif;font-size:10.5px;
+                        font-weight:700;text-transform:uppercase;
+                        letter-spacing:1.2px;color:#6b7280;">Your Login Email</p>
+              <p style="margin:0;font-family:Arial,sans-serif;font-size:15px;
+                        color:#0d5c28;font-weight:700;">{$safeEmail}</p>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Steps row -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+               style="border:1px solid #e5e7eb;border-radius:12px;
+                      overflow:hidden;margin-bottom:28px;">
+          <tr>
+            <td width="33%" style="padding:14px 12px;text-align:center;
+                                   border-right:1px solid #e5e7eb;">
+              <p style="margin:0 auto 6px;width:24px;height:24px;
+                        background:#dcfce7;border-radius:50%;
+                        font-family:Arial,sans-serif;font-size:11px;
+                        font-weight:700;color:#16a34a;
+                        line-height:24px;text-align:center;">1</p>
+              <p style="margin:0;font-family:Arial,sans-serif;font-size:11.5px;
+                        color:#6b7280;line-height:1.4;">Click the button below</p>
+            </td>
+            <td width="33%" style="padding:14px 12px;text-align:center;
+                                   border-right:1px solid #e5e7eb;">
+              <p style="margin:0 auto 6px;width:24px;height:24px;
+                        background:#dcfce7;border-radius:50%;
+                        font-family:Arial,sans-serif;font-size:11px;
+                        font-weight:700;color:#16a34a;
+                        line-height:24px;text-align:center;">2</p>
+              <p style="margin:0;font-family:Arial,sans-serif;font-size:11.5px;
+                        color:#6b7280;line-height:1.4;">Create your password</p>
+            </td>
+            <td width="33%" style="padding:14px 12px;text-align:center;">
+              <p style="margin:0 auto 6px;width:24px;height:24px;
+                        background:#dcfce7;border-radius:50%;
+                        font-family:Arial,sans-serif;font-size:11px;
+                        font-weight:700;color:#16a34a;
+                        line-height:24px;text-align:center;">3</p>
+              <p style="margin:0;font-family:Arial,sans-serif;font-size:11.5px;
+                        color:#6b7280;line-height:1.4;">Log in &amp; get started</p>
+            </td>
+          </tr>
+        </table>
+
+        <!-- CTA Button -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+               style="margin-bottom:8px;">
+          <tr><td align="center">
+            <a href="{$safeLink}"
+               style="display:inline-block;
+                      background:linear-gradient(135deg,#16a34a 0%,#15803d 100%);
+                      color:#ffffff;text-decoration:none;
+                      font-family:Arial,sans-serif;font-size:15px;font-weight:700;
+                      padding:16px 52px;border-radius:100px;
+                      letter-spacing:0.3px;">
+              &#128274; Set My Password
+            </a>
+          </td></tr>
+        </table>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+               style="margin-bottom:28px;">
+          <tr><td align="center">
+            <span style="font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;">
+              Link expires in {$expiry}
+            </span>
+          </td></tr>
+        </table>
+
+        <!-- Warning -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+               style="background:#fffbeb;border:1px solid #fde68a;
+                      border-left:3px solid #f59e0b;
+                      border-radius:10px;margin-bottom:28px;">
+          <tr>
+            <td style="padding:14px 18px;">
+              <p style="margin:0;font-family:Arial,sans-serif;font-size:13.5px;
+                        color:#78350f;line-height:1.65;">
+                &#9888;&#65039; <strong style="color:#92400e;">Didn't expect this?</strong>
+                Contact your school administrator immediately.
+                Do not share this link with anyone.
               </p>
-            </td></tr>
-          </table>
-          <p style="margin:0;color:#9CA3AF;font-size:12px;">If the button doesn't work, paste this into your browser:</p>
-          <p style="margin:6px 0 0;word-break:break-all;">
-            <a href="{$safeLink}" style="color:#2563EB;font-size:12px;">{$safeLink}</a>
-          </p>
-        </td>
-      </tr>
-      <tr>
-        <td style="background:#1A2E1F;border-radius:0 0 14px 14px;padding:20px 40px;text-align:center;">
-          <p style="margin:0;color:rgba(255,255,255,.3);font-size:11px;">
-            This is an automated message — please do not reply.<br>
-            © {$year} Dasmariñas Integrated High School. All rights reserved.
-          </p>
-        </td>
-      </tr>
-    </table>
-  </td></tr>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Fallback -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+               style="border-top:1px solid #f3f4f6;padding-top:20px;">
+          <tr>
+            <td style="padding-top:20px;">
+              <p style="margin:0 0 6px;font-family:Arial,sans-serif;
+                        font-size:12px;color:#9ca3af;">
+                If the button doesn't work, paste this into your browser:
+              </p>
+              <p style="margin:0;word-break:break-all;">
+                <a href="{$safeLink}"
+                   style="color:#2563eb;font-family:Arial,sans-serif;
+                          font-size:12px;text-decoration:none;">{$safeLink}</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+
+    <!-- ── FOOTER ── -->
+    <tr>
+      <td style="background:#071a0c;border-radius:0 0 18px 18px;padding:24px 48px;text-align:center;">
+        <p style="margin:0 0 12px;">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;
+                       background:#16a34a;margin:0 3px;"></span>
+          <span style="display:inline-block;width:4px;height:4px;border-radius:50%;
+                       background:rgba(255,255,255,0.2);margin:0 3px;"></span>
+          <span style="display:inline-block;width:4px;height:4px;border-radius:50%;
+                       background:rgba(255,255,255,0.2);margin:0 3px;"></span>
+        </p>
+        <p style="margin:0;font-family:Arial,sans-serif;font-size:11.5px;
+                  color:rgba(255,255,255,0.25);line-height:1.7;">
+          This is an automated message &mdash; please do not reply.<br>
+          &copy; {$year} Dasma&ntilde;inas Integrated High School. All rights reserved.
+        </p>
+      </td>
+    </tr>
+
+  </table>
+</td></tr>
 </table>
 </body>
 </html>
@@ -269,65 +436,179 @@ function buildResetEmailHtml(string $name, string $email,
     $safeEmail = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
     $safeLink  = htmlspecialchars($link,  ENT_QUOTES, 'UTF-8');
     $year      = date('Y');
+    $base      = _emailBaseStyles();
 
     return <<<HTML
 <!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><title>Reset Your Password</title></head>
-<body style="margin:0;padding:0;background:#F0F7F1;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
-<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F0F7F1;padding:40px 16px;">
-  <tr><td align="center">
-    <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;width:100%;">
-      <tr>
-        <td style="background:linear-gradient(150deg,#0D5C28 0%,#16A34A 60%,#22C55E 100%);border-radius:14px 14px 0 0;padding:36px 40px 32px;text-align:center;">
-          <img src="cid:school_logo_cid" width="64" height="64" alt="DIHS"
-               style="display:block;margin:0 auto 16px;border-radius:50%;object-fit:contain;">
-          <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">DIHS SBM Portal</h1>
-          <p style="margin:6px 0 0;color:rgba(255,255,255,.75);font-size:13px;">Password Reset Request</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="background:#fff;padding:40px 40px 32px;">
-          <h2 style="margin:0 0 6px;color:#0D5C28;font-size:22px;font-weight:700;">Reset Your Password</h2>
-          <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.75;">
-            Hi <strong>{$safeName}</strong>, we received a request to reset the password for
-            <strong style="color:#0D5C28;">{$safeEmail}</strong>.
-          </p>
-          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:28px;">
-            <tr><td align="center">
-              <a href="{$safeLink}"
-                 style="display:inline-block;background:linear-gradient(135deg,#16A34A 0%,#15803D 100%);
-                        color:#fff;text-decoration:none;font-size:15px;font-weight:700;
-                        padding:15px 40px;border-radius:9px;box-shadow:0 4px 12px rgba(22,163,74,.35);">
-                Reset My Password
-              </a>
-            </td></tr>
-          </table>
-          <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
-                 style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;margin-bottom:24px;">
-            <tr><td style="padding:14px 18px;">
-              <p style="margin:0;color:#92400E;font-size:13.5px;line-height:1.6;">
-                ⚠️ <strong>Didn't request this?</strong> Ignore this email — your account is secure.
-                This link expires in <strong>{$expiry}</strong> and can only be used once.
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Reset Your Password</title>
+<style>{$base}</style>
+</head>
+<body style="margin:0;padding:0;background-color:#f0f7f1;font-family:Georgia,'Times New Roman',serif;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="background-color:#f0f7f1;padding:40px 16px;">
+<tr><td align="center">
+
+  <!-- Shell -->
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600"
+         style="max-width:600px;width:100%;">
+
+    <!-- ── HEADER ── -->
+    <tr>
+      <td style="background:linear-gradient(160deg,#052e16 0%,#064e1e 38%,#0d5c28 68%,#15803d 100%);
+                 border-radius:18px 18px 0 0;padding:44px 48px 40px;text-align:center;">
+
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr><td align="center" style="padding-bottom:18px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr><td style="width:76px;height:76px;border-radius:50%;
+                             background:rgba(255,255,255,0.1);
+                             border:1.5px solid rgba(255,255,255,0.2);
+                             text-align:center;vertical-align:middle;">
+                <img src="cid:school_logo_cid" width="52" height="52" alt="DIHS"
+                     style="display:block;margin:12px auto;border-radius:50%;object-fit:contain;">
+              </td></tr>
+            </table>
+          </td></tr>
+        </table>
+
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr><td align="center" style="padding-bottom:12px;">
+            <span style="display:inline-block;background:rgba(255,255,255,0.12);
+                         border:1px solid rgba(255,255,255,0.22);
+                         color:rgba(255,255,255,0.8);
+                         font-family:Arial,sans-serif;font-size:10px;
+                         font-weight:700;letter-spacing:1.8px;text-transform:uppercase;
+                         padding:5px 16px;border-radius:100px;">Security Notice</span>
+          </td></tr>
+        </table>
+
+        <h1 style="margin:0 0 4px;color:#ffffff;
+                   font-family:Georgia,'Times New Roman',serif;
+                   font-size:26px;font-weight:400;letter-spacing:-0.3px;line-height:1.2;">
+          DIHS SBM Portal
+        </h1>
+        <p style="margin:8px 0 0;color:rgba(255,255,255,0.5);
+                  font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.3px;">
+          Dasmariñas Integrated High School &middot; DepEd Cavite
+        </p>
+      </td>
+    </tr>
+
+    <!-- Accent strip -->
+    <tr>
+      <td style="height:3px;background:linear-gradient(90deg,#052e16,#16a34a 50%,#052e16);
+                 font-size:0;line-height:0;">&nbsp;</td>
+    </tr>
+
+    <!-- ── BODY ── -->
+    <tr>
+      <td style="background:#ffffff;padding:44px 48px 36px;">
+
+        <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:10.5px;
+                  font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#16a34a;">
+          Password Reset
+        </p>
+        <h2 style="margin:0 0 20px;font-family:Georgia,'Times New Roman',serif;
+                   font-size:30px;font-weight:400;color:#0a1f0e;
+                   letter-spacing:-0.5px;line-height:1.15;">
+          Reset Your<br>Password
+        </h2>
+
+        <p style="margin:0 0 28px;font-family:Arial,sans-serif;font-size:15px;
+                  color:#4b5563;line-height:1.8;">
+          Hi <strong style="color:#0d5c28;font-weight:600;">{$safeName}</strong>,
+          we received a request to reset the password associated with your DIHS SBM account at
+          <strong style="color:#0d5c28;font-weight:600;">{$safeEmail}</strong>.
+        </p>
+
+        <!-- CTA Button -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+               style="margin-bottom:8px;">
+          <tr><td align="center">
+            <a href="{$safeLink}"
+               style="display:inline-block;
+                      background:linear-gradient(135deg,#16a34a 0%,#15803d 100%);
+                      color:#ffffff;text-decoration:none;
+                      font-family:Arial,sans-serif;font-size:15px;font-weight:700;
+                      padding:16px 52px;border-radius:100px;
+                      letter-spacing:0.3px;">
+              &#128272; Reset My Password
+            </a>
+          </td></tr>
+        </table>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+               style="margin-bottom:28px;">
+          <tr><td align="center">
+            <span style="font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;">
+              Expires in {$expiry} &middot; Single use only
+            </span>
+          </td></tr>
+        </table>
+
+        <!-- Warning -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+               style="background:#fffbeb;border:1px solid #fde68a;
+                      border-left:3px solid #f59e0b;
+                      border-radius:10px;margin-bottom:28px;">
+          <tr>
+            <td style="padding:14px 18px;">
+              <p style="margin:0;font-family:Arial,sans-serif;font-size:13.5px;
+                        color:#78350f;line-height:1.65;">
+                &#9888;&#65039; <strong style="color:#92400e;">Didn't request this?</strong>
+                Ignore this email &mdash; your account is safe and no changes have been made.
+                If you keep receiving these emails, contact your school administrator.
               </p>
-            </td></tr>
-          </table>
-          <p style="margin:0;color:#9CA3AF;font-size:12px;">If the button doesn't work, paste this into your browser:</p>
-          <p style="margin:6px 0 0;word-break:break-all;">
-            <a href="{$safeLink}" style="color:#2563EB;font-size:12px;">{$safeLink}</a>
-          </p>
-        </td>
-      </tr>
-      <tr>
-        <td style="background:#1A2E1F;border-radius:0 0 14px 14px;padding:20px 40px;text-align:center;">
-          <p style="margin:0;color:rgba(255,255,255,.3);font-size:11px;">
-            This is an automated security message — please do not reply.<br>
-            © {$year} Dasmariñas Integrated High School. All rights reserved.
-          </p>
-        </td>
-      </tr>
-    </table>
-  </td></tr>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Fallback -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr>
+            <td style="border-top:1px solid #f3f4f6;padding-top:20px;">
+              <p style="margin:0 0 6px;font-family:Arial,sans-serif;
+                        font-size:12px;color:#9ca3af;">
+                If the button doesn't work, paste this into your browser:
+              </p>
+              <p style="margin:0;word-break:break-all;">
+                <a href="{$safeLink}"
+                   style="color:#2563eb;font-family:Arial,sans-serif;
+                          font-size:12px;text-decoration:none;">{$safeLink}</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+
+    <!-- ── FOOTER ── -->
+    <tr>
+      <td style="background:#071a0c;border-radius:0 0 18px 18px;padding:24px 48px;text-align:center;">
+        <p style="margin:0 0 12px;">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;
+                       background:#16a34a;margin:0 3px;"></span>
+          <span style="display:inline-block;width:4px;height:4px;border-radius:50%;
+                       background:rgba(255,255,255,0.2);margin:0 3px;"></span>
+          <span style="display:inline-block;width:4px;height:4px;border-radius:50%;
+                       background:rgba(255,255,255,0.2);margin:0 3px;"></span>
+        </p>
+        <p style="margin:0;font-family:Arial,sans-serif;font-size:11.5px;
+                  color:rgba(255,255,255,0.25);line-height:1.7;">
+          This is an automated security message &mdash; please do not reply.<br>
+          &copy; {$year} Dasma&ntilde;inas Integrated High School. All rights reserved.
+        </p>
+      </td>
+    </tr>
+
+  </table>
+</td></tr>
 </table>
 </body>
 </html>
