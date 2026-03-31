@@ -943,7 +943,7 @@ function liveSet(attr, val) { document.querySelectorAll(`[data-live="${attr}"]`)
 // ── Live polling ──
 async function pollUpdates() {
   try {
-    const res = await fetch('<?= htmlspecialchars($__base, ENT_QUOTES) ?>/includes/poll.php');
+    const res = await fetch(<?= json_encode($__base, JSON_UNESCAPED_SLASHES) ?> + '/includes/poll.php');
     if (!res.ok) return;
     const d = await res.json();
     if (d.users     !== undefined) liveSet('total-users',   d.users);

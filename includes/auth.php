@@ -34,7 +34,9 @@ function baseUrl(): string {
     if (!empty($_ENV['SBM_BASE_URL'])) {
         return rtrim($_ENV['SBM_BASE_URL'], '/');
     }
-    $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $proto = ( !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' )
+           ? 'https'
+           : ( ( $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '' ) === 'https' ? 'https' : 'http' );
     $host  = $_SERVER['HTTP_HOST'];
     $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
     $dir = preg_replace(

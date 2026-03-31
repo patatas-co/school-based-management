@@ -11,13 +11,22 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     verifyCsrf(true);
     if ($_POST['action']==='save_sy') {
         $id=(int)($_POST['sy_id']??0);
+        // Validate date format if provided
+        $dateStart = null;
+        $dateEnd = null;
+        if (!empty($_POST['date_start'])) {
+            $dateStart = DateTime::createFromFormat('Y-m-d', $_POST['date_start']) ? $_POST['date_start'] : null;
+        }
+        if (!empty($_POST['date_end'])) {
+            $dateEnd = DateTime::createFromFormat('Y-m-d', $_POST['date_end']) ? $_POST['date_end'] : null;
+        }
         if($id){
             $db->prepare("UPDATE school_years SET label=?,date_start=?,date_end=?,is_current=? WHERE sy_id=?")
-               ->execute([trim($_POST['label']),$_POST['date_start']?:null,$_POST['date_end']?:null,(int)$_POST['is_current'],$id]);
+               ->execute([trim($_POST['label']),$dateStart,$dateEnd,(int)$_POST['is_current'],$id]);
         } else {
             if($_POST['is_current']) $db->query("UPDATE school_years SET is_current=0");
             $db->prepare("INSERT INTO school_years (label,date_start,date_end,is_current) VALUES (?,?,?,?)")
-               ->execute([trim($_POST['label']),$_POST['date_start']?:null,$_POST['date_end']?:null,(int)$_POST['is_current']]);
+               ->execute([trim($_POST['label']),$dateStart,$dateEnd,(int)$_POST['is_current']]);
         }
         echo json_encode(['ok'=>true,'msg'=>'School year saved.']); exit;
     }
@@ -35,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             echo json_encode(['ok' => false, 'msg' => 'Cannot delete: this school year has linked assessment data.']); exit;
         }
     }
-    if($_POST['action']==='get_sy'){$st=$db->prepare("SELECT * FROM school_years WHERE sy_id=?");$st->execute([(int)$_POST['id']]);echo json_encode($st->fetch());exit;}
+    if($_POST['action']==='get_sy'){$st=$db->prepare("SELECT sy_id, label, date_start, date_end, is_current, created_at FROM school_years WHERE sy_id=?");$st->execute([(int)$_POST['id']]);echo json_encode($st->fetch());exit;}
     exit;
 }
 

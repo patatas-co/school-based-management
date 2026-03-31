@@ -52,7 +52,7 @@ function generateResetToken(PDO $db, int $userId): string {
     $db->prepare(
         "UPDATE password_setup_tokens
          SET used_at = NOW()
-         WHERE user_id = ? AND used_at IS NULL"
+         WHERE user_id = ? AND used_at IS NULL AND type = 'reset'"
     )->execute([$userId]);
 
     $db->prepare(

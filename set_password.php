@@ -74,6 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenRow) {
 $resent      = isset($_GET['resent']) && $_GET['resent'] === '1';
 $resentError = '';
 if (isset($_GET['resend']) && $token) {
+    // Verify CSRF token for resend action
+    if (!hash_equals($_SESSION['csrf_token'] ?? '', $_GET['csrf_token'] ?? '')) {
+        $resentError = 'Invalid request. Please refresh the page and try again.';
+    } else {
     require_once __DIR__ . '/includes/email_service.php';
     // Look up user from the old token (even if expired)
     $st = $db->prepare(
@@ -103,7 +107,7 @@ if (isset($_GET['resend']) && $token) {
             header('Location: ' . baseUrl() . '/set_password.php?mode=' . $mode . '&resent=1');
             exit;
         }
-        
+
         if (!$resentError) {
             $resentError = 'Failed to send it. Please try again or contact your administrator.';
         }
@@ -125,6 +129,7 @@ $successMsg   = $mode === 'reset'
 
 // Destroy any existing session so a different user can log in
 if (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['user_id'])) {
+    session_regenerate_id(true);
     session_unset();
     session_destroy();
     session_start();
@@ -332,7 +337,7 @@ if (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['user_id'])) {
             </a>
           <?php else: ?>
             <?php if ($token): ?>
-              <a href="<?= baseUrl() ?>/set_password.php?token=<?= urlencode($token) ?>&mode=setup&resend=1" class="btn-outline">
+              <a href="<?= baseUrl() ?>/set_password.php?token=<?= urlencode($token) ?>&mode=setup&resend=1&csrf_token=<?= csrfToken() ?>" class="btn-outline">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.45"/></svg>
                 Request a New Invitation Link
               </a>

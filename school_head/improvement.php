@@ -149,24 +149,29 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         if (strlen($expectedOutput) > 500) {
             echo json_encode(['ok'=>false,'msg'=>'Expected output must be 500 characters or less.']); exit;
         }
+        // Validate indicator_id and priority
+        $indicatorId = $_POST['indicator_id'] ? (int)$_POST['indicator_id'] : null;
+        $priority = in_array($_POST['priority'] ?? '', ['High', 'Medium', 'Low'], true) ? $_POST['priority'] : 'Medium';
         $data = [
             $schoolId,$cycle['cycle_id'],(int)$_POST['dimension_id'],
-            $_POST['indicator_id']?:null,$_POST['priority'],
+            $indicatorId,$priority,
             $objective,$strategy,$personResp,$_POST['target_date']?:null,
             $resourcesNeeded,$expectedOutput,$_SESSION['user_id']
         ];
         if ($id) {
             $data[] = $id;
             $db->prepare("UPDATE improvement_plans SET dimension_id=?,indicator_id=?,priority_level=?,objective=?,strategy=?,person_responsible=?,target_date=?,resources_needed=?,expected_output=? WHERE plan_id=? AND school_id=?")
-               ->execute([(int)$_POST['dimension_id'],$_POST['indicator_id']?:null,$_POST['priority'],trim($_POST['objective']),trim($_POST['strategy']),trim($_POST['person_responsible']),$_POST['target_date']?:null,trim($_POST['resources_needed']),trim($_POST['expected_output']),$id,$schoolId]);
+               ->execute([(int)$_POST['dimension_id'],$indicatorId,$priority,trim($_POST['objective']),trim($_POST['strategy']),trim($_POST['person_responsible']),$_POST['target_date']?:null,trim($_POST['resources_needed']),trim($_POST['expected_output']),$id,$schoolId]);
         } else {
             $db->prepare("INSERT INTO improvement_plans (school_id,cycle_id,dimension_id,indicator_id,priority_level,objective,strategy,person_responsible,target_date,resources_needed,expected_output,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")->execute($data);
         }
         echo json_encode(['ok'=>true,'msg'=>'Plan saved.']); exit;
     }
     if ($_POST['action']==='update_status') {
+        $validStatuses = ['pending', 'in_progress', 'completed', 'cancelled'];
+        $status = in_array($_POST['status'] ?? '', $validStatuses, true) ? $_POST['status'] : 'pending';
         $db->prepare("UPDATE improvement_plans SET status=?,remarks=? WHERE plan_id=? AND school_id=?")
-           ->execute([$_POST['status'],trim($_POST['remarks']),(int)$_POST['id'],$schoolId]);
+           ->execute([$status,trim($_POST['remarks']),(int)$_POST['id'],$schoolId]);
         echo json_encode(['ok'=>true,'msg'=>'Status updated.']); exit;
     }
     if ($_POST['action']==='delete') {
