@@ -4,10 +4,11 @@ require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/auth.php';
 
 // Clear session if redirected from password setup (so a different user can log in)
-if (isset($_GET['session_cleared'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['session_cleared'])) {
     session_unset();
     session_destroy();
     session_start();
+    session_regenerate_id(true);
     // Regenerate CSRF token for the fresh session
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -246,7 +247,7 @@ html,body { height:100%; font-family:var(--font); background:var(--white); color
       </div>
       <?php endif; ?>
 
-      <form method="post" autocomplete="off">
+      <form method="post" action="login.php" autocomplete="off">
         <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
 
         <div class="field">
