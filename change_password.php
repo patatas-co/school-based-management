@@ -112,5 +112,6 @@ input[type=password]:focus{border-color:#16A34A;box-shadow:0 0 0 3px rgba(22,163
   </form>
   <?php endif; ?>
 </div>
+<?php if (function_exists('renderPasswordToggle')) renderPasswordToggle(); ?>
 </body>
 </html>

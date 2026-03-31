@@ -298,5 +298,6 @@ html,body { height:100%; font-family:var(--font); background:var(--white); color
   </div>
 
 </div>
+<?php if (function_exists('renderPasswordToggle')) renderPasswordToggle(); ?>
 </body>
 </html>

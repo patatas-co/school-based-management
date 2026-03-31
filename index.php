@@ -6,8 +6,8 @@ $db = getDB();
 // Fetch stats
 $total_indicators = $db->query("SELECT COUNT(*) FROM sbm_indicators WHERE is_active=1")->fetchColumn();
 $total_dimensions = $db->query("SELECT COUNT(*) FROM sbm_dimensions")->fetchColumn();
-$total_schools    = 1; // DIHS only
-$validated_cycles = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='validated' AND school_id=" . (int)SCHOOL_ID)->fetchColumn();
+$total_schools = 1; // DIHS only
+$validated_cycles = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='validated' AND school_id=" . (int) SCHOOL_ID)->fetchColumn();
 
 
 $is_logged_in = !empty($_SESSION['user_id']);
@@ -15,6 +15,7 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -26,9 +27,13 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
   <title><?= e(SITE_NAME) ?></title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+    rel="stylesheet">
   <style>
-    *, *::before, *::after {
+    *,
+    *::before,
+    *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
@@ -39,9 +44,12 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
       --page-bg: #F9FAFB;
       --text-dark: #111827;
       --text-mid: #4B5563;
-      --navy: #15803D; /* DepEd Green */
-      --blue: #16A34A; /* Success Green */
-      --radius-btn: 8px; /* Matching login buttons */
+      --navy: #15803D;
+      /* DepEd Green */
+      --blue: #16A34A;
+      /* Success Green */
+      --radius-btn: 8px;
+      /* Matching login buttons */
       --radius-img: 12px;
     }
 
@@ -85,7 +93,7 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
 
     .logo-text {
       font-family: 'DM Sans', sans-serif;
-      font-size: 32px;
+      font-size: 25px;
       font-weight: 600;
       color: var(--text-dark);
       letter-spacing: -0.5px;
@@ -216,7 +224,7 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
       background: #162e4d;
       border-color: #162e4d;
       transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(30,58,95,0.22);
+      box-shadow: 0 8px 24px rgba(30, 58, 95, 0.22);
     }
 
     .btn-primary .arrow {
@@ -264,7 +272,7 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(to bottom, transparent 55%, rgba(255,255,255,0.18) 100%);
+      background: linear-gradient(to bottom, transparent 55%, rgba(255, 255, 255, 0.18) 100%);
       pointer-events: none;
     }
 
@@ -359,10 +367,21 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
       transform: translateY(0);
     }
 
-    .reveal-delay-1 { transition-delay: 0.1s; }
-    .reveal-delay-2 { transition-delay: 0.2s; }
-    .reveal-delay-3 { transition-delay: 0.3s; }
-    .reveal-delay-4 { transition-delay: 0.4s; }
+    .reveal-delay-1 {
+      transition-delay: 0.1s;
+    }
+
+    .reveal-delay-2 {
+      transition-delay: 0.2s;
+    }
+
+    .reveal-delay-3 {
+      transition-delay: 0.3s;
+    }
+
+    .reveal-delay-4 {
+      transition-delay: 0.4s;
+    }
 
     /* ── Services Section ── */
     .services-header {
@@ -467,7 +486,7 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
 
     .case-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 16px 40px rgba(10,22,40,0.09);
+      box-shadow: 0 16px 40px rgba(10, 22, 40, 0.09);
     }
 
     .case-img {
@@ -603,18 +622,46 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
 
     /* ── Responsive additions ── */
     @media (max-width: 900px) {
-      .services-grid { grid-template-columns: 1fr; }
-      .work-grid { grid-template-columns: 1fr; }
-      .about-inner { grid-template-columns: 1fr; gap: 40px; }
-      .work-header { flex-direction: column; align-items: flex-start; gap: 16px; }
-      .section { padding: 80px 0; }
+      .services-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .work-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .about-inner {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .work-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .section {
+        padding: 80px 0;
+      }
     }
 
     @media (max-width: 600px) {
-      .services-grid { grid-template-columns: 1fr; }
-      .work-grid { grid-template-columns: 1fr; }
-      .stats-row { grid-template-columns: 1fr 1fr; }
-      .section { padding: 64px 0; }
+      .services-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .work-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .section {
+        padding: 64px 0;
+      }
     }
 
     /* ── Animations ── */
@@ -627,29 +674,65 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
 
     /* ── Responsive ── */
     @media (max-width: 900px) {
-      body { padding: 0 32px; }
-      h1 { font-size: 52px; letter-spacing: -1px; }
-      .hero-image-wrap { width: 100%; }
+      body {
+        padding: 0 32px;
+      }
+
+      h1 {
+        font-size: 52px;
+        letter-spacing: -1px;
+      }
+
+      .hero-image-wrap {
+        width: 100%;
+      }
     }
 
     @media (max-width: 600px) {
-      body { padding: 0 16px; }
-      header { height: 72px; }
-      nav { gap: 24px; }
-      nav a { font-size: 15px; }
-      h1 { font-size: 38px; letter-spacing: -0.5px; }
-      .hero-sub { font-size: 17px; }
-      .btn-row { flex-direction: column; align-items: center; }
-      .btn { width: 100%; justify-content: center; }
+      body {
+        padding: 0 16px;
+      }
+
+      header {
+        height: 72px;
+      }
+
+      nav {
+        gap: 24px;
+      }
+
+      nav a {
+        font-size: 15px;
+      }
+
+      h1 {
+        font-size: 38px;
+        letter-spacing: -0.5px;
+      }
+
+      .hero-sub {
+        font-size: 17px;
+      }
+
+      .btn-row {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <!-- Header -->
   <header>
     <a class="logo" href="#">
-        <img src="favicon/android-chrome-192x192.png" alt="Main Logo" class="logo-icon">
+      <img src="favicon/android-chrome-192x192.png" alt="Main Logo" class="logo-icon">
       <span class="logo-text">School Management</span>
     </a>
 
@@ -665,12 +748,13 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
   <!-- Hero -->
   <section class="hero">
     <div class="hero-text">
-      <span class="hero-eyebrow"><?= e(SITE_NAME) ?></span>
+      <span class="hero-eyebrow">School-Based Management Monitoring System</span>
 
       <h1>Governance for<br><em>Quality Education</em></h1>
 
       <p class="hero-sub">
-        A digital platform for School-Based Management self-assessment, monitoring, and governance aligned with DepEd Order No. 007, s. 2024.
+        A digital platform for School-Based Management self-assessment, monitoring, and governance aligned with DepEd
+        Order No. 007, s. 2024.
       </p>
 
       <div class="btn-row">
@@ -678,7 +762,8 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
           <?= $is_logged_in ? 'Go to Dashboard' : 'Get Started' ?>
           <span class="arrow">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round" />
             </svg>
           </span>
         </a>
@@ -702,31 +787,35 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
       <div class="service-card reveal reveal-delay-1">
         <div class="service-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
         <div class="service-title">Self-Assessment</div>
-        <p class="service-desc">Complete the 42-indicator SBM checklist aligned with DO 007, s. 2024. Track your school's maturity level in real-time.</p>
+        <p class="service-desc">Complete the 42-indicator SBM checklist aligned with DO 007, s. 2024. Track your
+          school's maturity level in real-time.</p>
       </div>
 
       <div class="service-card reveal reveal-delay-2">
         <div class="service-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            <path
+              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
         <div class="service-title">Automated Reporting</div>
-        <p class="service-desc">Generate SIP-ready reports and executive summaries instantly. No more manual consolidation of teacher feedback.</p>
+        <p class="service-desc">Generate SIP-ready reports and executive summaries instantly. No more manual
+          consolidation of teacher feedback.</p>
       </div>
 
       <div class="service-card reveal reveal-delay-3">
         <div class="service-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            <path d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
         <div class="service-title">ML Suggestions</div>
-        <p class="service-desc">Receive AI-powered recommendations for school improvement based on your current assessment scores and stakeholder remarks.</p>
+        <p class="service-desc">Receive AI-powered recommendations for school improvement based on your current
+          assessment scores and stakeholder remarks.</p>
       </div>
 
     </div>
@@ -749,7 +838,8 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
         <div class="case-body">
           <span class="case-tag">Efficiency</span>
           <div class="case-title">Zero Paperwork Assessment</div>
-          <p class="case-desc">Moving from manual consolidation to digital submission saves school heads an average of 15 hours per assessment cycle.</p>
+          <p class="case-desc">Moving from manual consolidation to digital submission saves school heads an average of
+            15 hours per assessment cycle.</p>
           <div class="case-meta">
             <span class="case-meta-label">Impact:</span>
             <span class="case-result">100% Digital Workflow</span>
@@ -761,7 +851,8 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
         <div class="case-body">
           <span class="case-tag">Compliance</span>
           <div class="case-title">DO 007, s. 2024 Aligned</div>
-          <p class="case-desc">Every indicator and dimension is mapped directly to the latest DepEd orders, ensuring your school is always audit-ready.</p>
+          <p class="case-desc">Every indicator and dimension is mapped directly to the latest DepEd orders, ensuring
+            your school is always audit-ready.</p>
           <div class="case-meta">
             <span class="case-meta-label">Status:</span>
             <span class="case-result">Fully Compliant</span>
@@ -773,7 +864,8 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
         <div class="case-body">
           <span class="case-tag">Intelligence</span>
           <div class="case-title">Data-Driven SIP</div>
-          <p class="case-desc">Automatically translate assessment gaps into actionable strategies for your School Improvement Plan using our ML engine.</p>
+          <p class="case-desc">Automatically translate assessment gaps into actionable strategies for your School
+            Improvement Plan using our ML engine.</p>
           <div class="case-meta">
             <span class="case-meta-label">Feature:</span>
             <span class="case-result">Smart Recommendations</span>
@@ -791,11 +883,8 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
     <div class="about-inner">
 
       <div class="about-image-wrap reveal">
-        <img
-          src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=900&q=80&auto=format&fit=crop"
-          alt="The Clearpath team collaborating"
-          loading="lazy"
-        />
+        <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=900&q=80&auto=format&fit=crop"
+          alt="The Clearpath team collaborating" loading="lazy" />
       </div>
 
       <div class="about-content">
@@ -804,10 +893,13 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
           <h2 class="section-heading">Empowering schools through<br><em>data-driven governance</em></h2>
         </div>
         <p class="about-body reveal reveal-delay-1">
-          The SBM Monitoring System is designed to streamline the self-assessment process for Philippine schools. By digitizing DepEd Order No. 007, s. 2024, we enable school heads and stakeholders to focus on what truly matters: improving learner outcomes.
+          The SBM Monitoring System is designed to streamline the self-assessment process for Philippine schools. By
+          digitizing DepEd Order No. 007, s. 2024, we enable school heads and stakeholders to focus on what truly
+          matters: improving learner outcomes.
         </p>
         <p class="about-body reveal reveal-delay-2">
-          Our platform provides a transparent, efficient, and evidence-based approach to school management, ensuring that every decision is backed by solid data and aligned with national standards.
+          Our platform provides a transparent, efficient, and evidence-based approach to school management, ensuring
+          that every decision is backed by solid data and aligned with national standards.
         </p>
         <div class="stats-row reveal reveal-delay-3">
           <div class="stat">
@@ -820,7 +912,7 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
           </div>
           <div class="stat">
             <div class="stat-number">2,500<span>+</span></div>
-        <div class="stat-label">Learners Served</div>
+            <div class="stat-label">Learners Served</div>
           </div>
           <div class="stat">
             <div class="stat-number"><?= number_format($validated_cycles) ?></div>
@@ -847,4 +939,5 @@ $dashboard_url = $is_logged_in ? roleHome($_SESSION['role']) : 'login.php';
   </script>
 
 </body>
+
 </html>

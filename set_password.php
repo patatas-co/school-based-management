@@ -1026,6 +1026,7 @@ if (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['user_id'])) {
       btn.disabled = !ok;
     }
   </script>
+  <?php if (function_exists('renderPasswordToggle')) renderPasswordToggle(); ?>
 </body>
 
 </html>
