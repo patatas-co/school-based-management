@@ -78,11 +78,11 @@ function formatFileSize(int $bytes): string {
     return round($bytes/(1024*1024),1).' MB';
 }
 function fileIconHtml(string $mime): string {
-    if (str_starts_with($mime,'image/'))      return '🖼️';
-    if ($mime === 'application/pdf')          return '📄';
-    if (str_contains($mime,'word'))           return '📝';
-    if (str_contains($mime,'sheet') || str_contains($mime,'excel')) return '📊';
-    if (str_contains($mime,'presentation') || str_contains($mime,'powerpoint')) return '📊';
+    if (strncmp($mime, 'image/', 6) === 0)                        return '🖼️';
+    if ($mime === 'application/pdf')                              return '📄';
+    if (strpos($mime, 'word') !== false)                          return '📝';
+    if (strpos($mime, 'sheet') !== false || strpos($mime, 'excel') !== false) return '📊';
+    if (strpos($mime, 'presentation') !== false || strpos($mime, 'powerpoint') !== false) return '📊';
     return '📎';
 }
 function roleLabel(string $role): string {

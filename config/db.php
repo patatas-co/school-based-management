@@ -5,12 +5,12 @@ date_default_timezone_set('Asia/Manila');
 $envFile = dirname(__DIR__) . '/.env';
 if (file_exists($envFile)) {
     foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
-        if (!$line || str_starts_with($line, '#') || !str_contains($line, '=')) continue;
+        if (!$line || strncmp(ltrim($line), '#', 1) === 0 || strpos($line, '=') === false) continue;
         [$k, $v] = array_map('trim', explode('=', $line, 2));
 $v = preg_replace('/\s+#.*$/', '', $v);
 $v = trim($v, '"\'');
 // Strip spaces from password fields (App Passwords are space-free)
-if (str_ends_with($k, '_PASS') || str_ends_with($k, '_PASSWORD')) {
+if (substr($k, -5) === '_PASS' || substr($k, -9) === '_PASSWORD') {
     $v = str_replace(' ', '', $v);
 }
 $_ENV[$k] = $v;

@@ -11,6 +11,7 @@ $error = '';
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
     $current  = $_POST['current_password']  ?? '';
     $new      = $_POST['new_password']      ?? '';
     $confirm  = $_POST['confirm_password']  ?? '';
@@ -93,6 +94,7 @@ input[type=password]:focus{border-color:#16A34A;box-shadow:0 0 0 3px rgba(22,163
   <?php if ($error): ?><div class="err"><?= e($error) ?></div><?php endif; ?>
 
   <form method="post" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
     <div class="fg">
       <label>Current Password</label>
       <input type="password" name="current_password" required placeholder="Enter your current password">

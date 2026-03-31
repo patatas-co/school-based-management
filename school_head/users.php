@@ -71,13 +71,17 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
 
     if ($action==='update') {
         $id=(int)$_POST['id']; $pw=$_POST['password']??'';
+        $newRole = $_POST['role'] ?? '';
+        if (!in_array($newRole, ['school_head','sbm_coordinator','teacher','external_stakeholder'])) {
+            echo json_encode(['ok'=>false,'msg'=>'Invalid role.']); exit;
+        }
         try {
             if ($pw) {
                 $db->prepare("UPDATE users SET full_name=?,email=?,role=?,status=?,school_id=?,password=? WHERE user_id=?")
-                   ->execute([trim($_POST['full_name']),trim($_POST['email']),$_POST['role'],$_POST['status'],(int)($_POST['school_id']?:null),password_hash($pw,PASSWORD_DEFAULT),$id]);
+                   ->execute([trim($_POST['full_name']),trim($_POST['email']),$newRole,$_POST['status'],(int)($_POST['school_id']?:null),password_hash($pw,PASSWORD_DEFAULT),$id]);
             } else {
                 $db->prepare("UPDATE users SET full_name=?,email=?,role=?,status=?,school_id=? WHERE user_id=?")
-                   ->execute([trim($_POST['full_name']),trim($_POST['email']),$_POST['role'],$_POST['status'],(int)($_POST['school_id']?:null),$id]);
+                   ->execute([trim($_POST['full_name']),trim($_POST['email']),$newRole,$_POST['status'],(int)($_POST['school_id']?:null),$id]);
             }
             logActivity('update_user','users','Updated user ID:'.$id);
             echo json_encode(['ok'=>true,'msg'=>'User updated.']); exit;

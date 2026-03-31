@@ -24,6 +24,7 @@ function isRateLimited(PDO $db, string $email): bool {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
     $email = trim(strtolower($_POST['email'] ?? ''));
 
     if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {

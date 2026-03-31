@@ -113,7 +113,11 @@ if ($action === 'upload_attachment') {
     $uploadDir  = __DIR__.'/../uploads/evidence/';
     if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
 
-    $ext        = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+    $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+    $allowedExts = ['jpg','jpeg','png','gif','webp','pdf','doc','docx','xls','xlsx','ppt','pptx','txt'];
+    if (!in_array($ext, $allowedExts)) {
+        echo json_encode(['ok'=>false,'msg'=>'File extension not allowed.']); exit;
+    }
     $storedName = bin2hex(random_bytes(16)).'.'.$ext;
     $destPath   = $uploadDir.$storedName;
 

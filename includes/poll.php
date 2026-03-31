@@ -35,7 +35,7 @@ function ago(string $dt): string {
     return floor($d/86400).'d ago';
 }
 
-if($role === 'admin'){
+if($role === 'school_head'){
     $out['schools']     = (int)$db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
     $out['users']       = (int)$db->query("SELECT COUNT(*) FROM users WHERE status='active'")->fetchColumn();
     $out['cycles']      = (int)$db->query("SELECT COUNT(*) FROM sbm_cycles")->fetchColumn();
