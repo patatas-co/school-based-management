@@ -8,6 +8,8 @@ if (isset($_GET['session_cleared'])) {
     session_unset();
     session_destroy();
     session_start();
+    // Regenerate CSRF token for the fresh session
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 if (!empty($_SESSION['user_id'])) {

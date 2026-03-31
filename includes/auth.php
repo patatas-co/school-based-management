@@ -8,7 +8,6 @@ if (file_exists(__DIR__ . '/../config/roles.php')) {
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 function requireLogin(): void {
-    if (session_status() === PHP_SESSION_NONE) session_start();
     if (empty($_SESSION['user_id'])) {
         header('Location: ' . baseUrl() . '/login.php'); exit;
     }
@@ -39,12 +38,12 @@ function baseUrl(): string {
     $host  = $_SERVER['HTTP_HOST'];
     $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
     $dir = preg_replace(
-        '#/(school_head|coordinator|teacher|stakeholder|includes|config|ml)(/.*)?$#',
+        '#/(school_head|coordinator|teacher|stakeholder|includes|config|ml|api|assets|vendor)(/.*)?$#i',
         '',
         dirname($script)
     );
-    $dir = rtrim($dir, '/');
-    return $proto . '://' . $host . $dir;
+    $dir = rtrim($dir, '/\\');
+    return $proto . '://' . $host . (empty($dir) ? '' : $dir);
 }
 
 function roleHome(string $role): string {

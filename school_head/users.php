@@ -35,19 +35,25 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             $schoolName = $schoolStmt->fetchColumn() ?: '—';
 
             if (!$pw) {
-                // Send response immediately, then send email
                 $newUser  = ['user_id'=>$newId,'full_name'=>trim($_POST['full_name']),'email'=>trim($_POST['email'])];
                 $emailMsg = 'User created. A password setup link will be sent via email.';
-                echo json_encode(['ok'=>true,'msg'=>$emailMsg,'emailSent'=>true,'user'=>['id'=>$newId,'full_name'=>trim($_POST['full_name']),'username'=>trim($_POST['username']),'email'=>trim($_POST['email']),'role'=>$role,'status'=>$initialStatus,'school'=>$schoolName]]);
-                
-                // Flush response to browser before sending email
-                if (ob_get_level()) ob_end_flush();
+                $responseJson = json_encode(['ok'=>true,'msg'=>$emailMsg,'emailSent'=>true,'user'=>['id'=>$newId,'full_name'=>trim($_POST['full_name']),'username'=>trim($_POST['username']),'email'=>trim($_POST['email']),'role'=>$role,'status'=>$initialStatus,'school'=>$schoolName]]);
+
+                // Close output buffers and send response to browser immediately
+                while (ob_get_level()) ob_end_clean();
+                header('Content-Type: application/json');
+                header('Content-Length: ' . strlen($responseJson));
+                header('Connection: close');
+                echo $responseJson;
                 flush();
                 if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
 
-                // Send email after response is sent
+                // Send email in background after response is already delivered
+                ignore_user_abort(true);
+                set_time_limit(60);
                 require_once __DIR__.'/../includes/email_service.php';
                 sendAccountCreationEmail($db, $newUser);
+                exit;
             } else {
                 $emailMsg  = 'User created with the provided password.';
                 echo json_encode(['ok'=>true,'msg'=>$emailMsg,'emailSent'=>false,'user'=>['id'=>$newId,'full_name'=>trim($_POST['full_name']),'username'=>trim($_POST['username']),'email'=>trim($_POST['email']),'role'=>$role,'status'=>$initialStatus,'school'=>$schoolName]]);
@@ -89,7 +95,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             logActivity('delete_user','users','Deleted user ID:'.$id);
             echo json_encode(['ok'=>true,'msg'=>'User deleted.']); exit;
         } catch (PDOException $e) {
-            echo json_encode(['ok'=>false,'msg'=>'Cannot delete user: they are linked to existing records. Suspend them instead.']); exit;
+            // Provide specific feedback for foreign key constraint failures
+            $msg = 'Cannot delete user: they have associated activity logs, assessment responses, or submissions. We recommend changing their status to "Suspended" instead to preserve historical data.';
+            echo json_encode(['ok'=>false,'msg'=>$msg]); exit;
         }
     }
 
@@ -148,16 +156,16 @@ $pageTitle='User Management';$activePage='users.php';
 include __DIR__.'/../includes/header.php';
 
 $roleColors=[
-    'school_head'          => '#16A34A',
-    'sbm_coordinator'      => '#7C3AED',
-    'teacher'              => '#0D9488',
-    'external_stakeholder' => '#2563EB',
+    'school_head'          => '#166534', // Deeper green
+    'sbm_coordinator'      => '#7C3AED', // Purple
+    'teacher'              => '#0D9488', // Teal
+    'external_stakeholder' => '#2563EB', // Blue
 ];
 $roleLabels=[
     'school_head'          => 'School Head',
     'sbm_coordinator'      => 'SBM Coordinator',
-    'teacher'              => 'Teacher',
-    'external_stakeholder' => 'External Stakeholder',
+    'teacher'              => 'School Teacher',
+    'external_stakeholder' => 'Stakeholder',
 ];
 ?>
 

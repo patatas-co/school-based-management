@@ -17,13 +17,19 @@ $_ENV[$k] = $v;
     }
 }
 
+if (session_status() === PHP_SESSION_NONE) session_start();
+
 define('DB_HOST',    $_ENV['SBM_DB_HOST']    ?? 'localhost');
 define('DB_USER',    $_ENV['SBM_DB_USER']    ?? 'root');
 define('DB_PASS',    $_ENV['SBM_DB_PASS']    ?? '');
 define('DB_NAME',    $_ENV['SBM_DB_NAME']    ?? 'sbm_db');
 define('SITE_NAME',  $_ENV['SBM_SITE_NAME']  ?? 'Dasmariñas Integrated High School SBM Online Monitoring System');
 define('SITE_SHORT', $_ENV['SBM_SITE_SHORT'] ?? 'DIHS SBM Portal');
-define('SCHOOL_ID',  1);   // DIHS is always school_id = 1
+
+if (!defined('SCHOOL_ID')) {
+    define('SCHOOL_ID', (int)($_SESSION['school_id'] ?? 1));
+}
+
 define('SCHOOL_NAME','Dasmariñas Integrated High School');
 define('SCHOOL_DEPED_ID', '301143');
 define('SCHOOL_ADDRESS', 'Dasmariñas City, Cavite');

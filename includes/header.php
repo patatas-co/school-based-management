@@ -11,65 +11,11 @@ $__base = baseUrl();
 // ── Role-based navigation ─────────────────────────────────────
 $__navGroups = [];
 
-// Use centralized navigation from config/roles.php
 if (isset($__role) && defined('SBM_NAV')) {
     $__navGroups = SBM_NAV[$__role] ?? [];
 } else {
-    // Fallback navigation (should not happen with proper setup)
-   if ($__role === 'sbm_coordinator') {
-        $__navGroups = [
-            ['Overview', 'grid', [
-                ['Dashboard',        'coordinator/dashboard.php',         'grid'],
-                ['Analytics',        'coordinator/analytics.php',         'bar-chart-2'],
-                ['SBM Dimensions',   'coordinator/dimensions.php',        'layers'],
-            ]],
-            ['Evaluation', 'check-circle', [
-                ['Self-Assessment',  'coordinator/self-assessment.php',   'check-circle'],
-                ['Assign Indicators','coordinator/assign_indicators.php', 'check-square'],
-                ['Teacher Status',   'coordinator/teacher_status.php',    'users'],
-                ['Evidence & MOV',   'coordinator/evidence.php',          'paperclip'],
-            ]],
-            ['Planning', 'trending-up', [
-                ['Improvement Plan', 'coordinator/improvement.php',       'trending-up'],
-                ['Reports',          'coordinator/reports.php',           'file-text'],
-            ]],
-            ['School', 'home', [
-                ['School Profile',   'coordinator/school_profile.php',    'home'],
-            ]],
-            ['Communication', 'bell', [
-                ['Announcements',    'coordinator/announcements.php',     'bell'],
-                ['Meetings',         'coordinator/meetings.php',          'calendar'],
-            ]],
-        ];
-    }
-
-    elseif ($__role === 'teacher') {
-        $__navGroups = [
-            ['Overview', 'grid', [
-                ['Dashboard',        'teacher/dashboard.php',            'grid'],
-            ]],
-            ['Evaluation', 'check-circle', [
-                ['Self-Assessment',  'teacher/self_assessment.php',      'check-circle'],
-            ]],
-            ['Communication', 'bell', [
-                ['Announcements',    'teacher/announcements.php',        'bell'],
-            ]],
-        ];
-    }
-
-    elseif ($__role === 'external_stakeholder') {
-        $__navGroups = [
-            ['Overview', 'grid', [
-                ['Dashboard',        'stakeholder/dashboard.php',        'grid'],
-            ]],
-            ['Participation', 'users', [
-                ['Self-Assessment',  'stakeholder/self_assessment.php',  'check-circle'],
-            ]],
-            ['Communication', 'bell', [
-                ['Announcements',    'stakeholder/announcement.php',     'bell'],
-            ]],
-        ];
-    }
+    // If roles.php failed to load or role is unknown, show empty nav
+    $__navGroups = [];
 }
 
 // ── Active page detection ─────────────────────────────────────
@@ -140,31 +86,32 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
   --blue:   #2563EB;  --blue-bg:   #DBEAFE;
   --purple: #7C3AED;  --purple-bg: #EDE9FE;
   --teal:   #0D9488;  --teal-bg:   #CCFBF1;
+  --indigo: #4F46E5;  --indigo-bg: #E0E7FF;
 
   --sidebar-w:    260px;
-  --sidebar-mini: 64px;
-  --topbar-h:     60px;
-  --radius:       10px;
-  --radius-sm:    6px;
-  --radius-lg:    14px;
+  --sidebar-mini: 68px;
+  --topbar-h:     64px;
+  --radius:       12px;
+  --radius-sm:    8px;
+  --radius-lg:    16px;
 
   --font-body:    'Inter', -apple-system, sans-serif;
   --font-display: 'Manrope', -apple-system, sans-serif;
 
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / .05);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / .10), 0 1px 2px -1px rgb(0 0 0 / .06);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / .08), 0 2px 4px -2px rgb(0 0 0 / .05);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / .08), 0 4px 6px -4px rgb(0 0 0 / .05);
+  --shadow-sm: 0 2px 4px 0 rgb(0 0 0 / .08), 0 1px 2px -1px rgb(0 0 0 / .06);
+  --shadow-md: 0 4px 10px -1px rgb(0 0 0 / .1), 0 2px 6px -2px rgb(0 0 0 / .05);
+  --shadow-lg: 0 12px 24px -4px rgb(0 0 0 / .12), 0 6px 12px -4px rgb(0 0 0 / .08);
 
   --sb-bg:         #0A0F0A;
   --sb-surface:    #111A11;
   --sb-border:     rgba(255,255,255,.08);
-  --sb-text:       rgba(255,255,255,.5);
-  --sb-text-hover: rgba(255,255,255,.92);
-  --sb-active-bg:  rgba(22,163,74,.15);
+  --sb-text:       rgba(255,255,255,.55);
+  --sb-text-hover: rgba(255,255,255,.95);
+  --sb-active-bg:  rgba(22,163,74,.18);
 
-  --ease: cubic-bezier(.4,0,.2,1);
-  --dur:  150ms;
+  --ease: cubic-bezier(.4, 0, .2, 1);
+  --dur:  200ms;
 
   /* Shorthand aliases */
   --n50:  var(--n-50);  --n100: var(--n-100); --n200: var(--n-200);
@@ -266,9 +213,9 @@ body {
 .sb-item:hover { color:var(--sb-text-hover); background:var(--sb-active-bg); }
 .sb-item.active {
   color:#fff;
-  background: linear-gradient(90deg, rgba(22,163,74,.25) 0%, rgba(22,163,74,.12) 100%);
-  border-left: 2px solid #4ADE80; padding-left:8px;
-  box-shadow: inset 0 0 12px rgba(22,163,74,.08);
+  background: linear-gradient(90deg, rgba(22,163,74,.3) 0%, rgba(22,163,74,.15) 100%);
+  border-left: 3px solid #4ADE80; padding-left:10px;
+  box-shadow: inset 0 0 15px rgba(22,163,74,.12), 4px 0 12px rgba(0,0,0,.1);
 }
 .sb-item.active .sb-icon svg { stroke:#fff; }
 .sb-item .sb-label { flex:1; overflow:hidden; text-overflow:ellipsis; }
@@ -402,15 +349,12 @@ body {
 .main-wrap.expanded { margin-left:var(--sidebar-mini); }
 .sb.collapsed ~ .main-wrap, .main-wrap.expanded { margin-left:var(--sidebar-mini) !important; }
 
-.deped-stripe {
-  height:3px;
-  background:linear-gradient(90deg, #166534 0%, #22C55E 40%, #FFD700 70%, #CE1126 100%);
-  position:sticky; top:0; z-index:60; flex-shrink:0;
-}
 .topbar {
-  height:var(--topbar-h); background:#fff; border-bottom:1px solid var(--n-200);
+  height:var(--topbar-h); background:rgba(255,255,255,0.85); border-bottom:1px solid var(--n-150);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
   display:flex; align-items:center; justify-content:space-between;
-  padding:0 24px; position:sticky; top:3px; z-index:50; gap:16px;
+  padding:0 24px; position:sticky; top:0; z-index:50; gap:16px;
+  box-shadow: 0 4px 20px -5px rgba(0,0,0,0.03);
 }
 .topbar-left { display:flex; align-items:center; gap:10px; }
 .topbar-breadcrumb { display:flex; align-items:center; gap:6px; font-size:13.5px; color:var(--n-600); }
@@ -446,8 +390,17 @@ body {
 .card-body { padding:20px; }
 
 .stats { display:grid; grid-template-columns:repeat(auto-fill, minmax(185px,1fr)); gap:14px; margin-bottom:24px; }
-.stat { background:#fff; border:1px solid var(--n-200); border-radius:var(--radius-lg); padding:18px 20px; display:flex; align-items:center; gap:14px; box-shadow:var(--shadow-xs); transition:box-shadow var(--dur); }
-.stat:hover { box-shadow:var(--shadow-sm); }
+.stat { 
+  background:#fff; border:1px solid var(--n-150); border-radius:var(--radius-lg); 
+  padding:20px 24px; display:flex; align-items:center; gap:16px; 
+  box-shadow:var(--shadow-sm); transition:all var(--dur) var(--ease); 
+  cursor:default;
+}
+.stat:hover { 
+  box-shadow:var(--shadow-md); 
+  transform: translateY(-2px) scale(1.015);
+  border-color: var(--n-200);
+}
 .stat-ic { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .stat-ic svg { width:20px; height:20px; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .stat-ic.green { background:var(--brand-100); } .stat-ic.green svg { stroke:var(--brand-700); }
@@ -518,6 +471,7 @@ textarea.fc { resize:vertical; }
 .pill-sbm_coordinator{ background:var(--brand-100); color:var(--brand-700); border-color:var(--brand-200); }
 .pill-teacher        { background:var(--teal-bg); color:var(--teal); border-color:#99F6E4; }
 .pill-external_stakeholder { background:var(--blue-bg); color:var(--blue); border-color:#BFDBFE; }
+.pill-school_head          { background:var(--brand-100); color:var(--brand-700); border-color:var(--brand-200); }
 .pill-Beginning  { background:var(--red-bg); color:var(--red); border-color:#FECACA; }
 .pill-Developing { background:var(--amber-bg); color:var(--amber); border-color:#FDE68A; }
 .pill-Maturing   { background:var(--blue-bg); color:var(--blue); border-color:#BFDBFE; }
@@ -553,15 +507,17 @@ tbody tr:hover td { background:var(--brand-50); }
 .alert-info     { background:var(--blue-bg); color:var(--blue); border:1px solid #BFDBFE; }
 
 .overlay {
-  position:fixed; inset:0; background:rgba(15,23,42,.5); backdrop-filter:blur(4px);
+  position:fixed; inset:0; background:rgba(15,23,42,0.45); backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
   display:flex; align-items:center; justify-content:center; z-index:200;
-  padding:20px; opacity:0; pointer-events:none; transition:opacity var(--dur);
+  padding:20px; opacity:0; pointer-events:none; transition:opacity var(--dur) var(--ease);
 }
 .overlay.open { opacity:1; pointer-events:all; }
 .modal {
-  background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-lg);
-  width:100%; max-width:520px; max-height:92vh; overflow-y:auto;
-  transform:scale(.97) translateY(8px); transition:transform 200ms var(--ease);
+  background:rgba(255,255,255,0.98); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg);
+  width:100%; max-width:540px; max-height:92vh; overflow-y:auto;
+  transform:scale(.96) translateY(12px); transition:transform 240ms var(--ease);
+  border: 1px solid rgba(255,255,255,0.4);
 }
 .overlay.open .modal { transform:scale(1) translateY(0); }
 .modal-head { padding:18px 22px 14px; border-bottom:1px solid var(--n-100); display:flex; align-items:center; justify-content:space-between; }
@@ -653,9 +609,14 @@ tbody tr:hover td { background:var(--brand-50); }
 .chart-card-title { font-family:var(--font-display); font-size:14px; font-weight:700; color:var(--n-900); }
 .chart-card-body { padding:20px; }
 
-::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:var(--n-300); border-radius:3px; }
+::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.1); border-radius:10px; }
+::-webkit-scrollbar-thumb:hover { background:rgba(0,0,0,0.2); }
+
+/* Global Fade In */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.page { animation: fadeIn 0.4s var(--ease) both; }
 
 @media (max-width:768px) {
   .sb { transform:translateX(-100%); }
@@ -836,7 +797,6 @@ tbody tr:hover td { background:var(--brand-50); }
 
 <!-- ── MAIN WRAPPER ── -->
 <div class="main-wrap <?= $__sbCollapsed ? 'expanded' : '' ?>" id="mainWrap">
-
   <header class="topbar">
     <div class="topbar-left">
       <button class="menu-btn" id="menuBtn" aria-label="Toggle sidebar">
