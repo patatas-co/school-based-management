@@ -47,13 +47,13 @@ function baseUrl(): string {
 }
 
 function roleHome(string $role): string {
-    return match($role) {
-        'school_head'          => 'school_head/dashboard.php',
-        'sbm_coordinator'      => 'coordinator/dashboard.php',
-        'teacher'              => 'teacher/dashboard.php',
-        'external_stakeholder' => 'stakeholder/dashboard.php',
-        default                => 'login.php',
-    };
+    switch ($role) {
+        case 'school_head':          return 'school_head/dashboard.php';
+        case 'sbm_coordinator':      return 'coordinator/dashboard.php';
+        case 'teacher':              return 'teacher/dashboard.php';
+        case 'external_stakeholder': return 'stakeholder/dashboard.php';
+        default:                     return 'login.php';
+    }
 }
 
 function e(?string $s): string {

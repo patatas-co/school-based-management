@@ -57,11 +57,11 @@ if ($cycle) {
 
     // ── Filtered count ──────────────────────────────────────────
     $searchParam = "%{$teacherSearch}%";
-    $filterSQL   = match($tsFilter) {
-        'pending' => "AND (ts.status IS NULL OR ts.status != 'submitted')",
-        'done'    => "AND ts.status = 'submitted'",
-        default   => ''
-    };
+    switch ($tsFilter) {
+        case 'pending': $filterSQL = "AND (ts.status IS NULL OR ts.status != 'submitted')"; break;
+        case 'done':    $filterSQL = "AND ts.status = 'submitted'"; break;
+        default:        $filterSQL = '';
+    }
     $searchSQL = $teacherSearch !== ''
         ? "AND (u.full_name LIKE ? OR u.username LIKE ?)"
         : '';

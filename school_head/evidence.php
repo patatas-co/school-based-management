@@ -86,13 +86,13 @@ function fileIconHtml(string $mime): string {
     return '📎';
 }
 function roleLabel(string $role): string {
-    return match($role) {
-        'teacher'              => 'Teacher',
-        'sbm_coordinator'      => 'Coordinator',
-        'school_head'          => 'School Head',
-        'external_stakeholder' => 'Stakeholder',
-        default                => ucfirst($role),
-    };
+    switch ($role) {
+        case 'teacher':              return 'Teacher';
+        case 'sbm_coordinator':      return 'Coordinator';
+        case 'school_head':          return 'School Head';
+        case 'external_stakeholder': return 'Stakeholder';
+        default:                     return ucfirst($role);
+    }
 }
 ?>
 <style>
