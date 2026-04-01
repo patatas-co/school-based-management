@@ -32,7 +32,7 @@ if (isset($__role) && defined('SBM_NAV')) {
         'Evaluation',
         'check-circle',
         [
-          ['Self-Assessment', 'coordinator/self-assessment.php', 'check-circle'],
+          ['Self-Assessment', 'coordinator/self_assessment.php', 'check-circle'],
           ['Assign Indicators', 'coordinator/assign_indicators.php', 'check-square'],
           ['Teacher Status', 'coordinator/teacher_status.php', 'users'],
           ['Evidence & MOV', 'coordinator/evidence.php', 'paperclip'],
