@@ -1,4 +1,5 @@
 <?php
+ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 requireRole('school_head', 'sbm_coordinator');
@@ -384,7 +385,7 @@ if ($plans) {
   $plans = [];
 
 $dims = $db->query("SELECT * FROM sbm_dimensions ORDER BY dimension_no")->fetchAll();
-$inds = $db->query("SELECT i.*,d.dimension_no FROM sbm_indicators i JOIN sbm_dimensions d ON i.dimension_id=d.dimension_id ORDER BY d.dimension_no,i.sort_order")->fetchAll();
+$allIndicators = $db->query("SELECT i.*,d.dimension_no FROM sbm_indicators i JOIN sbm_dimensions d ON i.dimension_id=d.dimension_id ORDER BY d.dimension_no,i.sort_order")->fetchAll();
 
 // Weak indicators (rating ≤ 2) for the suggestion banner
 $weakCount = 0;
@@ -1076,7 +1077,7 @@ if ($cycle) {
 </div>
 
 <script>
-  const ALL_INDICATORS = <?= json_encode($inds) ?>;
+  const ALL_INDICATORS = <?= json_encode($allIndicators) ?>;
 
   function filterIndicators() {
     const dimId = parseInt($('p_dim'));

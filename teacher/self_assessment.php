@@ -1,4 +1,5 @@
 <?php
+ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
@@ -29,7 +30,11 @@ if (!$cycleCheck) {
         <div class="page-head-text">
             <h2>SBM Self-Assessment</h2>
             <p>Dasmariñas Integrated High School &nbsp;·&nbsp; SY
-                <?= e($db->query("SELECT label FROM school_years WHERE sy_id=$syId")->fetchColumn()) ?>
+                <?php
+                $stSyLbl = $db->prepare("SELECT label FROM school_years WHERE sy_id=? LIMIT 1");
+                $stSyLbl->execute([$syId]);
+                echo e($stSyLbl->fetchColumn() ?: '—');
+                ?>
             </p>
         </div>
     </div>
@@ -62,8 +67,8 @@ if (!$cycleCheck) {
 }
 
 // ── FETCH ASSIGNED INDICATORS ─────────────────────────────────
-$assignStmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignments WHERE teacher_id = ?");
-$assignStmt->execute([$uid]);
+$assignStmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignments WHERE teacher_id = ? AND school_id = ?");
+$assignStmt->execute([$uid, $schoolId]);
 $assignedCodes = $assignStmt->fetchAll(PDO::FETCH_COLUMN);
 
 // Fallback to all teacher codes if none specifically assigned

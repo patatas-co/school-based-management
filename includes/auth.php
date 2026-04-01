@@ -125,7 +125,7 @@ function csrfToken(): string
     return $_SESSION['csrf_token'];
 }
 
-function verifyCsrf(bool $lenient = false): void
+function verifyCsrf(): void
 {
     if (!hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? '')) {
         ob_clean();

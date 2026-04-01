@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // ============================================================
 // school_head/users.php — User Management
 // Moved from admin/users.php — school_head is now the top role
@@ -154,38 +155,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $failed = 0;
     $errors = [];
     $validRoles = ['school_head', 'sbm_coordinator', 'teacher', 'external_stakeholder'];
-    while (($row = fgetcsv($handle)) !== FALSE) {
-      if (count($row) < 4) {
-        $failed++;
-        continue;
-      }
-      [$fullName, $username, $email, $role] = array_map('trim', array_slice($row, 0, 4));
-      $password = isset($row[4]) ? trim($row[4]) : null;
-      if (!in_array($role, $validRoles)) {
-        $failed++;
-        $errors[] = "Invalid role for $username";
-        continue;
-      }
-      if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $failed++;
-        $errors[] = "Invalid email for $username";
-        continue;
-      }
-      try {
-        $db->prepare("INSERT INTO users (username,password,email,full_name,role,status,school_id) VALUES (?,?,?,?,?,?,?)")
-          ->execute([$username, $password ? password_hash($password, PASSWORD_DEFAULT) : null, $email, $fullName, $role, $password ? 'active' : 'inactive', SCHOOL_ID]);
-        $newId = $db->lastInsertId();
-        $success++;
-        if (!$password) {
-          require_once __DIR__ . '/../includes/email_service.php';
-          sendAccountCreationEmail($db, ['user_id' => $newId, 'full_name' => $fullName, 'email' => $email]);
+    $db->beginTransaction();
+    try {
+      while (($row = fgetcsv($handle)) !== FALSE) {
+        if (count($row) < 4) {
+          $failed++;
+          continue;
         }
-      } catch (Exception $e) {
-        $failed++;
-        $errors[] = "Error creating $username: " . $e->getMessage();
+        [$fullName, $username, $email, $role] = array_map('trim', array_slice($row, 0, 4));
+        $password = isset($row[4]) ? trim($row[4]) : null;
+        if (!in_array($role, $validRoles)) {
+          $failed++;
+          $errors[] = "Invalid role for $username";
+          continue;
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+          $failed++;
+          $errors[] = "Invalid email for $username";
+          continue;
+        }
+        try {
+          $db->prepare("INSERT INTO users (username,password,email,full_name,role,status,school_id) VALUES (?,?,?,?,?,?,?)")
+            ->execute([$username, $password ? password_hash($password, PASSWORD_DEFAULT) : null, $email, $fullName, $role, $password ? 'active' : 'inactive', SCHOOL_ID]);
+          $newId = $db->lastInsertId();
+          $success++;
+        } catch (Exception $e) {
+          $failed++;
+          $errors[] = "Error creating $username: " . $e->getMessage();
+        }
       }
+      $db->commit();
+    } catch (Exception $e) {
+      $db->rollBack();
+      fclose($handle);
+      echo json_encode(['ok' => false, 'msg' => 'Import failed: ' . $e->getMessage()]);
+      exit;
     }
     fclose($handle);
+    // Send setup emails after transaction committed (outside the transaction to avoid timeout issues)
+    if ($success > 0) {
+      require_once __DIR__ . '/../includes/email_service.php';
+      // Re-fetch newly created inactive users to send emails
+      $newUsers = $db->prepare("SELECT user_id, full_name, email FROM users WHERE school_id=? AND status='inactive' AND created_at >= NOW() - INTERVAL 5 MINUTE");
+      $newUsers->execute([SCHOOL_ID]);
+      foreach ($newUsers->fetchAll() as $nu) {
+        sendAccountCreationEmail($db, $nu);
+      }
+    }
     echo json_encode(['ok' => true, 'msg' => "Import complete. $success success, $failed failed.", 'errors' => $errors]);
     exit;
   }

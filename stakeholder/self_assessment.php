@@ -1,4 +1,5 @@
 <?php
+ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
@@ -29,7 +30,9 @@ if (!$cycleCheck) {
     $pageTitle = 'SBM Self-Assessment';
     $activePage = 'self_assessment.php';
     include __DIR__ . '/../includes/header.php';
-    $syLabel = $db->query("SELECT label FROM school_years WHERE sy_id=$syId LIMIT 1")->fetchColumn();
+    $stSyLbl = $db->prepare("SELECT label FROM school_years WHERE sy_id=? LIMIT 1");
+    $stSyLbl->execute([$syId]);
+    $syLabel = $stSyLbl->fetchColumn() ?: '—';
     ?>
     <div class="page-head">
         <div class="page-head-text">

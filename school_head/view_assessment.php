@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // school_head/view_assessment.php — View a single SBM assessment cycle
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';

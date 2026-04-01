@@ -1,10 +1,12 @@
 <?php
+ob_start();
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/auth.php';
 
 // If already logged in, destroy session so the link can be used cleanly
 // This MUST happen before any CSRF checks or tokens are generated.
-if (!empty($_SESSION['user_id'])) {
+// FIX: Only do this on GET to avoid destroying the CSRF token during a POST submission.
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_SESSION['user_id'])) {
   session_regenerate_id(true);
   session_unset();
   session_destroy();
@@ -102,25 +104,36 @@ if (isset($_GET['resend']) && $token) {
     $oldUser = $st->fetch();
 
     if ($oldUser) {
-      $sent = false;
-      if ($mode === 'reset') {
-        $sent = sendPasswordResetEmail($db, $oldUser);
+      // BUG-14: Rate-limit resends — allow max 1 per 2 minutes per user
+      $rateSt = $db->prepare(
+        "SELECT created_at FROM password_setup_tokens
+          WHERE user_id = ? ORDER BY created_at DESC LIMIT 1"
+      );
+      $rateSt->execute([$oldUser['user_id']]);
+      $lastTokenTime = $rateSt->fetchColumn();
+      if ($lastTokenTime && (time() - strtotime($lastTokenTime)) < 120) {
+        $resentError = 'Please wait a moment before requesting another email (max 1 every 2 minutes).';
       } else {
-        // Setup mode: only resend if they are actually inactive
-        if ($oldUser['status'] === 'active') {
-          $resentError = 'This account is already active. Please sign in or reset your password.';
+        $sent = false;
+        if ($mode === 'reset') {
+          $sent = sendPasswordResetEmail($db, $oldUser);
         } else {
-          $sent = sendAccountCreationEmail($db, $oldUser);
+          // Setup mode: only resend if they are actually inactive
+          if ($oldUser['status'] === 'active') {
+            $resentError = 'This account is already active. Please sign in or reset your password.';
+          } else {
+            $sent = sendAccountCreationEmail($db, $oldUser);
+          }
         }
-      }
 
-      if ($sent) {
-        header('Location: ' . baseUrl() . '/set_password.php?mode=' . $mode . '&resent=1');
-        exit;
-      }
+        if ($sent) {
+          header('Location: ' . baseUrl() . '/set_password.php?mode=' . $mode . '&resent=1');
+          exit;
+        }
 
-      if (!$resentError) {
-        $resentError = 'Failed to send it. Please try again or contact your administrator.';
+        if (!$resentError) {
+          $resentError = 'Failed to send it. Please try again or contact your administrator.';
+        }
       }
     } else {
       $resentError = 'Could not identify the account for this link.';

@@ -356,17 +356,15 @@ define('TEACHER_ONLY_CODES', [
     '1.6',   // Peace / DepEd values
 ]);
 
-// ── Indicators shared by SH/SBM Coord AND Teacher ────────────────────────────
+// ── Indicators shared by SH/SBM Coord AND Teacher (SH+Teacher ONLY — no External) ──
 // SH rates these in the SH portal; teachers rate the same in the teacher portal.
 // The final score is the average of both pools.
+// Note: 2.1, 2.2, 2.4, 6.3, 6.4, 6.5 also involve External — see SH_TCH_EXT_CODES.
 define('SH_TEACHER_CODES', [
     '1.1',   // Grade 3 proficiency
     '1.2',   // Grade 6/10/12 NAT
     '1.7',   // Test item analysis
-    '2.1',   // Zero bullying        (also External — see SH_TCH_EXT_CODES)
-    '2.2',   // Zero child abuse     (also External — see SH_TCH_EXT_CODES)
     '2.3',   // Reduced dropout
-    '2.4',   // Culture-sensitive    (also External — see SH_TCH_EXT_CODES)
     '2.9',   // Mental wellness
     '3.3',   // SSG/SPG
     '5.1',   // IPCR very satisfactory
@@ -375,9 +373,6 @@ define('SH_TEACHER_CODES', [
     '5.5',   // Recognition / rewards
     '5.6',   // Correct salaries
     '5.7',   // Fair workload
-    '6.3',   // Functional library   (also External — see SH_TCH_EXT_CODES)
-    '6.4',   // Water/electric/internet (also External — see SH_TCH_EXT_CODES)
-    '6.5',   // Computer lab         (also External — see SH_TCH_EXT_CODES)
 ]);
 
 // ── Indicators answered by SH/SBM Coord AND External Stakeholder (no Teacher) ─

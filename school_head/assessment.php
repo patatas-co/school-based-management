@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // school_head/assessment.php — SBM Assessment Management
 // Moved from admin/assessment.php — school_head is now top role
 require_once __DIR__ . '/../config/db.php';

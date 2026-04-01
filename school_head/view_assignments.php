@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // school_head/view_assignments.php
 // Moved from admin/view_assignments.php — school_head is now top role
 require_once __DIR__ . '/../config/db.php';

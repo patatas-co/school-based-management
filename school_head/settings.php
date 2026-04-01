@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // school_head/settings.php — System Settings & School Years
 // Moved from admin/settings.php — school_head is now top role
 require_once __DIR__ . '/../config/db.php';
@@ -8,7 +9,7 @@ $db = getDB();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   header('Content-Type: application/json');
-  verifyCsrf(true);
+  verifyCsrf();
   if ($_POST['action'] === 'save_sy') {
     $id = (int) ($_POST['sy_id'] ?? 0);
     // Validate date format if provided

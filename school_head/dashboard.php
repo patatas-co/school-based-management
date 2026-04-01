@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // ============================================================
 // school_head/dashboard.php — RESPONSIVE FIX + PROPORTION UPDATE
 // ============================================================
@@ -231,9 +232,14 @@ include __DIR__.'/../includes/header.php';
 <div class="stats-v2">
   <div class="stat-v2">
     <div class="stat-v2-accent" style="background:#16A34A;"></div>
-    <div class="stat-v2-label">DIHS Enrollment</div>
-    <div class="stat-v2-value">2,500</div>
-    <div class="stat-v2-meta" style="color:var(--n-400);">Dasmariñas Integrated HS</div>
+    <div class="stat-v2-label">Portal Users</div>
+    <?php
+    $enrollSt = $db->prepare("SELECT COUNT(*) FROM users WHERE school_id=? AND status='active'");
+    $enrollSt->execute([SCHOOL_ID]);
+    $portalUsers = (int)$enrollSt->fetchColumn();
+    ?>
+    <div class="stat-v2-value"><?= number_format($portalUsers) ?></div>
+    <div class="stat-v2-meta" style="color:var(--n-400);">Active portal accounts</div>
   </div>
   <div class="stat-v2">
     <div class="stat-v2-accent" style="background:#2563EB;"></div>

@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // school_head/teacher_status.php — Teacher Submission Status page
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../config/sbm_indicators.php';

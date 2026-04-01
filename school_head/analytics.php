@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // school_head/analytics.php — Analytics for School Head
 // Moved from admin/analytics.php
 require_once __DIR__.'/../config/db.php';
@@ -23,7 +24,7 @@ $matDist = $db->prepare("SELECT maturity_level,COUNT(*) cnt FROM sbm_cycles WHER
 $matDist->execute([$syId, SCHOOL_ID]); $matDists = $matDist->fetchAll();
 
 $stmtHistory = $db->prepare("
-  SELECT sy.label as school_name,
+  SELECT sy.label as sy_label,
          c.overall_score, c.maturity_level
   FROM sbm_cycles c JOIN school_years sy ON c.sy_id=sy.sy_id
   WHERE c.school_id=? AND c.overall_score IS NOT NULL
@@ -42,10 +43,10 @@ $weakIndicators = $db->prepare("
   JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
   JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
   JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
-  WHERE c.sy_id=?
+  WHERE c.sy_id=? AND c.school_id=?
   GROUP BY i.indicator_id ORDER BY avg_rating ASC LIMIT 8
 ");
-$weakIndicators->execute([$syId]);
+$weakIndicators->execute([$syId, SCHOOL_ID]);
 $weakIndicatorRows = $weakIndicators->fetchAll();
 
 $syears = $db->query("SELECT * FROM school_years ORDER BY sy_id DESC")->fetchAll();
@@ -141,7 +142,7 @@ include __DIR__.'/../includes/header.php';
         <?php foreach($topSchools as $i => $sc): $mat = sbmMaturityLevel(floatval($sc['overall_score'])); ?>
         <tr>
           <td style="width:36px;"><span style="width:22px;height:22px;border-radius:6px;background:<?= $i===0?'#FEF3C7':($i===1?'#F3F4F6':'var(--n-100)') ?>;color:<?= $i===0?'#B45309':($i===1?'#6B7280':'var(--n-600)') ?>;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;"><?= $i+1 ?></span></td>
-          <td><div style="font-size:13px;font-weight:600;color:var(--n-900);">SY <?= e($sc['school_name']) ?></div><div style="font-size:11.5px;color:var(--n-400);">Dasmariñas Integrated HS</div></td>
+          <td><div style="font-size:13px;font-weight:600;color:var(--n-900);">SY <?= e($sc['sy_label']) ?></div><div style="font-size:11.5px;color:var(--n-400);">Dasmariñas Integrated HS</div></td>
           <td><div class="score-bar-cell"><div class="score-bar-track"><div class="score-bar-fill" style="width:<?= $sc['overall_score'] ?>%;background:<?= $mat['color'] ?>;"></div></div><span class="score-val" style="color:<?= $mat['color'] ?>;"><?= $sc['overall_score'] ?>%</span></div></td>
           <td><span class="pill pill-<?= e($sc['maturity_level']) ?>"><?= e($sc['maturity_level']) ?></span></td>
         </tr>
@@ -203,6 +204,10 @@ if (matTotal > 0) {
   document.getElementById('maturityChart').closest('.chart-card-body').innerHTML='<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No validated assessments yet.</p>';
 }
 
-new Chart(document.getElementById('dimBarChart'),{type:'bar',data:{labels:dimLabels,datasets:[{label:'Average Score (%)',data:dimValues,backgroundColor:dimColors.map(c=>c+'28'),borderColor:dimColors,borderWidth:2,borderRadius:8,borderSkipped:false}]},options:{scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'#F3F4F6'}},x:{ticks:{font:{size:12,weight:'600'}},grid:{display:false}}},plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:true}});
+if (dimValues.some(v => v !== null && v > 0)) {
+  new Chart(document.getElementById('dimBarChart'),{type:'bar',data:{labels:dimLabels,datasets:[{label:'Average Score (%)',data:dimValues,backgroundColor:dimColors.map(c=>c+'28'),borderColor:dimColors,borderWidth:2,borderRadius:8,borderSkipped:false}]},options:{scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'#F3F4F6'}},x:{ticks:{font:{size:12,weight:'600'}},grid:{display:false}}},plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:true}});
+} else {
+  document.getElementById('dimBarChart').closest('.chart-card-body').innerHTML='<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No dimension score data for this school year.</p>';
+}
 </script>
 <?php include __DIR__.'/../includes/footer.php'; ?>

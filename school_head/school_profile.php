@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // ============================================================
 // school_head/school_profile.php
 // School-level profile management for School Head role.

@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // school_head/reports.php — Reports for school_head (delegates to admin reports logic)
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';

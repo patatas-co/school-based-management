@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // ============================================================
 // coordinator/dashboard.php — REDESIGNED to match school_head proportions
 // ============================================================
@@ -14,8 +15,14 @@ $schoolId = SCHOOL_ID;
 $school = $db->prepare("SELECT * FROM schools WHERE school_id=?");
 $school->execute([$schoolId]); $school = $school->fetch();
 
-$syId    = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
-$syLabel = $syId ? $db->query("SELECT label FROM school_years WHERE sy_id=$syId")->fetchColumn() : '—';
+$syId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
+$syId = $syId ? (int)$syId : null;
+$syLabel = '—';
+if ($syId) {
+    $stSyLabel = $db->prepare("SELECT label FROM school_years WHERE sy_id=? LIMIT 1");
+    $stSyLabel->execute([$syId]);
+    $syLabel = $stSyLabel->fetchColumn() ?: '—';
+}
 
 $cycle = null;
 if ($schoolId && $syId) {
@@ -506,6 +513,7 @@ include __DIR__.'/../includes/header.php';
       <div class="card-body">
         <?php if($dimScores):
           $dimCompletionData = [];
+          $dimActiveCount = [];
           if ($cycle) {
             $dcStmt = $db->prepare("
                 SELECT dimension_id, COUNT(DISTINCT indicator_id) cnt FROM (
@@ -517,6 +525,11 @@ include __DIR__.'/../includes/header.php';
             ");
             $dcStmt->execute([$cycle['cycle_id'], $cycle['cycle_id']]);
             foreach ($dcStmt->fetchAll() as $dc) $dimCompletionData[$dc['dimension_id']] = $dc['cnt'];
+
+            // BUG-10: Compute actual active indicator count per dimension from DB
+            $dacStmt = $db->prepare("SELECT dimension_id, COUNT(*) cnt FROM sbm_indicators WHERE is_active=1 GROUP BY dimension_id");
+            $dacStmt->execute();
+            foreach ($dacStmt->fetchAll() as $dac) $dimActiveCount[$dac['dimension_id']] = $dac['cnt'];
           }
           $chartLabels = $chartData = $chartColors = [];
         ?>
@@ -537,7 +550,7 @@ include __DIR__.'/../includes/header.php';
             </div>
             <div style="text-align:right;flex-shrink:0;min-width:90px;">
               <div class="dim-pct" style="color:<?= $mat2['color'] ?>;"><?= $pct > 0 ? $pct.'%' : '—' ?></div>
-              <div style="font-size:10.5px;color:var(--n-400);"><?= $done ?>/<?= $ds['indicator_count'] ?> rated</div>
+              <div style="font-size:10.5px;color:var(--n-400);"><?= $done ?>/<?= $dimActiveCount[$ds['dimension_id']] ?? $ds['indicator_count'] ?> rated</div>
             </div>
           </div>
           <?php endforeach; ?>

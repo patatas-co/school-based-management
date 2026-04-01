@@ -1,4 +1,5 @@
 <?php
+ob_start();
 // ============================================================
 // school_head/workflow.php — SBM Workflow & Timeline
 // DepEd Order No. 007, s. 2024 — 3-Step SBM Cycle

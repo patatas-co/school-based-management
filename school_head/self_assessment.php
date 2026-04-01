@@ -1,4 +1,5 @@
 <?php
+ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
@@ -202,16 +203,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         ->execute([$cycleRow['cycle_id'], $dimId]);
 
       // Recompute from scratch using any remaining teacher responses
-      $clearDimId = (int) $_POST['dimension_id'];
       $anyInd = $db->prepare("SELECT indicator_id FROM sbm_indicators WHERE dimension_id=? AND is_active=1 LIMIT 1");
-      $anyInd->execute([$clearDimId]);
+      $anyInd->execute([$dimId]);
       $anyIndId = $anyInd->fetchColumn();
       if ($anyIndId) {
         recomputeDimScoreWithOverrides($db, $cycleRow['cycle_id'], $anyIndId, $schoolId);
       }
 
       $indIds = $db->prepare("SELECT indicator_id FROM sbm_indicators WHERE dimension_id=? AND is_active=1");
-      $indIds->execute([(int) $_POST['dimension_id']]);
+      $indIds->execute([$dimId]);
       $indIds = $indIds->fetchAll(PDO::FETCH_COLUMN);
 
       echo json_encode(['ok' => true, 'msg' => 'All ratings cleared for this dimension.', 'indicator_ids' => $indIds]);
@@ -280,12 +280,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         ]);
         exit;
       }
-
-      $total = $db->prepare("SELECT SUM(raw_score), SUM(max_score) FROM sbm_dimension_scores WHERE cycle_id=?");
-      $total->execute([$cyc['cycle_id']]);
-      [$totalRaw, $totalMax] = array_values($total->fetch(PDO::FETCH_NUM));
-      $overall = $totalMax > 0 ? round(($totalRaw / $totalMax) * 100, 2) : 0;
-      $mat = sbmMaturityLevel($overall);
 
       // Recompute all dimensions before finalizing score
       $allDims = $db->query("SELECT dimension_id FROM sbm_dimensions WHERE 1")->fetchAll(PDO::FETCH_COLUMN);
@@ -415,15 +409,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 function isTeacherHandled(string $code): bool
 {
-    // Pure teacher-only: no SH input at all
-    if (in_array($code, TEACHER_ONLY_CODES)) {
-        return true;
-    }
-    // Teacher + External, no SH direct rating
-    if (in_array($code, TCH_EXT_CODES)) {
-        return true;
-    }
-    return false;
+  // Pure teacher-only: no SH input at all
+  if (in_array($code, TEACHER_ONLY_CODES)) {
+    return true;
+  }
+  // Teacher + External, no SH direct rating
+  if (in_array($code, TCH_EXT_CODES)) {
+    return true;
+  }
+  return false;
 }
 
 function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId, int $schoolId): void
@@ -458,8 +452,8 @@ function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId,
         }
       }
     } else {
-      $shResp = $db->prepare("SELECT rating FROM sbm_responses WHERE cycle_id=? AND indicator_id=?");
-      $shResp->execute([$cycleId, $ind['indicator_id']]);
+      $shResp = $db->prepare("SELECT rating FROM sbm_responses WHERE cycle_id=? AND indicator_id=? AND school_id=?");
+      $shResp->execute([$cycleId, $ind['indicator_id'], $schoolId]);
       $rating = $shResp->fetchColumn();
       if ($rating !== false) {
         $rawTotal += (int) $rating;
@@ -523,9 +517,8 @@ $ratingColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A']
 
 $isLocked = $cycle && in_array($cycle['status'], ['submitted', 'validated']);
 
-// SH-only indicators + teacher indicators that HAVE an override
-// SH answers SH_ONLY indicators (teacher-only shared indicators are handled by teachers)
-$shIndicators = array_filter($indicators, fn($i) => in_array($i['indicator_code'], SH_ONLY_INDICATOR_CODES));
+// SH rates: SH_ONLY + SH_TEACHER + SH_EXT + SH_TCH_EXT (= SH_RATEABLE_CODES)
+$shIndicators = array_filter($indicators, fn($i) => in_array($i['indicator_code'], SH_RATEABLE_CODES));
 $shResponded = count(array_filter($shIndicators, fn($i) => isset($responses[$i['indicator_id']])));
 $shTotal = count($shIndicators);
 
@@ -1587,9 +1580,9 @@ include __DIR__ . '/../includes/header.php';
   let currentRatings = <?= json_encode(array_map(fn($r) => $r['rating'], $responses)) ?>;
   let currentFilter = 'all';
 
-  const TEACHER_ONLY_CODES_JS  = new Set(<?= json_encode(TEACHER_ONLY_CODES) ?>);
-  const TCH_EXT_CODES_JS       = new Set(<?= json_encode(TCH_EXT_CODES) ?>);
-  const TEACHER_HANDLED_CODES  = new Set([...TEACHER_ONLY_CODES_JS, ...TCH_EXT_CODES_JS]);
+  const TEACHER_ONLY_CODES_JS = new Set(<?= json_encode(TEACHER_ONLY_CODES) ?>);
+  const TCH_EXT_CODES_JS = new Set(<?= json_encode(TCH_EXT_CODES) ?>);
+  const TEACHER_HANDLED_CODES = new Set([...TEACHER_ONLY_CODES_JS, ...TCH_EXT_CODES_JS]);
   const COUNTS = {
     all: <?= (int) ($totalCount ?? 0) ?>,
     sh: <?= (int) ($shCount ?? 0) ?>,

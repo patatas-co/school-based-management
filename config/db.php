@@ -29,8 +29,6 @@ define('SITE_NAME', $_ENV['SBM_SITE_NAME'] ?? 'Dasmariñas Integrated High Schoo
 define('SITE_SHORT', $_ENV['SBM_SITE_SHORT'] ?? 'DIHS SBM Portal');
 
 if (!defined('SCHOOL_ID')) {
-    if (session_status() === PHP_SESSION_NONE)
-        session_start();
     define('SCHOOL_ID', (int) ($_SESSION['school_id'] ?? 1));
 }
 
