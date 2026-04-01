@@ -536,16 +536,14 @@ include __DIR__ . '/../includes/header.php';
       ?>
       <div style="background:<?= $bg ?>;border-radius:var(--radius);padding:12px 16px;min-width:110px;text-align:center;">
         <div style="font-family:var(--font-display);font-size:24px;font-weight:800;color:<?= $color ?>;">
-          <?= $statusCount[$key] ?>
-        </div>
+          <?= $statusCount[$key] ?></div>
         <div style="font-size:11.5px;font-weight:600;color:<?= $color ?>;margin-top:2px;"><?= $label ?></div>
       </div>
     <?php endforeach; ?>
     <div
       style="background:var(--n100);border-radius:var(--radius);padding:12px 16px;min-width:110px;text-align:center;">
       <div style="font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--n700);">
-        <?= $totalMilestones ?>
-      </div>
+        <?= $totalMilestones ?></div>
       <div style="font-size:11.5px;font-weight:600;color:var(--n500);margin-top:2px;">Total</div>
     </div>
   </div>
@@ -724,8 +722,7 @@ $pillMap = [
                   style="font-size:11.5px;padding:4px 8px;height:30px;width:auto;background:<?= $pillBg ?>;color:<?= $pillColor ?>;font-weight:600;border-color:<?= $pillColor ?>33;"
                   onchange="updateStatus(<?= $m['milestone_id'] ?>,this.value)">
                   <?php foreach (['upcoming', 'in_progress', 'completed', 'delayed'] as $sv): ?>
-                    <option value="<?= $sv ?>" <?= $m['status'] === $sv ? 'selected' : '' ?>>
-                      <?= ucfirst(str_replace('_', ' ', $sv)) ?>
+                    <option value="<?= $sv ?>" <?= $m['status'] === $sv ? 'selected' : '' ?>><?= ucfirst(str_replace('_', ' ', $sv)) ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
@@ -783,7 +780,7 @@ $pillMap = [
 
 <!-- ── CONFIGURE CYCLE SCHEDULE MODAL ───────────────────── -->
 <div class="overlay" id="mConfigure">
-  <div class="modal" style="max-width:560px;">
+  <div class="modal" style="max-width:540px;">
     <div class="modal-head">
       <span class="modal-title">Configure Cycle Schedule</span>
       <button class="modal-close" onclick="closeModal('mConfigure')"><?= svgIcon('x') ?></button>

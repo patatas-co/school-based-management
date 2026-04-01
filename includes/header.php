@@ -12,11 +12,105 @@ $__base = baseUrl();
 // ── Role-based navigation ─────────────────────────────────────
 $__navGroups = [];
 
+// Use centralized navigation from config/roles.php
 if (isset($__role) && defined('SBM_NAV')) {
   $__navGroups = SBM_NAV[$__role] ?? [];
 } else {
-  // If roles.php failed to load or role is unknown, show empty nav
-  $__navGroups = [];
+  // Fallback navigation (should not happen with proper setup)
+  if ($__role === 'sbm_coordinator') {
+    $__navGroups = [
+      [
+        'Overview',
+        'grid',
+        [
+          ['Dashboard', 'coordinator/dashboard.php', 'grid'],
+          ['Analytics', 'coordinator/analytics.php', 'bar-chart-2'],
+          ['SBM Dimensions', 'coordinator/dimensions.php', 'layers'],
+        ]
+      ],
+      [
+        'Evaluation',
+        'check-circle',
+        [
+          ['Self-Assessment', 'coordinator/self-assessment.php', 'check-circle'],
+          ['Assign Indicators', 'coordinator/assign_indicators.php', 'check-square'],
+          ['Teacher Status', 'coordinator/teacher_status.php', 'users'],
+          ['Evidence & MOV', 'coordinator/evidence.php', 'paperclip'],
+        ]
+      ],
+      [
+        'Planning',
+        'trending-up',
+        [
+          ['Improvement Plan', 'coordinator/improvement.php', 'trending-up'],
+          ['Reports', 'coordinator/reports.php', 'file-text'],
+        ]
+      ],
+      [
+        'School',
+        'home',
+        [
+          ['School Profile', 'coordinator/school_profile.php', 'home'],
+        ]
+      ],
+      [
+        'Communication',
+        'bell',
+        [
+          ['Announcements', 'coordinator/announcements.php', 'bell'],
+          ['Meetings', 'coordinator/meetings.php', 'calendar'],
+        ]
+      ],
+    ];
+  } elseif ($__role === 'teacher') {
+    $__navGroups = [
+      [
+        'Overview',
+        'grid',
+        [
+          ['Dashboard', 'teacher/dashboard.php', 'grid'],
+        ]
+      ],
+      [
+        'Evaluation',
+        'check-circle',
+        [
+          ['Self-Assessment', 'teacher/self_assessment.php', 'check-circle'],
+        ]
+      ],
+      [
+        'Communication',
+        'bell',
+        [
+          ['Announcements', 'teacher/announcements.php', 'bell'],
+        ]
+      ],
+    ];
+  } elseif ($__role === 'external_stakeholder') {
+    $__navGroups = [
+      [
+        'Overview',
+        'grid',
+        [
+          ['Dashboard', 'stakeholder/dashboard.php', 'grid'],
+        ]
+      ],
+      [
+        'Participation',
+        'users',
+        [
+          ['Self-Assessment', 'stakeholder/self_assessment.php', 'check-circle'],
+        ]
+      ],
+      [
+        'Communication',
+        'bell',
+        [
+          ['Announcements', 'stakeholder/announcement.php', 'bell'],
+        ]
+      ],
+    ];
+  }
 }
 
 // ── Active page detection ─────────────────────────────────────
@@ -102,33 +196,31 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       --purple-bg: #EDE9FE;
       --teal: #0D9488;
       --teal-bg: #CCFBF1;
-      --indigo: #4F46E5;
-      --indigo-bg: #E0E7FF;
 
       --sidebar-w: 260px;
-      --sidebar-mini: 68px;
-      --topbar-h: 64px;
-      --radius: 12px;
-      --radius-sm: 8px;
-      --radius-lg: 16px;
+      --sidebar-mini: 64px;
+      --topbar-h: 60px;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --radius-lg: 14px;
 
       --font-body: 'Inter', -apple-system, sans-serif;
       --font-display: 'Manrope', -apple-system, sans-serif;
 
       --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / .05);
-      --shadow-sm: 0 2px 4px 0 rgb(0 0 0 / .08), 0 1px 2px -1px rgb(0 0 0 / .06);
-      --shadow-md: 0 4px 10px -1px rgb(0 0 0 / .1), 0 2px 6px -2px rgb(0 0 0 / .05);
-      --shadow-lg: 0 12px 24px -4px rgb(0 0 0 / .12), 0 6px 12px -4px rgb(0 0 0 / .08);
+      --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / .10), 0 1px 2px -1px rgb(0 0 0 / .06);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / .08), 0 2px 4px -2px rgb(0 0 0 / .05);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / .08), 0 4px 6px -4px rgb(0 0 0 / .05);
 
       --sb-bg: #0A0F0A;
       --sb-surface: #111A11;
       --sb-border: rgba(255, 255, 255, .08);
-      --sb-text: rgba(255, 255, 255, .55);
-      --sb-text-hover: rgba(255, 255, 255, .95);
-      --sb-active-bg: rgba(22, 163, 74, .18);
+      --sb-text: rgba(255, 255, 255, .5);
+      --sb-text-hover: rgba(255, 255, 255, .92);
+      --sb-active-bg: rgba(22, 163, 74, .15);
 
       --ease: cubic-bezier(.4, 0, .2, 1);
-      --dur: 200ms;
+      --dur: 150ms;
 
       /* Shorthand aliases */
       --n50: var(--n-50);
@@ -349,10 +441,10 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     .sb-item.active {
       color: #fff;
-      background: linear-gradient(90deg, rgba(22, 163, 74, .3) 0%, rgba(22, 163, 74, .15) 100%);
-      border-left: 3px solid #4ADE80;
-      padding-left: 10px;
-      box-shadow: inset 0 0 15px rgba(22, 163, 74, .12), 4px 0 12px rgba(0, 0, 0, .1);
+      background: linear-gradient(90deg, rgba(22, 163, 74, .25) 0%, rgba(22, 163, 74, .12) 100%);
+      border-left: 2px solid #4ADE80;
+      padding-left: 8px;
+      box-shadow: inset 0 0 12px rgba(22, 163, 74, .08);
     }
 
     .sb-item.active .sb-icon svg {
@@ -721,19 +813,27 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       margin-left: var(--sidebar-mini) !important;
     }
 
+    .deped-stripe {
+      height: 3px;
+      background: linear-gradient(90deg, #166534 0%, #22C55E 40%, #FFD700 70%, #CE1126 100%);
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      flex-shrink: 0;
+    }
+
     .topbar {
       height: var(--topbar-h);
-      background: #ffffff;
-      border-bottom: 1px solid var(--n-150);
+      background: #fff;
+      border-bottom: 1px solid var(--n-200);
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 24px;
       position: sticky;
-      top: 0;
-      z-index: 40;
+      top: 3px;
+      z-index: 50;
       gap: 16px;
-      box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.03);
     }
 
     .topbar-left {
@@ -888,21 +988,18 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     .stat {
       background: #fff;
-      border: 1px solid var(--n-150);
+      border: 1px solid var(--n-200);
       border-radius: var(--radius-lg);
-      padding: 20px 24px;
+      padding: 18px 20px;
       display: flex;
       align-items: center;
-      gap: 16px;
-      box-shadow: var(--shadow-sm);
-      transition: all var(--dur) var(--ease);
-      cursor: default;
+      gap: 14px;
+      box-shadow: var(--shadow-xs);
+      transition: box-shadow var(--dur);
     }
 
     .stat:hover {
-      box-shadow: var(--shadow-md);
-      transform: translateY(-2px) scale(1.015);
-      border-color: var(--n-200);
+      box-shadow: var(--shadow-sm);
     }
 
     .stat-ic {
@@ -1270,12 +1367,6 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       border-color: #BFDBFE;
     }
 
-    .pill-school_head {
-      background: var(--brand-100);
-      color: var(--brand-700);
-      border-color: var(--brand-200);
-    }
-
     .pill-Beginning {
       background: var(--red-bg);
       color: var(--red);
@@ -1426,16 +1517,16 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     .overlay {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(15, 23, 42, .5);
+      backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 9999;
-      padding: 24px 20px;
-      overflow: hidden;
+      z-index: 200;
+      padding: 20px;
       opacity: 0;
       pointer-events: none;
-      transition: opacity var(--dur) var(--ease);
+      transition: opacity var(--dur);
     }
 
     .overlay.open {
@@ -1448,16 +1539,11 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-lg);
       width: 100%;
-      max-width: 540px;
-      /* Key: let the modal grow up to viewport minus padding */
-      max-height: calc(100vh - 48px);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      transform: scale(.96) translateY(12px);
-      transition: transform 240ms var(--ease);
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      position: relative;
+      max-width: 520px;
+      max-height: 92vh;
+      overflow-y: auto;
+      transform: scale(.97) translateY(8px);
+      transition: transform 200ms var(--ease);
     }
 
     .overlay.open .modal {
@@ -1470,8 +1556,6 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       display: flex;
       align-items: center;
       justify-content: space-between;
-      flex-shrink: 0;
-      /* Never compress the header */
     }
 
     .modal-title {
@@ -1512,11 +1596,6 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     .modal-body {
       padding: 20px 22px;
-      overflow-y: auto;
-      /* Only this section scrolls */
-      flex: 1;
-      /* Takes all available space */
-      overscroll-behavior: contain;
     }
 
     .modal-foot {
@@ -1525,8 +1604,6 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       display: flex;
       justify-content: flex-end;
       gap: 8px;
-      flex-shrink: 0;
-      /* Never compress the footer */
     }
 
     .search {
@@ -1979,8 +2056,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     }
 
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
     }
 
     ::-webkit-scrollbar-track {
@@ -1988,29 +2065,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     }
 
     ::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.1);
-      border-radius: 10px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(0, 0, 0, 0.2);
-    }
-
-    /* Global Fade In */
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(4px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .page {
-      animation: fadeIn 0.4s var(--ease) both;
+      background: var(--n-300);
+      border-radius: 3px;
     }
 
     @media (max-width:768px) {
@@ -2304,8 +2360,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       <div class="sb-popup" id="userPopup" role="menu">
         <div class="sb-popup-user">
           <div class="sb-avatar" style="background:<?= $__roleColor ?>;width:36px;height:36px;font-size:13px;">
-            <?= e($__initials) ?>
-          </div>
+            <?= e($__initials) ?></div>
           <div style="flex:1;min-width:0;">
             <div class="sb-popup-name"><?= e($__me['name']) ?></div>
             <div class="sb-popup-role"><?= e($__roleLabel) ?></div>
@@ -2325,6 +2380,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
   <!-- ── MAIN WRAPPER ── -->
   <div class="main-wrap <?= $__sbCollapsed ? 'expanded' : '' ?>" id="mainWrap">
+
     <header class="topbar">
       <div class="topbar-left">
         <button class="menu-btn" id="menuBtn" aria-label="Toggle sidebar">
@@ -2428,48 +2484,13 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         });
 
         // ── Modal helpers ──
-        // Track open modal count to handle nested/multiple modals safely
-        let _openModalCount = 0;
-
-        function openModal(id) {
-          const el = document.getElementById(id);
-          if (!el) return;
-          el.classList.add('open');
-          _openModalCount++;
-          document.body.style.overflow = 'hidden';
-          // Move focus into modal for accessibility
-          const firstFocusable = el.querySelector(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-          );
-          if (firstFocusable) setTimeout(() => firstFocusable.focus(), 60);
-        }
-
-        function closeModal(id) {
-          const el = document.getElementById(id);
-          if (!el) return;
-          el.classList.remove('open');
-          _openModalCount = Math.max(0, _openModalCount - 1);
-          if (_openModalCount === 0) document.body.style.overflow = '';
-        }
-
+        function openModal(id) { document.getElementById(id)?.classList.add('open'); }
+        function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
         document.addEventListener('keydown', e => {
-          if (e.key === 'Escape') {
-            const openModals = document.querySelectorAll('.overlay.open');
-            if (openModals.length) {
-              // Close only the topmost modal
-              openModals[openModals.length - 1].classList.remove('open');
-              _openModalCount = Math.max(0, _openModalCount - 1);
-              if (_openModalCount === 0) document.body.style.overflow = '';
-            }
-          }
+          if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open'));
         });
-
         document.addEventListener('click', e => {
-          if (e.target.classList.contains('overlay') && e.target.classList.contains('open')) {
-            e.target.classList.remove('open');
-            _openModalCount = Math.max(0, _openModalCount - 1);
-            if (_openModalCount === 0) document.body.style.overflow = '';
-          }
+          if (e.target.classList.contains('overlay') && e.target.classList.contains('open')) e.target.classList.remove('open');
         });
 
         // ── Toast ──
@@ -2511,7 +2532,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         // ── Live polling ──
         async function pollUpdates() {
           try {
-            const res = await fetch(<?= json_encode($__base, JSON_UNESCAPED_SLASHES) ?> + '/includes/poll.php');
+            const res = await fetch('<?= htmlspecialchars($__base, ENT_QUOTES) ?>/includes/poll.php');
             if (!res.ok) return;
             const d = await res.json();
             if (d.users !== undefined) liveSet('total-users', d.users);
