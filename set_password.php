@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_SESSION['user_id'])) {
   session_unset();
   session_destroy();
   session_start();
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 $db = getDB();
@@ -1040,7 +1041,8 @@ $successMsg = $mode === 'reset'
       btn.disabled = !ok;
     }
   </script>
-  <?php if (function_exists('renderPasswordToggle')) renderPasswordToggle(); ?>
+  <?php if (function_exists('renderPasswordToggle'))
+    renderPasswordToggle(); ?>
 </body>
 
 </html>
