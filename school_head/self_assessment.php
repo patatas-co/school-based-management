@@ -80,13 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $indicatorCode = $chk->fetchColumn();
 
       // Block only pure teacher-only indicators (not shared SH+Teacher ones)
-      if (in_array($indicatorCode, TEACHER_INDICATOR_CODES) && !in_array($indicatorCode, SH_ONLY_INDICATOR_CODES === [] ? [] : array_diff(TEACHER_INDICATOR_CODES, SH_ONLY_INDICATOR_CODES))) {
-        // Check if this is a shared indicator (appears in both SH and teacher roles)
-        $sharedCodes = array_diff(TEACHER_INDICATOR_CODES, SH_ONLY_INDICATOR_CODES);
-        if (!in_array($indicatorCode, $sharedCodes)) {
-          echo json_encode(['ok' => false, 'msg' => 'This indicator is answered by teachers only.']);
-          exit;
-        }
+      if (!in_array($indicatorCode, SH_RATEABLE_CODES)) {
+        echo json_encode(['ok' => false, 'msg' => 'This indicator is not rated by the School Head.']);
+        exit;
       }
 
       $cycleStmt = $db->prepare("SELECT cycle_id, school_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?");
@@ -151,8 +147,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $chk = $db->prepare("SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?");
       $chk->execute([$indicatorId]);
       $indicatorCode = $chk->fetchColumn();
-      if (!in_array($indicatorCode, SH_ONLY_INDICATOR_CODES) && in_array($indicatorCode, TEACHER_INDICATOR_CODES)) {
-        echo json_encode(['ok' => false, 'msg' => 'Cannot clear a teacher indicator.']);
+      if (!in_array($indicatorCode, SH_RATEABLE_CODES)) {
+        echo json_encode(['ok' => false, 'msg' => 'Cannot clear a non-SH indicator.']);
         exit;
       }
 
@@ -191,15 +187,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
       }
 
-      $teacherCodes = TEACHER_INDICATOR_CODES;
-      $ph = buildInPlaceholders($teacherCodes);
+      $teacherOnlyCodes = array_merge(TEACHER_ONLY_CODES, TCH_EXT_CODES);
+      $ph = buildInPlaceholders($teacherOnlyCodes);
       $db->prepare("
     DELETE r FROM sbm_responses r
     JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
     WHERE r.cycle_id = ?
       AND i.dimension_id = ?
       AND i.indicator_code NOT IN ($ph)
-")->execute(array_merge([$cycleRow['cycle_id'], $dimId], $teacherCodes));
+")->execute(array_merge([$cycleRow['cycle_id'], $dimId], $teacherOnlyCodes));
 
       $db->prepare("UPDATE sbm_dimension_scores SET raw_score=0,max_score=0,percentage=0,computed_at=NOW()
               WHERE cycle_id=? AND dimension_id=?")
@@ -417,6 +413,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   exit;
 }
 
+function isTeacherHandled(string $code): bool
+{
+    // Pure teacher-only: no SH input at all
+    if (in_array($code, TEACHER_ONLY_CODES)) {
+        return true;
+    }
+    // Teacher + External, no SH direct rating
+    if (in_array($code, TCH_EXT_CODES)) {
+        return true;
+    }
+    return false;
+}
+
 function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId, int $schoolId): void
 {
   $dimId = $db->prepare("SELECT dimension_id FROM sbm_indicators WHERE indicator_id=?");
@@ -431,12 +440,7 @@ function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId,
   $maxTotal = 0;
 
   foreach ($inds as $ind) {
-    // An indicator is "teacher-handled" if it's in TEACHER_INDICATOR_CODES
-    // but NOT in SH_ONLY_INDICATOR_CODES (pure SH indicators)
-    $isTeacher = in_array($ind['indicator_code'], TEACHER_INDICATOR_CODES)
-      && !in_array($ind['indicator_code'], SH_ONLY_INDICATOR_CODES);
-
-    if ($isTeacher) {
+    if (isTeacherHandled($ind['indicator_code'])) {
       $ov = $db->prepare("SELECT override_rating FROM sh_indicator_overrides WHERE cycle_id=? AND indicator_id=?");
       $ov->execute([$cycleId, $ind['indicator_id']]);
       $override = $ov->fetchColumn();
@@ -1359,15 +1363,13 @@ include __DIR__ . '/../includes/header.php';
           <?php
           $resp = $responses[$ind['indicator_id']] ?? null;
           $rated = $resp !== null;
-          $isTeacher = in_array($ind['indicator_code'], TEACHER_INDICATOR_CODES);
-          // data-role: 'teacher' if pure teacher-only, 'sh' if SH-only
-          // shared indicators appear in teacher portal only for rating,
-          // SH sees them as read-only teacher boxes
-          $role = ($isTeacher && !in_array($ind['indicator_code'], SH_ONLY_INDICATOR_CODES)) ? 'teacher' : 'sh';
+          $isTeacherCard = isTeacherHandled($ind['indicator_code'] ?? '');
+          $role = $isTeacherCard ? 'teacher' : 'sh';
+          $showTeacherInfoAlso = in_array($ind['indicator_code'] ?? '', SH_SEES_TEACHER_CODES);
           $trData = $teacherData[$ind['indicator_id']] ?? null;
           ?>
 
-          <div class="indicator-row <?= $rated ? 'rated' : '' ?> <?= $isTeacher ? 'teacher-only' : '' ?>"
+          <div class="indicator-row <?= $rated ? 'rated' : '' ?> <?= $isTeacherCard ? 'teacher-only' : '' ?>"
             id="row<?= $ind['indicator_id'] ?>" data-role="<?= $role ?>" data-code="<?= e($ind['indicator_code']) ?>">
 
             <!-- Top row: code + role tag + saved badge -->
@@ -1379,7 +1381,7 @@ include __DIR__ . '/../includes/header.php';
                   <?= e($ind['indicator_code']) ?>
                 </span>
 
-                <?php if ($isTeacher): ?>
+                <?php if ($isTeacherCard): ?>
                   <span class="role-tag role-teacher">
                     <span style="display:inline-flex;width:11px;height:11px;flex-shrink:0;">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -1407,7 +1409,7 @@ include __DIR__ . '/../includes/header.php';
 
               </div>
 
-              <?php if (!$isTeacher): ?>
+              <?php if (!$isTeacherCard): ?>
                 <div style="display:flex;align-items:center;gap:6px;">
                   <span id="savedBadge<?= $ind['indicator_id'] ?>" style="font-size:11px;color:var(--g600);font-weight:600;">
                     <?= $rated ? 'Saved' : '' ?>
@@ -1436,7 +1438,27 @@ include __DIR__ . '/../includes/header.php';
               📎 MOV: <?= e($ind['mov_guide']) ?>
             </div>
 
-            <?php if ($isTeacher): ?>
+            <?php if (!$isTeacherCard): ?>
+              <!-- SCHOOL HEAD RATING -->
+              <div class="rating-group" id="ratingGroup<?= $ind['indicator_id'] ?>">
+                <?php foreach ([1, 2, 3, 4] as $r): ?>
+                  <button <?= $isLocked ? 'disabled' : '' ?> type="button"
+                    class="rating-btn <?= $resp && $resp['rating'] == $r ? 'selected-' . $r : '' ?>"
+                    data-ind="<?= $ind['indicator_id'] ?>" data-rating="<?= $r ?>"
+                    onclick="selectRating(<?= $ind['indicator_id'] ?>,<?= $r ?>)">
+                    <?= $r ?> — <?= $ratingLabels[$r] ?>
+                  </button>
+                <?php endforeach; ?>
+              </div>
+
+              <textarea class="fc" id="evidence<?= $ind['indicator_id'] ?>" rows="2"
+                placeholder="Describe evidence or attach MOV reference…" <?= $isLocked ? 'disabled' : '' ?>
+                onblur="saveResponse(<?= $ind['indicator_id'] ?>)"><?= e($resp['evidence_text'] ?? '') ?></textarea>
+              <div id="attachWidget_<?= $ind['indicator_id'] ?>"></div>
+
+            <?php endif; ?>
+
+            <?php if ($isTeacherCard || $showTeacherInfoAlso): ?>
               <?php
               $hasOverride = isset($overrides[$ind['indicator_id']]);
               $ovData = $hasOverride
@@ -1490,7 +1512,8 @@ include __DIR__ . '/../includes/header.php';
 
                   <?php if (
                     !$isLocked && $trData &&
-                    (int) $trData['teacher_count'] > 0
+                    (int) $trData['teacher_count'] > 0 &&
+                    $isTeacherCard
                   ): ?>
                     <!-- Override controls -->
                     <div style="margin-top:10px;padding-top:10px;
@@ -1535,24 +1558,6 @@ include __DIR__ . '/../includes/header.php';
                 </div>
               </div>
 
-            <?php else: ?>
-              <!-- SCHOOL HEAD RATING -->
-              <div class="rating-group" id="ratingGroup<?= $ind['indicator_id'] ?>">
-                <?php foreach ([1, 2, 3, 4] as $r): ?>
-                  <button <?= $isLocked ? 'disabled' : '' ?> type="button"
-                    class="rating-btn <?= $resp && $resp['rating'] == $r ? 'selected-' . $r : '' ?>"
-                    data-ind="<?= $ind['indicator_id'] ?>" data-rating="<?= $r ?>"
-                    onclick="selectRating(<?= $ind['indicator_id'] ?>,<?= $r ?>)">
-                    <?= $r ?> — <?= $ratingLabels[$r] ?>
-                  </button>
-                <?php endforeach; ?>
-              </div>
-
-              <textarea class="fc" id="evidence<?= $ind['indicator_id'] ?>" rows="2"
-                placeholder="Describe evidence or attach MOV reference…" <?= $isLocked ? 'disabled' : '' ?>
-                onblur="saveResponse(<?= $ind['indicator_id'] ?>)"><?= e($resp['evidence_text'] ?? '') ?></textarea>
-              <div id="attachWidget_<?= $ind['indicator_id'] ?>"></div>
-
             <?php endif; ?>
           </div><!-- /.indicator-row -->
 
@@ -1582,7 +1587,9 @@ include __DIR__ . '/../includes/header.php';
   let currentRatings = <?= json_encode(array_map(fn($r) => $r['rating'], $responses)) ?>;
   let currentFilter = 'all';
 
-  const TEACHER_CODES = new Set(<?= json_encode(TEACHER_INDICATOR_CODES) ?>);
+  const TEACHER_ONLY_CODES_JS  = new Set(<?= json_encode(TEACHER_ONLY_CODES) ?>);
+  const TCH_EXT_CODES_JS       = new Set(<?= json_encode(TCH_EXT_CODES) ?>);
+  const TEACHER_HANDLED_CODES  = new Set([...TEACHER_ONLY_CODES_JS, ...TCH_EXT_CODES_JS]);
   const COUNTS = {
     all: <?= (int) ($totalCount ?? 0) ?>,
     sh: <?= (int) ($shCount ?? 0) ?>,

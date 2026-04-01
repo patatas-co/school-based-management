@@ -4,6 +4,9 @@ require_once __DIR__ . '/../config/db.php';
 if (file_exists(__DIR__ . '/../config/roles.php')) {
     require_once __DIR__ . '/../config/roles.php';
 }
+if (file_exists(__DIR__ . '/../config/sbm_indicators.php')) {
+    require_once __DIR__ . '/../config/sbm_indicators.php';
+}
 
 if (session_status() === PHP_SESSION_NONE)
     session_start();
@@ -101,16 +104,7 @@ function timeAgo(string $dt): string
     return $past->format('M d, Y');
 }
 
-function sbmMaturityLevel(float $pct): array
-{
-    if ($pct >= 76)
-        return ['label' => 'Advanced', 'color' => '#16A34A', 'bg' => '#DCFCE7'];
-    if ($pct >= 51)
-        return ['label' => 'Maturing', 'color' => '#2563EB', 'bg' => '#DBEAFE'];
-    if ($pct >= 26)
-        return ['label' => 'Developing', 'color' => '#D97706', 'bg' => '#FEF3C7'];
-    return ['label' => 'Beginning', 'color' => '#DC2626', 'bg' => '#FEE2E2'];
-}
+
 
 function sbmMaturityBadge(string $level): string
 {

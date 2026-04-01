@@ -242,17 +242,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // ── LOAD DATA ─────────────────────────────────────────────────
-$placeholders = implode(',', array_fill(0, count($assignedCodes), '?'));
-$indicators = $db->prepare("
-    SELECT i.*, d.dimension_no, d.dimension_name, d.color_hex
-    FROM sbm_indicators i
-    JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
-    WHERE i.is_active = 1
-      AND i.indicator_code IN ($placeholders)
-    ORDER BY d.dimension_no, i.sort_order
-");
-$indicators->execute($assignedCodes);
-$indicators = $indicators->fetchAll();
+if (empty($assignedCodes)) {
+    $indicators = [];
+} else {
+    $placeholders = implode(',', array_fill(0, count($assignedCodes), '?'));
+    $indicators = $db->prepare("
+        SELECT i.*, d.dimension_no, d.dimension_name, d.color_hex
+        FROM sbm_indicators i
+        JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
+        WHERE i.is_active = 1
+          AND i.indicator_code IN ($placeholders)
+        ORDER BY d.dimension_no, i.sort_order
+    ");
+    $indicators->execute(array_values($assignedCodes));
+    $indicators = $indicators->fetchAll();
+}
 
 $cycle = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
 $cycle->execute([$schoolId, $syId]);
