@@ -5,9 +5,9 @@
 // (System-level config stays in admin/school_profile.php)
 // Transfer: School Head now manages their own school's info.
 // ============================================================
-require_once __DIR__.'/../config/db.php';
-require_once __DIR__.'/../config/roles.php';
-require_once __DIR__.'/../includes/auth.php';
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/roles.php';
+require_once __DIR__ . '/../includes/auth.php';
 requireRole('school_head', 'sbm_coordinator');
 $db = getDB();
 
@@ -15,13 +15,13 @@ $db = getDB();
 $schoolId = SCHOOL_ID;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    header('Content-Type: application/json');
-    verifyCsrf();
+  header('Content-Type: application/json');
+  verifyCsrf();
 
-    if ($_POST['action'] === 'save') {
-        // School Head can update operational info — NOT school_id_deped or classification
-        // (those remain admin-only structural fields)
-        $db->prepare("
+  if ($_POST['action'] === 'save') {
+    // School Head can update operational info — NOT school_id_deped or classification
+    // (those remain admin-only structural fields)
+    $db->prepare("
             UPDATE schools SET
                 school_head_name  = ?,
                 contact_no        = ?,
@@ -31,22 +31,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 address           = ?
             WHERE school_id = ?
         ")->execute([
-            trim($_POST['school_head_name']),
-            trim($_POST['contact_no']),
-            trim($_POST['email']),
-            (int)$_POST['total_enrollment'],
-            (int)$_POST['total_teachers'],
-            trim($_POST['address']),
-            $schoolId,
+          trim($_POST['school_head_name']),
+          trim($_POST['contact_no']),
+          trim($_POST['email']),
+          (int) $_POST['total_enrollment'],
+          (int) $_POST['total_teachers'],
+          trim($_POST['address']),
+          $schoolId,
         ]);
 
-        logActivity('sh_update_school_profile', 'school_profile',
-            'School Head updated school profile for school_id: ' . $schoolId);
+    logActivity(
+      'sh_update_school_profile',
+      'school_profile',
+      'School Head updated school profile for school_id: ' . $schoolId
+    );
 
-        echo json_encode(['ok' => true, 'msg' => 'School profile updated.']);
-        exit;
-    }
+    echo json_encode(['ok' => true, 'msg' => 'School profile updated.']);
     exit;
+  }
+  exit;
 }
 
 $school = $db->prepare("
@@ -70,19 +73,19 @@ $teacherCountStmt = $db->prepare("
       AND role = 'teacher'
 ");
 $teacherCountStmt->execute([SCHOOL_ID]);
-$teacherCounts   = $teacherCountStmt->fetch();
-$totalTeachers   = (int) $teacherCounts['total_teachers'];
-$activeTeachers  = (int) $teacherCounts['active_teachers'];
+$teacherCounts = $teacherCountStmt->fetch();
+$totalTeachers = (int) $teacherCounts['total_teachers'];
+$activeTeachers = (int) $teacherCounts['active_teachers'];
 
 $currentCycle = $db->query(
-    "SELECT c.*, sy.label
+  "SELECT c.*, sy.label
      FROM sbm_cycles c
      JOIN school_years sy ON c.sy_id = sy.sy_id
      WHERE c.school_id = " . $schoolId . "
      ORDER BY c.created_at DESC LIMIT 1"
 )->fetch();
 
-$pageTitle  = 'School Profile';
+$pageTitle = 'School Profile';
 $activePage = 'school_profile.php';
 include __DIR__ . '/../includes/header.php';
 ?>
@@ -111,26 +114,26 @@ include __DIR__ . '/../includes/header.php';
     </div>
     <div style="padding:0;">
       <?php $fields = [
-        ['School Name',       $school['school_name'],       false],
-        ['DepEd School ID',   $school['school_id_deped'],   true],   // read-only for SH
-        ['Address',           $school['address'],            false],
-        ['Classification',    $school['classification'],     true],   // read-only for SH
-        ['School Head',       $school['school_head_name'],  false],
-        ['Contact Number',    $school['contact_no'] ?? '—', false],
-        ['Email',             $school['email'] ?? '—',      false],
-        ['Division',          $school['division_name'] ?? '—', true],
+        ['School Name', $school['school_name'], false],
+        ['DepEd School ID', $school['school_id_deped'], true],   // read-only for SH
+        ['Address', $school['address'], false],
+        ['Classification', $school['classification'], true],   // read-only for SH
+        ['School Head', $school['school_head_name'], false],
+        ['Contact Number', $school['contact_no'] ?? '—', false],
+        ['Email', $school['email'] ?? '—', false],
+        ['Division', $school['division_name'] ?? '—', true],
       ];
-      foreach($fields as [$label, $val, $readonly]): ?>
-      <div style="display:flex;align-items:center;justify-content:space-between;
+      foreach ($fields as [$label, $val, $readonly]): ?>
+        <div style="display:flex;align-items:center;justify-content:space-between;
                   padding:12px 20px;border-bottom:1px solid var(--n-100);">
-        <span style="font-size:13px;color:var(--n-500);font-weight:500;">
-          <?= $label ?>
-          <?php if($readonly): ?>
-          <span style="font-size:10px;color:var(--n-400);font-weight:400;margin-left:4px;">(admin only)</span>
-          <?php endif; ?>
-        </span>
-        <span style="font-size:13.5px;font-weight:600;color:var(--n-900);"><?= e($val ?? '—') ?></span>
-      </div>
+          <span style="font-size:13px;color:var(--n-500);font-weight:500;">
+            <?= $label ?>
+            <?php if ($readonly): ?>
+              <span style="font-size:10px;color:var(--n-400);font-weight:400;margin-left:4px;">(admin only)</span>
+            <?php endif; ?>
+          </span>
+          <span style="font-size:13.5px;font-weight:600;color:var(--n-900);"><?= e($val ?? '—') ?></span>
+        </div>
       <?php endforeach; ?>
     </div>
   </div>
@@ -145,8 +148,7 @@ include __DIR__ . '/../includes/header.php';
         <div class="kpi-mini-val" id="liveTeacherCount"><?= $totalTeachers ?></div>
         <div class="kpi-mini-lbl">
           Total Teachers
-          <span id="liveTeacherActive"
-                style="display:block;font-size:10px;color:var(--brand-600);
+          <span id="liveTeacherActive" style="display:block;font-size:10px;color:var(--brand-600);
                        font-weight:600;margin-top:2px;">
             <?= $activeTeachers ?> active
           </span>
@@ -157,36 +159,44 @@ include __DIR__ . '/../includes/header.php';
         <div class="kpi-mini-lbl">Active in Portal</div>
       </div>
       <div class="kpi-mini">
-        <?php if($currentCycle): $mat = sbmMaturityLevel(floatval($currentCycle['overall_score'] ?? 0)); ?>
-        <div class="kpi-mini-val" style="color:<?= $mat['color'] ?>;"><?= $currentCycle['overall_score'] ? $currentCycle['overall_score'].'%' : '—' ?></div>
-        <div class="kpi-mini-lbl">Current SBM Score</div>
+        <?php if ($currentCycle):
+          $mat = sbmMaturityLevel(floatval($currentCycle['overall_score'] ?? 0)); ?>
+          <div class="kpi-mini-val" style="color:<?= $mat['color'] ?>;">
+            <?= $currentCycle['overall_score'] ? $currentCycle['overall_score'] . '%' : '—' ?></div>
+          <div class="kpi-mini-lbl">Current SBM Score</div>
         <?php else: ?>
-        <div class="kpi-mini-val">—</div><div class="kpi-mini-lbl">SBM Score</div>
+          <div class="kpi-mini-val">—</div>
+          <div class="kpi-mini-lbl">SBM Score</div>
         <?php endif; ?>
       </div>
     </div>
 
-    <?php if($currentCycle): ?>
-    <div class="card">
-      <div class="card-head"><span class="card-title">Current Assessment</span></div>
-      <div class="card-body" style="padding:14px 18px;">
-        <div class="flex-cb"><span style="font-size:13px;color:var(--n-500);">School Year</span><strong><?= e($currentCycle['label']) ?></strong></div>
-        <div class="flex-cb" style="margin-top:8px;"><span style="font-size:13px;color:var(--n-500);">Status</span><span class="pill pill-<?= e($currentCycle['status']) ?>"><?= ucfirst(str_replace('_',' ',$currentCycle['status'])) ?></span></div>
-        <?php if($currentCycle['maturity_level']): ?>
-        <div class="flex-cb" style="margin-top:8px;"><span style="font-size:13px;color:var(--n-500);">Maturity Level</span><?= sbmMaturityBadge($currentCycle['maturity_level']) ?></div>
-        <?php endif; ?>
-        <div style="margin-top:12px;">
-          <a href="self_assessment.php" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;"><?= svgIcon('eye') ?> View Assessment</a>
+    <?php if ($currentCycle): ?>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Current Assessment</span></div>
+        <div class="card-body" style="padding:14px 18px;">
+          <div class="flex-cb"><span style="font-size:13px;color:var(--n-500);">School
+              Year</span><strong><?= e($currentCycle['label']) ?></strong></div>
+          <div class="flex-cb" style="margin-top:8px;"><span style="font-size:13px;color:var(--n-500);">Status</span><span
+              class="pill pill-<?= e($currentCycle['status']) ?>"><?= ucfirst(str_replace('_', ' ', $currentCycle['status'])) ?></span>
+          </div>
+          <?php if ($currentCycle['maturity_level']): ?>
+            <div class="flex-cb" style="margin-top:8px;"><span style="font-size:13px;color:var(--n-500);">Maturity
+                Level</span><?= sbmMaturityBadge($currentCycle['maturity_level']) ?></div>
+          <?php endif; ?>
+          <div style="margin-top:12px;">
+            <a href="self_assessment.php" class="btn btn-primary btn-sm"
+              style="width:100%;justify-content:center;"><?= svgIcon('eye') ?> View Assessment</a>
+          </div>
         </div>
       </div>
-    </div>
     <?php endif; ?>
   </div>
 </div>
 
 <!-- Edit Modal — School Head can only edit operational fields -->
 <div class="overlay" id="mEdit">
-  <div class="modal" style="max-width:520px;">
+  <div class="modal" style="max-width:540px;max-height:none;overflow-y:visible;">
     <div class="modal-head">
       <span class="modal-title">Edit School Profile</span>
       <button class="modal-close" onclick="closeModal('mEdit')"><?= svgIcon('x') ?></button>
@@ -202,20 +212,26 @@ include __DIR__ . '/../includes/header.php';
         </div>
         <div style="font-size:13px;color:var(--n-600);">
           <strong>School Name:</strong> <?= e($school['school_name']) ?><br>
-          <strong>DepEd ID:</strong> <?= e($school['school_id_deped'] ?? '—') ?>  &nbsp;·&nbsp;
+          <strong>DepEd ID:</strong> <?= e($school['school_id_deped'] ?? '—') ?> &nbsp;·&nbsp;
           <strong>Classification:</strong> <?= e($school['classification']) ?>
         </div>
       </div>
 
-      <div class="fg"><label>School Head Name</label><input class="fc" id="s_head" value="<?= e($school['school_head_name'] ?? '') ?>"></div>
-      <div class="fg"><label>Address</label><input class="fc" id="s_addr" value="<?= e($school['address'] ?? '') ?>"></div>
-      <div class="form-row">
-        <div class="fg"><label>Contact No.</label><input class="fc" id="s_contact" value="<?= e($school['contact_no'] ?? '') ?>"></div>
-        <div class="fg"><label>Email</label><input class="fc" type="email" id="s_email" value="<?= e($school['email'] ?? '') ?>"></div>
+      <div class="fg"><label>School Head Name</label><input class="fc" id="s_head"
+          value="<?= e($school['school_head_name'] ?? '') ?>"></div>
+      <div class="fg"><label>Address</label><input class="fc" id="s_addr" value="<?= e($school['address'] ?? '') ?>">
       </div>
       <div class="form-row">
-        <div class="fg"><label>Total Enrollment</label><input class="fc" type="number" id="s_enroll" value="<?= $school['total_enrollment'] ?>"></div>
-        <div class="fg"><label>Total Teachers</label><input class="fc" type="number" id="s_teachers" value="<?= $school['total_teachers'] ?>"></div>
+        <div class="fg"><label>Contact No.</label><input class="fc" id="s_contact"
+            value="<?= e($school['contact_no'] ?? '') ?>"></div>
+        <div class="fg"><label>Email</label><input class="fc" type="email" id="s_email"
+            value="<?= e($school['email'] ?? '') ?>"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Total Enrollment</label><input class="fc" type="number" id="s_enroll"
+            value="<?= $school['total_enrollment'] ?>"></div>
+        <div class="fg"><label>Total Teachers</label><input class="fc" type="number" id="s_teachers"
+            value="<?= $school['total_teachers'] ?>"></div>
       </div>
     </div>
     <div class="modal-foot">
@@ -227,72 +243,72 @@ include __DIR__ . '/../includes/header.php';
 
 <script>
 
-// ── Live teacher count polling ─────────────────────────────
-(function startTeacherCountPolling() {
-  const BASE = '<?= baseUrl() ?>';
+  // ── Live teacher count polling ─────────────────────────────
+  (function startTeacherCountPolling() {
+    const BASE = '<?= baseUrl() ?>';
 
-  async function fetchCount() {
-    try {
-      const res  = await fetch(BASE + '/includes/get_teacher_count.php');
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!data.ok) return;
+    async function fetchCount() {
+      try {
+        const res = await fetch(BASE + '/includes/get_teacher_count.php');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.ok) return;
 
-      // Update total count
-      const totalEl = document.getElementById('liveTeacherCount');
-      if (totalEl) {
-        const prev = parseInt(totalEl.textContent, 10);
-        if (prev !== data.total_teachers) {
-          totalEl.textContent = data.total_teachers;
-          flashEl(totalEl);
+        // Update total count
+        const totalEl = document.getElementById('liveTeacherCount');
+        if (totalEl) {
+          const prev = parseInt(totalEl.textContent, 10);
+          if (prev !== data.total_teachers) {
+            totalEl.textContent = data.total_teachers;
+            flashEl(totalEl);
+          }
         }
-      }
 
-      // Update active sub-label
-      const activeSubEl = document.getElementById('liveTeacherActive');
-      if (activeSubEl) {
-        activeSubEl.textContent = data.active_teachers + ' active';
-      }
-
-      // Update "Active in Portal" card
-      const activeEl = document.getElementById('liveActiveTeachers');
-      if (activeEl) {
-        const prev = parseInt(activeEl.textContent, 10);
-        if (prev !== data.active_teachers) {
-          activeEl.textContent = data.active_teachers;
-          flashEl(activeEl);
+        // Update active sub-label
+        const activeSubEl = document.getElementById('liveTeacherActive');
+        if (activeSubEl) {
+          activeSubEl.textContent = data.active_teachers + ' active';
         }
-      }
 
-    } catch (e) {
-      // Silently ignore network errors between polls
+        // Update "Active in Portal" card
+        const activeEl = document.getElementById('liveActiveTeachers');
+        if (activeEl) {
+          const prev = parseInt(activeEl.textContent, 10);
+          if (prev !== data.active_teachers) {
+            activeEl.textContent = data.active_teachers;
+            flashEl(activeEl);
+          }
+        }
+
+      } catch (e) {
+        // Silently ignore network errors between polls
+      }
     }
+
+    // Flash animation to signal an update
+    function flashEl(el) {
+      el.style.transition = 'color 0.3s ease';
+      el.style.color = 'var(--brand-600)';
+      setTimeout(() => { el.style.color = ''; }, 1400);
+    }
+
+    // Poll every 10 seconds
+    fetchCount(); // immediate first call
+    setInterval(fetchCount, 10000);
+  })();
+
+  async function saveProfile() {
+    const r = await apiPost('school_profile.php', {
+      action: 'save',
+      school_head_name: $('s_head'),
+      address: $('s_addr'),
+      contact_no: $('s_contact'),
+      email: $('s_email'),
+      total_enrollment: $('s_enroll'),
+      total_teachers: $('s_teachers'),
+    });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) { closeModal('mCreate');['c_name', 'c_user', 'c_email', 'c_pass'].forEach(id => $v(id, '')); setTimeout(() => location.reload(), 800); }
   }
-
-  // Flash animation to signal an update
-  function flashEl(el) {
-    el.style.transition = 'color 0.3s ease';
-    el.style.color = 'var(--brand-600)';
-    setTimeout(() => { el.style.color = ''; }, 1400);
-  }
-
-  // Poll every 10 seconds
-  fetchCount(); // immediate first call
-  setInterval(fetchCount, 10000);
-})();
-
-async function saveProfile() {
-  const r = await apiPost('school_profile.php', {
-    action:           'save',
-    school_head_name: $('s_head'),
-    address:          $('s_addr'),
-    contact_no:       $('s_contact'),
-    email:            $('s_email'),
-    total_enrollment: $('s_enroll'),
-    total_teachers:   $('s_teachers'),
-  });
-  toast(r.msg, r.ok ? 'ok' : 'err');
-  if(r.ok){closeModal('mCreate');['c_name','c_user','c_email','c_pass'].forEach(id=>$v(id,''));setTimeout(()=>location.reload(),800);}
-}
 </script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
