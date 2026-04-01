@@ -79,9 +79,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $chk->execute([$indicatorId]);
       $indicatorCode = $chk->fetchColumn();
 
-      if (in_array($indicatorCode, TEACHER_INDICATOR_CODES)) {
-        echo json_encode(['ok' => false, 'msg' => 'This indicator is answered by teachers.']);
-        exit;
+      // Block only pure teacher-only indicators (not shared SH+Teacher ones)
+      if (in_array($indicatorCode, TEACHER_INDICATOR_CODES) && !in_array($indicatorCode, SH_ONLY_INDICATOR_CODES === [] ? [] : array_diff(TEACHER_INDICATOR_CODES, SH_ONLY_INDICATOR_CODES))) {
+        // Check if this is a shared indicator (appears in both SH and teacher roles)
+        $sharedCodes = array_diff(TEACHER_INDICATOR_CODES, SH_ONLY_INDICATOR_CODES);
+        if (!in_array($indicatorCode, $sharedCodes)) {
+          echo json_encode(['ok' => false, 'msg' => 'This indicator is answered by teachers only.']);
+          exit;
+        }
       }
 
       $cycleStmt = $db->prepare("SELECT cycle_id, school_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?");
@@ -146,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $chk = $db->prepare("SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?");
       $chk->execute([$indicatorId]);
       $indicatorCode = $chk->fetchColumn();
-      if (in_array($indicatorCode, TEACHER_INDICATOR_CODES)) {
+      if (!in_array($indicatorCode, SH_ONLY_INDICATOR_CODES) && in_array($indicatorCode, TEACHER_INDICATOR_CODES)) {
         echo json_encode(['ok' => false, 'msg' => 'Cannot clear a teacher indicator.']);
         exit;
       }
@@ -251,23 +256,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
       // Count SH-only indicators
       $ph = buildInPlaceholders(TEACHER_INDICATOR_CODES);
+      // SH must answer: SH_ONLY indicators + shared (teacher codes not in SH_ONLY are teacher-only)
+      $shAnswerableCodes = SH_ONLY_INDICATOR_CODES;
+      $ph = buildInPlaceholders($shAnswerableCodes);
       $shOnlyStmt = $db->prepare("
     SELECT COUNT(*) FROM sbm_indicators
     WHERE is_active = 1
-      AND indicator_code NOT IN ($ph)
+      AND indicator_code IN ($ph)
 ");
-      $shOnlyStmt->execute(TEACHER_INDICATOR_CODES);
+      $shOnlyStmt->execute($shAnswerableCodes);
       $expected = (int) $shOnlyStmt->fetchColumn();
 
-      $ph = buildInPlaceholders(TEACHER_INDICATOR_CODES);
       $shDoneStmt = $db->prepare("
     SELECT COUNT(*) FROM sbm_responses r
     JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
     WHERE r.cycle_id = ?
       AND i.is_active = 1
-      AND i.indicator_code NOT IN ($ph)
+      AND i.indicator_code IN ($ph)
 ");
-      $shDoneStmt->execute(array_merge([$cyc['cycle_id']], TEACHER_INDICATOR_CODES));
+      $shDoneStmt->execute(array_merge([$cyc['cycle_id']], $shAnswerableCodes));
       $cnt = (int) $shDoneStmt->fetchColumn();
 
       if ($cnt < $expected) {
@@ -334,7 +341,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $chk->execute([$indicatorId]);
       $code = $chk->fetchColumn();
 
-      if (!in_array($code, TEACHER_INDICATOR_CODES)) {
+      // Only pure teacher-only indicators can be overridden (not SH-only or shared)
+      if (!in_array($code, TEACHER_INDICATOR_CODES) || in_array($code, SH_ONLY_INDICATOR_CODES)) {
         echo json_encode(['ok' => false, 'msg' => 'This indicator is not a teacher indicator.']);
         exit;
       }
@@ -423,7 +431,10 @@ function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId,
   $maxTotal = 0;
 
   foreach ($inds as $ind) {
-    $isTeacher = in_array($ind['indicator_code'], TEACHER_INDICATOR_CODES);
+    // An indicator is "teacher-handled" if it's in TEACHER_INDICATOR_CODES
+    // but NOT in SH_ONLY_INDICATOR_CODES (pure SH indicators)
+    $isTeacher = in_array($ind['indicator_code'], TEACHER_INDICATOR_CODES)
+      && !in_array($ind['indicator_code'], SH_ONLY_INDICATOR_CODES);
 
     if ($isTeacher) {
       $ov = $db->prepare("SELECT override_rating FROM sh_indicator_overrides WHERE cycle_id=? AND indicator_id=?");
@@ -509,12 +520,19 @@ $ratingColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A']
 $isLocked = $cycle && in_array($cycle['status'], ['submitted', 'validated']);
 
 // SH-only indicators + teacher indicators that HAVE an override
-$shIndicators = array_filter($indicators, fn($i) => !in_array($i['indicator_code'], TEACHER_INDICATOR_CODES));
+// SH answers SH_ONLY indicators (teacher-only shared indicators are handled by teachers)
+$shIndicators = array_filter($indicators, fn($i) => in_array($i['indicator_code'], SH_ONLY_INDICATOR_CODES));
 $shResponded = count(array_filter($shIndicators, fn($i) => isset($responses[$i['indicator_id']])));
 $shTotal = count($shIndicators);
 
 // Teacher indicators that the School Head has overridden
-$teacherIndicators = array_filter($indicators, fn($i) => in_array($i['indicator_code'], TEACHER_INDICATOR_CODES));
+// Teacher-only = in TEACHER_INDICATOR_CODES but not SH_ONLY
+$teacherIndicators = array_filter(
+  $indicators,
+  fn($i) =>
+  in_array($i['indicator_code'], TEACHER_INDICATOR_CODES) &&
+  !in_array($i['indicator_code'], SH_ONLY_INDICATOR_CODES)
+);
 $overridenCount = count(array_filter($teacherIndicators, fn($i) => isset($overrides[$i['indicator_id']])));
 
 $totalDone = count($responses);
@@ -1145,12 +1163,12 @@ include __DIR__ . '/../includes/header.php';
       </div>
 
       <?php if ($overridenCount > 0): ?>
-      <div style="font-size:11.5px;color:var(--n500);display:flex;align-items:center;gap:5px;margin-bottom:12px;">
-         <svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" style="width:13px;height:13px;">
-           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-         </svg>
-         You have overriden <strong><?= $overridenCount ?></strong> teacher response<?= $overridenCount > 1 ? 's' : '' ?>.
-      </div>
+        <div style="font-size:11.5px;color:var(--n500);display:flex;align-items:center;gap:5px;margin-bottom:12px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" style="width:13px;height:13px;">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+          You have overriden <strong><?= $overridenCount ?></strong> teacher response<?= $overridenCount > 1 ? 's' : '' ?>.
+        </div>
       <?php endif; ?>
 
       <!-- Completion message — hidden until 100% -->
@@ -1342,7 +1360,10 @@ include __DIR__ . '/../includes/header.php';
           $resp = $responses[$ind['indicator_id']] ?? null;
           $rated = $resp !== null;
           $isTeacher = in_array($ind['indicator_code'], TEACHER_INDICATOR_CODES);
-          $role = $isTeacher ? 'teacher' : 'sh';
+          // data-role: 'teacher' if pure teacher-only, 'sh' if SH-only
+          // shared indicators appear in teacher portal only for rating,
+          // SH sees them as read-only teacher boxes
+          $role = ($isTeacher && !in_array($ind['indicator_code'], SH_ONLY_INDICATOR_CODES)) ? 'teacher' : 'sh';
           $trData = $teacherData[$ind['indicator_id']] ?? null;
           ?>
 

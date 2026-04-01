@@ -295,59 +295,84 @@ define('SBM_MATURITY', [
 ]);
 
 // ── Indicators that only Teachers can answer ──────────────────
+// Indicators Teachers can answer (Teacher-only + Shared SH+Teacher)
 define('TEACHER_INDICATOR_CODES', [
+    // Dimension 1 — Teacher only
     '1.4',
     '1.5',
     '1.6',
+    // Dimension 1 — Shared (SH + Teacher)
+    '1.1',
+    '1.2',
     '1.7',
-    '1.8',             // Dimension 1
-    '2.1',
-    '2.2',
+    // Dimension 2 — Shared (SH + Teacher)
     '2.3',
     '2.4',
     '2.9',
-    '2.10',     // Dimension 2
-    '3.1',
-    '3.2',
-    '3.3',                            // Dimension 3
+    // Dimension 2 — Shared (SH + Teacher + External)
+    '2.1',
+    '2.2',
+    // Dimension 3 — Shared (SH + Teacher)
+    '3.3',
+    // Dimension 4 — Shared (SH + Teacher)
     '4.2',
-    '4.6',                                   // Dimension 4
+    // Dimension 5 — Shared (SH + Teacher)
     '5.1',
-    '5.2',
     '5.3',
-    '5.4',                    // Dimension 5
+    '5.4',
     '5.5',
     '5.6',
     '5.7',
-    '6.1',
-    '6.2',
+    // Dimension 6 — Shared (SH + Teacher + External)
     '6.3',
     '6.4',
-    '6.5',             // Dimension 6
+    '6.5',
+    // Dimension 6 — Shared (SH + Teacher)
+    '6.1',
+    '6.2',
 ]);
 
+// Indicators External Stakeholders can answer
 define('STAKEHOLDER_INDICATOR_CODES', [
-    '1.8',                                          // Dimension 1
-    '2.1',
-    '2.2',
-    '2.3',
+    // Dimension 1 — Shared (SH + External)
+    '1.8',
+    // Dimension 2 — Shared (SH + External)
     '2.4',
     '2.5',
-    '2.6',     // Dimension 2
-    '2.7',
-    '2.10',
-    '3.1',
-    '3.2',                                   // Dimension 3
+    // Dimension 2 — Shared (SH + Teacher + External)
+    '2.1',
+    '2.2',
+    // Dimension 3 — Shared (SH + External)
+    '3.2',
+    // Dimension 3 — Shared (SH + Teacher + External) — note: image 3 shows 3.4 as SH+External, mapped to code 4.1
     '4.1',
+    // Dimension 4 — Shared (SH + External)
     '4.3',
     '4.4',
     '4.5',
-    '4.7',            // Dimension 4
-    '6.1',
-    '6.2',
+    // Dimension 6 — Shared (SH + Teacher + External)
     '6.3',
-    '6.4',                    // Dimension 6
+    '6.4',
     '6.5',
+]);
+
+// Indicators that ONLY SH/SBM Coordinator can answer (no teacher, no stakeholder)
+define('SH_ONLY_INDICATOR_CODES', [
+    // Dimension 1
+    '1.3',
+    // Dimension 2
+    '2.6',
+    '2.7',
+    '2.8',
+    // Dimension 3
+    '3.1',
+    // Dimension 4
+    '4.2',
+    '4.6',
+    '4.7',
+    // Dimension 5
+    '5.2',
+    // Dimension 6
     '6.6',
     '6.7',
 ]);
