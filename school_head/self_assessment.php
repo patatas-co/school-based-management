@@ -184,18 +184,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
       $db->prepare("UPDATE sbm_dimension_scores SET raw_score=0,max_score=0,percentage=0,computed_at=NOW()
               WHERE cycle_id=? AND dimension_id=?")
-        ->execute([$cycleRow['cycle_id'], $dimId]);
+        ->execute([$cycleRow['cycle_id'], (int) $_POST['dimension_id']]);
 
       // Recompute from scratch using any remaining teacher responses
+      $clearDimId = (int) $_POST['dimension_id'];
       $anyInd = $db->prepare("SELECT indicator_id FROM sbm_indicators WHERE dimension_id=? AND is_active=1 LIMIT 1");
-      $anyInd->execute([$dimId]);
+      $anyInd->execute([$clearDimId]);
       $anyIndId = $anyInd->fetchColumn();
       if ($anyIndId) {
         recomputeDimScoreWithOverrides($db, $cycleRow['cycle_id'], $anyIndId, $schoolId);
       }
 
       $indIds = $db->prepare("SELECT indicator_id FROM sbm_indicators WHERE dimension_id=? AND is_active=1");
-      $indIds->execute([$dimId]);
+      $indIds->execute([(int) $_POST['dimension_id']]);
       $indIds = $indIds->fetchAll(PDO::FETCH_COLUMN);
 
       echo json_encode(['ok' => true, 'msg' => 'All ratings cleared for this dimension.', 'indicator_ids' => $indIds]);

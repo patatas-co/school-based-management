@@ -5,37 +5,42 @@ date_default_timezone_set('Asia/Manila');
 $envFile = dirname(__DIR__) . '/.env';
 if (file_exists($envFile)) {
     foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
-        if (!$line || strncmp(ltrim($line), '#', 1) === 0 || strpos($line, '=') === false) continue;
+        if (!$line || strncmp(ltrim($line), '#', 1) === 0 || strpos($line, '=') === false)
+            continue;
         [$k, $v] = array_map('trim', explode('=', $line, 2));
-$v = preg_replace('/\s+#.*$/', '', $v);
-$v = trim($v, '"\'');
-// Strip spaces from password fields (App Passwords are space-free)
-if (substr($k, -5) === '_PASS' || substr($k, -9) === '_PASSWORD') {
-    $v = str_replace(' ', '', $v);
-}
-$_ENV[$k] = $v;
+        $v = preg_replace('/\s+#.*$/', '', $v);
+        $v = trim($v, '"\'');
+        // Strip spaces from password fields (App Passwords are space-free)
+        if (substr($k, -5) === '_PASS' || substr($k, -9) === '_PASSWORD') {
+            $v = str_replace(' ', '', $v);
+        }
+        $_ENV[$k] = $v;
     }
 }
 
-if (session_status() === PHP_SESSION_NONE) session_start();
+if (session_status() === PHP_SESSION_NONE)
+    session_start();
 
-define('DB_HOST',    $_ENV['SBM_DB_HOST']    ?? 'localhost');
-define('DB_USER',    $_ENV['SBM_DB_USER']    ?? 'root');
-define('DB_PASS',    $_ENV['SBM_DB_PASS']    ?? '');
-define('DB_NAME',    $_ENV['SBM_DB_NAME']    ?? 'sbm_db');
-define('SITE_NAME',  $_ENV['SBM_SITE_NAME']  ?? 'Dasmariñas Integrated High School SBM Online Monitoring System');
+define('DB_HOST', $_ENV['SBM_DB_HOST'] ?? 'localhost');
+define('DB_USER', $_ENV['SBM_DB_USER'] ?? 'root');
+define('DB_PASS', $_ENV['SBM_DB_PASS'] ?? '');
+define('DB_NAME', $_ENV['SBM_DB_NAME'] ?? 'sbm_db');
+define('SITE_NAME', $_ENV['SBM_SITE_NAME'] ?? 'Dasmariñas Integrated High School SBM Online Monitoring System');
 define('SITE_SHORT', $_ENV['SBM_SITE_SHORT'] ?? 'DIHS SBM Portal');
 
 if (!defined('SCHOOL_ID')) {
-    define('SCHOOL_ID', (int)($_SESSION['school_id'] ?? 1));
+    if (session_status() === PHP_SESSION_NONE)
+        session_start();
+    define('SCHOOL_ID', (int) ($_SESSION['school_id'] ?? 1));
 }
 
-define('SCHOOL_NAME','Dasmariñas Integrated High School');
+define('SCHOOL_NAME', 'Dasmariñas Integrated High School');
 define('SCHOOL_DEPED_ID', '301143');
 define('SCHOOL_ADDRESS', 'Dasmariñas City, Cavite');
 define('SCHOOL_HEAD', 'Maria Santos');
 
-function getDB(): PDO {
+function getDB(): PDO
+{
     static $pdo = null;
     if ($pdo !== null) {
         try {
@@ -46,11 +51,11 @@ function getDB(): PDO {
         }
     }
     if ($pdo === null) {
-        $dsn = "mysql:host=".DB_HOST.";dbname=".DB_NAME.";charset=utf8mb4";
+        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
         $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
+            PDO::ATTR_EMULATE_PREPARES => false,
         ]);
         $pdo->exec("SET time_zone = '+08:00'");
     }

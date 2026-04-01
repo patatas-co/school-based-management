@@ -162,7 +162,8 @@ include __DIR__ . '/../includes/header.php';
         <?php if ($currentCycle):
           $mat = sbmMaturityLevel(floatval($currentCycle['overall_score'] ?? 0)); ?>
           <div class="kpi-mini-val" style="color:<?= $mat['color'] ?>;">
-            <?= $currentCycle['overall_score'] ? $currentCycle['overall_score'] . '%' : '—' ?></div>
+            <?= $currentCycle['overall_score'] ? $currentCycle['overall_score'] . '%' : '—' ?>
+          </div>
           <div class="kpi-mini-lbl">Current SBM Score</div>
         <?php else: ?>
           <div class="kpi-mini-val">—</div>
@@ -308,7 +309,7 @@ include __DIR__ . '/../includes/header.php';
       total_teachers: $('s_teachers'),
     });
     toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) { closeModal('mCreate');['c_name', 'c_user', 'c_email', 'c_pass'].forEach(id => $v(id, '')); setTimeout(() => location.reload(), 800); }
+    if (r.ok) { closeModal('mEdit'); setTimeout(() => location.reload(), 800); }
   }
 </script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
