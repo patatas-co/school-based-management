@@ -475,7 +475,27 @@ $roleLabels = [
         <div style="margin-top:10px;font-size:11px;color:var(--n-400);">Valid roles: school_head · sbm_coordinator ·
           teacher · external_stakeholder</div>
       </div>
-      <div class="fg"><label>CSV File</label><input type="file" class="fc" id="csvFile" accept=".csv"></div>
+      <div class="fg">
+        <label>CSV File</label>
+        <label for="csvFile" id="csvFileLabel"
+          style="display:flex;align-items:center;gap:10px;padding:9px 14px;border:1.5px dashed var(--n-300);border-radius:8px;background:var(--n-50);cursor:pointer;transition:all .15s;">
+          <span
+            style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#fff;border:1px solid var(--n-200);border-radius:6px;font-size:12.5px;font-weight:600;color:var(--n-700);white-space:nowrap;box-shadow:var(--shadow-xs);">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Choose File
+          </span>
+          <span id="csvFileName"
+            style="font-size:13px;color:var(--n-400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">No file
+            chosen</span>
+        </label>
+        <input type="file" id="csvFile" accept=".csv" style="display:none;"
+          onchange="document.getElementById('csvFileName').textContent = this.files[0]?.name || 'No file chosen'; document.getElementById('csvFileName').style.color = this.files[0] ? 'var(--n-800)' : 'var(--n-400)';">
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-secondary" onclick="closeModal('mImport')">Cancel</button>

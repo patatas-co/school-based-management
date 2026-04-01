@@ -847,26 +847,6 @@ CREATE TABLE `system_config` (
 
 -- --------------------------------------------------------
 
---
--- Table structure for table `ta_requests`
---
-
-CREATE TABLE `ta_requests` (
-  `request_id` int(11) NOT NULL,
-  `school_id` int(11) NOT NULL,
-  `cycle_id` int(11) NOT NULL,
-  `requested_by` int(11) NOT NULL,
-  `sdo_user_id` int(11) DEFAULT NULL,
-  `dimension_ids` varchar(255) DEFAULT NULL,
-  `concern` text NOT NULL,
-  `preferred_date` date DEFAULT NULL,
-  `scheduled_date` date DEFAULT NULL,
-  `completed_date` date DEFAULT NULL,
-  `status` enum('pending','acknowledged','scheduled','completed','declined') DEFAULT 'pending',
-  `sdo_response` text DEFAULT NULL,
-  `agreed_actions` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -1386,14 +1366,6 @@ ALTER TABLE `system_config`
   ADD PRIMARY KEY (`config_id`),
   ADD UNIQUE KEY `config_key` (`config_key`);
 
---
--- Indexes for table `ta_requests`
---
-ALTER TABLE `ta_requests`
-  ADD PRIMARY KEY (`request_id`),
-  ADD KEY `school_id` (`school_id`),
-  ADD KEY `cycle_id` (`cycle_id`),
-  ADD KEY `requested_by` (`requested_by`);
 
 --
 -- Indexes for table `teacher_indicator_assignments`
@@ -1611,11 +1583,6 @@ ALTER TABLE `stakeholder_submissions`
 ALTER TABLE `system_config`
   MODIFY `config_id` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT for table `ta_requests`
---
-ALTER TABLE `ta_requests`
-  MODIFY `request_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `teacher_indicator_assignments`
@@ -1808,13 +1775,6 @@ ALTER TABLE `stakeholder_submissions`
   ADD CONSTRAINT `stakeholder_submissions_ibfk_3` FOREIGN KEY (`school_id`) REFERENCES `schools` (`school_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `stakeholder_submissions_ibfk_4` FOREIGN KEY (`sy_id`) REFERENCES `school_years` (`sy_id`) ON DELETE CASCADE;
 
---
--- Constraints for table `ta_requests`
---
-ALTER TABLE `ta_requests`
-  ADD CONSTRAINT `ta_requests_ibfk_1` FOREIGN KEY (`school_id`) REFERENCES `schools` (`school_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `ta_requests_ibfk_2` FOREIGN KEY (`cycle_id`) REFERENCES `sbm_cycles` (`cycle_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `ta_requests_ibfk_3` FOREIGN KEY (`requested_by`) REFERENCES `users` (`user_id`);
 
 --
 -- Constraints for table `teacher_indicator_assignments`

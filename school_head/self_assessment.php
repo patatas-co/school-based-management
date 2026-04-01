@@ -453,6 +453,7 @@ function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId,
     }
   }
 
+  $rawTotal = round($rawTotal, 2);
   $pct = $maxTotal > 0 ? round(($rawTotal / $maxTotal) * 100, 2) : 0;
 
   $db->prepare("
@@ -507,10 +508,15 @@ $ratingColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A']
 
 $isLocked = $cycle && in_array($cycle['status'], ['submitted', 'validated']);
 
-// SH-only indicator counts (for progress bar and submit button)
+// SH-only indicators + teacher indicators that HAVE an override
 $shIndicators = array_filter($indicators, fn($i) => !in_array($i['indicator_code'], TEACHER_INDICATOR_CODES));
 $shResponded = count(array_filter($shIndicators, fn($i) => isset($responses[$i['indicator_id']])));
 $shTotal = count($shIndicators);
+
+// Teacher indicators that the School Head has overridden
+$teacherIndicators = array_filter($indicators, fn($i) => in_array($i['indicator_code'], TEACHER_INDICATOR_CODES));
+$overridenCount = count(array_filter($teacherIndicators, fn($i) => isset($overrides[$i['indicator_id']])));
+
 $totalDone = count($responses);
 $totalCount = count($indicators);
 $shCount = count($shIndicators);
@@ -1138,6 +1144,15 @@ include __DIR__ . '/../includes/header.php';
         </div>
       </div>
 
+      <?php if ($overridenCount > 0): ?>
+      <div style="font-size:11.5px;color:var(--n500);display:flex;align-items:center;gap:5px;margin-bottom:12px;">
+         <svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" style="width:13px;height:13px;">
+           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+         </svg>
+         You have overriden <strong><?= $overridenCount ?></strong> teacher response<?= $overridenCount > 1 ? 's' : '' ?>.
+      </div>
+      <?php endif; ?>
+
       <!-- Completion message — hidden until 100% -->
       <div id="shCompleteMsg" style="display:<?= $shResponded >= $shTotal && $shTotal > 0 ? 'flex' : 'none' ?>;
                 align-items:center;gap:7px;
@@ -1427,17 +1442,18 @@ include __DIR__ . '/../includes/header.php';
                   <?php if ($trData && (int) $trData['teacher_count'] > 0): ?>
                     <div class="teacher-info-title">
                       Teacher Average:
-                      <span class="teacher-avg-rating" style="<?= $hasOverride
-                        ? 'text-decoration:line-through;
-                                opacity:.5;color:var(--n500);'
-                        : '' ?>">
-                        <?= $trData['avg_rating'] ?>/4.00
-                      </span>
                       <?php if ($hasOverride): ?>
-                        <span style="margin-left:8px;color:var(--gold);
-                         font-weight:800;">
-                          → Overridden: <?= $ovData['override_rating'] ?>/4
-                        </span>
+                        <div style="font-size:18px;font-weight:800;color:var(--gold);line-height:1.2;margin-bottom:2px;">
+                          <?= number_format($ovData['override_rating'], 2) ?>
+                          <span style="font-size:12px;opacity:.7;font-weight:600;"> (Overridden)</span>
+                        </div>
+                        <div style="font-size:12px;color:var(--n500);margin-bottom:4px;">
+                          Teacher Average: <span style="text-decoration:line-through;"><?= $trData['avg_rating'] ?></span>
+                        </div>
+                      <?php else: ?>
+                        <div class="teacher-avg-rating">
+                          <?= $trData['avg_rating'] ?>/4.00
+                        </div>
                       <?php endif; ?>
                     </div>
                     <div class="teacher-info-body">

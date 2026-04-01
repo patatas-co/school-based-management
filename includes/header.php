@@ -128,7 +128,7 @@ $__roleLabel = [
   'sbm_coordinator' => 'SBM Coordinator',
   'teacher' => 'Teacher / Evaluator',
   'external_stakeholder' => 'External Stakeholder',
-][$__role] ?? ucfirst($__role);
+][$__role] ?? ucwords(str_replace('_', ' ', $__role));
 
 // ── Role accent color ─────────────────────────────────────────
 $__roleColor = [

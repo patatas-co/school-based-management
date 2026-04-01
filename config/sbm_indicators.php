@@ -6,10 +6,10 @@
 define('SBM_DIMENSIONS', [
     1 => ['name' => 'Curriculum and Teaching', 'color' => '#2563EB', 'icon' => 'book', 'indicator_count' => 8],
     2 => ['name' => 'Learning Environment', 'color' => '#16A34A', 'icon' => 'home', 'indicator_count' => 10],
-    3 => ['name' => 'Leadership and Governance', 'color' => '#7C3AED', 'icon' => 'star', 'indicator_count' => 4],
-    4 => ['name' => 'Accountability and Continuous Improvement', 'color' => '#D97706', 'icon' => 'check-circle', 'indicator_count' => 6],
-    5 => ['name' => 'Human Resource Development', 'color' => '#DC2626', 'icon' => 'users', 'indicator_count' => 7],
-    6 => ['name' => 'Finance and Resource Management', 'color' => '#0D9488', 'icon' => 'dollar-sign', 'indicator_count' => 7],
+    3 => ['name' => 'Leadership', 'color' => '#7C3AED', 'icon' => 'star', 'indicator_count' => 3],
+    4 => ['name' => 'Governance and Accountability', 'color' => '#D97706', 'icon' => 'check-circle', 'indicator_count' => 7],
+    5 => ['name' => 'Human Resources and Team Development', 'color' => '#DC2626', 'icon' => 'users', 'indicator_count' => 7],
+    6 => ['name' => 'Finance and Resource Management and Mobilization', 'color' => '#0D9488', 'icon' => 'dollar-sign', 'indicator_count' => 7],
 ]);
 
 define('SBM_INDICATORS', [
@@ -17,49 +17,49 @@ define('SBM_INDICATORS', [
     [
         'code' => '1.1',
         'dim' => 1,
-        'text' => 'Grade 3 learners achieve the proficiency level for each cluster of early language, literacy, and numeracy skills ',
-        'mov' => 'MPS/proficiency data, class records, assessment results'
+        'text' => 'Grade 3 learners achieve the proficiency level for each cluster of early language, literacy, and numeracy skills.',
+        'mov' => 'MPS/proficiency data, class records, early language and literacy assessment results'
     ],
     [
         'code' => '1.2',
         'dim' => 1,
-        'text' => 'Learner proficiency rate in Grade 6 meets or exceeds the national target.',
-        'mov' => 'MPS/proficiency data, NAT results, class records'
+        'text' => 'Grade 6, 10, and 12 learners achieve the proficiency level in all 21st century skills and core learning areas in the National Achievement Test (NAT).',
+        'mov' => 'NAT results, MPS data, class records'
     ],
     [
         'code' => '1.3',
         'dim' => 1,
-        'text' => 'Learner proficiency rate in Grade 10 meets or exceeds the national target.',
-        'mov' => 'NAT/quarterly assessment results, class records'
+        'text' => 'School-based ALS learners attain certification as elementary and junior high school completers.',
+        'mov' => 'ALS completion certificates, enrollment and completion records'
     ],
     [
         'code' => '1.4',
         'dim' => 1,
-        'text' => 'Learner proficiency rate in Grade 12 or ALS completion rate meets or exceeds the national target.',
-        'mov' => 'NCAE results, ALS completion certificates, enrollment data'
+        'text' => 'Teachers prepare contextualized learning materials responsive to the needs of learners.',
+        'mov' => 'Developed contextualized LMs, LRMDS uploads, utilization records'
     ],
     [
         'code' => '1.5',
         'dim' => 1,
-        'text' => 'Results of NAT/PEPT/ALS A&E are analyzed and used to improve instructional programs.',
-        'mov' => 'Item analysis reports, LAC session minutes, action plans'
+        'text' => 'Teachers conduct remediation activities to address learning gaps in reading and comprehension, science and technology, and mathematics.',
+        'mov' => 'Remediation program designs, attendance records, monitoring reports'
     ],
     [
         'code' => '1.6',
         'dim' => 1,
-        'text' => 'Contextualized and localized learning materials (LM) are developed and used by teachers.',
-        'mov' => 'Developed LMs, LRMDS uploads, utilization records'
+        'text' => 'Teachers integrate topics promoting peace and DepEd core values.',
+        'mov' => 'Lesson plans, classroom observations, LAC session minutes'
     ],
     [
         'code' => '1.7',
         'dim' => 1,
-        'text' => 'Remediation, enhancement, and intervention programs are implemented for at-risk learners.',
-        'mov' => 'Program designs, attendance records, monitoring reports'
+        'text' => 'The school conducts test item analysis to inform its teaching and learning process.',
+        'mov' => 'Item analysis reports, action plans based on findings, LAC minutes'
     ],
     [
         'code' => '1.8',
         'dim' => 1,
-        'text' => 'TLE/TVL programs have active industry partnerships and produce certified graduates.',
+        'text' => 'The school engages local industries to strengthen its TLE-TVL course offerings.',
         'mov' => 'MOA with industry partners, NC/COC certificates, industry immersion records'
     ],
 
@@ -67,213 +67,213 @@ define('SBM_INDICATORS', [
     [
         'code' => '2.1',
         'dim' => 2,
-        'text' => 'The school has a zero-bullying policy that is implemented, monitored, and updated regularly.',
+        'text' => 'The school has zero bullying incidence.',
         'mov' => 'Anti-bullying policy, incident reports, monitoring logs'
     ],
     [
         'code' => '2.2',
         'dim' => 2,
-        'text' => 'Dropout rate is within the national target, with active early warning and intervention systems.',
-        'mov' => 'Enrollment/completion data, BEIS reports, intervention records'
+        'text' => 'The school has zero child abuse incidence.',
+        'mov' => 'CPC records, incident reports, referral documents'
     ],
     [
         'code' => '2.3',
         'dim' => 2,
-        'text' => 'Out-of-School Youth (OSY) re-entry programs and ALS are actively implemented.',
-        'mov' => 'OSY mapping, ALS enrollment records, completion reports'
+        'text' => 'The school has reduced its drop-out incidence.',
+        'mov' => 'Enrollment/completion data, BEIS reports, intervention records'
     ],
     [
         'code' => '2.4',
         'dim' => 2,
-        'text' => 'School activities are culture-sensitive, inclusive, and respectful of learner diversity.',
+        'text' => 'The school conducts culture-sensitive activities.',
         'mov' => 'Activity programs, photo documentation, feedback forms'
     ],
     [
         'code' => '2.5',
         'dim' => 2,
-        'text' => 'The Child Protection Committee (CPC) is organized, functional, and conducts regular activities.',
-        'mov' => 'CPC composition order, meeting minutes, activity reports'
+        'text' => 'The school provides access to learning experiences for the disadvantaged, OSYs, and adult learners.',
+        'mov' => 'OSY mapping, ALS enrollment records, inclusion program documents'
     ],
     [
         'code' => '2.6',
         'dim' => 2,
-        'text' => 'A Disaster Risk Reduction and Management (DRRM) plan is formulated, practiced, and updated.',
-        'mov' => 'DRRM plan, drill documentation, hazard maps'
+        'text' => 'The school has a functional school-based ALS program.',
+        'mov' => 'ALS program design, learner enrollment, completion reports'
     ],
     [
         'code' => '2.7',
         'dim' => 2,
-        'text' => 'Mental wellness programs for learners are implemented and monitored.',
-        'mov' => 'Wellness program design, referral records, accomplishment reports'
+        'text' => 'The school has a functional child-protection committee.',
+        'mov' => 'CPC composition order, meeting minutes, activity reports'
     ],
     [
         'code' => '2.8',
         'dim' => 2,
-        'text' => 'School facilities are accessible for learners with disabilities (SPED/PWD compliance).',
-        'mov' => 'Accessibility audit, ramp/facility photos, SPED program records'
+        'text' => 'The school has a functional DRRM plan.',
+        'mov' => 'DRRM plan, drill documentation, hazard maps'
     ],
     [
         'code' => '2.9',
         'dim' => 2,
-        'text' => 'Safe school environment audit is conducted and findings are addressed.',
-        'mov' => 'Safety audit checklist, action plans, repair/improvement records'
+        'text' => 'The school has a functional support mechanism for mental wellness.',
+        'mov' => 'Wellness program design, referral records, accomplishment reports'
     ],
     [
         'code' => '2.10',
         'dim' => 2,
-        'text' => 'Learners actively participate in school governance through SSG/SPG and other bodies.',
-        'mov' => 'SSG/SPG election records, meeting minutes, program reports'
+        'text' => 'The school has special education- and PWD-friendly facilities.',
+        'mov' => 'Accessibility audit, ramp/facility photos, SPED program records'
     ],
 
-    // ── DIMENSION 3: Leadership and Governance (4 indicators) ────────────────
+    // ── DIMENSION 3: Leadership (3 indicators) ────────────────────────────────
     [
         'code' => '3.1',
         'dim' => 3,
-        'text' => 'The School Improvement Plan (SIP) is developed collaboratively with all stakeholders and implemented.',
-        'mov' => 'SIP document, stakeholder attendance, accomplishment reports'
+        'text' => 'The school develops a strategic plan.',
+        'mov' => 'SIP/strategic plan document, stakeholder attendance, accomplishment reports'
     ],
     [
         'code' => '3.2',
         'dim' => 3,
-        'text' => 'A school-community planning team is established and functional.',
+        'text' => 'The school has a functional school-community planning team.',
         'mov' => 'Planning team composition, meeting minutes, activity reports'
     ],
     [
         'code' => '3.3',
         'dim' => 3,
-        'text' => 'SSG/SPG is organized, trained, and actively implements programs.',
+        'text' => 'The school has a functional Supreme Student Government/Supreme Pupil Government.',
         'mov' => 'SSG/SPG constitution, election records, program accomplishments'
     ],
-    [
-        'code' => '3.4',
-        'dim' => 3,
-        'text' => 'The school head implements innovations in frontline service delivery.',
-        'mov' => 'Innovation documentation, feedback/evaluation, impact data'
-    ],
 
-    // ── DIMENSION 4: Accountability and Continuous Improvement (6 indicators) ─
+    // ── DIMENSION 4: Governance and Accountability (7 indicators) ─────────────
     [
         'code' => '4.1',
         'dim' => 4,
-        'text' => 'School Governance Council (SGC) records are complete, updated, and actions are documented.',
-        'mov' => 'SGC composition order, meeting minutes, resolutions'
+        'text' => 'The school innovates in its provision of frontline services to stakeholders.',
+        'mov' => 'Innovation documentation, feedback/evaluation, impact data'
     ],
     [
         'code' => '4.2',
         'dim' => 4,
-        'text' => 'PTA is organized and actively engaged in school planning and monitoring.',
-        'mov' => 'PTA election records, meeting minutes, financial reports'
+        'text' => 'The school\'s strategic plan is operationalized through an implementation plan.',
+        'mov' => 'Implementation plan, accomplishment reports, M&E records'
     ],
     [
         'code' => '4.3',
         'dim' => 4,
-        'text' => 'Stakeholder partnerships (LGU, NGO, alumni, private sector) are documented and active.',
-        'mov' => 'MOA/MOU documents, partnership activity reports, resource contributions'
+        'text' => 'The school has a functional School Governance Council (SGC).',
+        'mov' => 'SGC composition order, meeting minutes, resolutions'
     ],
     [
         'code' => '4.4',
         'dim' => 4,
-        'text' => 'Monitoring and evaluation of school programs is conducted regularly with documented results.',
-        'mov' => 'M&E plan, monitoring reports, action plans based on findings'
+        'text' => 'The school has a functional Parent-Teacher Association (PTA).',
+        'mov' => 'PTA election records, meeting minutes, financial reports'
     ],
     [
         'code' => '4.5',
         'dim' => 4,
-        'text' => 'Stakeholder satisfaction survey is conducted and results are used for improvement.',
-        'mov' => 'Survey instrument, tabulated results, action plans'
+        'text' => 'The school collaborates with stakeholders and other schools in strengthening partnerships.',
+        'mov' => 'MOA/MOU documents, partnership activity reports, resource contributions'
     ],
     [
         'code' => '4.6',
         'dim' => 4,
-        'text' => 'Transparency board and public financial disclosures are updated and accessible.',
-        'mov' => 'Transparency board photos, disclosure documents, posting records'
+        'text' => 'The school monitors and evaluates its programs, projects, and activities.',
+        'mov' => 'M&E plan, monitoring reports, action plans based on findings'
+    ],
+    [
+        'code' => '4.7',
+        'dim' => 4,
+        'text' => 'The school maintains an average rating of satisfactory from its internal and external stakeholders.',
+        'mov' => 'Stakeholder satisfaction survey results, tabulated data, action plans'
     ],
 
-    // ── DIMENSION 5: Human Resource Development (7 indicators) ──────────────
+    // ── DIMENSION 5: Human Resources and Team Development (7 indicators) ──────
     [
         'code' => '5.1',
         'dim' => 5,
-        'text' => 'All teaching and non-teaching personnel accomplish IPCR/OPCR on time.',
-        'mov' => 'Signed IPCR/OPCR forms, summary rating sheets, submission records'
+        'text' => 'School personnel achieve an average rating of very satisfactory in the individual performance commitment and review.',
+        'mov' => 'Signed IPCR forms, summary rating sheets, submission records'
     ],
     [
         'code' => '5.2',
         'dim' => 5,
-        'text' => 'Learning Action Cells (LAC) sessions are conducted regularly with documented outcomes.',
-        'mov' => 'LAC session plan, attendance, minutes, action plans'
+        'text' => 'The school achieves an average rating of very satisfactory in the office performance commitment and review.',
+        'mov' => 'OPCR rating sheets, division evaluation results'
     ],
     [
         'code' => '5.3',
         'dim' => 5,
-        'text' => 'Teachers participate in professional development activities (trainings, seminars, scholarships).',
-        'mov' => 'Training certificates, individual development plans, PDO records'
+        'text' => 'The school conducts needs-based Learning Action Cells and Learning & Development activities.',
+        'mov' => 'LAC session plans, attendance, minutes, action plans, L&D records'
     ],
     [
         'code' => '5.4',
         'dim' => 5,
-        'text' => 'Employee recognition programs are implemented to motivate and reward outstanding performance.',
-        'mov' => 'Recognition program design, awarding documentation, photos'
+        'text' => 'The school facilitates the promotion and continuous professional development of its personnel.',
+        'mov' => 'Training certificates, individual development plans, PDO records'
     ],
     [
         'code' => '5.5',
         'dim' => 5,
-        'text' => 'Teacher workload is within prescribed limits and fairly distributed.',
-        'mov' => 'Teaching load summary, class schedule, assignment orders'
+        'text' => 'The school recognizes and rewards milestone achievements of its personnel.',
+        'mov' => 'Recognition program design, awarding documentation, photos'
     ],
     [
         'code' => '5.6',
         'dim' => 5,
-        'text' => 'HR development programs for non-teaching staff are implemented.',
-        'mov' => 'Capacity building plans, training records, accomplishment reports'
+        'text' => 'The school facilitates receipt of correct salaries, allowances, and other additional compensation in a timely manner.',
+        'mov' => 'Payroll records, DTR, allowance vouchers, personnel feedback'
     ],
     [
         'code' => '5.7',
         'dim' => 5,
-        'text' => 'Succession planning and talent management practices are in place.',
-        'mov' => 'Succession plan document, mentoring records, talent inventory'
+        'text' => 'Teacher workload is distributed fairly and equitably.',
+        'mov' => 'Teaching load summary, class schedule, assignment orders'
     ],
 
-    // ── DIMENSION 6: Finance and Resource Management (7 indicators) ──────────
+    // ── DIMENSION 6: Finance and Resource Management and Mobilization (7 indicators) ──
     [
         'code' => '6.1',
         'dim' => 6,
-        'text' => 'School facilities inventory is updated and submitted on time.',
-        'mov' => 'Facilities inventory form, submission acknowledgment, photos'
+        'text' => 'The school inspects its infrastructure and facilities.',
+        'mov' => 'Facilities inspection report, checklist, photos'
     ],
     [
         'code' => '6.2',
         'dim' => 6,
-        'text' => 'Infrastructure maintenance plan is implemented and documented.',
-        'mov' => 'Maintenance plan, work orders, accomplishment reports, photos'
+        'text' => 'The school initiates improvement of its infrastructure and facilities.',
+        'mov' => 'Maintenance/improvement plan, work orders, accomplishment reports, photos'
     ],
     [
         'code' => '6.3',
         'dim' => 6,
-        'text' => 'Water, electricity, and internet utilities are functional and adequate.',
-        'mov' => 'Utility bills, repair records, functionality assessment'
+        'text' => 'The school has a functional library.',
+        'mov' => 'Library inventory, acquisition records, utilization logs'
     ],
     [
         'code' => '6.4',
         'dim' => 6,
-        'text' => 'Library resources are adequate, updated, and accessible to all learners.',
-        'mov' => 'Library inventory, acquisition records, utilization logs'
+        'text' => 'The school has functional water, electricity, and internet facilities.',
+        'mov' => 'Utility bills, repair records, functionality assessment'
     ],
     [
         'code' => '6.5',
         'dim' => 6,
-        'text' => 'Laboratory equipment is functional, adequate, and used for instruction.',
+        'text' => 'The school has a functional computer laboratory/classroom.',
         'mov' => 'Lab inventory, equipment condition report, utilization records'
     ],
     [
         'code' => '6.6',
         'dim' => 6,
-        'text' => 'MOOE utilization rate reaches 100% with proper documentation.',
+        'text' => 'The school achieves a 75–100% utilization rate of its Maintenance and Other Operating Expenses (MOOE).',
         'mov' => 'MOOE liquidation reports, utilization matrix, COB vs. actual'
     ],
     [
         'code' => '6.7',
         'dim' => 6,
-        'text' => 'Liquidation reports are submitted on time and complete.',
+        'text' => 'The school liquidates 100% of its utilized MOOE.',
         'mov' => 'Liquidation reports, submission acknowledgments, COA records'
     ],
 ]);
@@ -300,22 +300,22 @@ define('TEACHER_INDICATOR_CODES', [
     '1.5',
     '1.6',
     '1.7',
-    '1.8',   // Dimension 1
+    '1.8',             // Dimension 1
     '2.1',
     '2.2',
     '2.3',
     '2.4',
-    '2.7',
-    '2.10',   // Dimension 2
+    '2.9',
+    '2.10',     // Dimension 2
     '3.1',
     '3.2',
-    '3.3',
-    '3.4',         // Dimension 3
-    '4.1',                            // Dimension 4
+    '3.3',                            // Dimension 3
+    '4.2',
+    '4.6',                                   // Dimension 4
     '5.1',
     '5.2',
     '5.3',
-    '5.4',         // Dimension 5
+    '5.4',                    // Dimension 5
     '5.5',
     '5.6',
     '5.7',
@@ -323,7 +323,7 @@ define('TEACHER_INDICATOR_CODES', [
     '6.2',
     '6.3',
     '6.4',
-    '6.5',  // Dimension 6
+    '6.5',             // Dimension 6
 ]);
 
 define('STAKEHOLDER_INDICATOR_CODES', [
@@ -333,22 +333,23 @@ define('STAKEHOLDER_INDICATOR_CODES', [
     '2.3',
     '2.4',
     '2.5',
-    '2.6',
-    '2.8',     // Dimension 2
+    '2.6',     // Dimension 2
+    '2.7',
+    '2.10',
     '3.1',
-    '3.2',
-    '3.4',                              // Dimension 3
+    '3.2',                                   // Dimension 3
     '4.1',
-    '4.2',
     '4.3',
-    '4.4',                        // Dimension 4
+    '4.4',
+    '4.5',
+    '4.7',            // Dimension 4
     '6.1',
     '6.2',
     '6.3',
-    '6.4',
+    '6.4',                    // Dimension 6
     '6.5',
     '6.6',
-    '6.7',     // Dimension 6
+    '6.7',
 ]);
 
 function sbmRatingLabel(int $r): string
