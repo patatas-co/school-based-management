@@ -783,7 +783,7 @@ $pillMap = [
 
 <!-- ── CONFIGURE CYCLE SCHEDULE MODAL ───────────────────── -->
 <div class="overlay" id="mConfigure">
-  <div class="modal" style="max-width:560px;max-height:none;overflow:visible;">
+  <div class="modal" style="max-width:560px;">
     <div class="modal-head">
       <span class="modal-title">Configure Cycle Schedule</span>
       <button class="modal-close" onclick="closeModal('mConfigure')"><?= svgIcon('x') ?></button>

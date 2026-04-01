@@ -1425,17 +1425,14 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     .overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      inset: 0;
       background: rgba(15, 23, 42, 0.6);
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: center;
       z-index: 9999;
       padding: 24px 20px;
-      overflow-y: auto;
+      overflow: hidden;
       opacity: 0;
       pointer-events: none;
       transition: opacity var(--dur) var(--ease);
@@ -1452,19 +1449,19 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       box-shadow: var(--shadow-lg);
       width: 100%;
       max-width: 540px;
-      max-height: none;
-      overflow-y: visible;
+      /* Key: let the modal grow up to viewport minus padding */
+      max-height: calc(100vh - 48px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
       transform: scale(.96) translateY(12px);
       transition: transform 240ms var(--ease);
       border: 1px solid rgba(0, 0, 0, 0.08);
-      margin: auto 0;
-      align-self: flex-start;
       position: relative;
     }
 
     .overlay.open .modal {
       transform: scale(1) translateY(0);
-      align-self: flex-start;
     }
 
     .modal-head {
@@ -1473,6 +1470,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-shrink: 0;
+      /* Never compress the header */
     }
 
     .modal-title {
@@ -1513,6 +1512,11 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     .modal-body {
       padding: 20px 22px;
+      overflow-y: auto;
+      /* Only this section scrolls */
+      flex: 1;
+      /* Takes all available space */
+      overscroll-behavior: contain;
     }
 
     .modal-foot {
@@ -1521,6 +1525,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       display: flex;
       justify-content: flex-end;
       gap: 8px;
+      flex-shrink: 0;
+      /* Never compress the footer */
     }
 
     .search {
@@ -2422,24 +2428,47 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         });
 
         // ── Modal helpers ──
+        // Track open modal count to handle nested/multiple modals safely
+        let _openModalCount = 0;
+
         function openModal(id) {
-          document.getElementById(id)?.classList.add('open');
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.classList.add('open');
+          _openModalCount++;
           document.body.style.overflow = 'hidden';
+          // Move focus into modal for accessibility
+          const firstFocusable = el.querySelector(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          );
+          if (firstFocusable) setTimeout(() => firstFocusable.focus(), 60);
         }
+
         function closeModal(id) {
-          document.getElementById(id)?.classList.remove('open');
-          document.body.style.overflow = '';
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.classList.remove('open');
+          _openModalCount = Math.max(0, _openModalCount - 1);
+          if (_openModalCount === 0) document.body.style.overflow = '';
         }
+
         document.addEventListener('keydown', e => {
           if (e.key === 'Escape') {
-            document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open'));
-            document.body.style.overflow = '';
+            const openModals = document.querySelectorAll('.overlay.open');
+            if (openModals.length) {
+              // Close only the topmost modal
+              openModals[openModals.length - 1].classList.remove('open');
+              _openModalCount = Math.max(0, _openModalCount - 1);
+              if (_openModalCount === 0) document.body.style.overflow = '';
+            }
           }
         });
+
         document.addEventListener('click', e => {
           if (e.target.classList.contains('overlay') && e.target.classList.contains('open')) {
             e.target.classList.remove('open');
-            document.body.style.overflow = '';
+            _openModalCount = Math.max(0, _openModalCount - 1);
+            if (_openModalCount === 0) document.body.style.overflow = '';
           }
         });
 

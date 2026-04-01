@@ -699,12 +699,13 @@ include __DIR__ . '/../includes/header.php';
         <div style="margin-bottom:14px;">
           <div
             style="font-size:12px;font-weight:700;color:var(--n600);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">
-            <?= e($dimName) ?></div>
+            <?= e($dimName) ?>
+          </div>
           <div>
             <?php foreach ($inds as $ind): ?>
               <span class="weak-chip rating-<?= (int) $ind['rating'] ?>" title="<?= e($ind['indicator_text']) ?>">
                 <?= e($ind['indicator_code']) ?> —
-                <?= (int) $ind['rating'] === 1 ? 'Not Yet Manifested' : 'Emerging' ?>      <?= $ind['has_plan'] ? ' ✓' : '' ?>
+                <?= (int) $ind['rating'] === 1 ? 'Not Yet Manifested' : 'Emerging' ?>       <?= $ind['has_plan'] ? ' ✓' : '' ?>
               </span>
             <?php endforeach; ?>
           </div>
@@ -1098,7 +1099,8 @@ if ($cycle) {
               </td>
               <td style="font-size:11.5px;color:var(--n500);"><?= e($p['indicator_code'] ?? '—') ?></td>
               <td style="font-size:13px;max-width:200px;">
-                <?= e(substr($p['objective'], 0, 70)) ?>    <?= strlen($p['objective']) > 70 ? '…' : '' ?></td>
+                <?= e(substr($p['objective'], 0, 70)) ?>     <?= strlen($p['objective']) > 70 ? '…' : '' ?>
+              </td>
               <td style="font-size:12.5px;"><?= e($p['person_responsible'] ?? '—') ?></td>
               <td style="font-size:12.5px;"><?= $p['target_date'] ? date('M d, Y', strtotime($p['target_date'])) : '—' ?>
               </td>
@@ -1179,7 +1181,8 @@ if ($cycle) {
             </div>
             <?php if ($activeTaRequest['preferred_date']): ?>
               <div style="font-size:12px;color:var(--n400);margin-top:6px;">Preferred date:
-                <?= date('M d, Y', strtotime($activeTaRequest['preferred_date'])) ?></div>
+                <?= date('M d, Y', strtotime($activeTaRequest['preferred_date'])) ?>
+              </div>
             <?php endif; ?>
           </div>
           <?php if ($activeTaRequest['sdo_response']): ?>
@@ -1187,7 +1190,8 @@ if ($cycle) {
               <div style="font-size:11px;font-weight:700;color:var(--g600);text-transform:uppercase;margin-bottom:4px;">SDO
                 Response</div>
               <div style="font-size:13.5px;color:var(--n800);line-height:1.6;">
-                <?= nl2br(e($activeTaRequest['sdo_response'])) ?></div>
+                <?= nl2br(e($activeTaRequest['sdo_response'])) ?>
+              </div>
               <?php if ($activeTaRequest['sdo_name']): ?>
                 <div style="font-size:11.5px;color:var(--n500);margin-top:6px;">— <?= e($activeTaRequest['sdo_name']) ?></div>
               <?php endif; ?>
@@ -1200,7 +1204,8 @@ if ($cycle) {
             <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;margin-bottom:4px;">Agreed
               Priority Actions</div>
             <div style="font-size:13.5px;color:var(--n800);line-height:1.6;">
-              <?= nl2br(e($activeTaRequest['agreed_actions'])) ?></div>
+              <?= nl2br(e($activeTaRequest['agreed_actions'])) ?>
+            </div>
           </div>
         <?php endif; ?>
 
@@ -1304,7 +1309,8 @@ if ($cycle) {
                 </td>
                 <td style="font-size:12.5px;"><?= e($req['sdo_name'] ?? '—') ?></td>
                 <td style="font-size:12px;">
-                  <?= $req['completed_date'] ? date('M d, Y', strtotime($req['completed_date'])) : '—' ?></td>
+                  <?= $req['completed_date'] ? date('M d, Y', strtotime($req['completed_date'])) : '—' ?>
+                </td>
               </tr>
             <?php endforeach; ?>
           </tbody>
@@ -1319,7 +1325,7 @@ if ($cycle) {
 ═══════════════════════════════════════════════════════════ -->
 <!-- Plan Modal -->
 <div class="overlay" id="mPlan">
-  <div class="modal" style="max-width:540px;max-height:none;overflow-y:visible;">
+  <div class="modal" style="max-width:540px;">
     <div class="modal-head"><span class="modal-title" id="mPlanTitle">Add Action Plan</span><button class="modal-close"
         onclick="closeModal('mPlan')"><?= svgIcon('x') ?></button></div>
     <div class="modal-body">

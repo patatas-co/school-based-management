@@ -2151,7 +2151,7 @@ include __DIR__ . '/../includes/header.php';
 
 <!-- Start Assessment Modal -->
 <div class="overlay" id="mStartAssessment">
-  <div class="modal" style="max-width:540px;max-height:none;overflow-y:visible;">
+  <div class="modal" style="max-width:540px;">
     <div class="modal-head">
       <span class="modal-title">
         Start Assessment Cycle

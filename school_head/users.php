@@ -252,7 +252,8 @@ $roleLabels = [
     $cnt = $roleCounts[$r] ?? 0;
     if (!$cnt)
       continue; ?>
-    <a href="users.php?role=<?= $r ?><?= $q ? "&q=" . urlencode($q) : '' ?>" class="status-tab <?= $rf === $r ? 'active' : '' ?>">
+    <a href="users.php?role=<?= $r ?><?= $q ? "&q=" . urlencode($q) : '' ?>"
+      class="status-tab <?= $rf === $r ? 'active' : '' ?>">
       <span
         style="display:inline-block;width:7px;height:7px;border-radius:50%;background:<?= $roleColors[$r] ?>;margin-right:4px;"></span>
       <?= $roleLabels[$r] ?>
@@ -287,7 +288,8 @@ $roleLabels = [
       <div class="empty-icon"><?= svgIcon('users') ?></div>
       <div class="empty-title">No users found</div>
       <div class="empty-sub">
-        <?= $q ? 'No users match "' . e($q) . '". Try a different search term.' : 'No users for this role yet.' ?></div>
+        <?= $q ? 'No users match "' . e($q) . '". Try a different search term.' : 'No users for this role yet.' ?>
+      </div>
     </div>
   <?php else: ?>
     <div class="tbl-wrap">
@@ -331,7 +333,8 @@ $roleLabels = [
                   style="display:inline-flex;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:<?= $sb ?>;color:<?= $sc ?>;"><?= ucfirst($u['status']) ?></span>
               </td>
               <td style="font-size:12px;color:<?= $u['last_login'] ? 'var(--n-400)' : 'var(--red)' ?>;">
-                <?= $u['last_login'] ? timeAgo($u['last_login']) : 'Never' ?></td>
+                <?= $u['last_login'] ? timeAgo($u['last_login']) : 'Never' ?>
+              </td>
               <td>
                 <div class="flex-c" style="gap:4px;">
                   <button class="btn btn-secondary btn-sm"
@@ -450,7 +453,7 @@ $roleLabels = [
 
 <!-- Import Modal -->
 <div class="overlay" id="mImport">
-  <div class="modal" style="max-width:540px;max-height:none;overflow-y:visible;">
+  <div class="modal" style="max-width:540px;">
     <div class="modal-head"><span class="modal-title">Bulk Import Users</span><button class="modal-close"
         onclick="closeModal('mImport')"><?= svgIcon('x') ?></button></div>
     <div class="modal-body">

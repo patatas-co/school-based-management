@@ -183,7 +183,7 @@ $catBgs = ['general' => '#DCFCE7', 'policy' => '#EDE9FE', 'deadline' => '#FEE2E2
 <?php endif; ?>
 
 <div class="overlay" id="mPost">
-  <div class="modal" style="max-width:540px;max-height:none;overflow-y:visible;">
+  <div class="modal" style="max-width:540px;">
     <div class="modal-head"><span class="modal-title">Post Announcement</span><button class="modal-close"
         onclick="closeModal('mPost')"><?= svgIcon('x') ?></button></div>
     <div class="modal-body">

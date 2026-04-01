@@ -141,7 +141,8 @@ include __DIR__ . '/../includes/header.php';
               <?php else: ?><span style="color:var(--n-300);">—</span><?php endif; ?>
             </td>
             <td style="font-size:12px;color:var(--n-500);">
-              <?= $c['submitted_at'] ? date('M d, Y', strtotime($c['submitted_at'])) : '—' ?></td>
+              <?= $c['submitted_at'] ? date('M d, Y', strtotime($c['submitted_at'])) : '—' ?>
+            </td>
             <td style="font-size:12.5px;color:var(--n-600);"><?= e($c['validator_name'] ?? '—') ?></td>
             <td>
               <div class="flex-c" style="gap:5px;">
@@ -175,7 +176,7 @@ include __DIR__ . '/../includes/header.php';
 
 <!-- Validate/Return Modal -->
 <div class="overlay" id="mValidate">
-  <div class="modal" style="max-width:540px;max-height:none;overflow-y:visible;">
+  <div class="modal" style="max-width:540px;">
     <div class="modal-head">
       <span class="modal-title" id="mVTitle">Validate Assessment</span>
       <button class="modal-close" onclick="closeModal('mValidate')"><?= svgIcon('x') ?></button>

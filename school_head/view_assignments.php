@@ -174,6 +174,19 @@ ksort($indicatorGroups);
     gap: 6px;
     font-size: 12px;
   }
+
+  @media (max-width: 600px) {
+    .overlay {
+      padding: 12px;
+      align-items: flex-end;
+      /* Sheet slides up from bottom on mobile */
+    }
+
+    .modal {
+      max-height: calc(100vh - 24px);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+  }
 </style>
 
 <div class="ph2">
@@ -219,7 +232,7 @@ ksort($indicatorGroups);
 <?php endif; ?>
 
 <div class="overlay" id="mManage">
-  <div class="modal" style="max-width:540px;max-height:none;overflow-y:visible;">
+  <div class="modal" style="max-width:540px;">
     <div class="modal-head"><span class="modal-title">Manage Assignments: <span id="modalTeacherName"
           style="color:var(--brand-600);"></span></span><button class="modal-close"
         onclick="closeModal('mManage')"><?= svgIcon('x') ?></button></div>

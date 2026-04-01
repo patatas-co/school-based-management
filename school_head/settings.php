@@ -266,7 +266,7 @@ include __DIR__ . '/../includes/header.php';
 
 <!-- School Year Modal -->
 <div class="overlay" id="mSY">
-  <div class="modal" style="max-width:540px;max-height:none;overflow-y:visible;">
+  <div class="modal" style="max-width:540px;">
     <div class="modal-head"><span class="modal-title" id="mSYTitle">Add School Year</span><button class="modal-close"
         onclick="closeModal('mSY')"><?= svgIcon('x') ?></button></div>
     <div class="modal-body">

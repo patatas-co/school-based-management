@@ -299,10 +299,12 @@ foreach (SBM_INDICATORS as $ind) {
 </div>
 
 <!-- Assign Modal -->
-<div id="assignModal" class="modal"
-    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;">
-    <div class="modal-content"
-        style="background:#fff;border-radius:12px;width:100%;max-width:700px;max-height:none;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);margin:auto;">
+<div id="assignModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+           z-index:9999;align-items:center;justify-content:center;
+           overflow:hidden;padding:20px;">
+    <div style="background:#fff;border-radius:12px;width:100%;max-width:700px;
+                max-height:calc(100vh - 40px);display:flex;flex-direction:column;
+                box-shadow:var(--shadow-lg);overflow:hidden;">
         <div
             style="padding:20px;border-bottom:1px solid var(--n200);display:flex;justify-content:space-between;align-items:center;">
             <h3 style="font-size:18px;font-weight:700;">Assign Indicators: <span id="modalTeacherName"
@@ -367,6 +369,7 @@ foreach (SBM_INDICATORS as $ind) {
     function closeModal() {
         document.getElementById('assignModal').style.display = 'none';
         document.body.style.overflow = '';
+        _openModalCount = Math.max(0, _openModalCount - 1);
     }
 
     function toggleAll(check) {
@@ -409,6 +412,7 @@ foreach (SBM_INDICATORS as $ind) {
 
         document.getElementById('assignModal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
+        _openModalCount++;
     }
 
     async function saveAssignments(e) {
