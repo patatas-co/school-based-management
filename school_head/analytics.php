@@ -33,11 +33,15 @@ $stmtHistory->execute([SCHOOL_ID]); $topSchools = $stmtHistory->fetchAll();
 
 $weakIndicators = $db->prepare("
   SELECT i.indicator_code,i.indicator_text,d.dimension_name,d.color_hex,
-         ROUND(AVG(r.rating),2) avg_rating, COUNT(r.response_id) response_count
-  FROM sbm_responses r
-  JOIN sbm_indicators i ON r.indicator_id=i.indicator_id
-  JOIN sbm_dimensions d ON i.dimension_id=d.dimension_id
-  JOIN sbm_cycles c ON r.cycle_id=c.cycle_id
+         ROUND(AVG(all_r.rating),2) avg_rating, COUNT(all_r.rating) response_count
+  FROM (
+      SELECT cycle_id, indicator_id, rating FROM sbm_responses
+      UNION ALL
+      SELECT cycle_id, indicator_id, rating FROM teacher_responses
+  ) as all_r
+  JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
+  JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
+  JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
   WHERE c.sy_id=?
   GROUP BY i.indicator_id ORDER BY avg_rating ASC LIMIT 8
 ");

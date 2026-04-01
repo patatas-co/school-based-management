@@ -22,7 +22,7 @@ if ($schoolId && $sy) {
 // Dimension scores
 $dimScores = [];
 if ($cycle) {
-    $st = $db->prepare("SELECT ds.*, d.dimension_name, d.dimension_no, d.color_hex FROM sbm_dimension_scores ds JOIN sbm_dimensions d ON ds.dimension_id=d.dimension_id WHERE ds.cycle_id=? ORDER BY d.dimension_no");
+    $st = $db->prepare("SELECT d.dimension_name, d.dimension_no, d.color_hex, COALESCE(ds.percentage, 0) as percentage FROM sbm_dimensions d LEFT JOIN sbm_dimension_scores ds ON d.dimension_id=ds.dimension_id AND ds.cycle_id=? ORDER BY d.dimension_no");
     $st->execute([$cycle['cycle_id']]); $dimScores = $st->fetchAll();
 }
 

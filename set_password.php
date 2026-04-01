@@ -2,6 +2,15 @@
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/auth.php';
 
+// If already logged in, destroy session so the link can be used cleanly
+// This MUST happen before any CSRF checks or tokens are generated.
+if (!empty($_SESSION['user_id'])) {
+  session_regenerate_id(true);
+  session_unset();
+  session_destroy();
+  session_start();
+}
+
 $db = getDB();
 $token = trim($_GET['token'] ?? '');
 $mode = ($_GET['mode'] ?? 'setup') === 'reset' ? 'reset' : 'setup';
@@ -129,14 +138,6 @@ $successTitle = $mode === 'reset' ? 'Password Reset!' : 'Password Set Successful
 $successMsg = $mode === 'reset'
   ? 'Your password has been updated. You can now sign in with your new credentials.'
   : 'Your account is now active. You can sign in to the DIHS SBM Portal.';
-
-// Destroy any existing session so a different user can log in
-if (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['user_id'])) {
-  session_regenerate_id(true);
-  session_unset();
-  session_destroy();
-  session_start();
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">

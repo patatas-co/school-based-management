@@ -2576,7 +2576,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
             listHtml += `<div class="attach-item" id="attItem_${a.attachment_id}">
       <span class="attach-item-icon">${attachIcon(a.mime_type || '')}</span>
       <a class="attach-item-name"
-         href="/includes/serve_attachment.php?id=${a.attachment_id}"
+         href="<?= $__base ?>/includes/serve_attachment.php?id=${a.attachment_id}"
          target="_blank" title="${_e(a.original_name)}">${_e(a.original_name)}</a>
       <span class="attach-item-size">${formatBytes(a.file_size || 0)}</span>
       ${!locked ? `<button class="attach-item-del" onclick="deleteAttachment(${a.attachment_id},${indicatorId},${cycleId})" title="Remove">✕</button>` : ''}
@@ -2642,7 +2642,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
      </div>`);
 
           try {
-            const res = await fetch('/includes/upload_handler.php', { method: 'POST', body: fd });
+            const res = await fetch('<?= $__base ?>/includes/upload_handler.php', { method: 'POST', body: fd });
             const data = await res.json();
             const temp = document.getElementById(tempId);
             if (temp) temp.remove();
@@ -2654,7 +2654,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
                   `<div class="attach-item" id="attItem_${data.attachment_id}">
              <span class="attach-item-icon">${attachIcon(data.mime_type || '')}</span>
              <a class="attach-item-name"
-                href="/includes/serve_attachment.php?id=${data.attachment_id}"
+                href="<?= $__base ?>/includes/serve_attachment.php?id=${data.attachment_id}"
                 target="_blank">${_e(data.original_name)}</a>
              <span class="attach-item-size">${formatBytes(data.file_size || 0)}</span>
              <button class="attach-item-del"
@@ -2680,7 +2680,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
           fd.append('csrf_token', csrf);
           fd.append('attachment_id', attId);
           try {
-            const res = await fetch('/includes/upload_handler.php', { method: 'POST', body: fd });
+            const res = await fetch('<?= $__base ?>/includes/upload_handler.php', { method: 'POST', body: fd });
             const data = await res.json();
             if (data.ok) {
               document.getElementById('attItem_' + attId)?.remove();

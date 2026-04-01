@@ -316,7 +316,7 @@ foreach (SBM_INDICATORS as $ind) {
         <div style="padding:20px;overflow-y:auto;flex:1;background:var(--n50);">
             <form id="assignForm" onsubmit="saveAssignments(event)">
                 <input type="hidden" id="modalTeacherId" name="teacher_id">
-                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
                 <input type="hidden" name="action" value="save_assignments">
 
                 <div style="margin-bottom:16px;font-size:13px;color:var(--n600);">
@@ -369,7 +369,6 @@ foreach (SBM_INDICATORS as $ind) {
     function closeModal() {
         document.getElementById('assignModal').style.display = 'none';
         document.body.style.overflow = '';
-        _openModalCount = Math.max(0, _openModalCount - 1);
     }
 
     function toggleAll(check) {
@@ -412,7 +411,6 @@ foreach (SBM_INDICATORS as $ind) {
 
         document.getElementById('assignModal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
-        _openModalCount++;
     }
 
     async function saveAssignments(e) {

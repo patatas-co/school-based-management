@@ -51,10 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         header('Connection: close');
         echo $responseJson;
         flush();
-        if (function_exists('fastcgi_finish_request'))
+        if (function_exists('fastcgi_finish_request')) {
           fastcgi_finish_request();
+        }
 
-        // Send email in background after response is already delivered
+        // Send email after response delivered (or inline if fastcgi unavailable)
         ignore_user_abort(true);
         set_time_limit(60);
         require_once __DIR__ . '/../includes/email_service.php';

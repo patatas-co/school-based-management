@@ -507,8 +507,15 @@ include __DIR__.'/../includes/header.php';
         <?php if($dimScores):
           $dimCompletionData = [];
           if ($cycle) {
-            $dcStmt = $db->prepare("SELECT i.dimension_id, COUNT(*) cnt FROM sbm_responses r JOIN sbm_indicators i ON r.indicator_id=i.indicator_id WHERE r.cycle_id=? GROUP BY i.dimension_id");
-            $dcStmt->execute([$cycle['cycle_id']]);
+            $dcStmt = $db->prepare("
+                SELECT dimension_id, COUNT(DISTINCT indicator_id) cnt FROM (
+                    SELECT i.dimension_id, r.indicator_id FROM sbm_responses r JOIN sbm_indicators i ON r.indicator_id=i.indicator_id WHERE r.cycle_id=?
+                    UNION
+                    SELECT i.dimension_id, r.indicator_id FROM teacher_responses r JOIN sbm_indicators i ON r.indicator_id=i.indicator_id WHERE r.cycle_id=?
+                ) as combined
+                GROUP BY dimension_id
+            ");
+            $dcStmt->execute([$cycle['cycle_id'], $cycle['cycle_id']]);
             foreach ($dcStmt->fetchAll() as $dc) $dimCompletionData[$dc['dimension_id']] = $dc['cnt'];
           }
           $chartLabels = $chartData = $chartColors = [];

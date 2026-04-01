@@ -49,6 +49,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       }
       try {
         $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")->execute([$syId, $schoolId]);
+        $newCycleId = $db->lastInsertId();
+        // Initialize dimension scores
+        $dimIds = $db->query("SELECT dimension_id FROM sbm_dimensions")->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($dimIds as $dId) {
+          $db->prepare("INSERT IGNORE INTO sbm_dimension_scores (cycle_id, school_id, dimension_id, raw_score, max_score, percentage) VALUES (?, ?, ?, 0, 0, 0)")
+            ->execute([$newCycleId, $schoolId, $dId]);
+        }
         logActivity('start_assessment', 'self_assessment', "Started SBM assessment cycle for the current school year.");
         echo json_encode(['ok' => true, 'msg' => 'Assessment started successfully!']);
         exit;
@@ -85,6 +92,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         try {
           $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")->execute([$syId, $schoolId]);
           $cycleId = $db->lastInsertId();
+          // Initialize dimension scores
+          $dimIds = $db->query("SELECT dimension_id FROM sbm_dimensions")->fetchAll(PDO::FETCH_COLUMN);
+          foreach ($dimIds as $dId) {
+            $db->prepare("INSERT IGNORE INTO sbm_dimension_scores (cycle_id, school_id, dimension_id, raw_score, max_score, percentage) VALUES (?, ?, ?, 0, 0, 0)")
+              ->execute([$cycleId, $schoolId, $dId]);
+          }
         } catch (\PDOException $e) {
           if ($e->getCode() === '23000') {
             $retry = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
@@ -173,18 +186,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
       }
 
-      $ph = buildInPlaceholders(TEACHER_INDICATOR_CODES);
+      $teacherCodes = TEACHER_INDICATOR_CODES;
+      $ph = buildInPlaceholders($teacherCodes);
       $db->prepare("
     DELETE r FROM sbm_responses r
     JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
     WHERE r.cycle_id = ?
       AND i.dimension_id = ?
       AND i.indicator_code NOT IN ($ph)
-")->execute(array_merge([$cycleRow['cycle_id'], $dimId], TEACHER_INDICATOR_CODES));
+")->execute(array_merge([$cycleRow['cycle_id'], $dimId], $teacherCodes));
 
       $db->prepare("UPDATE sbm_dimension_scores SET raw_score=0,max_score=0,percentage=0,computed_at=NOW()
               WHERE cycle_id=? AND dimension_id=?")
-        ->execute([$cycleRow['cycle_id'], (int) $_POST['dimension_id']]);
+        ->execute([$cycleRow['cycle_id'], $dimId]);
 
       // Recompute from scratch using any remaining teacher responses
       $clearDimId = (int) $_POST['dimension_id'];

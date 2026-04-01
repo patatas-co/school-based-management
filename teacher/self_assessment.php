@@ -29,7 +29,8 @@ if (!$cycleCheck) {
         <div class="page-head-text">
             <h2>SBM Self-Assessment</h2>
             <p>Dasmariñas Integrated High School &nbsp;·&nbsp; SY
-                <?= e($db->query("SELECT label FROM school_years WHERE sy_id=$syId")->fetchColumn()) ?></p>
+                <?= e($db->query("SELECT label FROM school_years WHERE sy_id=$syId")->fetchColumn()) ?>
+            </p>
         </div>
     </div>
     <div class="card">
@@ -700,7 +701,7 @@ include __DIR__ . '/../includes/header.php';
         FROM teacher_submissions 
         WHERE cycle_id=? AND teacher_id=?
     ");
-    $subCheck->execute([$cycle['cycle_id'] ?? 0, $uid]);
+    $subCheck->execute([isset($cycle['cycle_id']) ? $cycle['cycle_id'] : 0, $uid]);
     $mySubmission = $subCheck->fetch();
     ?>
 
