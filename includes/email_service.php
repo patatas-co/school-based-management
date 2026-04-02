@@ -80,10 +80,7 @@ function sendAccountCreationEmail(PDO $db, array $user): bool {
         _configureMailer($mail);
         $mail->addAddress($user['email'], $user['full_name']);
 
-        $logoPath = dirname(__DIR__) . '/assets/seal.png';
-        if (file_exists($logoPath)) {
-            $mail->addEmbeddedImage($logoPath, 'school_logo_cid', 'seal.png');
-        }
+
 
         $mail->isHTML(true);
         $mail->Subject = 'Your DIHS SBM Portal Account is Ready';
@@ -129,10 +126,7 @@ function sendPasswordResetEmail(PDO $db, array $user): bool {
         _configureMailer($mail);
         $mail->addAddress($user['email'], $user['full_name']);
 
-        $logoPath = dirname(__DIR__) . '/assets/seal.png';
-        if (file_exists($logoPath)) {
-            $mail->addEmbeddedImage($logoPath, 'school_logo_cid', 'seal.png');
-        }
+
 
         $mail->isHTML(true);
         $mail->Subject = 'Reset Your DIHS SBM Portal Password';
@@ -230,7 +224,7 @@ function buildWelcomeEmailHtml(string $name, string $email,
                border:3px solid rgba(255,255,255,0.9);
                text-align:center;vertical-align:middle;
                box-shadow:0 2px 12px rgba(0,0,0,0.18);">
-                <img src="cid:school_logo_cid" width="52" height="52" alt="DIHS"
+                <img src="https://www.learnatdihs.com/assets/images/logo.png" width="52" height="52" alt="DIHS"
                      style="display:block;margin:12px auto;border-radius:50%;object-fit:contain;">
               </td></tr>
             </table>
@@ -472,7 +466,7 @@ function buildResetEmailHtml(string $name, string $email,
                border:3px solid rgba(255,255,255,0.9);
                text-align:center;vertical-align:middle;
                box-shadow:0 2px 12px rgba(0,0,0,0.18);">
-                <img src="cid:school_logo_cid" width="52" height="52" alt="DIHS"
+                <img src="https://www.learnatdihs.com/assets/images/logo.png" width="52" height="52" alt="DIHS"
                      style="display:block;margin:12px auto;border-radius:50%;object-fit:contain;">
               </td></tr>
             </table>

@@ -1840,6 +1840,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       max-width: 340px;
       line-height: 1.6;
       margin-bottom: 20px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     /* Page Header v2 */
@@ -2360,7 +2362,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       <div class="sb-popup" id="userPopup" role="menu">
         <div class="sb-popup-user">
           <div class="sb-avatar" style="background:<?= $__roleColor ?>;width:36px;height:36px;font-size:13px;">
-            <?= e($__initials) ?></div>
+            <?= e($__initials) ?>
+          </div>
           <div style="flex:1;min-width:0;">
             <div class="sb-popup-name"><?= e($__me['name']) ?></div>
             <div class="sb-popup-role"><?= e($__roleLabel) ?></div>

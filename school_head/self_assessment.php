@@ -1682,10 +1682,62 @@ include __DIR__ . '/../includes/header.php';
     const tab = document.getElementById('dimTab' + dimNo);
     if (tabCount) tabCount.textContent = `(${done}/${total})`;
 
-    // Update dim subtitle
+    refreshDimensionMetrics(dimNo);
+  }
+
+  function refreshDimensionMetrics(dimNo) {
+    const dimWrap = document.getElementById('dim' + dimNo);
+    if (!dimWrap) return;
+
+    const mode = currentFilter;
+    const allCards = dimWrap.querySelectorAll('.indicator-row');
+    const visibleCards = Array.from(allCards).filter(c => !c.classList.contains('filter-hidden'));
+    const ratedVisible = visibleCards.filter(c => c.classList.contains('rated')).length;
+    const totalVisible = visibleCards.length;
+    const leftVisible = totalVisible - ratedVisible;
+
+    const emptyMsg = document.getElementById('dimEmpty' + dimNo);
+    const tab = document.getElementById('dimTab' + dimNo);
+    const tabCount = document.getElementById('dimTabCount' + dimNo);
     const subtitle = document.getElementById('dimSubtitle' + dimNo);
-    if (subtitle && currentFilter === 'all') {
-      subtitle.textContent = `${done}/${total} indicators rated`;
+    const leftBadge = document.getElementById('dimLeft' + dimNo);
+
+    if (totalVisible === 0) {
+      if (emptyMsg) emptyMsg.classList.add('visible');
+      if (tab) tab.style.display = 'none';
+    } else {
+      if (emptyMsg) emptyMsg.classList.remove('visible');
+      if (tab) tab.style.display = '';
+
+      if (subtitle) {
+        const roleLabel = mode === 'all' ? '' : (mode === 'sh' ? 'school head ' : 'teacher ');
+        subtitle.textContent = `${ratedVisible}/${totalVisible} ${roleLabel}indicator${totalVisible !== 1 ? 's' : ''} rated`;
+      }
+
+      if (leftBadge) {
+        if (leftVisible === 0) {
+          leftBadge.textContent = 'Complete';
+          leftBadge.className = 'pill pill-success'; // Use standard pill classes for consistency
+          leftBadge.style = 'font-size:11px;font-weight:700;padding:3px 10px;flex-shrink:0;';
+        } else {
+          leftBadge.textContent = `${leftVisible} left`;
+          leftBadge.className = '';
+          leftBadge.style = 'font-size:11px;font-weight:600;color:var(--n500);background:var(--n100);border-radius:999px;padding:3px 10px;flex-shrink:0;';
+        }
+      }
+
+      if (tabCount) tabCount.textContent = `(${ratedVisible}/${totalVisible})`;
+      if (tab) {
+        if (leftVisible === 0) {
+          tab.style.background = 'var(--g600)';
+          tab.style.color = '#fff';
+          tab.style.borderColor = 'var(--g600)';
+        } else {
+          tab.style.background = 'var(--white)';
+          tab.style.color = 'var(--n600)';
+          tab.style.borderColor = 'var(--n200)';
+        }
+      }
     }
 
     // Flash tab green when dimension completes
@@ -1792,40 +1844,14 @@ include __DIR__ . '/../includes/header.php';
     const submitCount = document.getElementById('submitCount');
     if (submitCount) submitCount.textContent = `(${progress.shDone}/${progress.shTotal} your indicators rated)`;
 
-    // Update dim tab — may need to un-green it
     const row = document.getElementById('row' + indId);
     if (!row) return;
     const dimWrap = row.closest('.dim-wrap');
     if (!dimWrap) return;
     const dimNo = dimWrap.dataset.dim;
+    const done = dimWrap.querySelectorAll('.indicator-row.rated').length;
 
-    const allCards = dimWrap.querySelectorAll('.indicator-row');
-    const ratedCards = dimWrap.querySelectorAll('.indicator-row.rated');
-    const done = ratedCards.length;
-    const total = allCards.length;
-
-    const tabCount = document.getElementById('dimTabCount' + dimNo);
-    if (tabCount) tabCount.textContent = `(${done}/${total})`;
-    const subtitle = document.getElementById('dimSubtitle' + dimNo);
-    if (subtitle) subtitle.textContent = `${done}/${total} indicators rated`;
-
-    // Un-green the tab since it's no longer complete
-    const tab = document.getElementById('dimTab' + dimNo);
-    if (tab && done < total) {
-      tab.style.background = 'var(--white)';
-      tab.style.color = 'var(--n600)';
-      tab.style.borderColor = 'var(--n200)';
-    }
-
-    // Update dim left badge
-    const leftBadge = document.getElementById('dimLeft' + dimNo);
-    if (leftBadge && done < total) {
-      leftBadge.textContent = `${total - done} left`;
-      leftBadge.style.color = 'var(--n500)';
-      leftBadge.style.background = 'var(--n100)';
-      leftBadge.style.border = '';
-      leftBadge.style.fontWeight = '600';
-    }
+    refreshDimensionMetrics(dimNo);
 
     // Show/hide clear dim button based on whether anything is still rated
     const clearDimBtn = document.getElementById('clearDimBtn' + dimNo);
@@ -1960,38 +1986,8 @@ include __DIR__ . '/../includes/header.php';
       row.classList.toggle('filter-hidden', !show);
     });
 
-    // After hiding cards, check each dim — hide the whole dim wrap
-    // if ALL its cards are hidden, and show the empty msg if none visible
     document.querySelectorAll('.dim-wrap').forEach(dimWrap => {
-      const dimNo = dimWrap.dataset.dim;
-      const allCards = dimWrap.querySelectorAll('.indicator-row');
-      const visibleCards = [...allCards].filter(c => !c.classList.contains('filter-hidden'));
-      const emptyMsg = document.getElementById('dimEmpty' + dimNo);
-      const dimBody = document.getElementById('dimBody' + dimNo);
-
-      if (visibleCards.length === 0) {
-        // All cards hidden — collapse and show empty msg, hide dim tab
-        if (emptyMsg) emptyMsg.classList.add('visible');
-        const tab = document.getElementById('dimTab' + dimNo);
-        if (tab) tab.style.display = 'none';
-        // Keep dim header visible but mark body as empty
-      } else {
-        if (emptyMsg) emptyMsg.classList.remove('visible');
-        const tab = document.getElementById('dimTab' + dimNo);
-        if (tab) tab.style.display = '';
-      }
-
-      // Update subtitle with filtered count
-      const subtitle = document.getElementById('dimSubtitle' + dimNo);
-      if (subtitle && mode !== 'all') {
-        const roleLabel = mode === 'sh' ? 'school head' : 'teacher';
-        subtitle.textContent = `${visibleCards.length} ${roleLabel} indicator${visibleCards.length !== 1 ? 's' : ''}`;
-      } else if (subtitle) {
-        // Restore original text
-        const rated = dimWrap.querySelectorAll('.indicator-row.rated').length;
-        const total = allCards.length;
-        subtitle.textContent = `${rated}/${total} indicators rated`;
-      }
+      refreshDimensionMetrics(dimWrap.dataset.dim);
     });
 
     // Save filter preference in sessionStorage

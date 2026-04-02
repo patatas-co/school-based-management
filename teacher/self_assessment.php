@@ -67,8 +67,8 @@ if (!$cycleCheck) {
 }
 
 // ── FETCH ASSIGNED INDICATORS ─────────────────────────────────
-$assignStmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignments WHERE teacher_id = ? AND school_id = ?");
-$assignStmt->execute([$uid, $schoolId]);
+$assignStmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignments WHERE teacher_id = ?");
+$assignStmt->execute([$uid]);
 $assignedCodes = $assignStmt->fetchAll(PDO::FETCH_COLUMN);
 
 // Fallback to all teacher codes if none specifically assigned
