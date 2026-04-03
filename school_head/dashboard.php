@@ -301,7 +301,7 @@ include __DIR__.'/../includes/header.php';
 </div>
 
 <!-- ═══════════ MAIN GRID ═══════════ -->
-<div class="sh-main-grid db-layout-main">
+<div class="sh-main-grid">
 
   <!-- LEFT: Dimension Performance + Chart -->
   <div class="col-stack">
@@ -417,7 +417,7 @@ include __DIR__.'/../includes/header.php';
 </div>
 
 <!-- ═══════════ BOTTOM GRID: Recent Cycles + Activity ═══════════ -->
-<div class="sh-bottom-grid db-layout-main">
+<div class="sh-bottom-grid">
 
   <!-- Recent Cycles Table -->
   <div class="card" style="min-width:0;">
@@ -481,7 +481,7 @@ include __DIR__.'/../includes/header.php';
         <div class="activity-item">
           <div class="activity-avatar" style="background:<?= $bg ?>;color:<?= $tx ?>;"><?= $initials ?></div>
           <div style="flex:1;min-width:0;">
-            <div class="activity-action"><strong><?= e($log['full_name'] ?? 'System') ?></strong> — <?= e($log['action']) ?></div>
+            <div class="activity-action"><strong><?= e($log['full_name'] ?? 'System') ?></strong> — <?= e(formatActivityAction($log['action'])) ?></div>
             <div class="activity-time"><?= timeAgo($log['created_at']) ?></div>
           </div>
         </div>

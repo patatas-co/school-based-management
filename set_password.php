@@ -22,6 +22,24 @@ $error = '';
 $success = false;
 $tokenRow = null;
 
+function setPasswordCsrfToken(): string
+{
+  if (empty($_SESSION['set_password_csrf'])) {
+    $_SESSION['set_password_csrf'] = bin2hex(random_bytes(32));
+  }
+  return $_SESSION['set_password_csrf'];
+}
+
+function verifySetPasswordCsrf(): void
+{
+  if (!hash_equals($_SESSION['set_password_csrf'] ?? '', $_POST['csrf_token'] ?? '')) {
+    ob_clean();
+    http_response_code(403);
+    echo '<p style="font-family:sans-serif;padding:40px;text-align:center;">Invalid CSRF token. <a href="javascript:history.back()">Go back</a> and try again.</p>';
+    exit;
+  }
+}
+
 // ── Validate token ─────────────────────────────────────────────────────────
 // FIX: Use NOW() (not UTC_TIMESTAMP()) because expires_at is now stored using
 // MySQL's DATE_ADD(NOW(), ...) — so both sides are in the same DB timezone.
@@ -47,7 +65,7 @@ if (!$token || !$tokenRow) {
 
 // ── Handle form submission ─────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenRow) {
-  verifyCsrf();
+  verifySetPasswordCsrf();
 
   $password = $_POST['password'] ?? '';
   $confirm = $_POST['confirm'] ?? '';
@@ -81,6 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenRow) {
     );
 
     $success = true;
+    unset($_SESSION['set_password_csrf']);
   }
 }
 
@@ -89,7 +108,7 @@ $resent = isset($_GET['resent']) && $_GET['resent'] === '1';
 $resentError = '';
 if (isset($_GET['resend']) && $token) {
   // Verify CSRF token for resend action
-  if (!hash_equals($_SESSION['csrf_token'] ?? '', $_GET['csrf_token'] ?? '')) {
+  if (!hash_equals($_SESSION['set_password_csrf'] ?? '', $_GET['csrf_token'] ?? '')) {
     $resentError = 'Invalid request. Please refresh the page and try again.';
   } else {
     require_once __DIR__ . '/includes/email_service.php';
@@ -858,7 +877,7 @@ $successMsg = $mode === 'reset'
                 </a>
               <?php else: ?>
                 <?php if ($token): ?>
-                  <a href="<?= baseUrl() ?>/set_password.php?token=<?= urlencode($token) ?>&mode=setup&resend=1&csrf_token=<?= csrfToken() ?>"
+                  <a href="<?= baseUrl() ?>/set_password.php?token=<?= urlencode($token) ?>&mode=setup&resend=1&csrf_token=<?= setPasswordCsrfToken() ?>"
                     class="btn-outline">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                       stroke-linecap="round" stroke-linejoin="round">
@@ -925,7 +944,7 @@ $successMsg = $mode === 'reset'
           <?php endif; ?>
 
           <form method="post" id="pwForm">
-            <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+            <input type="hidden" name="csrf_token" value="<?= setPasswordCsrfToken() ?>">
 
             <div class="form-group">
               <label for="password">New Password</label>

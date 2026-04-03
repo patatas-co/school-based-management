@@ -267,7 +267,10 @@ html,body { height:100%; font-family:var(--font); background:var(--white); color
           </div>
           <div class="field-wrap">
             <span class="field-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="4" y="11" width="16" height="9" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
             </span>
             <input class="fc" type="password" id="password" name="password" placeholder="Enter your password" required>
           </div>

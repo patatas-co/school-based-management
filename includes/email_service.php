@@ -369,7 +369,7 @@ function buildWelcomeEmailHtml(string $name, string $email,
             <td style="padding:14px 18px;">
               <p style="margin:0;font-family:Arial,sans-serif;font-size:13.5px;
                         color:#78350f;line-height:1.65;">
-                &#9888;&#65039; <strong style="color:#92400e;">Didn't expect this?</strong>
+                <strong style="color:#92400e;">Didn't expect this?</strong>
                 Contact your school administrator immediately.
                 Do not share this link with anyone.
               </p>
@@ -534,7 +534,7 @@ function buildResetEmailHtml(string $name, string $email,
                       font-family:Arial,sans-serif;font-size:15px;font-weight:700;
                       padding:16px 52px;border-radius:100px;
                       letter-spacing:0.3px;">
-              &#128272; Reset My Password
+              Reset My Password
             </a>
           </td></tr>
         </table>
@@ -556,7 +556,7 @@ function buildResetEmailHtml(string $name, string $email,
             <td style="padding:14px 18px;">
               <p style="margin:0;font-family:Arial,sans-serif;font-size:13.5px;
                         color:#78350f;line-height:1.65;">
-                &#9888;&#65039; <strong style="color:#92400e;">Didn't request this?</strong>
+                <strong style="color:#92400e;">Didn't request this?</strong>
                 Ignore this email &mdash; your account is safe and no changes have been made.
                 If you keep receiving these emails, contact your school administrator.
               </p>

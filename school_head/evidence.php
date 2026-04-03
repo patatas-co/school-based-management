@@ -432,7 +432,7 @@ function roleLabel(string $role): string
                     <span class="ev-role-badge role-<?= e($file['uploader_role']) ?>">
                       <?= e($file['uploader_name']) ?> · <?= roleLabel($file['uploader_role']) ?>
                     </span>
-                    <a href="/includes/serve_attachment.php?id=<?= $file['attachment_id'] ?>" target="_blank"
+                    <a href="../includes/serve_attachment.php?id=<?= $file['attachment_id'] ?>" target="_blank"
                       class="ev-download-btn" download="<?= e($file['original_name']) ?>">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                         stroke-linejoin="round" style="width:13px;height:13px;">

@@ -48,7 +48,7 @@ if ($role === 'school_head') {
     $out['in_progress'] = (int) $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='in_progress'")->fetchColumn();
 
     $logs = $db->query("SELECT l.action,l.created_at,u.full_name FROM activity_log l LEFT JOIN users u ON l.user_id=u.user_id ORDER BY l.created_at DESC LIMIT 6")->fetchAll();
-    $out['activity'] = array_map(fn($r) => ['name' => $r['full_name'] ?? 'System', 'action' => $r['action'], 'ago' => ago($r['created_at'])], $logs);
+    $out['activity'] = array_map(fn($r) => ['name' => $r['full_name'] ?? 'System', 'action' => formatActivityAction($r['action']), 'ago' => ago($r['created_at'])], $logs);
 }
 
 if ($role === 'school_head' && $schoolId && $syId) {

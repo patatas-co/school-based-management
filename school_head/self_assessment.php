@@ -1748,7 +1748,7 @@ include __DIR__ . '/../includes/header.php';
     }
 
     // Flash tab green when dimension completes
-    if (tab && done === total) {
+    if (tab && ratedVisible === totalVisible) {
       tab.style.background = 'var(--g600)';
       tab.style.color = '#fff';
       tab.style.borderColor = 'var(--g600)';
@@ -2095,7 +2095,7 @@ include __DIR__ . '/../includes/header.php';
       fd.append('csrf_token', csrf);
       fd.append('cycle_id', cycleId);
       fd.append('uploader_only', '0'); // SH sees all attachments
-      const res = await fetch('/includes/upload_handler.php', { method: 'POST', body: fd });
+      const res = await fetch('../includes/upload_handler.php', { method: 'POST', body: fd });
       const data = await res.json();
       const byInd = {};
       (data.attachments || []).forEach(a => {

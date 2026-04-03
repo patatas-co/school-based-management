@@ -104,6 +104,39 @@ function timeAgo(string $dt): string
     return $past->format('M d, Y');
 }
 
+/**
+ * Formats a coded activity action (snake_case) into a human-readable label.
+ */
+function formatActivityAction(string $action): string
+{
+    $map = [
+        'login' => 'Logged in',
+        'logout' => 'Logged out',
+        'password_set' => 'Set password',
+        'password_change' => 'Changed password',
+        'reset_request' => 'Requested password reset',
+        'reset_success' => 'Reset password successfully',
+        'create_user' => 'Created a new user',
+        'update_user' => 'Updated user profile',
+        'delete_user' => 'Deleted a user',
+        'export_report' => 'Exported a report',
+        'view_report' => 'Viewed a report',
+        'start_assessment' => 'Started assessment cycle',
+        'submit_assessment' => 'Submitted assessment',
+        'validate_assessment' => 'Validated assessment',
+        'return_assessment' => 'Returned assessment',
+        'upload_evidence' => 'Uploaded evidence',
+        'assign_indicators' => 'Assigned indicators',
+        'save_milestone' => 'Saved milestone',
+        'configure_cycle_schedule' => 'Configured schedule',
+        'override_assignments' => 'Overrode assignments',
+    ];
+    if (isset($map[$action])) {
+        return $map[$action];
+    }
+    return ucwords(str_replace(['_', '-'], ' ', $action));
+}
+
 
 
 function sbmMaturityBadge(string $level): string
@@ -229,12 +262,21 @@ function renderPasswordToggle(): void
                     const parent = field.parentElement;
                     if (!parent) return;
 
-                    // Wrap the input in a relative div so the toggle centers against the input only,
-                    // not the whole form-group (which includes the label).
-                    const wrapper = document.createElement('div');
-                    wrapper.style.cssText = 'position:relative;display:block;';
-                    parent.insertBefore(wrapper, field);
-                    wrapper.appendChild(field);
+                    // Reuse an existing input wrapper when available so we do not disturb
+                    // sibling icons or layout that already depends on the current DOM shape.
+                    const wrapper = parent.classList.contains('field-wrap') || parent.classList.contains('input-wrap')
+                        ? parent
+                        : (() => {
+                            const el = document.createElement('div');
+                            el.style.cssText = 'position:relative;display:block;';
+                            parent.insertBefore(el, field);
+                            el.appendChild(field);
+                            return el;
+                        })();
+
+                    if (window.getComputedStyle(wrapper).position === 'static') {
+                        wrapper.style.position = 'relative';
+                    }
 
                     const btn = document.createElement('button');
                     btn.type = 'button';

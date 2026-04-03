@@ -999,7 +999,7 @@ include __DIR__ . '/../includes/header.php';
             fd.append('csrf_token', csrf);
             fd.append('cycle_id', cycleId);
             fd.append('uploader_only', '1'); // teachers only see their own
-            const res = await fetch('/includes/upload_handler.php', { method: 'POST', body: fd });
+            const res = await fetch('../includes/upload_handler.php', { method: 'POST', body: fd });
             const data = await res.json();
             const byInd = {};
             (data.attachments || []).forEach(a => {

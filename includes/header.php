@@ -2072,6 +2072,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     }
 
     @media (max-width:768px) {
+      /* Sidebar: slide-in drawer with backdrop overlay */
       .sb {
         transform: translateX(-100%);
       }
@@ -2083,6 +2084,21 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
       .main-wrap {
         margin-left: 0 !important;
+      }
+
+      /* Backdrop overlay when mobile sidebar is open */
+      .sb-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, .45);
+        backdrop-filter: blur(3px);
+        z-index: 99;
+        cursor: pointer;
+      }
+
+      .sb-overlay.active {
+        display: block;
       }
 
       .grid2,
@@ -2110,6 +2126,12 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
       .stats {
         grid-template-columns: 1fr 1fr;
+      }
+
+      /* Dashboard custom grids — collapse to single column on mobile */
+      .sh-main-grid,
+      .sh-bottom-grid {
+        grid-template-columns: 1fr !important;
       }
     }
 
@@ -2379,6 +2401,9 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     </div>
   </aside>
 
+  <!-- Mobile backdrop overlay -->
+  <div class="sb-overlay" id="sbOverlay"></div>
+
   <!-- ── MAIN WRAPPER ── -->
   <div class="main-wrap <?= $__sbCollapsed ? 'expanded' : '' ?>" id="mainWrap">
 
@@ -2453,27 +2478,50 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
           function applyState(collapsed) {
             if (MOBILE()) {
-              sb.classList.toggle('mobile-open', !collapsed);
-              sb.classList.remove('collapsed'); mw.classList.remove('expanded');
+              // On mobile: open by default (collapsed param is ignored for first render),
+              // use explicit true/false only when toggling via button
+              const isOpen = collapsed !== true;
+              sb.classList.toggle('mobile-open', isOpen);
+              sb.classList.remove('collapsed');
+              mw.classList.remove('expanded');
+              document.getElementById('sbOverlay').classList.toggle('active', isOpen);
             } else {
               sb.classList.toggle('collapsed', collapsed);
               mw.classList.toggle('expanded', collapsed);
+              document.getElementById('sbOverlay').classList.remove('active');
             }
           }
 
-          const saved = localStorage.getItem('sbCollapsed') === 'true';
-          applyState(saved);
+          // On mobile, keep the drawer closed until the user explicitly opens it.
+          const initialCollapsed = MOBILE() ? true : (localStorage.getItem('sbCollapsed') === 'true');
+          applyState(initialCollapsed);
 
           btn.addEventListener('click', () => {
-            const next = MOBILE() ? !sb.classList.contains('mobile-open') : !sb.classList.contains('collapsed');
-            document.cookie = `sb_collapsed=${next}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
-            localStorage.setItem('sbCollapsed', MOBILE() ? 'false' : String(next));
-            applyState(next);
+            if (MOBILE()) {
+              const nextOpen = !sb.classList.contains('mobile-open');
+              applyState(!nextOpen);
+              return;
+            }
+
+            const nextCollapsed = !sb.classList.contains('collapsed');
+            document.cookie = `sb_collapsed=${nextCollapsed}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
+            localStorage.setItem('sbCollapsed', nextCollapsed ? 'true' : 'false');
+            applyState(nextCollapsed);
+          });
+
+          // Close sidebar when a nav link is clicked on mobile
+          sb.addEventListener('click', e => {
+            if (MOBILE() && e.target.closest('a')) {
+              applyState(true);
+            }
           });
 
           document.addEventListener('click', e => {
             if (MOBILE() && !sb.contains(e.target) && !btn.contains(e.target)) applyState(true);
           });
+
+          // Close overlay on click
+          document.getElementById('sbOverlay').addEventListener('click', () => applyState(true));
         })();
 
         // ── User popup ──
