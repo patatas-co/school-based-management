@@ -535,7 +535,7 @@ $overridenCount = count(array_filter($teacherIndicators, fn($i) => isset($overri
 $totalDone = count($responses);
 $totalCount = count($indicators);
 $shCount = count($shIndicators);
-$teacherCount = $totalCount - $shCount;
+$teacherCount = count(array_filter($indicators, fn($i) => in_array($i['indicator_code'], TEACHER_INDICATOR_CODES)));
 
 // ── Teacher list: search + pagination ──────────────────────
 $teacherSearch = trim($_GET['ts'] ?? '');          // search query
@@ -1220,7 +1220,7 @@ include __DIR__ . '/../includes/header.php';
   <!-- ── FILTER BAR ────────────────────────────────────────── -->
   <?php
   $shCount = isset($shIndicators) ? count($shIndicators) : 0;
-  $teacherCount = $totalCount - $shCount;
+  $teacherCount = count(array_filter($indicators, fn($i) => in_array($i['indicator_code'], TEACHER_INDICATOR_CODES)));
   ?>
   <div class="filter-bar" id="filterBar">
     <span class="filter-label">View:</span>
@@ -1362,8 +1362,15 @@ include __DIR__ . '/../includes/header.php';
           $trData = $teacherData[$ind['indicator_id']] ?? null;
           ?>
 
+          <?php
+          $isSH = in_array($ind['indicator_code'], SH_RATEABLE_CODES);
+          $isTeacher = in_array($ind['indicator_code'], TEACHER_INDICATOR_CODES);
+          ?>
           <div class="indicator-row <?= $rated ? 'rated' : '' ?> <?= $isTeacherCard ? 'teacher-only' : '' ?>"
-            id="row<?= $ind['indicator_id'] ?>" data-role="<?= $role ?>" data-code="<?= e($ind['indicator_code']) ?>">
+            id="row<?= $ind['indicator_id'] ?>" 
+            data-sh="<?= $isSH ? 1 : 0 ?>" 
+            data-teacher="<?= $isTeacher ? 1 : 0 ?>" 
+            data-code="<?= e($ind['indicator_code']) ?>">
 
             <!-- Top row: code + role tag + saved badge -->
             <div class="flex-cb" style="margin-bottom:6px;">
@@ -1768,7 +1775,7 @@ include __DIR__ . '/../includes/header.php';
     const row = document.getElementById('row' + indId);
     if (!row || !row.classList.contains('rated')) return;
 
-    const isTeacher = row.dataset.role === 'teacher';
+    const isTeacher = row.dataset.teacher === '1' && row.dataset.sh === '0';
     const prevRating = progress.prevRatings[indId] ?? null;
 
     const r = await apiPost('self_assessment.php', {
@@ -1979,10 +1986,11 @@ include __DIR__ . '/../includes/header.php';
 
     // Apply visibility to each card
     document.querySelectorAll('.indicator-row').forEach(row => {
-      const role = row.dataset.role; // 'sh' or 'teacher'
+      const isSh = row.dataset.sh === '1';
+      const isTeacher = row.dataset.teacher === '1';
       const show = mode === 'all'
-        || (mode === 'sh' && role === 'sh')
-        || (mode === 'teacher' && role === 'teacher');
+        || (mode === 'sh' && isSh)
+        || (mode === 'teacher' && isTeacher);
       row.classList.toggle('filter-hidden', !show);
     });
 
@@ -2009,7 +2017,7 @@ include __DIR__ . '/../includes/header.php';
     if (!rating) return;
 
     const row = document.getElementById(`row${indId}`);
-    const isTeacher = row?.dataset.role === 'teacher';
+      const isTeacher = row.dataset.teacher === '1' && row.dataset.sh === '0';
     const wasRated = row?.classList.contains('rated') ?? false;
 
     const evidence = document.getElementById(`evidence${indId}`)?.value || '';
