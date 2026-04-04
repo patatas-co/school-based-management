@@ -442,7 +442,7 @@ include __DIR__ . '/../includes/header.php';
   <label>Compare with:</label>
   <select class="fc" style="width:150px;font-size:12.5px;padding:5px 9px;"
     onchange="location.href='analytics.php?sy=<?= $syId ?>&compare_sy='+this.value">
-    <option value="0">— None —</option>
+    <option value="0">None</option>
     <?php foreach ($syears as $sy):
       if ($sy['sy_id'] == $syId)
         continue; ?>
