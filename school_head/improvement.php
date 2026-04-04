@@ -44,13 +44,13 @@ function parseRecommendationSections(string $text): array
   $lines = explode("\n", $text);
 
   foreach ($lines as $line) {
-    if (preg_match('/Not Yet Manifested.*?:\s*(\d+)/i', $line, $m))
+    if (preg_match('/Not yet Manifested.*?:\s*(\d+)/i', $line, $m))
       $sections['counts']['not_yet'] = (int) $m[1];
-    if (preg_match('/Emerging.*?:\s*(\d+)\s+indicator/i', $line, $m))
+    if (preg_match('/Rarely Manifested.*?:\s*(\d+)\s+indicator/i', $line, $m))
       $sections['counts']['emerging'] = (int) $m[1];
-    if (preg_match('/Developing.*?:\s*(\d+)\s+indicator/i', $line, $m))
+    if (preg_match('/Frequently Manifested.*?:\s*(\d+)\s+indicator/i', $line, $m))
       $sections['counts']['developing'] = (int) $m[1];
-    if (preg_match('/Always Manifested.*?:\s*(\d+)/i', $line, $m))
+    if (preg_match('/Always manifested.*?:\s*(\d+)/i', $line, $m))
       $sections['counts']['always'] = (int) $m[1];
   }
 
@@ -357,7 +357,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       exit;
     }
 
-    $ratingLabels = [1 => 'Not Yet Manifested', 2 => 'Emerging'];
+    $ratingLabels = [1 => 'Not yet Manifested', 2 => 'Rarely Manifested'];
     $generated = 0;
     foreach ($weakRows as $w) {
       $r = (int) $w['rating'];
@@ -601,7 +601,7 @@ include __DIR__ . '/../includes/header.php';
             <?php foreach ($inds as $ind): ?>
               <span class="weak-chip rating-<?= (int) $ind['rating'] ?>" title="<?= e($ind['indicator_text']) ?>">
                 <?= e($ind['indicator_code']) ?> —
-                <?= (int) $ind['rating'] === 1 ? 'Not Yet Manifested' : 'Emerging' ?>       <?= $ind['has_plan'] ? ' ✓' : '' ?>
+                <?= (int) $ind['rating'] === 1 ? 'Not yet Manifested' : 'Rarely Manifested' ?>       <?= $ind['has_plan'] ? ' ✓' : '' ?>
               </span>
             <?php endforeach; ?>
           </div>
@@ -686,10 +686,10 @@ if ($cycle) {
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;">
             <?php
             $overviewItems = [
-              ['label' => 'Not Yet Manifested', 'key' => 'not_yet', 'color' => 'var(--red)', 'bg' => 'var(--redb)', 'icon' => '🔴'],
-              ['label' => 'Emerging', 'key' => 'emerging', 'color' => 'var(--gold)', 'bg' => 'var(--goldb)', 'icon' => '🟡'],
-              ['label' => 'Developing', 'key' => 'developing', 'color' => 'var(--blue)', 'bg' => 'var(--blueb)', 'icon' => '🔵'],
-              ['label' => 'Always Manifested', 'key' => 'always', 'color' => 'var(--g600)', 'bg' => 'var(--g100)', 'icon' => '🟢'],
+              ['label' => 'Not yet Manifested', 'key' => 'not_yet', 'color' => 'var(--red)', 'bg' => 'var(--redb)', 'icon' => '🔴'],
+              ['label' => 'Rarely Manifested', 'key' => 'emerging', 'color' => 'var(--gold)', 'bg' => 'var(--goldb)', 'icon' => '🟡'],
+              ['label' => 'Frequently Manifested', 'key' => 'developing', 'color' => 'var(--blue)', 'bg' => 'var(--blueb)', 'icon' => '🔵'],
+              ['label' => 'Always manifested', 'key' => 'always', 'color' => 'var(--g600)', 'bg' => 'var(--g100)', 'icon' => '🟢'],
             ];
             foreach ($overviewItems as $item):
               $count = $sections['counts'][$item['key']] ?? null;
@@ -724,12 +724,12 @@ if ($cycle) {
         </div>
       <?php endif; ?>
 
-      <!-- Rating 1 — Not Yet Manifested (always visible) -->
+      <!-- Rating 1 — Not yet Manifested (always visible) -->
       <?php if (!empty($sections['rating_1'])): ?>
         <div style="padding:14px 18px;border-bottom:1px solid var(--n100);
               background:#FFF5F5;border-left:3px solid var(--red);">
           <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:10px;">
-            🔴 Not Yet Manifested — Immediate Action Required
+            🔴 Not yet Manifested — Immediate Action Required
           </div>
           <?php foreach ($sections['rating_1'] as $dimName => $indicators): ?>
             <div style="margin-bottom:10px;">
@@ -756,12 +756,12 @@ if ($cycle) {
         </div>
       <?php endif; ?>
 
-      <!-- Rating 2 — Emerging (always visible) -->
+      <!-- Rating 2 — Rarely Manifested (always visible) -->
       <?php if (!empty($sections['rating_2'])): ?>
         <div style="padding:14px 18px;border-bottom:1px solid var(--n100);
               background:#FFFBEB;border-left:3px solid var(--gold);">
           <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:10px;">
-            🟡 Emerging — Focused Intervention Needed
+            🟡 Rarely Manifested — Focused Intervention Needed
           </div>
           <?php foreach ($sections['rating_2'] as $dimName => $indicators): ?>
             <div style="margin-bottom:10px;">
@@ -795,7 +795,7 @@ if ($cycle) {
           <div style="padding:14px 18px;border-bottom:1px solid var(--n100);
                 background:#EFF6FF;border-left:3px solid var(--blue);">
             <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px;">
-              🔵 Developing — Continue &amp; Strengthen
+              🔵 Frequently Manifested — Continue &amp; Strengthen
             </div>
             <?php foreach ($sections['rating_3'] as $dimName => $indicators): ?>
               <div style="margin-bottom:10px;">

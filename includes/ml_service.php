@@ -112,7 +112,7 @@ function runMLPipeline(PDO $db, int $cycleId): bool
     }
 
     // 3. Group indicators by rating level for structured analysis
-    // Use floor() so 1.4 stays as rating 1 (Not Yet Manifested), not rounded up to 2
+    // Use floor() so 1.4 stays as rating 1 (Not yet Manifested), not rounded up to 2
     $byRating = [1 => [], 2 => [], 3 => [], 4 => []];
     foreach ($mergedIndicators as $ind) {
         $rawRating = (float)$ind['rating'];
@@ -295,10 +295,10 @@ function runRuleBasedPipeline(array $payload): array
     $ratingSummary = $payload['rating_summary'];
 
     $ratingLabels = [
-        1 => 'Not Yet Manifested',
-        2 => 'Emerging',
-        3 => 'Developing',
-        4 => 'Always Manifested',
+        1 => 'Not yet Manifested',
+        2 => 'Rarely Manifested',
+        3 => 'Frequently Manifested',
+        4 => 'Always manifested',
     ];
 
     // ── Step 1: Analyze scores ─────────────────────────────────
@@ -643,10 +643,10 @@ function buildStructuredRecommendations(
 ): string {
 
     $ratingLabels = [
-        1 => 'Not Yet Manifested',
-        2 => 'Emerging',
-        3 => 'Developing',
-        4 => 'Always Manifested',
+        1 => 'Not yet Manifested',
+        2 => 'Rarely Manifested',
+        3 => 'Frequently Manifested',
+        4 => 'Always manifested',
     ];
 
     $lines = [];
@@ -660,10 +660,10 @@ function buildStructuredRecommendations(
     // ── Rating Overview ───────────────────────────────────────
     $lines[] = "\n📊 ASSESSMENT OVERVIEW";
     $lines[] = "Total Indicators Rated: {$ratingSummary['total_rated']}";
-    $lines[] = "  ▪ Not Yet Manifested (1): {$ratingSummary['not_yet_manifested']} indicator(s) — Requires immediate action";
-    $lines[] = "  ▪ Emerging (2):           {$ratingSummary['emerging']} indicator(s) — Needs focused intervention";
-    $lines[] = "  ▪ Developing (3):         {$ratingSummary['developing']} indicator(s) — Continue and strengthen";
-    $lines[] = "  ▪ Always Manifested (4):  {$ratingSummary['always_manifested']} indicator(s) — Sustain and document";
+    $lines[] = "  ▪ Not yet Manifested (1): {$ratingSummary['not_yet_manifested']} indicator(s) — Requires immediate action";
+    $lines[] = "  ▪ Rarely Manifested (2):  {$ratingSummary['emerging']} indicator(s) — Needs focused intervention";
+    $lines[] = "  ▪ Frequently Manifested (3): {$ratingSummary['developing']} indicator(s) — Continue and strengthen";
+    $lines[] = "  ▪ Always manifested (4):  {$ratingSummary['always_manifested']} indicator(s) — Sustain and document";
 
     // ── Remarks Summary ───────────────────────────────────────
     $summary = $commentAnalysis['summary'] ?? [];
@@ -703,7 +703,7 @@ function buildStructuredRecommendations(
         }
     }
 
-    // ── Rating Level 1: Not Yet Manifested ────────────────────
+    // ── Rating Level 1: Not yet Manifested ────────────────────
     if (!empty($byRating[1])) {
         $lines[] = "\n🔴 PRIORITY 1 — NOT YET MANIFESTED (Immediate Action Required)";
         $lines[] = "These " . count($byRating[1]) . " indicator(s) have not been demonstrated and need urgent attention:";
@@ -727,9 +727,9 @@ function buildStructuredRecommendations(
         }
     }
 
-    // ── Rating Level 2: Emerging ──────────────────────────────
+    // ── Rating Level 2: Rarely Manifested ──────────────────────────────
     if (!empty($byRating[2])) {
-        $lines[] = "\n🟡 PRIORITY 2 — EMERGING (Focused Intervention Needed)";
+        $lines[] = "\n🟡 PRIORITY 2 — RARELY MANIFESTED (Focused Intervention Needed)";
         $lines[] = "These " . count($byRating[2]) . " indicator(s) show early signs but need structured support:";
 
         $groupedByDim = [];
@@ -751,9 +751,9 @@ function buildStructuredRecommendations(
         }
     }
 
-    // ── Rating Level 3: Developing ────────────────────────────
+    // ── Rating Level 3: Frequently Manifested ────────────────────────────
     if (!empty($byRating[3])) {
-        $lines[] = "\n🔵 PRIORITY 3 — DEVELOPING (Continue & Strengthen)";
+        $lines[] = "\n🔵 PRIORITY 3 — FREQUENTLY MANIFESTED (Continue & Strengthen)";
         $lines[] = "These " . count($byRating[3]) . " indicator(s) show good progress and should be maintained:";
 
         $groupedByDim = [];
@@ -775,7 +775,7 @@ function buildStructuredRecommendations(
         }
     }
 
-    // ── Rating Level 4: Always Manifested ─────────────────────
+    // ── Rating Level 4: Always manifested ─────────────────────
     if (!empty($byRating[4])) {
         $lines[] = "\n🟢 SUSTAINED PRACTICES — ALWAYS MANIFESTED";
         $lines[] = "These " . count($byRating[4]) . " indicator(s) are consistently implemented — keep it up:";

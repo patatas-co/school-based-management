@@ -63,7 +63,7 @@ foreach ($responses as $r) {
     $grouped[$r['dimension_no']][] = $r;
 }
 
-$ratingLabels = [1 => 'Not Yet Manifested', 2 => 'Emerging', 3 => 'Developing', 4 => 'Always Manifested'];
+$ratingLabels = [1 => 'Not yet Manifested', 2 => 'Rarely Manifested', 3 => 'Frequently Manifested', 4 => 'Always manifested'];
 $ratingColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A'];
 $ratingBgs = [1 => '#FEE2E2', 2 => '#FEF3C7', 3 => '#DBEAFE', 4 => '#DCFCE7'];
 

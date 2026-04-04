@@ -105,6 +105,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
   }
 
+  if ($action === 'toggle_status') {
+    $id = (int) ($_POST['id'] ?? 0);
+    $targetStatus = $_POST['status'] ?? '';
+    $allowedStatuses = ['active', 'inactive'];
+
+    if ($id <= 0) {
+      echo json_encode(['ok' => false, 'msg' => 'Invalid user account.']);
+      exit;
+    }
+    if (!in_array($targetStatus, $allowedStatuses, true)) {
+      echo json_encode(['ok' => false, 'msg' => 'Invalid account status.']);
+      exit;
+    }
+    if ($id === (int) $_SESSION['user_id'] && $targetStatus !== 'active') {
+      echo json_encode(['ok' => false, 'msg' => 'You cannot deactivate your own account.']);
+      exit;
+    }
+
+    $userStmt = $db->prepare("SELECT user_id, full_name, role, status FROM users WHERE user_id=? LIMIT 1");
+    $userStmt->execute([$id]);
+    $user = $userStmt->fetch();
+
+    if (!$user) {
+      echo json_encode(['ok' => false, 'msg' => 'User not found.']);
+      exit;
+    }
+    if ($user['status'] === $targetStatus) {
+      echo json_encode([
+        'ok' => true,
+        'msg' => 'Account status already updated.',
+        'status' => $user['status'],
+        'nextAction' => $user['status'] === 'active' ? 'deactivate' : 'reactivate'
+      ]);
+      exit;
+    }
+    if ($user['role'] === 'school_head' && $targetStatus !== 'active') {
+      $activeHeads = $db->query("SELECT COUNT(*) FROM users WHERE role='school_head' AND status='active'")->fetchColumn();
+      if ((int) $activeHeads <= 1) {
+        echo json_encode(['ok' => false, 'msg' => 'At least one active School Head account must remain.']);
+        exit;
+      }
+    }
+
+    try {
+      $db->prepare("UPDATE users SET status=? WHERE user_id=?")->execute([$targetStatus, $id]);
+      logActivity('toggle_user_status', 'users', 'User ID ' . $id . ' status changed to ' . $targetStatus);
+      echo json_encode([
+        'ok' => true,
+        'msg' => $targetStatus === 'active' ? 'Account reactivated.' : 'Account deactivated.',
+        'status' => $targetStatus,
+        'nextAction' => $targetStatus === 'active' ? 'deactivate' : 'reactivate'
+      ]);
+      exit;
+    } catch (PDOException $e) {
+      echo json_encode(['ok' => false, 'msg' => 'Failed to update account status.']);
+      exit;
+    }
+  }
+
   if ($action === 'delete') {
     $id = (int) $_POST['id'];
     if ($id === (int) $_SESSION['user_id']) {
@@ -326,7 +385,7 @@ $roleLabels = [
             $rc = $roleColors[$u['role']] ?? '#16A34A';
             $rl = $roleLabels[$u['role']] ?? ucfirst($u['role']);
             ?>
-            <tr>
+            <tr data-user-id="<?= $u['user_id'] ?>" data-user-status="<?= e($u['status']) ?>">
               <td>
                 <div class="cell-avatar">
                   <div class="cell-av" style="background:<?= $rc ?>;"><?= strtoupper(substr($u['full_name'], 0, 1)) ?></div>
@@ -346,14 +405,14 @@ $roleLabels = [
               <td>
                 <?php $statColors = ['active' => ['#DCFCE7', '#16A34A'], 'inactive' => ['var(--n-100)', 'var(--n-500)'], 'suspended' => ['var(--red-bg)', 'var(--red)']];
                 [$sb, $sc] = $statColors[$u['status']] ?? ['var(--n-100)', 'var(--n-500)']; ?>
-                <span
+                <span class="user-status-pill"
                   style="display:inline-flex;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:<?= $sb ?>;color:<?= $sc ?>;"><?= ucfirst($u['status']) ?></span>
               </td>
               <td style="font-size:12px;color:<?= $u['last_login'] ? 'var(--n-400)' : 'var(--red)' ?>;">
                 <?= $u['last_login'] ? timeAgo($u['last_login']) : 'Never' ?>
               </td>
               <td>
-                <div class="flex-c" style="gap:4px;">
+                <div class="user-row-actions">
                   <button class="btn btn-secondary btn-sm"
                     onclick="editUser(<?= $u['user_id'] ?>)"><?= svgIcon('edit') ?></button>
                   <?php if ($u['status'] !== 'active'): ?>
@@ -364,6 +423,28 @@ $roleLabels = [
                     <button class="btn btn-danger btn-sm" data-id="<?= $u['user_id'] ?>" data-name="<?= e($u['full_name']) ?>"
                       onclick="delUser(this.dataset.id,this.dataset.name,this)"><?= svgIcon('trash') ?></button>
                   <?php endif; ?>
+                  <?php if ($u['user_id'] != $_SESSION['user_id'] && in_array($u['status'], ['active', 'inactive'], true)): ?>
+                    <div class="row-menu">
+                      <button type="button" class="row-menu-btn" aria-label="Open account actions" aria-expanded="false"
+                        onclick="toggleRowMenu(this)">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                          <circle cx="12" cy="5" r="1.8"></circle>
+                          <circle cx="12" cy="12" r="1.8"></circle>
+                          <circle cx="12" cy="19" r="1.8"></circle>
+                        </svg>
+                      </button>
+                      <div class="row-menu-list" role="menu">
+                        <button type="button"
+                          class="row-menu-item user-status-toggle <?= $u['status'] === 'active' ? 'is-danger' : 'is-success' ?>"
+                          data-user-id="<?= $u['user_id'] ?>"
+                          data-user-name="<?= e($u['full_name']) ?>"
+                          data-current-status="<?= e($u['status']) ?>"
+                          onclick="toggleUserStatus(this)">
+                          <?= $u['status'] === 'active' ? 'Deactivate account' : 'Reactivate account' ?>
+                        </button>
+                      </div>
+                    </div>
+                  <?php endif; ?>
                 </div>
               </td>
             </tr>
@@ -373,6 +454,82 @@ $roleLabels = [
     </div>
   <?php endif; ?>
 </div>
+
+<style>
+  .user-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+  .row-menu {
+    position: relative;
+  }
+  .row-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--n-200);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--n-600);
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
+  }
+  .row-menu-btn:hover,
+  .row-menu-btn[aria-expanded="true"] {
+    background: var(--n-50);
+    border-color: var(--n-300);
+    color: var(--n-800);
+    box-shadow: var(--shadow-xs);
+  }
+  .row-menu-list {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 170px;
+    padding: 8px;
+    border-radius: 14px;
+    border: 1px solid var(--n-200);
+    background: #fff;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, .14);
+    display: none;
+    z-index: 20;
+  }
+  .row-menu.open .row-menu-list {
+    display: block;
+  }
+  .row-menu-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--n-700);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 10px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .row-menu-item:hover {
+    background: var(--n-50);
+  }
+  .row-menu-item.is-danger {
+    color: #B91C1C;
+  }
+  .row-menu-item.is-success {
+    color: #166534;
+  }
+  .row-menu-item:disabled {
+    opacity: .6;
+    cursor: wait;
+  }
+</style>
 
 <!-- Create Modal -->
 <div class="overlay" id="mCreate">
@@ -521,6 +678,56 @@ $roleLabels = [
 </div>
 
 <script>
+  const userStatusStyles = {
+    active: { label: 'Active', background: '#DCFCE7', color: '#16A34A' },
+    inactive: { label: 'Inactive', background: 'var(--n-100)', color: 'var(--n-500)' },
+    suspended: { label: 'Suspended', background: 'var(--red-bg)', color: 'var(--red)' }
+  };
+
+  function setUserRowStatus(row, status) {
+    if (!row) return;
+    row.dataset.userStatus = status;
+
+    const pill = row.querySelector('.user-status-pill');
+    const style = userStatusStyles[status] || userStatusStyles.inactive;
+    if (pill) {
+      pill.textContent = style.label;
+      pill.style.background = style.background;
+      pill.style.color = style.color;
+    }
+
+    const toggleBtn = row.querySelector('.user-status-toggle');
+    if (toggleBtn) {
+      toggleBtn.dataset.currentStatus = status;
+      if (status === 'active') {
+        toggleBtn.textContent = 'Deactivate account';
+        toggleBtn.classList.remove('is-success');
+        toggleBtn.classList.add('is-danger');
+      } else {
+        toggleBtn.textContent = 'Reactivate account';
+        toggleBtn.classList.remove('is-danger');
+        toggleBtn.classList.add('is-success');
+      }
+    }
+  }
+
+  function closeRowMenus() {
+    document.querySelectorAll('.row-menu.open').forEach(menu => {
+      menu.classList.remove('open');
+      const btn = menu.querySelector('.row-menu-btn');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  function toggleRowMenu(btn) {
+    const menu = btn.closest('.row-menu');
+    const shouldOpen = !menu.classList.contains('open');
+    closeRowMenus();
+    if (!shouldOpen) return;
+    menu.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+  }
+
   async function createUser() {
     const d = { action: 'create', full_name: $('c_name'), username: $('c_user'), email: $('c_email'), role: $('c_role'), status: $('c_status'), school_id: $('c_school'), password: $('c_pass') };
     const r = await apiPost('users.php', d);
@@ -545,6 +752,34 @@ $roleLabels = [
     const r = await apiPost('users.php', { action: 'resend_email', id });
     toast(r.msg, r.ok ? 'ok' : 'err');
   }
+  async function toggleUserStatus(btn) {
+    const currentStatus = btn.dataset.currentStatus || 'inactive';
+    const nextStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const actionLabel = nextStatus === 'active' ? 'reactivate' : 'deactivate';
+    const userName = btn.dataset.userName || 'this account';
+    if (!confirm(`Are you sure you want to ${actionLabel} "${userName}"?`)) return;
+
+    const row = btn.closest('tr');
+    const menu = btn.closest('.row-menu');
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = nextStatus === 'active' ? 'Reactivating...' : 'Deactivating...';
+
+    const r = await apiPost('users.php', { action: 'toggle_status', id: btn.dataset.userId, status: nextStatus });
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+    closeRowMenus();
+    toast(r.msg, r.ok ? 'ok' : 'err');
+
+    if (!r.ok) return;
+
+    setUserRowStatus(row, r.status || nextStatus);
+    if (menu) {
+      const menuBtn = menu.querySelector('.row-menu-btn');
+      if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
+    }
+    setTimeout(() => location.reload(), 500);
+  }
   async function delUser(id, name, btn) {
     if (!confirm(`Delete "${name}"?\n\nThis cannot be undone.`)) return;
     const r = await apiPost('users.php', { action: 'delete', id });
@@ -567,6 +802,12 @@ $roleLabels = [
   }
   window.addEventListener('DOMContentLoaded', () => {
     if (new URLSearchParams(window.location.search).get('action') === 'create') openModal('mCreate');
+  });
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.row-menu')) closeRowMenus();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeRowMenus();
   });
 </script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

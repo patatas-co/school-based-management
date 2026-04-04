@@ -312,10 +312,10 @@ foreach ($indicators as $ind)
     $grouped[$ind['dimension_no']][] = $ind;
 
 $ratingLabels = [
-    1 => 'Not Yet Manifested',
-    2 => 'Emerging',
-    3 => 'Developing',
-    4 => 'Always Manifested'
+    1 => 'Not yet Manifested',
+    2 => 'Rarely Manifested',
+    3 => 'Frequently Manifested',
+    4 => 'Always manifested'
 ];
 $isLocked = ($cycle && in_array(
     $cycle['status'],

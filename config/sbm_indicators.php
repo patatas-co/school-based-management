@@ -330,10 +330,10 @@ define('SBM_INDICATORS', [
 
 // ── Rating scale ─────────────────────────────────────────────────────────────
 define('SBM_RATINGS', [
-    1 => ['label' => 'Not Yet Manifested', 'short' => 'NYM', 'color' => '#DC2626', 'bg' => '#FEE2E2'],
-    2 => ['label' => 'Emerging', 'short' => 'EM', 'color' => '#D97706', 'bg' => '#FEF3C7'],
-    3 => ['label' => 'Developing', 'short' => 'DEV', 'color' => '#2563EB', 'bg' => '#DBEAFE'],
-    4 => ['label' => 'Always Manifested', 'short' => 'AM', 'color' => '#16A34A', 'bg' => '#DCFCE7'],
+    1 => ['label' => 'Not yet Manifested', 'short' => 'NYM', 'color' => '#DC2626', 'bg' => '#FEE2E2'],
+    2 => ['label' => 'Rarely Manifested', 'short' => 'RM', 'color' => '#D97706', 'bg' => '#FEF3C7'],
+    3 => ['label' => 'Frequently Manifested', 'short' => 'FM', 'color' => '#2563EB', 'bg' => '#DBEAFE'],
+    4 => ['label' => 'Always manifested', 'short' => 'AM', 'color' => '#16A34A', 'bg' => '#DCFCE7'],
 ]);
 
 // ── Maturity levels ───────────────────────────────────────────────────────────

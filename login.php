@@ -18,6 +18,9 @@ if (!empty($_SESSION['user_id'])) {
 }
 
 $error = '';
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && (($_GET['err'] ?? '') === 'deactivated')) {
+    $error = 'This account has been deactivated. Please contact the School Head for support.';
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
 
@@ -38,10 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pass  = $_POST['password'] ?? '';
         if ($uname && $pass) {
             $db   = getDB();
-            $stmt = $db->prepare("SELECT * FROM users WHERE (username=? OR email=?) AND status='active' LIMIT 1");
+            $stmt = $db->prepare("SELECT * FROM users WHERE (username=? OR email=?) LIMIT 1");
             $stmt->execute([$uname, $uname]);
             $row  = $stmt->fetch();
-            if ($row && $row['password'] && password_verify($pass, $row['password'])) {
+            if ($row && $row['status'] === 'inactive') {
+                $error = 'This account has been deactivated. Please contact the School Head for support.';
+            } elseif ($row && $row['status'] === 'active' && $row['password'] && password_verify($pass, $row['password'])) {
                 unset($_SESSION['login_attempts'], $_SESSION['login_last_attempt']);
 
                 $_SESSION['user_id']    = $row['user_id'];
@@ -65,8 +70,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: ' . baseUrl() . '/change_password.php'); exit;
                 }
                 header('Location: ' . roleHome($row['role'])); exit;
+            } elseif ($row && $row['status'] !== 'active') {
+                $error = 'This account is not available for sign-in. Please contact the School Head for support.';
+            } else {
+                $error = 'Incorrect username or password.';
             }
-            $error = 'Incorrect username or password.';
         } else {
             $error = 'Please enter your username and password.';
         }

@@ -96,7 +96,7 @@ if (!$reportData): ?>
 
     <!-- Full Indicator Checklist -->
     <?php
-    $ratingMap = [1 => 'Not Yet Manifested', 2 => 'Emerging', 3 => 'Developing', 4 => 'Always Manifested'];
+    $ratingMap = [1 => 'Not yet Manifested', 2 => 'Rarely Manifested', 3 => 'Frequently Manifested', 4 => 'Always manifested'];
     $ratingColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A'];
     $grouped = [];
     foreach (($responses ?? []) as $r)

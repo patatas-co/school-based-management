@@ -125,10 +125,10 @@ if ($type === 'improvement') {
 
 // ── Rating helpers ────────────────────────────────────────────
 $ratingLabels = [
-    1 => 'Not Yet Manifested',
-    2 => 'Emerging',
-    3 => 'Developing',
-    4 => 'Always Manifested',
+    1 => 'Not yet Manifested',
+    2 => 'Rarely Manifested',
+    3 => 'Frequently Manifested',
+    4 => 'Always manifested',
 ];
 $ratingColors = [
     1 => '#DC2626',
@@ -594,8 +594,8 @@ ob_start();
         Dimension <?= $dimNo ?>: <?= htmlspecialchars($first['dimension_name']) ?>
         &nbsp;·&nbsp;
         <span style="font-size:7.5pt;opacity:.9;">
-          NYM: <?= $rated1 ?> &nbsp; Emerging: <?= $rated2 ?> &nbsp;
-          Developing: <?= $rated3 ?> &nbsp; Always: <?= $rated4 ?>
+          NYM: <?= $rated1 ?> &nbsp; Rarely: <?= $rated2 ?> &nbsp;
+          Frequently: <?= $rated3 ?> &nbsp; Always: <?= $rated4 ?>
         </span>
       </td>
     </tr>

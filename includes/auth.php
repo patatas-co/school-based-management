@@ -17,6 +17,36 @@ function requireLogin(): void
         header('Location: ' . baseUrl() . '/login.php');
         exit;
     }
+
+    static $validatedSession = false;
+    if ($validatedSession) {
+        return;
+    }
+
+    try {
+        $db = getDB();
+        $stmt = $db->prepare("SELECT status, role FROM users WHERE user_id=? LIMIT 1");
+        $stmt->execute([(int) $_SESSION['user_id']]);
+        $user = $stmt->fetch();
+    } catch (Exception $e) {
+        $user = false;
+    }
+
+    if (!$user || ($user['status'] ?? '') !== 'active') {
+        session_unset();
+        session_destroy();
+        session_start();
+        session_regenerate_id(true);
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        header('Location: ' . baseUrl() . '/login.php?err=deactivated');
+        exit;
+    }
+
+    if (!empty($user['role']) && $user['role'] !== ($_SESSION['role'] ?? '')) {
+        $_SESSION['role'] = $user['role'];
+    }
+
+    $validatedSession = true;
 }
 
 function requireRole(string ...$roles): void
@@ -176,10 +206,10 @@ function verifyCsrf(): void
 function sbmRatingBadge(int $r): string
 {
     $map = [
-        1 => ['Not Yet Manifested', '#FEE2E2', '#DC2626', '#FECACA'],
-        2 => ['Emerging', '#FEF3C7', '#D97706', '#FDE68A'],
-        3 => ['Developing', '#DBEAFE', '#2563EB', '#BFDBFE'],
-        4 => ['Always Manifested', '#DCFCE7', '#16A34A', '#BBF7D0'],
+        1 => ['Not yet Manifested', '#FEE2E2', '#DC2626', '#FECACA'],
+        2 => ['Rarely Manifested', '#FEF3C7', '#D97706', '#FDE68A'],
+        3 => ['Frequently Manifested', '#DBEAFE', '#2563EB', '#BFDBFE'],
+        4 => ['Always manifested', '#DCFCE7', '#16A34A', '#BBF7D0'],
     ];
     [$l, $bg, $c, $br] = $map[$r] ?? ['—', '#F3F4F6', '#6B7280', '#E5E7EB'];
     return "<span style=\"display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;background:$bg;color:$c;border:1px solid $br;\">$l</span>";

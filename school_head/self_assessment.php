@@ -512,7 +512,7 @@ $grouped = [];
 foreach ($indicators as $ind)
   $grouped[$ind['dimension_no']][] = $ind;
 
-$ratingLabels = [1 => 'Not Yet Manifested', 2 => 'Emerging', 3 => 'Developing', 4 => 'Always Manifested'];
+$ratingLabels = [1 => 'Not yet Manifested', 2 => 'Rarely Manifested', 3 => 'Frequently Manifested', 4 => 'Always manifested'];
 $ratingColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A'];
 
 $isLocked = $cycle && in_array($cycle['status'], ['submitted', 'validated']);
@@ -1199,7 +1199,7 @@ include __DIR__ . '/../includes/header.php';
         <?php
         $rColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A'];
         $rBgs = [1 => '#FEE2E2', 2 => '#FEF3C7', 3 => '#DBEAFE', 4 => '#DCFCE7'];
-        $rLabels = [1 => 'Not Yet', 2 => 'Emerging', 3 => 'Developing', 4 => 'Always'];
+        $rLabels = [1 => 'Not yet', 2 => 'Rarely', 3 => 'Frequently', 4 => 'Always'];
         foreach ([1, 2, 3, 4] as $rv):
           $cnt = count(array_filter($responses, fn($x) => $x['rating'] == $rv));
           ?>
