@@ -35,10 +35,12 @@ if ($cycle) {
                    i.indicator_code, i.indicator_text,
                    d.dimension_no, d.dimension_name, d.color_hex
             FROM response_attachments ra
-            JOIN users u         ON ra.uploaded_by    = u.user_id
+            JOIN users u          ON ra.uploaded_by   = u.user_id
             JOIN sbm_indicators i ON ra.indicator_id  = i.indicator_id
             JOIN sbm_dimensions d ON i.dimension_id   = d.dimension_id
             WHERE ra.cycle_id = ?
+              AND ra.deleted_at IS NULL
+              AND ra.is_current_version = 1
             ORDER BY d.dimension_no ASC, i.sort_order ASC,
                      ra.uploaded_at ASC
         ");
@@ -100,6 +102,43 @@ function fileIconHtml(string $mime): string
     return '📊';
   return '📎';
 }
+
+function categoryLabel(string $cat): string
+{
+  switch ($cat) {
+    case 'photo':
+      return '📷 Photo';
+    case 'document':
+      return '📄 Document';
+    case 'report':
+      return '📊 Report';
+    case 'certificate':
+      return '🏅 Certificate';
+    case 'record':
+      return '🗂️ Record';
+    default:
+      return '📎 Other';
+  }
+}
+
+function categoryColor(string $cat): string
+{
+  switch ($cat) {
+    case 'photo':
+      return '#0D9488';
+    case 'document':
+      return '#2563EB';
+    case 'report':
+      return '#7C3AED';
+    case 'certificate':
+      return '#D97706';
+    case 'record':
+      return '#DC2626';
+    default:
+      return '#6B7280';
+  }
+}
+
 function roleLabel(string $role): string
 {
   switch ($role) {
@@ -274,6 +313,58 @@ function roleLabel(string $role): string
       self-assessment first.</span></div>
 <?php else: ?>
 
+  <?php
+  // Check which indicators are missing required evidence
+  $missingEvidence = [];
+  if ($cycle) {
+    try {
+      $reqStmt = $db->prepare("
+            SELECT i.indicator_id, i.indicator_code, i.indicator_text,
+                   COALESCE(r.required_count, 0) AS required_count,
+                   COUNT(CASE WHEN ra.deleted_at IS NULL AND ra.is_current_version=1 THEN 1 END) AS uploaded_count
+            FROM sbm_indicators i
+            LEFT JOIN indicator_evidence_requirements r ON r.indicator_id = i.indicator_id
+            LEFT JOIN response_attachments ra ON ra.indicator_id = i.indicator_id
+                AND ra.cycle_id = ? AND ra.school_id = ?
+            WHERE i.is_active = 1
+            GROUP BY i.indicator_id
+            HAVING required_count > 0 AND uploaded_count < required_count
+        ");
+      $reqStmt->execute([$cycle['cycle_id'], $schoolId]);
+      $missingEvidence = $reqStmt->fetchAll();
+    } catch (\Exception $e) {
+      $missingEvidence = [];
+    }
+  }
+  ?>
+  <?php if (!empty($missingEvidence)): ?>
+    <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:9px;
+              padding:14px 18px;margin-bottom:18px;border-left:4px solid #D97706;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"
+          style="width:18px;height:18px;flex-shrink:0;">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+        <strong style="font-size:13.5px;color:#92400E;">
+          <?= count($missingEvidence) ?> indicator<?= count($missingEvidence) !== 1 ? 's' : '' ?> missing required evidence
+        </strong>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        <?php foreach ($missingEvidence as $m): ?>
+          <span style="background:#FDE68A;border-radius:6px;padding:3px 9px;
+                     font-size:12px;font-weight:700;color:#78350F;">
+            <?= e($m['indicator_code']) ?>
+            <span style="font-weight:400;opacity:.8;">
+              (<?= $m['uploaded_count'] ?>/<?= $m['required_count'] ?> files)
+            </span>
+          </span>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  <?php endif; ?>
+
   <div class="card mb5" style="margin-bottom:16px;">
     <div class="card-body" style="padding:12px 16px;">
       <div class="flex-c" style="gap:16px;flex-wrap:wrap;">
@@ -407,7 +498,8 @@ function roleLabel(string $role): string
                 </span>
                 <span style="font-size:13px;font-weight:600;color:var(--n800);flex:1;
                        overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                  <?= e(substr($indData['indicator_text'], 0, 80)) ?>      <?= strlen($indData['indicator_text']) > 80 ? '…' : '' ?>
+                  <?= e(substr($indData['indicator_text'], 0, 80)) ?>
+                  <?= strlen($indData['indicator_text']) > 80 ? '…' : '' ?>
                 </span>
                 <span style="font-size:12px;font-weight:600;color:var(--n500);
                        background:var(--n100);border-radius:999px;
@@ -429,6 +521,24 @@ function roleLabel(string $role): string
                         <?= date('M d, Y g:i A', strtotime($file['uploaded_at'])) ?>
                       </div>
                     </div>
+                    <?php if (!empty($file['category'])): ?>
+                      <span style="display:inline-flex;align-items:center;padding:2px 8px;
+                             border-radius:999px;font-size:10.5px;font-weight:700;
+                             background:<?= categoryColor($file['category']) ?>18;
+                             color:<?= categoryColor($file['category']) ?>;
+                             border:1px solid <?= categoryColor($file['category']) ?>33;
+                             white-space:nowrap;flex-shrink:0;">
+                        <?= categoryLabel($file['category'] ?? 'other') ?>
+                      </span>
+                    <?php endif; ?>
+                    <?php if (!empty($file['version']) && (int) $file['version'] > 1): ?>
+                      <span style="display:inline-flex;align-items:center;padding:2px 7px;
+                             border-radius:999px;font-size:10px;font-weight:700;
+                             background:#FEF3C7;color:#D97706;
+                             border:1px solid #FDE68A;white-space:nowrap;flex-shrink:0;">
+                        v<?= (int) $file['version'] ?>
+                      </span>
+                    <?php endif; ?>
                     <span class="ev-role-badge role-<?= e($file['uploader_role']) ?>">
                       <?= e($file['uploader_name']) ?> · <?= roleLabel($file['uploader_role']) ?>
                     </span>

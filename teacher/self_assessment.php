@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             echo json_encode(['ok' => false, 'msg' => 'No active cycle.']);
             exit;
         }
-        if (in_array($cycleRow['status'], ['submitted', 'validated'])) {
+        if (in_array($cycleRow['status'], ['submitted', 'validated', 'finalized'])) {
             echo json_encode(['ok' => false, 'msg' => 'Assessment is locked.']);
             exit;
         }
@@ -226,7 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             exit;
         } else {
             $cycleId = $cycleRow['cycle_id'];
-            if (in_array($cycleRow['status'], ['submitted', 'validated'])) {
+            if (in_array($cycleRow['status'], ['submitted', 'validated', 'finalized'])) {
                 echo json_encode(['ok' => false, 'msg' => 'Assessment is locked. Cannot edit.']);
                 exit;
             }

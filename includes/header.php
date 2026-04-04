@@ -2072,6 +2072,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     }
 
     @media (max-width:768px) {
+
       /* Sidebar: slide-in drawer with backdrop overlay */
       .sb {
         transform: translateX(-100%);
@@ -2644,7 +2645,17 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         <input type="file" id="attachInput_${indicatorId}" style="display:none;"
                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
                onchange="uploadAttachment(this, ${indicatorId}, ${cycleId})">
-        <span style="font-size:11px;color:var(--n400);margin-left:8px;">
+        <select id="attCat_${indicatorId}" style="margin-top:6px;width:100%;padding:6px 10px;
+            border:1px solid var(--n200);border-radius:6px;font-size:12.5px;
+            background:var(--white);color:var(--n700);">
+          <option value="other">📎 Other</option>
+          <option value="photo">📷 Photo / Visual Evidence</option>
+          <option value="document">📄 Document</option>
+          <option value="report">📊 Report / Summary</option>
+          <option value="certificate">🏅 Certificate / Award</option>
+          <option value="record">🗂️ Record / Registry</option>
+        </select>
+        <span style="font-size:11px;color:var(--n400);margin-left:8px;display:block;margin-top:6px;">
           Max 10MB · JPG, PNG, PDF, DOC, XLS, PPT, TXT
         </span>
       </div>` : ''}
@@ -2677,6 +2688,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
           fd.append('action', 'upload_attachment');
           fd.append('csrf_token', csrf);
           fd.append('indicator_id', indicatorId);
+          const catEl = document.getElementById('attCat_' + indicatorId);
+          if (catEl) fd.append('category', catEl.value);
           fd.append('cycle_id', cycleId);
           fd.append('attachment', file);
 

@@ -160,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         echo json_encode(['ok' => false, 'msg' => 'No active cycle.']);
         exit;
       }
-      if (in_array($cycleRow['status'], ['submitted', 'validated'])) {
+      if (in_array($cycleRow['status'], ['submitted', 'validated', 'finalized'])) {
         echo json_encode(['ok' => false, 'msg' => 'Assessment is locked. Cannot clear.']);
         exit;
       }
@@ -183,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         echo json_encode(['ok' => false, 'msg' => 'No active cycle.']);
         exit;
       }
-      if (in_array($cycleRow['status'], ['submitted', 'validated'])) {
+      if (in_array($cycleRow['status'], ['submitted', 'validated', 'finalized'])) {
         echo json_encode(['ok' => false, 'msg' => 'Assessment is locked.']);
         exit;
       }
@@ -326,15 +326,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         echo json_encode(['ok' => false, 'msg' => 'Invalid rating.']);
         exit;
       }
+      if (empty($reason)) {
+        echo json_encode(['ok' => false, 'msg' => 'Reason for override is required.']);
+        exit;
+      }
 
       $chk = $db->prepare("SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?");
       $chk->execute([$indicatorId]);
       $code = $chk->fetchColumn();
 
-      // Only pure teacher-only indicators can be overridden (not SH-only or shared)
-      if (!in_array($code, TEACHER_INDICATOR_CODES) || in_array($code, SH_ONLY_INDICATOR_CODES)) {
-        echo json_encode(['ok' => false, 'msg' => 'This indicator is not a teacher indicator.']);
-        exit;
+      $isCoordinator = ($_SESSION['role'] === 'sbm_coordinator');
+
+      // Only pure teacher-only indicators can be overridden by SH
+      // Coordinator has global override authority (all 42)
+      if (!$isCoordinator) {
+        if (!in_array($code, TEACHER_INDICATOR_CODES) || in_array($code, SH_ONLY_INDICATOR_CODES)) {
+          echo json_encode(['ok' => false, 'msg' => 'This indicator is not a teacher indicator.']);
+          exit;
+        }
       }
 
       $cycleRow = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
@@ -349,6 +358,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $avgStmt = $db->prepare("SELECT ROUND(AVG(rating), 2) FROM teacher_responses WHERE cycle_id=? AND indicator_id=?");
       $avgStmt->execute([$cycleId, $indicatorId]);
       $originalAvg = $avgStmt->fetchColumn();
+      
+      $prevStmt = $db->prepare("SELECT override_rating FROM sh_indicator_overrides WHERE cycle_id=? AND indicator_id=?");
+      $prevStmt->execute([$cycleId, $indicatorId]);
+      $prevOverride = $prevStmt->fetchColumn();
+
+      $actionType = $prevOverride === false ? 'override' : 'update';
+      $previousRating = $prevOverride === false ? ($originalAvg ?? 0) : $prevOverride;
 
       $db->prepare("
             INSERT INTO sh_indicator_overrides
@@ -362,6 +378,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 overridden_by    = VALUES(overridden_by),
                 overridden_at    = NOW()
         ")->execute([$cycleId, $indicatorId, $schoolId, $originalAvg, $overrideRating, $reason, $_SESSION['user_id']]);
+        
+      $db->prepare("
+          INSERT INTO sh_indicator_override_history
+          (cycle_id, indicator_id, school_id, action_type, previous_rating, new_rating, override_reason, changed_by)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ")->execute([$cycleId, $indicatorId, $schoolId, $actionType, $previousRating, $overrideRating, $reason, $_SESSION['user_id']]);
 
       recomputeDimScoreWithOverrides($db, $cycleId, $indicatorId, $schoolId);
 
@@ -391,6 +413,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         echo json_encode(['ok' => false, 'msg' => 'No active cycle.']);
         exit;
       }
+      
+      $prevStmt = $db->prepare("SELECT override_rating FROM sh_indicator_overrides WHERE cycle_id=? AND indicator_id=?");
+      $prevStmt->execute([$cycleId, $indicatorId]);
+      $prevOverride = $prevStmt->fetchColumn();
+
+      if ($prevOverride !== false) {
+          $db->prepare("
+              INSERT INTO sh_indicator_override_history
+              (cycle_id, indicator_id, school_id, action_type, previous_rating, new_rating, override_reason, changed_by)
+              VALUES (?, ?, ?, 'clear', ?, NULL, ?, ?)
+          ")->execute([$cycleId, $indicatorId, $schoolId, $prevOverride, 'Override cleared', $_SESSION['user_id']]);
+      }
 
       $db->prepare("DELETE FROM sh_indicator_overrides WHERE cycle_id=? AND indicator_id=?")
         ->execute([$cycleId, $indicatorId]);
@@ -398,6 +432,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       recomputeDimScoreWithOverrides($db, $cycleId, $indicatorId, $schoolId);
 
       echo json_encode(['ok' => true, 'msg' => 'Override cleared. Score reverted to teacher average.']);
+      exit;
+    }
+
+    if ($_POST['action'] === 'get_override_history') {
+      $indicatorId = (int) $_POST['indicator_id'];
+
+      $cycleRow = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+      $cycleRow->execute([$schoolId, $syId]);
+      $cycleId = $cycleRow->fetchColumn();
+
+      if (!$cycleId) {
+        echo json_encode(['ok' => true, 'data' => []]);
+        exit;
+      }
+
+      $stmt = $db->prepare("
+          SELECT h.*, u.full_name 
+          FROM sh_indicator_override_history h
+          LEFT JOIN users u ON h.changed_by = u.user_id
+          WHERE h.cycle_id=? AND h.indicator_id=?
+          ORDER BY h.changed_at DESC
+      ");
+      $stmt->execute([$cycleId, $indicatorId]);
+      $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+      echo json_encode(['ok' => true, 'data' => $history]);
       exit;
     }
 
@@ -434,22 +494,24 @@ function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId,
   $maxTotal = 0;
 
   foreach ($inds as $ind) {
-    if (isTeacherHandled($ind['indicator_code'])) {
-      $ov = $db->prepare("SELECT override_rating FROM sh_indicator_overrides WHERE cycle_id=? AND indicator_id=?");
-      $ov->execute([$cycleId, $ind['indicator_id']]);
-      $override = $ov->fetchColumn();
+    // Priority 1: Check Override table (Global for all types now)
+    $ov = $db->prepare("SELECT override_rating FROM sh_indicator_overrides WHERE cycle_id=? AND indicator_id=?");
+    $ov->execute([$cycleId, $ind['indicator_id']]);
+    $override = $ov->fetchColumn();
 
-      if ($override !== false) {
-        $rawTotal += (int) $override;
+    if ($override !== false) {
+      $rawTotal += (int) $override;
+      $maxTotal += 4;
+      continue;
+    }
+
+    if (isTeacherHandled($ind['indicator_code'])) {
+      $avg = $db->prepare("SELECT AVG(rating) FROM teacher_responses WHERE cycle_id=? AND indicator_id=?");
+      $avg->execute([$cycleId, $ind['indicator_id']]);
+      $avgVal = $avg->fetchColumn();
+      if ($avgVal !== null) {
+        $rawTotal += floatval($avgVal);
         $maxTotal += 4;
-      } else {
-        $avg = $db->prepare("SELECT AVG(rating) FROM teacher_responses WHERE cycle_id=? AND indicator_id=?");
-        $avg->execute([$cycleId, $ind['indicator_id']]);
-        $avgVal = $avg->fetchColumn();
-        if ($avgVal !== null) {
-          $rawTotal += floatval($avgVal);
-          $maxTotal += 4;
-        }
       }
     } else {
       $shResp = $db->prepare("SELECT rating FROM sbm_responses WHERE cycle_id=? AND indicator_id=? AND school_id=?");
@@ -515,7 +577,7 @@ foreach ($indicators as $ind)
 $ratingLabels = [1 => 'Not yet Manifested', 2 => 'Rarely Manifested', 3 => 'Frequently Manifested', 4 => 'Always manifested'];
 $ratingColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A'];
 
-$isLocked = $cycle && in_array($cycle['status'], ['submitted', 'validated']);
+$isLocked = $cycle && in_array($cycle['status'], ['submitted', 'validated', 'finalized']);
 
 // SH rates: SH_ONLY + SH_TEACHER + SH_EXT + SH_TCH_EXT (= SH_RATEABLE_CODES)
 $shIndicators = array_filter($indicators, fn($i) => in_array($i['indicator_code'], SH_RATEABLE_CODES));
@@ -1458,7 +1520,10 @@ include __DIR__ . '/../includes/header.php';
 
             <?php endif; ?>
 
-            <?php if ($isTeacherCard || $showTeacherInfoAlso): ?>
+            <?php
+            $isCoordinatorView = ($_COORDINATOR_VIEW ?? false);
+            if ($isTeacherCard || $showTeacherInfoAlso || $isCoordinatorView): 
+            ?>
               <?php
               $hasOverride = isset($overrides[$ind['indicator_id']]);
               $ovData = $hasOverride
@@ -1484,16 +1549,17 @@ include __DIR__ . '/../includes/header.php';
                 <div class="teacher-info-text" style="flex:1;">
                   <?php if ($trData && (int) $trData['teacher_count'] > 0): ?>
                     <div class="teacher-info-title">
-                      Teacher Average:
                       <?php if ($hasOverride): ?>
+                        Coordinator Override:
                         <div style="font-size:18px;font-weight:800;color:var(--gold);line-height:1.2;margin-bottom:2px;">
                           <?= number_format($ovData['override_rating'], 2) ?>
-                          <span style="font-size:12px;opacity:.7;font-weight:600;"> (Overridden)</span>
+                          <span style="font-size:12px;opacity:.7;font-weight:600;"> (Forced Score)</span>
                         </div>
                         <div style="font-size:12px;color:var(--n500);margin-bottom:4px;">
                           Teacher Average: <span style="text-decoration:line-through;"><?= $trData['avg_rating'] ?></span>
                         </div>
                       <?php else: ?>
+                        Teacher Average:
                         <div class="teacher-avg-rating">
                           <?= $trData['avg_rating'] ?>/4.00
                         </div>
@@ -1501,34 +1567,53 @@ include __DIR__ . '/../includes/header.php';
                     </div>
                     <div class="teacher-info-body">
                       <?= (int) $trData['teacher_count'] ?> teacher response(s)
-                      &nbsp;·&nbsp; <?= e($trData['teachers']) ?>
                     </div>
                   <?php else: ?>
-                    <div class="teacher-info-title">Teacher Indicator</div>
+                    <div class="teacher-info-title">
+                      <?php if ($hasOverride): ?>
+                        Coordinator Override:
+                        <div style="font-size:18px;font-weight:800;color:var(--gold);line-height:1.2;margin-bottom:2px;">
+                          <?= number_format($ovData['override_rating'], 2) ?>
+                          <span style="font-size:12px;opacity:.7;font-weight:600;"> (Forced Score)</span>
+                        </div>
+                      <?php else: ?>
+                        <?= $isTeacherCard ? 'Teacher Indicator' : 'System Oversight' ?>
+                      <?php endif; ?>
+                    </div>
                     <div class="teacher-info-body">
-                      No teacher input yet. Teachers rate this in their portal.
+                      <?php if (!$hasOverride): ?>
+                        <?= $isTeacherCard ? 'No teacher input yet. Teachers rate this in their portal.' : 'Coordinator can override SH/Teacher values if necessary.' ?>
+                      <?php else: ?>
+                        This score will be used instead of any manual ratings.
+                      <?php endif; ?>
                     </div>
                   <?php endif; ?>
 
-                  <?php if (
-                    !$isLocked && $trData &&
-                    (int) $trData['teacher_count'] > 0 &&
-                    $isTeacherCard
-                  ): ?>
+                  <?php 
+                  $showOverrideBtn = !$isLocked && (
+                    ($trData && (int) $trData['teacher_count'] > 0 && $isTeacherCard) ||
+                    $isCoordinatorView
+                  );
+                  if ($showOverrideBtn): ?>
                     <!-- Override controls -->
                     <div style="margin-top:10px;padding-top:10px;
                     border-top:1px solid rgba(0,0,0,.08);">
-                      <?php if (!$hasOverride): ?>
+                      <?php 
+                      $currentAvg = $trData['avg_rating'] ?? 0;
+                      if (!$hasOverride): ?>
                         <button class="btn btn-secondary btn-sm" onclick="openOverride(
                         <?= $ind['indicator_id'] ?>,
                         '<?= e($ind['indicator_code']) ?>',
-                        <?= $trData['avg_rating'] ?>
+                        <?= $currentAvg ?>
                     )">
                           Override Rating
                         </button>
+                        <button class="btn btn-secondary btn-sm" style="margin-left:6px;" onclick="viewOverrideHistory(<?= $ind['indicator_id'] ?>, '<?= e($ind['indicator_code']) ?>')">
+                          <i class="feather-clock"></i> History
+                        </button>
                         <span style="font-size:11px;color:var(--n400);
                          margin-left:8px;">
-                          Use if teacher average needs correction
+                          <?= $isCoordinatorView ? 'Coordinator override' : 'Use if teacher average needs correction' ?>
                         </span>
                       <?php else: ?>
                         <button class="btn btn-sm" style="background:var(--goldb);
@@ -1536,7 +1621,7 @@ include __DIR__ . '/../includes/header.php';
                            border:1px solid #FDE68A;" onclick="openOverride(
                         <?= $ind['indicator_id'] ?>,
                         '<?= e($ind['indicator_code']) ?>',
-                        <?= $trData['avg_rating'] ?>,
+                        <?= $currentAvg ?>,
                         <?= $ovData['override_rating'] ?>,
                         `<?= e(addslashes($ovData['override_reason'] ?? '')) ?>`
                     )">
@@ -1545,6 +1630,9 @@ include __DIR__ . '/../includes/header.php';
                         <button class="btn btn-danger btn-sm" style="margin-left:6px;"
                           onclick="clearOverride(<?= $ind['indicator_id'] ?>)">
                           Clear Override
+                        </button>
+                        <button class="btn btn-secondary btn-sm" style="margin-left:6px;" onclick="viewOverrideHistory(<?= $ind['indicator_id'] ?>, '<?= e($ind['indicator_code']) ?>')">
+                          <i class="feather-clock"></i> History
                         </button>
                         <?php if ($ovData['override_reason']): ?>
                           <div style="font-size:11.5px;color:var(--n600);
@@ -2203,6 +2291,54 @@ include __DIR__ . '/../includes/header.php';
     }
   }
 
+  async function viewOverrideHistory(indId, code) {
+    document.getElementById('mOverrideHistoryTitle').textContent = `Override History for Indicator ${code}`;
+    document.getElementById('historyLoading').style.display = 'block';
+    document.getElementById('historyContent').style.display = 'none';
+    openModal('mOverrideHistory');
+
+    const r = await apiPost('self_assessment.php', { action: 'get_override_history', indicator_id: indId });
+    document.getElementById('historyLoading').style.display = 'none';
+    const content = document.getElementById('historyContent');
+    content.style.display = 'block';
+
+    if (r.ok && r.data && r.data.length > 0) {
+      let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+      r.data.forEach(item => {
+        let actionBadge = '';
+        if (item.action_type === 'override') actionBadge = '<span style="background:var(--blueb); color:var(--blue); padding: 2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">First Override</span>';
+        else if (item.action_type === 'update') actionBadge = '<span style="background:var(--goldb); color:var(--gold); padding: 2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">Updated</span>';
+        else actionBadge = '<span style="background:var(--redb); color:var(--red); padding: 2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">Cleared</span>';
+
+        let changes = '';
+        if (item.action_type === 'clear') {
+            changes = `Cleared override (Reverted to teacher average: ${item.previous_rating})`;
+        } else {
+            changes = `Changed from <strong>${item.previous_rating || 'N/A'}</strong> to <strong>${item.new_rating}</strong>`;
+        }
+
+        html += `
+          <div style="border: 1px solid var(--n200); border-radius: var(--radius); padding: 12px; background: var(--n50);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+               <div>${actionBadge} <span style="font-size:12px; color:var(--n500); margin-left:6px;">${new Date(item.changed_at).toLocaleString()}</span></div>
+               <div style="font-size:12px; font-weight:600; color:var(--n700);">${item.full_name}</div>
+            </div>
+            <div style="font-size: 13px; color: var(--n700); margin-bottom: 4px;">
+                ${changes}
+            </div>
+            <div style="font-size: 12px; color: var(--n600); font-style: italic;">
+                Reason: ${item.override_reason}
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      content.innerHTML = html;
+    } else {
+      content.innerHTML = '<div style="text-align:center; padding:10px; color:var(--n500);">No override history found.</div>';
+    }
+  }
+
 </script>
 
 <!-- Start Assessment Modal -->
@@ -2296,6 +2432,29 @@ include __DIR__ . '/../includes/header.php';
       <button class="btn btn-primary" onclick="submitOverride()">
         Save Override
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Override History Modal -->
+<div class="overlay" id="mOverrideHistory">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-head">
+      <span class="modal-title" id="mOverrideHistoryTitle">
+        Override History
+      </span>
+      <button class="modal-close" onclick="closeModal('mOverrideHistory')">
+        <?= svgIcon('x') ?>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="historyLoading" style="text-align:center; padding:20px; color:var(--n500);">Loading history...</div>
+      <div id="historyContent" style="display:none; max-height: 400px; overflow-y: auto;">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mOverrideHistory')">Close</button>
     </div>
   </div>
 </div>

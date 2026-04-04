@@ -1046,6 +1046,25 @@ CREATE TABLE `sh_indicator_overrides` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `sh_indicator_override_history`
+--
+
+CREATE TABLE `sh_indicator_override_history` (
+  `history_id` int(11) NOT NULL,
+  `cycle_id` int(11) NOT NULL,
+  `indicator_id` int(11) NOT NULL,
+  `school_id` int(11) NOT NULL,
+  `action_type` enum('override','update','clear') NOT NULL,
+  `previous_rating` decimal(4,2) DEFAULT NULL,
+  `new_rating` tinyint(4) DEFAULT NULL,
+  `override_reason` text DEFAULT NULL,
+  `changed_by` int(11) NOT NULL,
+  `changed_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `stakeholder_responses`
 --
 
@@ -1580,6 +1599,16 @@ ALTER TABLE `sh_indicator_overrides`
   ADD KEY `overridden_by` (`overridden_by`);
 
 --
+-- Indexes for table `sh_indicator_override_history`
+--
+ALTER TABLE `sh_indicator_override_history`
+  ADD PRIMARY KEY (`history_id`),
+  ADD KEY `cycle_id` (`cycle_id`),
+  ADD KEY `indicator_id` (`indicator_id`),
+  ADD KEY `school_id` (`school_id`),
+  ADD KEY `changed_by` (`changed_by`);
+
+--
 -- Indexes for table `stakeholder_responses`
 --
 ALTER TABLE `stakeholder_responses`
@@ -1825,6 +1854,12 @@ ALTER TABLE `sh_indicator_overrides`
   MODIFY `override_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
+-- AUTO_INCREMENT for table `sh_indicator_override_history`
+--
+ALTER TABLE `sh_indicator_override_history`
+  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `stakeholder_responses`
 --
 ALTER TABLE `stakeholder_responses`
@@ -2037,6 +2072,15 @@ ALTER TABLE `sh_indicator_overrides`
   ADD CONSTRAINT `sh_indicator_overrides_ibfk_2` FOREIGN KEY (`indicator_id`) REFERENCES `sbm_indicators` (`indicator_id`),
   ADD CONSTRAINT `sh_indicator_overrides_ibfk_3` FOREIGN KEY (`school_id`) REFERENCES `schools` (`school_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `sh_indicator_overrides_ibfk_4` FOREIGN KEY (`overridden_by`) REFERENCES `users` (`user_id`);
+
+--
+-- Constraints for table `sh_indicator_override_history`
+--
+ALTER TABLE `sh_indicator_override_history`
+  ADD CONSTRAINT `sh_history_cycle_fk` FOREIGN KEY (`cycle_id`) REFERENCES `sbm_cycles` (`cycle_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `sh_history_indicator_fk` FOREIGN KEY (`indicator_id`) REFERENCES `sbm_indicators` (`indicator_id`),
+  ADD CONSTRAINT `sh_history_school_fk` FOREIGN KEY (`school_id`) REFERENCES `schools` (`school_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `sh_history_user_fk` FOREIGN KEY (`changed_by`) REFERENCES `users` (`user_id`);
 
 --
 -- Constraints for table `stakeholder_responses`
