@@ -602,8 +602,15 @@ include __DIR__.'/../includes/header.php';
         <?php if($cycle['validator_remarks']): ?>
         <div style="font-size:12px;color:var(--n-600);margin-top:6px;font-style:italic;">"<?= e($cycle['validator_remarks']) ?>"</div>
         <?php endif; ?>
+        <div style="margin-top:12px;">
+          <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;gap:6px;" onclick="doFinalizeCycle(<?= $cycle['cycle_id'] ?>)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M12 15l-2 5l10-10l-4-4l-10 10l5 2z"/><path d="M2 22l5-2l-2-5l-3 7z"/></svg>
+            Finalize & Lock Cycle
+          </button>
+        </div>
       </div>
     </div>
+
     <?php endif; ?>
 
     <!-- Quick Actions -->
@@ -706,4 +713,16 @@ new Chart(document.getElementById('dimBarChart'), {
 </script>
 <?php endif; ?>
 
-<?php include __DIR__.'/../includes/footer.php'; ?>
+<script>
+  async function doFinalizeCycle(cycleId) {
+    if (!confirm('Finalize and permanently lock this cycle? No further edits will be possible.')) return;
+    const r = await apiPost('../school_head/workflow.php', {
+      action: 'finalize_cycle',
+      cycle_id: cycleId
+    });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) setTimeout(() => location.reload(), 800);
+  }
+</script>
+
+<?php include __DIR__.'/../includes/footer.php'; ?>

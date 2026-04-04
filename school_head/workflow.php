@@ -8,6 +8,8 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 requireRole('school_head', 'sbm_coordinator');
 $db = getDB();
+require_once __DIR__ . '/../includes/workflow_actions.php';
+
 
 $schoolId = SCHOOL_ID;
 $syId = (int) ($_GET['sy'] ?? $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn());
@@ -20,6 +22,8 @@ $currentSY = $currentSY->fetch();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   header('Content-Type: application/json');
   verifyCsrf();
+  handleWorkflowPost($db); // Core workflow actions
+
 
   if ($_POST['action'] === 'save_milestone') {
     $id = (int) ($_POST['milestone_id'] ?? 0);
@@ -480,28 +484,103 @@ include __DIR__ . '/../includes/header.php';
 <?php endif; ?>
 
 <!-- CYCLE STATUS BANNER -->
+<?php
+// Stage definitions for the tracker
+$SH_STAGES = [
+  ['key' => 'setup', 'label' => 'Setup', 'role' => 'Coordinator'],
+  ['key' => 'assigning', 'label' => 'Assigning', 'role' => 'Coordinator'],
+  ['key' => 'in_progress', 'label' => 'Assessment', 'role' => 'Teachers / Stakeholders'],
+  ['key' => 'consolidating', 'label' => 'Consolidation', 'role' => 'Coordinator'],
+  ['key' => 'submitted', 'label' => 'Submitted', 'role' => 'School Head'],
+  ['key' => 'validated', 'label' => 'Validated', 'role' => 'Coordinator'],
+  ['key' => 'finalized', 'label' => 'Finalized', 'role' => 'System'],
+];
+$SH_STAGE_ORDER = array_column($SH_STAGES, 'key');
+$currentCycleStatus = $cycle['status'] ?? 'draft';
+$currentStageIdx = array_search($currentCycleStatus, $SH_STAGE_ORDER);
+?>
+
 <?php if ($cycle): ?>
-  <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;
-            background:var(--brand-50);border:1.5px solid var(--brand-200);
-            border-radius:var(--radius-lg);margin-bottom:20px;flex-wrap:wrap;">
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span style="width:10px;height:10px;border-radius:50%;background:var(--brand-600);flex-shrink:0;"></span>
-      <span style="font-size:13px;font-weight:700;color:var(--brand-700);">Active Assessment Cycle</span>
+  <!-- 7-Stage Tracker -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-head">
+      <span class="card-title">Assessment Cycle Progress</span>
+      <span style="font-size:12px;color:var(--n500);">Cycle ID #<?= $cycle['cycle_id'] ?> · SY
+        <?= e($currentSY['label'] ?? '') ?></span>
     </div>
-    <span class="pill pill-<?= e($cycle['status']) ?>"><?= ucfirst(str_replace('_', ' ', $cycle['status'])) ?></span>
-    <?php if ($cycle['overall_score']):
-      $mat = sbmMaturityLevel(floatval($cycle['overall_score'])); ?>
-      <span style="font-size:13px;font-weight:700;color:<?= $mat['color'] ?>;"><?= $cycle['overall_score'] ?>% —
-        <?= $cycle['maturity_level'] ?></span>
-    <?php endif; ?>
-    <?php if ($cycle['started_at']): ?>
-      <span style="font-size:12px;color:var(--n500);margin-left:auto;">Started
-        <?= date('M d, Y', strtotime($cycle['started_at'])) ?></span>
-    <?php endif; ?>
-    <?php if ($cycle['submitted_at']): ?>
-      <span style="font-size:12px;color:var(--n500);">Submitted
-        <?= date('M d, Y', strtotime($cycle['submitted_at'])) ?></span>
-    <?php endif; ?>
+    <div class="card-body" style="padding:20px 16px 16px;">
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px;">
+        <?php foreach ($SH_STAGES as $i => $st):
+          $isDone = $currentStageIdx !== false && $i < $currentStageIdx;
+          $isActive = $currentStageIdx !== false && $i === $currentStageIdx;
+          $isReturn = $currentCycleStatus === 'returned' && $st['key'] === 'submitted';
+          $dotBg = $isDone ? '#16A34A' : ($isReturn ? '#DC2626' : ($isActive ? '#2563EB' : '#E5E7EB'));
+          $dotColor = ($isDone || $isActive || $isReturn) ? '#fff' : '#9CA3AF';
+          $labelC = $isActive ? 'var(--n900)' : ($isDone ? 'var(--g700)' : 'var(--n400)');
+          ?>
+          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;">
+            <div
+              style="width:32px;height:32px;border-radius:50%;background:<?= $dotBg ?>;color:<?= $dotColor ?>;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;border:2px solid <?= $isActive ? '#2563EB' : ($isDone ? '#16A34A' : '#E5E7EB') ?>;<?= $isActive ? 'box-shadow:0 0 0 4px rgba(37,99,235,.15);' : '' ?>">
+              <?= $isDone ? '✓' : ($isReturn ? '!' : ($i + 1)) ?>
+            </div>
+            <div
+              style="font-size:10.5px;font-weight:<?= $isActive ? '700' : '500' ?>;color:<?= $labelC ?>;line-height:1.3;">
+              <?= $st['label'] ?>
+            </div>
+          </div>
+          <?php if ($i < count($SH_STAGES) - 1): ?>
+            <!-- connector line drawn via grid, use pseudo approach in next sibling -->
+          <?php endif; ?>
+        <?php endforeach; ?>
+      </div>
+
+      <!-- Current stage info bar -->
+      <div
+        style="background:var(--n50);border:1px solid var(--n200);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <?php
+        $activeStage = $SH_STAGES[$currentStageIdx] ?? null;
+        ?>
+        <?php if ($currentCycleStatus === 'returned'): ?>
+          <span style="font-size:13px;font-weight:700;color:var(--red);">⚠ Assessment Returned for Revision</span>
+          <?php if ($cycle['return_remarks'] ?? ''): ?>
+            <span style="font-size:12.5px;color:var(--n600);">Remarks: <?= e($cycle['return_remarks']) ?></span>
+          <?php endif; ?>
+        <?php elseif ($activeStage): ?>
+          <span style="font-size:13px;font-weight:700;color:var(--n800);">Current Stage: <?= $activeStage['label'] ?></span>
+          <span style="font-size:12px;color:var(--n500);">Responsible: <?= $activeStage['role'] ?></span>
+        <?php endif; ?>
+        <?php if ($cycle['overall_score']): ?>
+          <span style="margin-left:auto;font-size:13px;font-weight:700;color:var(--g700);">Score:
+            <?= $cycle['overall_score'] ?>% — <?= e($cycle['maturity_level']) ?></span>
+        <?php endif; ?>
+      </div>
+
+      <!-- Stage action buttons — only show what this role can do right now -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+        <?php if ($currentCycleStatus === 'consolidating' && $_SESSION['role'] === 'sbm_coordinator'): ?>
+          <button class="btn btn-primary"
+            onclick="doAdvanceStage(<?= $cycle['cycle_id'] ?>,'submitted','Submit to SDO — this will lock school-side editing.')">
+            <?= svgIcon('send') ?> Submit to SDO
+          </button>
+        <?php endif; ?>
+        <?php if ($currentCycleStatus === 'submitted' && $_SESSION['role'] === 'sbm_coordinator'): ?>
+          <button class="btn btn-success" onclick="openValidateModal(<?= $cycle['cycle_id'] ?>)">
+            <?= svgIcon('check-circle') ?> Validate Assessment
+          </button>
+          <button class="btn btn-danger" onclick="openReturnModal(<?= $cycle['cycle_id'] ?>)">
+            <?= svgIcon('arrow-left') ?> Return for Revision
+          </button>
+        <?php endif; ?>
+        <?php if ($currentCycleStatus === 'validated' && $_SESSION['role'] === 'sbm_coordinator'): ?>
+          <button class="btn btn-primary" onclick="doFinalizeCycle(<?= $cycle['cycle_id'] ?>)">
+            <?= svgIcon('award') ?> Finalize & Lock Cycle
+          </button>
+        <?php endif; ?>
+        <?php if ($currentCycleStatus === 'finalized'): ?>
+          <a href="reports.php" class="btn btn-secondary"><?= svgIcon('file-text') ?> View Final Report</a>
+        <?php endif; ?>
+      </div>
+    </div>
   </div>
 <?php endif; ?>
 
@@ -537,14 +616,16 @@ include __DIR__ . '/../includes/header.php';
       ?>
       <div style="background:<?= $bg ?>;border-radius:var(--radius);padding:12px 16px;min-width:110px;text-align:center;">
         <div style="font-family:var(--font-display);font-size:24px;font-weight:800;color:<?= $color ?>;">
-          <?= $statusCount[$key] ?></div>
+          <?= $statusCount[$key] ?>
+        </div>
         <div style="font-size:11.5px;font-weight:600;color:<?= $color ?>;margin-top:2px;"><?= $label ?></div>
       </div>
     <?php endforeach; ?>
     <div
       style="background:var(--n100);border-radius:var(--radius);padding:12px 16px;min-width:110px;text-align:center;">
       <div style="font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--n700);">
-        <?= $totalMilestones ?></div>
+        <?= $totalMilestones ?>
+      </div>
       <div style="font-size:11.5px;font-weight:600;color:var(--n500);margin-top:2px;">Total</div>
     </div>
   </div>
@@ -723,7 +804,8 @@ $pillMap = [
                   style="font-size:11.5px;padding:4px 8px;height:30px;width:auto;background:<?= $pillBg ?>;color:<?= $pillColor ?>;font-weight:600;border-color:<?= $pillColor ?>33;"
                   onchange="updateStatus(<?= $m['milestone_id'] ?>,this.value)">
                   <?php foreach (['upcoming', 'in_progress', 'completed', 'delayed'] as $sv): ?>
-                    <option value="<?= $sv ?>" <?= $m['status'] === $sv ? 'selected' : '' ?>><?= ucfirst(str_replace('_', ' ', $sv)) ?>
+                    <option value="<?= $sv ?>" <?= $m['status'] === $sv ? 'selected' : '' ?>>
+                      <?= ucfirst(str_replace('_', ' ', $sv)) ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
@@ -983,6 +1065,108 @@ $pillMap = [
     toast(r.msg, r.ok ? 'ok' : 'err');
     btn.disabled = false; btn.textContent = 'Save Schedule';
     if (r.ok) { closeModal('mConfigure'); setTimeout(() => location.reload(), 700); }
+  }
+</script>
+
+<!-- Validate Modal -->
+<div class="overlay" id="mValidate">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-head">
+      <span class="modal-title">Validate Assessment</span>
+      <button class="modal-close" onclick="closeModal('mValidate')"><?= svgIcon('x') ?></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="val_cycle_id">
+      <div class="alert alert-success"><?= svgIcon('check-circle') ?><span>Validating will mark this cycle as officially
+          accepted. This cannot be undone without a new cycle.</span></div>
+      <div class="fg">
+        <label>Validation Remarks <span style="color:var(--n400);font-weight:400;">(optional)</span></label>
+        <textarea class="fc" id="val_remarks" rows="3" placeholder="Notes on validation outcome…"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mValidate')">Cancel</button>
+      <button class="btn btn-success" onclick="submitValidate()"><?= svgIcon('check') ?> Confirm Validate</button>
+    </div>
+  </div>
+</div>
+
+<!-- Return Modal -->
+<div class="overlay" id="mReturn">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-head">
+      <span class="modal-title">Return for Revision</span>
+      <button class="modal-close" onclick="closeModal('mReturn')"><?= svgIcon('x') ?></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ret_cycle_id">
+      <div class="alert alert-danger"><?= svgIcon('alert-circle') ?><span>The assessment will be sent back. Remarks are
+          <strong>required</strong>.</span></div>
+      <div class="fg">
+        <label>Return To Stage</label>
+        <select class="fc" id="ret_to_stage">
+          <option value="in_progress">In Progress (teachers re-answer)</option>
+          <option value="assigning">Assigning (re-assign indicators)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Reason for Return *</label>
+        <textarea class="fc" id="ret_remarks" rows="3" placeholder="Explain what needs to be corrected…"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mReturn')">Cancel</button>
+      <button class="btn btn-danger" onclick="submitReturn()"><?= svgIcon('arrow-left') ?> Confirm Return</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Workflow stage actions ─────────────────────────────────
+  const WF_URL = 'workflow.php';
+
+  async function doAdvanceStage(cycleId, toStage, confirmMsg) {
+    if (!confirm(confirmMsg || 'Advance to next stage?')) return;
+    const r = await apiPost(WF_URL, { action: 'advance_stage', cycle_id: cycleId, to_stage: toStage });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) setTimeout(() => location.reload(), 800);
+  }
+
+  function openValidateModal(cycleId) {
+    document.getElementById('val_cycle_id').value = cycleId;
+    document.getElementById('val_remarks').value = '';
+    openModal('mValidate');
+  }
+
+  async function submitValidate() {
+    const cycleId = document.getElementById('val_cycle_id').value;
+    const remarks = document.getElementById('val_remarks').value;
+    const r = await apiPost(WF_URL, { action: 'validate_cycle', cycle_id: cycleId, remarks });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) { closeModal('mValidate'); setTimeout(() => location.reload(), 800); }
+  }
+
+  function openReturnModal(cycleId) {
+    document.getElementById('ret_cycle_id').value = cycleId;
+    document.getElementById('ret_remarks').value = '';
+    openModal('mReturn');
+  }
+
+  async function submitReturn() {
+    const cycleId = document.getElementById('ret_cycle_id').value;
+    const remarks = document.getElementById('ret_remarks').value;
+    const toStage = document.getElementById('ret_to_stage').value;
+    if (!remarks.trim()) { toast('Remarks are required when returning.', 'warning'); return; }
+    const r = await apiPost(WF_URL, { action: 'return_cycle', cycle_id: cycleId, remarks, to_stage: toStage });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) { closeModal('mReturn'); setTimeout(() => location.reload(), 800); }
+  }
+
+  async function doFinalizeCycle(cycleId) {
+    if (!confirm('Finalize and permanently lock this cycle? No further edits will be possible.')) return;
+    const r = await apiPost(WF_URL, { action: 'finalize_cycle', cycle_id: cycleId });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) setTimeout(() => location.reload(), 800);
   }
 </script>
 
