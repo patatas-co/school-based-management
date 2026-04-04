@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 04, 2026 at 07:51 PM
+-- Generation Time: Apr 04, 2026 at 08:21 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -328,7 +328,43 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (349, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-04 17:32:31'),
 (350, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-04 17:35:05'),
 (351, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-04 17:38:05'),
-(352, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-04 17:44:09');
+(352, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-04 17:44:09'),
+(353, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-04 18:13:49');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `analytics_snapshots`
+--
+
+CREATE TABLE `analytics_snapshots` (
+  `snap_id` int(11) NOT NULL,
+  `school_id` int(11) NOT NULL,
+  `cycle_id` int(11) NOT NULL,
+  `sy_id` int(11) NOT NULL,
+  `sy_label` varchar(20) NOT NULL COMMENT 'Cached SY label for display without extra joins',
+  `dimension_id` int(11) NOT NULL,
+  `dimension_no` tinyint(4) NOT NULL,
+  `dimension_name` varchar(120) NOT NULL,
+  `percentage` decimal(5,2) DEFAULT 0.00,
+  `raw_score` decimal(8,2) DEFAULT 0.00,
+  `max_score` decimal(8,2) DEFAULT 0.00,
+  `overall_score` decimal(5,2) DEFAULT NULL COMMENT 'Copied from sbm_cycles for convenience',
+  `maturity_level` enum('Beginning','Developing','Maturing','Advanced') DEFAULT NULL,
+  `snapshot_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `analytics_snapshots`
+--
+
+INSERT INTO `analytics_snapshots` (`snap_id`, `school_id`, `cycle_id`, `sy_id`, `sy_label`, `dimension_id`, `dimension_no`, `dimension_name`, `percentage`, `raw_score`, `max_score`, `overall_score`, `maturity_level`, `snapshot_at`) VALUES
+(1, 1, 5, 4, '2026-2027', 1, 1, 'Curriculum and Teaching', 62.50, 20.00, 32.00, 67.50, 'Maturing', '2026-04-04 18:06:47'),
+(2, 1, 5, 4, '2026-2027', 2, 2, 'Learning Environment', 65.00, 26.00, 40.00, 67.50, 'Maturing', '2026-04-04 18:06:47'),
+(3, 1, 5, 4, '2026-2027', 3, 3, 'Leadership', 68.75, 11.00, 16.00, 67.50, 'Maturing', '2026-04-04 18:06:47'),
+(4, 1, 5, 4, '2026-2027', 4, 4, 'Governance and Accountability', 68.33, 16.40, 24.00, 67.50, 'Maturing', '2026-04-04 18:06:47'),
+(5, 1, 5, 4, '2026-2027', 5, 5, 'Human Resources and Team Development', 67.86, 19.00, 28.00, 67.50, 'Maturing', '2026-04-04 18:06:47'),
+(6, 1, 5, 4, '2026-2027', 6, 6, 'Finance and Resource Management and Mobilization', 75.00, 21.00, 28.00, 67.50, 'Maturing', '2026-04-04 18:06:47');
 
 -- --------------------------------------------------------
 
@@ -567,7 +603,7 @@ CREATE TABLE `ml_recommendations` (
 --
 
 INSERT INTO `ml_recommendations` (`rec_id`, `cycle_id`, `recommendation_text`, `generated_by`, `top_topics`, `has_urgent`, `sentiment_summary`, `generated_at`) VALUES
-(12, 5, '[Assessment Overview]\nThe Dasmariñas Integrated High School has an overall SBM score of 67.52% with a maturity level of Maturing, and since this is the first assessment cycle, there is no prior data available for trend comparison, as per DepEd Order No. 007, s. 2024.\n\n[Priority Recommendations]\n1. [1.1] The School Head, in coordination with the Curriculum Team, shall conduct a review of the current early language, literacy, and numeracy skills program by the end of the first semester of School Year 2026-2027, to identify areas for improvement and develop a plan to enhance learner proficiency, as guided by DepEd Order No. 007, s. 2024.\n2. [2.1] The School Head shall establish a Bullying Prevention Committee, composed of teachers, parents, and students, to develop and implement a bullying prevention program, including regular monitoring and reporting of incidents, with a target of zero bullying incidence by the end of School Year 2026-2027, in line with DepEd Order No. 007, s. 2024.\n3. [4.1] The School Head, in collaboration with the School Governance Council (SGC), shall review and update the school\'s strategic plan, ensuring that it is operationalized through a comprehensive implementation plan, with clear goals, objectives, and timelines, to be completed by the end of the first semester of School Year 2026-2027, as outlined in DepEd Order No. 007, s. 2024.\n4. [1.5] The School Head shall provide training for teachers on conducting remediation activities to address learning gaps in reading and comprehension, science and technology, and mathematics, with a target of at least 80% of teachers trained by the end of the first semester of School Year 2026-2027, as per DepEd Order No. 007, s. 2024.\n5. [5.6] The School Head shall establish a system for monitoring and ensuring the timely release of correct salaries, allowances, and other additional compensation to school personnel, with a target of 100% compliance by the end of School Year 2026-2027, in accordance with DepEd Order No. 007, s. 2024.\n\n[Stakeholder Focus]\nSince there are no urgent issues flagged or key themes mentioned in the stakeholder remarks, the school shall focus on addressing the weak indicators and building baseline systems, as outlined in the priority recommendations above, to improve its overall SBM score and maturity level, as guided by DepEd Order No. 007, s. 2024.', 'groq', '[]', 0, '[]', '2026-04-04 17:33:21');
+(13, 5, '[Assessment Overview]\nThe Dasmariñas Integrated High School has achieved an overall SBM score of 67.52% with a maturity level of Maturing, as per DepEd Order No. 007, s. 2024, and this is the first assessment cycle with no prior data available for comparison.\n\n[Priority Recommendations]\n1. [1.1] The School Head shall convene a meeting with the Grade 3 teachers to discuss strategies for improving early language, literacy, and numeracy skills, and develop a plan to provide additional support to struggling learners, to be implemented by the end of the first semester, as outlined in DepEd Order No. 007, s. 2024.\n2. [2.1] The School Head shall collaborate with the School Guidance Counselor to develop and implement a bullying prevention program, which includes regular monitoring and reporting of incidents, and provide training to teachers and staff on bullying prevention and intervention, to be completed by the end of the second semester, in line with DepEd Order No. 007, s. 2024.\n3. [4.1] The School Head shall work with the School Governance Council (SGC) to review and refine the school\'s strategic plan, ensuring that it is aligned with the DepEd\'s priorities and includes specific, measurable, achievable, relevant, and time-bound (SMART) objectives, and develop an implementation plan with clear roles and responsibilities, to be finalized by the end of the first semester, as required by DepEd Order No. 007, s. 2024.\n4. [1.5] The School Head shall provide training to teachers on conducting remediation activities to address learning gaps in reading and comprehension, science and technology, and mathematics, and ensure that teachers are using contextualized learning materials and integrating topics promoting peace and DepEd core values, as outlined in DepEd Order No. 007, s. 2024, to be completed by the end of the second semester.\n5. [5.2] The School Head shall work with the school\'s administrative staff to review and refine the office performance commitment and review process, ensuring that it is aligned with the DepEd\'s priorities and includes clear expectations and evaluation criteria, and provide training to staff on the new process, to be completed by the end of the first semester, in line with DepEd Order No. 007, s. 2024.\n\n[Stakeholder Focus]\nNo specific stakeholder remarks or themes were identified that are not already covered by the indicator data, therefore, no additional recommendations are made.', 'groq', '[]', 0, '[]', '2026-04-04 18:15:07');
 
 -- --------------------------------------------------------
 
@@ -1272,7 +1308,7 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `r
 (14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, '2026-04-05 01:27:37', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0),
 (15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, '2026-04-05 01:23:23', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0),
 (37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, '2026-04-05 01:44:09', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, '2026-04-05 01:38:05', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, '2026-04-05 02:13:49', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0),
 (52, 'Rolito', '$2y$10$YYJHq2543mwFmg2SJ5.75.Vfchwz1xH0zIJY2B8qK2v8oBxqQjpim', 'ariascharles00@gmail.com', 'Jr Billones', 'external_stakeholder', 'active', 1, '2026-04-04 10:11:08', '2026-04-03 14:02:47', 0, NULL, NULL, '2026-04-03 22:27:08', 0);
 
 -- --------------------------------------------------------
@@ -1339,6 +1375,16 @@ CREATE TABLE `workflow_milestones` (
 ALTER TABLE `activity_log`
   ADD PRIMARY KEY (`log_id`),
   ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `analytics_snapshots`
+--
+ALTER TABLE `analytics_snapshots`
+  ADD PRIMARY KEY (`snap_id`),
+  ADD UNIQUE KEY `unique_snap` (`cycle_id`,`dimension_id`),
+  ADD KEY `school_id` (`school_id`),
+  ADD KEY `sy_id` (`sy_id`),
+  ADD KEY `dimension_id` (`dimension_id`);
 
 --
 -- Indexes for table `announcements`
@@ -1626,7 +1672,13 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=353;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=354;
+
+--
+-- AUTO_INCREMENT for table `analytics_snapshots`
+--
+ALTER TABLE `analytics_snapshots`
+  MODIFY `snap_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `announcements`
@@ -1686,13 +1738,13 @@ ALTER TABLE `ml_predictions`
 -- AUTO_INCREMENT for table `ml_recommendations`
 --
 ALTER TABLE `ml_recommendations`
-  MODIFY `rec_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `rec_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `ml_training_snapshots`
 --
 ALTER TABLE `ml_training_snapshots`
-  MODIFY `snapshot_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `snapshot_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `password_setup_tokens`
@@ -1835,6 +1887,15 @@ ALTER TABLE `workflow_milestones`
 --
 ALTER TABLE `activity_log`
   ADD CONSTRAINT `activity_log_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `analytics_snapshots`
+--
+ALTER TABLE `analytics_snapshots`
+  ADD CONSTRAINT `analytics_snapshots_ibfk_1` FOREIGN KEY (`school_id`) REFERENCES `schools` (`school_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `analytics_snapshots_ibfk_2` FOREIGN KEY (`cycle_id`) REFERENCES `sbm_cycles` (`cycle_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `analytics_snapshots_ibfk_3` FOREIGN KEY (`sy_id`) REFERENCES `school_years` (`sy_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `analytics_snapshots_ibfk_4` FOREIGN KEY (`dimension_id`) REFERENCES `sbm_dimensions` (`dimension_id`);
 
 --
 -- Constraints for table `announcements`
