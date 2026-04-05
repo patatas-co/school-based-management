@@ -216,6 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $validRoles = ['school_head', 'sbm_coordinator', 'teacher', 'external_stakeholder'];
     $db->beginTransaction();
     try {
+      $importedIds = [];
       while (($row = fgetcsv($handle)) !== FALSE) {
         if (count($row) < 4) {
           $failed++;
@@ -238,6 +239,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             ->execute([$username, $password ? password_hash($password, PASSWORD_DEFAULT) : null, $email, $fullName, $role, $password ? 'active' : 'inactive', SCHOOL_ID]);
           $newId = $db->lastInsertId();
           $success++;
+          if (!$password) {
+            $importedIds[] = (int) $newId; // track for post-commit email sending
+          }
         } catch (Exception $e) {
           $failed++;
           $errors[] = "Error creating $username: " . $e->getMessage();
@@ -255,10 +259,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($success > 0) {
       require_once __DIR__ . '/../includes/email_service.php';
       // Re-fetch newly created inactive users to send emails
-      $newUsers = $db->prepare("SELECT user_id, full_name, email FROM users WHERE school_id=? AND status='inactive' AND created_at >= NOW() - INTERVAL 5 MINUTE");
-      $newUsers->execute([SCHOOL_ID]);
-      foreach ($newUsers->fetchAll() as $nu) {
-        sendAccountCreationEmail($db, $nu);
+      // Collect the IDs inserted during this import batch and email only those,
+// avoiding false positives from pre-existing inactive accounts created
+// within the same 5-minute window.
+      if (!empty($importedIds)) {
+        $placeholders = implode(',', array_fill(0, count($importedIds), '?'));
+        $newUsers = $db->prepare(
+          "SELECT user_id, full_name, email FROM users
+          WHERE user_id IN ($placeholders) AND status = 'inactive'"
+        );
+        $newUsers->execute($importedIds);
+        foreach ($newUsers->fetchAll() as $nu) {
+          sendAccountCreationEmail($db, $nu);
+        }
       }
     }
     echo json_encode(['ok' => true, 'msg' => "Import complete. $success success, $failed failed.", 'errors' => $errors]);
@@ -436,10 +449,8 @@ $roleLabels = [
                       <div class="row-menu-list" role="menu">
                         <button type="button"
                           class="row-menu-item user-status-toggle <?= $u['status'] === 'active' ? 'is-danger' : 'is-success' ?>"
-                          data-user-id="<?= $u['user_id'] ?>"
-                          data-user-name="<?= e($u['full_name']) ?>"
-                          data-current-status="<?= e($u['status']) ?>"
-                          onclick="toggleUserStatus(this)">
+                          data-user-id="<?= $u['user_id'] ?>" data-user-name="<?= e($u['full_name']) ?>"
+                          data-current-status="<?= e($u['status']) ?>" onclick="toggleUserStatus(this)">
                           <?= $u['status'] === 'active' ? 'Deactivate account' : 'Reactivate account' ?>
                         </button>
                       </div>
@@ -462,9 +473,11 @@ $roleLabels = [
     justify-content: flex-end;
     gap: 4px;
   }
+
   .row-menu {
     position: relative;
   }
+
   .row-menu-btn {
     display: inline-flex;
     align-items: center;
@@ -478,6 +491,7 @@ $roleLabels = [
     cursor: pointer;
     transition: background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
   }
+
   .row-menu-btn:hover,
   .row-menu-btn[aria-expanded="true"] {
     background: var(--n-50);
@@ -485,6 +499,7 @@ $roleLabels = [
     color: var(--n-800);
     box-shadow: var(--shadow-xs);
   }
+
   .row-menu-list {
     position: absolute;
     top: calc(100% + 8px);
@@ -498,9 +513,11 @@ $roleLabels = [
     display: none;
     z-index: 20;
   }
+
   .row-menu.open .row-menu-list {
     display: block;
   }
+
   .row-menu-item {
     width: 100%;
     display: flex;
@@ -516,15 +533,19 @@ $roleLabels = [
     cursor: pointer;
     text-align: left;
   }
+
   .row-menu-item:hover {
     background: var(--n-50);
   }
+
   .row-menu-item.is-danger {
     color: #B91C1C;
   }
+
   .row-menu-item.is-success {
     color: #166534;
   }
+
   .row-menu-item:disabled {
     opacity: .6;
     cursor: wait;

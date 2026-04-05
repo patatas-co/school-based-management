@@ -78,13 +78,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenRow) {
     $hash = password_hash($password, PASSWORD_DEFAULT);
 
     // Activate account, set password, clear force_password_change flag
-    $db->prepare(
-      "UPDATE users
-             SET password              = ?,
-                 status                = 'active',
-                 force_password_change = 0
-             WHERE user_id = ?"
-    )->execute([$hash, $tokenRow['user_id']]);
+    // Only activate the account if this is an invite/setup flow.
+// A password-reset should NEVER re-activate a deactivated account.
+    if ($mode === 'setup') {
+      $db->prepare(
+        "UPDATE users
+                 SET password              = ?,
+                     status                = 'active',
+                     force_password_change = 0
+                 WHERE user_id = ?"
+      )->execute([$hash, $tokenRow['user_id']]);
+    } else {
+      // reset mode: only update the password; leave status and other flags untouched
+      $db->prepare(
+        "UPDATE users
+                 SET password              = ?,
+                     force_password_change = 0
+                 WHERE user_id = ?"
+      )->execute([$hash, $tokenRow['user_id']]);
+    }
 
     // Mark token as used so it can't be reused
     $db->prepare(
