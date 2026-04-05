@@ -212,12 +212,12 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       --shadow-md: 0 4px 6px -1px rgb(0 0 0 / .08), 0 2px 4px -2px rgb(0 0 0 / .05);
       --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / .08), 0 4px 6px -4px rgb(0 0 0 / .05);
 
-      --sb-bg: #0A0F0A;
-      --sb-surface: #111A11;
+      --sb-bg: #0B1320;
+      --sb-surface: #1C2536;
       --sb-border: rgba(255, 255, 255, .08);
       --sb-text: rgba(255, 255, 255, .5);
       --sb-text-hover: rgba(255, 255, 255, .92);
-      --sb-active-bg: rgba(22, 163, 74, .15);
+      --sb-active-bg: #1C2536;
 
       --ease: cubic-bezier(.4, 0, .2, 1);
       --dur: 150ms;
@@ -287,6 +287,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       transition: width 220ms var(--ease);
       overflow: hidden;
       border-right: 1px solid rgba(22, 163, 74, .12);
+      border-radius: 0 12px 12px 0;
       box-shadow: 4px 0 24px rgba(0, 0, 0, .25);
     }
 
@@ -302,28 +303,6 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       border-bottom: 1px solid var(--sb-border);
       flex-shrink: 0;
       position: relative;
-    }
-
-    .sb-brand::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, #16A34A, #4ADE80, #16A34A);
-      background-size: 200% 100%;
-      animation: shimmerBrand 3s linear infinite;
-    }
-
-    @keyframes shimmerBrand {
-      0% {
-        background-position: 200% 0
-      }
-
-      100% {
-        background-position: -200% 0
-      }
     }
 
     .sb-logo {
@@ -401,7 +380,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       font-weight: 800;
       letter-spacing: .12em;
       text-transform: uppercase;
-      color: rgba(74, 222, 128, .4);
+      color: rgba(16, 185, 129, .4);
       padding: 14px 10px 4px;
       white-space: nowrap;
       overflow: hidden;
@@ -441,10 +420,10 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     .sb-item.active {
       color: #fff;
-      background: linear-gradient(90deg, rgba(22, 163, 74, .25) 0%, rgba(22, 163, 74, .12) 100%);
-      border-left: 2px solid #4ADE80;
+      background: linear-gradient(90deg, rgba(16, 185, 129, .15) 0%, rgba(16, 185, 129, .05) 100%);
+      border-left: 2px solid #10B981;
       padding-left: 8px;
-      box-shadow: inset 0 0 12px rgba(22, 163, 74, .08);
+      box-shadow: inset 0 0 12px rgba(16, 185, 129, .08);
     }
 
     .sb-item.active .sb-icon svg {
@@ -543,14 +522,14 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     }
 
     .sb-child.active {
-      color: #86EFAC;
-      background: rgba(22, 163, 74, .14);
+      color: #10B981;
+      background: rgba(16, 185, 129, .14);
       font-weight: 600;
     }
 
     .sb-child.active::before {
-      background: #4ADE80;
-      box-shadow: 0 0 6px rgba(74, 222, 128, .5);
+      background: #10B981;
+      box-shadow: 0 0 6px rgba(16, 185, 129, .5);
     }
 
     /* Collapsed overrides */
@@ -713,8 +692,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       bottom: 80px;
       left: 10px;
       right: 10px;
-      background: #111A11;
-      border: 1px solid rgba(22, 163, 74, .2);
+      background: #0B1320;
+      border: 1px solid rgba(16, 185, 129, .2);
       border-radius: 12px;
       padding: 8px;
       box-shadow: 0 -8px 32px rgba(0, 0, 0, .5);
@@ -831,7 +810,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       justify-content: space-between;
       padding: 0 24px;
       position: sticky;
-      top: 3px;
+      top: 0;
       z-index: 50;
       gap: 16px;
     }

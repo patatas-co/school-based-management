@@ -26,6 +26,50 @@ $cycleCheck = $db->prepare("SELECT cycle_id, status FROM sbm_cycles WHERE school
 $cycleCheck->execute([$schoolId, $syId]);
 $cycleCheck = $cycleCheck->fetch();
 
+if ($cycleCheck && in_array($cycleCheck['status'], ['completed', 'finalized', 'validated'])) {
+    $pageTitle = 'SBM Self-Assessment';
+    $activePage = 'self_assessment.php';
+    include __DIR__ . '/../includes/header.php';
+    $stSyLbl = $db->prepare("SELECT label FROM school_years WHERE sy_id=? LIMIT 1");
+    $stSyLbl->execute([$syId]);
+    $syLabel = $stSyLbl->fetchColumn() ?: '—';
+    ?>
+    <div class="page-head">
+        <div class="page-head-text">
+            <h2>SBM Self-Assessment</h2>
+            <p>Dasmariñas Integrated High School &nbsp;·&nbsp; SY <?= e($syLabel) ?></p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body" style="text-align:center;padding:70px 20px;">
+            <div style="width:72px;height:72px;border-radius:50%;
+                    background:#FEE2E2;
+                    display:flex;align-items:center;justify-content:center;
+                    margin:0 auto 20px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round" style="width:32px;height:32px;">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                </svg>
+            </div>
+            <h3 style="font-size:20px;font-weight:800;color:var(--n800);margin-bottom:10px;">
+                Assessment Already Finalized
+            </h3>
+            <p style="font-size:14px;color:var(--n500);max-width:420px;
+                  margin:0 auto 8px;line-height:1.7;">
+                The SBM Self-Assessment for this school year has already been
+                finalized. No further responses can be submitted or modified.
+            </p>
+            <p style="font-size:12.5px;color:var(--n400);">
+                Please contact your School Head if you have concerns.
+            </p>
+        </div>
+    </div>
+    <?php
+    include __DIR__ . '/../includes/footer.php';
+    exit;
+}
+
 if (!$cycleCheck) {
     $pageTitle = 'SBM Self-Assessment';
     $activePage = 'self_assessment.php';
@@ -80,6 +124,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $indicatorId = (int) $_POST['indicator_id'];
         $rating = (int) $_POST['rating'];
         $remarks = trim($_POST['evidence'] ?? '');
+
+        // Block if cycle is finalized/completed at the backend level
+        $cycleStatusChk = $db->prepare(
+            "SELECT status FROM sbm_cycles WHERE school_id=? AND sy_id=?"
+        );
+        $cycleStatusChk->execute([$schoolId, $syId]);
+        $cycleStatus = $cycleStatusChk->fetchColumn();
+        if (in_array($cycleStatus, ['completed', 'finalized', 'validated'])) {
+            echo json_encode(['ok' => false, 'msg' => 'Assessment is already finalized. Responses cannot be saved.']);
+            exit;
+        }
 
         if ($rating < 1 || $rating > 4) {
             echo json_encode([
@@ -190,6 +245,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         );
         $cycleRow->execute([$schoolId, $syId]);
         $cycleRow = $cycleRow->fetch();
+
+        if (!$cycleRow) {
+            echo json_encode(['ok' => false, 'msg' => 'No active cycle.']);
+            exit;
+        }
+
+        // Block if cycle is finalized/completed at the backend level
+        if (in_array($cycleRow['status'], ['completed', 'finalized', 'validated'])) {
+            echo json_encode(['ok' => false, 'msg' => 'Assessment is already finalized. Submission is no longer allowed.']);
+            exit;
+        }
 
         if (!$cycleRow) {
             echo json_encode([

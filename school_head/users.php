@@ -11,7 +11,9 @@ requireRole('school_head');
 $db = getDB();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-  header('Content-Type: application/json');
+  while (ob_get_level())
+    ob_end_clean();
+  header('Content-Type: application/json; charset=UTF-8');
   verifyCsrf();
   $action = $_POST['action'];
 

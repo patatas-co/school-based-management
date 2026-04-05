@@ -8,7 +8,10 @@ requireRole('school_head');
 $db = getDB();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-  header('Content-Type: application/json');
+  // Send JSON header before any output (including ob_start buffer) is flushed
+  while (ob_get_level())
+    ob_end_clean();
+  header('Content-Type: application/json; charset=UTF-8');
   verifyCsrf();
   if ($_POST['action'] === 'save_sy') {
     $id = (int) ($_POST['sy_id'] ?? 0);
@@ -22,15 +25,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $dateEnd = DateTime::createFromFormat('Y-m-d', $_POST['date_end']) ? $_POST['date_end'] : null;
     }
     if ($id) {
+      // If marking this year as current, unset all others first
+      if ((int) $_POST['is_current'] === 1) {
+        $db->prepare("UPDATE school_years SET is_current=0 WHERE sy_id != ?")
+          ->execute([$id]);
+      }
       $db->prepare("UPDATE school_years SET label=?,date_start=?,date_end=?,is_current=? WHERE sy_id=?")
         ->execute([trim($_POST['label']), $dateStart, $dateEnd, (int) $_POST['is_current'], $id]);
     } else {
-      if ($_POST['is_current'])
+      if ((int) $_POST['is_current'] === 1) {
         $db->query("UPDATE school_years SET is_current=0");
+      }
       $db->prepare("INSERT INTO school_years (label,date_start,date_end,is_current) VALUES (?,?,?,?)")
         ->execute([trim($_POST['label']), $dateStart, $dateEnd, (int) $_POST['is_current']]);
     }
     echo json_encode(['ok' => true, 'msg' => 'School year saved.']);
+    exit;
+  }
+  if ($_POST['action'] === 'set_current_sy') {
+    $id = (int) ($_POST['id'] ?? 0);
+    if (!$id) {
+      echo json_encode(['ok' => false, 'msg' => 'Invalid school year.']);
+      exit;
+    }
+
+    $exists = $db->prepare("SELECT sy_id, label, is_current FROM school_years WHERE sy_id = ? LIMIT 1");
+    $exists->execute([$id]);
+    $syRow = $exists->fetch();
+    if (!$syRow) {
+      echo json_encode(['ok' => false, 'msg' => 'School year not found.']);
+      exit;
+    }
+
+    if ((int) $syRow['is_current'] === 1) {
+      echo json_encode(['ok' => true, 'msg' => 'That school year is already active.']);
+      exit;
+    }
+
+    $db->beginTransaction();
+    try {
+      $db->exec("UPDATE school_years SET is_current = 0");
+      $db->prepare("UPDATE school_years SET is_current = 1 WHERE sy_id = ?")->execute([$id]);
+      $db->commit();
+      echo json_encode(['ok' => true, 'msg' => 'Active school year updated to ' . $syRow['label'] . '.']);
+    } catch (\Throwable $e) {
+      if ($db->inTransaction()) {
+        $db->rollBack();
+      }
+      echo json_encode(['ok' => false, 'msg' => 'Failed to switch the active school year.']);
+    }
     exit;
   }
   if ($_POST['action'] === 'delete_sy') {
@@ -62,7 +105,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   if ($_POST['action'] === 'get_sy') {
     $st = $db->prepare("SELECT sy_id, label, date_start, date_end, is_current, created_at FROM school_years WHERE sy_id=?");
     $st->execute([(int) $_POST['id']]);
-    echo json_encode($st->fetch());
+    $row = $st->fetch();
+    if (!$row) {
+      echo json_encode(['ok' => false, 'msg' => 'School year not found.']);
+      exit;
+    }
+    echo json_encode($row);
     exit;
   }
   exit;
@@ -115,6 +163,8 @@ include __DIR__ . '/../includes/header.php';
   .sy-actions {
     display: flex;
     gap: 5px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .info-row {
@@ -187,7 +237,11 @@ include __DIR__ . '/../includes/header.php';
           </div>
         </div>
         <div class="sy-actions">
-          <button class="btn btn-secondary btn-sm" onclick="editSY(<?= $sy['sy_id'] ?>)"><?= svgIcon('edit') ?></button>
+          <?php if (!(int) $sy['is_current']): ?>
+            <button class="btn btn-primary btn-sm" onclick="setCurrentSY(<?= $sy['sy_id'] ?>,'<?= e(addslashes($sy['label'])) ?>')">
+              <?= svgIcon('check') ?> Set Current
+            </button>
+          <?php endif; ?>
           <button class="btn btn-danger btn-sm"
             onclick="delSY(<?= $sy['sy_id'] ?>,'<?= e(addslashes($sy['label'])) ?>')"><?= svgIcon('trash') ?></button>
         </div>
@@ -300,13 +354,25 @@ include __DIR__ . '/../includes/header.php';
   }
   async function editSY(id) {
     const r = await apiPost('settings.php', { action: 'get_sy', id });
-    $v('sy_id', r.sy_id); $v('sy_label', r.label); $v('sy_start', r.date_start || ''); $v('sy_end', r.date_end || '');
-    $el('sy_current').checked = !!parseInt(r.is_current); $el('mSYTitle').textContent = 'Edit School Year';
+    if (!r || !r.sy_id) { toast('Failed to load school year data.', 'err'); return; }
+    $v('sy_id', r.sy_id);
+    $v('sy_label', r.label || '');
+    // date inputs require YYYY-MM-DD format; slice to strip time if present
+    $v('sy_start', r.date_start ? r.date_start.slice(0, 10) : '');
+    $v('sy_end', r.date_end ? r.date_end.slice(0, 10) : '');
+    $el('sy_current').checked = (parseInt(r.is_current) === 1);
+    $el('mSYTitle').textContent = 'Edit School Year';
     openModal('mSY');
   }
   async function delSY(id, label) {
     if (!confirm(`Delete school year "${label}"?\n\nAll related assessment cycles will also be removed.`)) return;
     const r = await apiPost('settings.php', { action: 'delete_sy', id });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) setTimeout(() => location.reload(), 800);
+  }
+  async function setCurrentSY(id, label) {
+    if (!confirm(`Set "${label}" as the current school year?`)) return;
+    const r = await apiPost('settings.php', { action: 'set_current_sy', id });
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) setTimeout(() => location.reload(), 800);
   }

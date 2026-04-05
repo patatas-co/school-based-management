@@ -28,8 +28,14 @@ define('DB_NAME', $_ENV['SBM_DB_NAME'] ?? 'sbm_db');
 define('SITE_NAME', $_ENV['SBM_SITE_NAME'] ?? 'Dasmariñas Integrated High School SBM Online Monitoring System');
 define('SITE_SHORT', $_ENV['SBM_SITE_SHORT'] ?? 'DIHS SBM Portal');
 
-// Force UTF-8 content-type header for all PHP responses, preventing mojibake
-if (!headers_sent()) {
+// Force UTF-8 content-type header for HTML responses only.
+// Skip for POST/AJAX requests so JSON API handlers can set their own Content-Type.
+$isApiRequest = (
+    $_SERVER['REQUEST_METHOD'] === 'POST' ||
+    (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest') ||
+    (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false)
+);
+if (!headers_sent() && !$isApiRequest) {
     header('Content-Type: text/html; charset=UTF-8');
 }
 
