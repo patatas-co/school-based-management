@@ -28,6 +28,11 @@ define('DB_NAME', $_ENV['SBM_DB_NAME'] ?? 'sbm_db');
 define('SITE_NAME', $_ENV['SBM_SITE_NAME'] ?? 'Dasmariñas Integrated High School SBM Online Monitoring System');
 define('SITE_SHORT', $_ENV['SBM_SITE_SHORT'] ?? 'DIHS SBM Portal');
 
+// Force UTF-8 content-type header for all PHP responses, preventing mojibake
+if (!headers_sent()) {
+    header('Content-Type: text/html; charset=UTF-8');
+}
+
 if (!defined('SCHOOL_ID')) {
     define('SCHOOL_ID', (int) ($_SESSION['school_id'] ?? 1));
 }

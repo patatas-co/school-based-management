@@ -249,70 +249,70 @@ function logActivity(string $action, string $module = '', string $details = ''):
 function renderPasswordToggle(): void
 {
     ?>
-    <style>
-        .pw-toggle-btn {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            padding: 4px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #9CA3AF;
-            transition: color 0.15s;
-            z-index: 10;
-            line-height: 0;
-            outline: none;
-        }
+        <style>
+            .pw-toggle-btn {
+                position: absolute;
+                right: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: none;
+                border: none;
+                padding: 4px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #9CA3AF;
+                transition: color 0.15s;
+                z-index: 10;
+                line-height: 0;
+                outline: none;
+            }
 
-        .pw-toggle-btn:hover {
-            color: #16A34A;
-        }
+            .pw-toggle-btn:hover {
+                color: #16A34A;
+            }
 
-        .pw-toggle-btn svg {
-            width: 18px;
-            height: 18px;
-            pointer-events: none;
-            stroke: currentColor;
-            fill: none;
-        }
-    </style>
-    <script>
-        (function () {
-            function initPasswordToggle() {
-                const passwordFields = document.querySelectorAll('input[type="password"]');
-                passwordFields.forEach(field => {
-                    if (field.dataset.pwToggleInit) return;
-                    field.dataset.pwToggleInit = 'true';
+            .pw-toggle-btn svg {
+                width: 18px;
+                height: 18px;
+                pointer-events: none;
+                stroke: currentColor;
+                fill: none;
+            }
+        </style>
+        <script>
+            (function () {
+                function initPasswordToggle() {
+                    const passwordFields = document.querySelectorAll('input[type="password"]');
+                    passwordFields.forEach(field => {
+                        if (field.dataset.pwToggleInit) return;
+                        field.dataset.pwToggleInit = 'true';
 
-                    const parent = field.parentElement;
-                    if (!parent) return;
+                        const parent = field.parentElement;
+                        if (!parent) return;
 
-                    // Reuse an existing input wrapper when available so we do not disturb
-                    // sibling icons or layout that already depends on the current DOM shape.
-                    const wrapper = parent.classList.contains('field-wrap') || parent.classList.contains('input-wrap')
-                        ? parent
-                        : (() => {
-                            const el = document.createElement('div');
-                            el.style.cssText = 'position:relative;display:block;';
-                            parent.insertBefore(el, field);
-                            el.appendChild(field);
-                            return el;
-                        })();
+                        // Reuse an existing input wrapper when available so we do not disturb
+                        // sibling icons or layout that already depends on the current DOM shape.
+                        const wrapper = parent.classList.contains('field-wrap') || parent.classList.contains('input-wrap')
+                            ? parent
+                            : (() => {
+                                const el = document.createElement('div');
+                                el.style.cssText = 'position:relative;display:block;';
+                                parent.insertBefore(el, field);
+                                el.appendChild(field);
+                                return el;
+                            })();
 
-                    if (window.getComputedStyle(wrapper).position === 'static') {
-                        wrapper.style.position = 'relative';
-                    }
+                        if (window.getComputedStyle(wrapper).position === 'static') {
+                            wrapper.style.position = 'relative';
+                        }
 
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'pw-toggle-btn';
-                    btn.setAttribute('aria-label', 'Toggle password visibility');
-                    btn.innerHTML = `
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'pw-toggle-btn';
+                        btn.setAttribute('aria-label', 'Toggle password visibility');
+                        btn.innerHTML = `
                     <svg class="eye-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
@@ -323,34 +323,34 @@ function renderPasswordToggle(): void
                     </svg>
                 `;
 
-                    wrapper.appendChild(btn);
+                        wrapper.appendChild(btn);
 
-                    const style = window.getComputedStyle(field);
-                    if (parseInt(style.paddingRight) < 42) {
-                        field.style.paddingRight = '42px';
-                    }
+                        const style = window.getComputedStyle(field);
+                        if (parseInt(style.paddingRight) < 42) {
+                            field.style.paddingRight = '42px';
+                        }
 
-                    btn.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const isPassword = field.type === 'password';
-                        field.type = isPassword ? 'text' : 'password';
-                        btn.querySelector('.eye-icon').style.display = isPassword ? 'none' : 'block';
-                        btn.querySelector('.eye-off-icon').style.display = isPassword ? 'block' : 'none';
-                        field.focus();
+                        btn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const isPassword = field.type === 'password';
+                            field.type = isPassword ? 'text' : 'password';
+                            btn.querySelector('.eye-icon').style.display = isPassword ? 'none' : 'block';
+                            btn.querySelector('.eye-off-icon').style.display = isPassword ? 'block' : 'none';
+                            field.focus();
+                        });
                     });
-                });
-            }
+                }
 
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initPasswordToggle);
-            } else {
-                initPasswordToggle();
-            }
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initPasswordToggle);
+                } else {
+                    initPasswordToggle();
+                }
 
-            const observer = new MutationObserver(initPasswordToggle);
-            observer.observe(document.body, { childList: true, subtree: true });
-        })();
-    </script>
-    <?php
+                const observer = new MutationObserver(initPasswordToggle);
+                observer.observe(document.body, { childList: true, subtree: true });
+            })();
+        </script>
+        <?php
 }
