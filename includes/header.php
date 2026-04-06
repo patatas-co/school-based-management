@@ -212,12 +212,12 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       --shadow-md: 0 4px 6px -1px rgb(0 0 0 / .08), 0 2px 4px -2px rgb(0 0 0 / .05);
       --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / .08), 0 4px 6px -4px rgb(0 0 0 / .05);
 
-      --sb-bg: #0B1320;
-      --sb-surface: #1C2536;
-      --sb-border: rgba(255, 255, 255, .08);
-      --sb-text: rgba(255, 255, 255, .5);
-      --sb-text-hover: rgba(255, 255, 255, .92);
-      --sb-active-bg: #1C2536;
+      --sb-bg: #FFFFFF;
+      --sb-surface: #F1F5F9;
+      --sb-border: #E5E7EB;
+      --sb-text: #475569;
+      --sb-text-hover: #166534;
+      --sb-active-bg: #DCFCE7;
 
       --ease: cubic-bezier(.4, 0, .2, 1);
       --dur: 150ms;
@@ -286,9 +286,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       z-index: 100;
       transition: width 220ms var(--ease);
       overflow: hidden;
-      border-right: 1px solid rgba(22, 163, 74, .12);
-      border-radius: 0 12px 12px 0;
-      box-shadow: 4px 0 24px rgba(0, 0, 0, .25);
+      border-right: 1px solid var(--sb-border);
     }
 
     .sb.collapsed {
@@ -334,7 +332,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       font-family: var(--font-display);
       font-size: 12px;
       font-weight: 700;
-      color: #fff;
+      color: #0F172A;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -343,7 +341,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     .sb-brand-sub {
       font-size: 10.5px;
-      color: var(--sb-text);
+      color: #94A3B8;
       white-space: nowrap;
       margin-top: 1px;
     }
@@ -358,8 +356,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       overflow-x: hidden;
       padding: 12px 8px;
       scrollbar-width: thin;
-      scrollbar-color: rgba(22, 163, 74, .2) transparent;
-      background-image: radial-gradient(circle at 50% 100%, rgba(22, 163, 74, .04) 0%, transparent 60%);
+      scrollbar-color: #E5E7EB transparent;
     }
 
     .sb-nav::-webkit-scrollbar {
@@ -367,7 +364,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     }
 
     .sb-nav::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, .1);
+      background: #E5E7EB;
       border-radius: 3px;
     }
 
@@ -380,7 +377,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       font-weight: 800;
       letter-spacing: .12em;
       text-transform: uppercase;
-      color: rgba(16, 185, 129, .4);
+      color: #94A3B8;
       padding: 14px 10px 4px;
       white-space: nowrap;
       overflow: hidden;
@@ -394,7 +391,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       display: flex;
       align-items: center;
       gap: 9px;
-      padding: 8px 10px;
+      padding: 9px 10px;
       border-radius: 7px;
       color: var(--sb-text);
       font-size: 13px;
@@ -415,19 +412,18 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     .sb-item:hover {
       color: var(--sb-text-hover);
-      background: var(--sb-active-bg);
+      background: #F1F5F9;
     }
 
     .sb-item.active {
-      color: #fff;
-      background: linear-gradient(90deg, rgba(16, 185, 129, .15) 0%, rgba(16, 185, 129, .05) 100%);
-      border-left: 2px solid #10B981;
-      padding-left: 8px;
-      box-shadow: inset 0 0 12px rgba(16, 185, 129, .08);
+      color: #166534;
+      background: var(--sb-active-bg);
+      border-left: 3px solid #16A34A;
+      padding-left: 7px;
     }
 
     .sb-item.active .sb-icon svg {
-      stroke: #fff;
+      stroke: #16A34A;
     }
 
     .sb-item .sb-label {
@@ -448,7 +444,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     .sb-icon svg {
       width: 16px;
       height: 16px;
-      stroke: var(--sb-text);
+      stroke: #64748B;
       stroke-width: 1.8;
       fill: none;
       stroke-linecap: round;
@@ -512,24 +508,23 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       transform: translateY(-50%);
       width: 1px;
       height: 14px;
-      background: rgba(255, 255, 255, .18);
+      background: #E5E7EB;
       border-radius: 1px;
     }
 
     .sb-child:hover {
       color: var(--sb-text-hover);
-      background: rgba(255, 255, 255, .06);
+      background: #F1F5F9;
     }
 
     .sb-child.active {
-      color: #10B981;
-      background: rgba(16, 185, 129, .14);
+      color: #166534;
+      background: var(--sb-active-bg);
       font-weight: 600;
     }
 
     .sb-child.active::before {
-      background: #10B981;
-      box-shadow: 0 0 6px rgba(16, 185, 129, .5);
+      background: #16A34A;
     }
 
     /* Collapsed overrides */
@@ -548,14 +543,14 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       left: var(--sidebar-mini);
       top: var(--popover-top, auto);
       width: 200px;
-      background: var(--sb-surface);
-      border: 1px solid var(--sb-border);
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
       border-radius: 0 10px 10px 0;
       display: none !important;
       max-height: none !important;
       opacity: 1 !important;
       padding: 8px;
-      box-shadow: 10px 0 25px rgba(0, 0, 0, .3);
+      box-shadow: 4px 4px 16px rgba(0, 0, 0, .12);
       z-index: 1000;
     }
 
@@ -608,7 +603,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     /* User footer */
     .sb-footer {
-      border-top: 1px solid var(--sb-border);
+      border-top: 1px solid #E5E7EB;
       padding: 10px 8px 12px;
       flex-shrink: 0;
       position: relative;
@@ -625,7 +620,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     }
 
     .sb-user-tile:hover {
-      background: rgba(22, 163, 74, .1);
+      background: #F1F5F9;
       border-radius: 8px;
     }
 
@@ -651,7 +646,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     .sb-user-name {
       font-size: 12.5px;
       font-weight: 600;
-      color: #fff;
+      color: #0F172A;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -660,14 +655,14 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     .sb-user-role {
       font-size: 10.5px;
-      color: var(--sb-text);
+      color: #94A3B8;
       margin-top: 1px;
     }
 
     .sb-user-more {
       width: 14px;
       height: 14px;
-      stroke: var(--sb-text);
+      stroke: #94A3B8;
       stroke-width: 2;
       fill: none;
       stroke-linecap: round;
@@ -692,13 +687,12 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       bottom: 80px;
       left: 10px;
       right: 10px;
-      background: #0B1320;
-      border: 1px solid rgba(16, 185, 129, .2);
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
       border-radius: 12px;
       padding: 8px;
-      box-shadow: 0 -8px 32px rgba(0, 0, 0, .5);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .12);
       z-index: 200;
-      backdrop-filter: blur(8px);
     }
 
     .sb-popup.open {
@@ -719,19 +713,19 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       align-items: center;
       gap: 9px;
       padding: 8px 6px 10px;
-      border-bottom: 1px solid rgba(255, 255, 255, .08);
+      border-bottom: 1px solid #E5E7EB;
       margin-bottom: 6px;
     }
 
     .sb-popup-name {
       font-size: 13px;
       font-weight: 600;
-      color: #fff;
+      color: #0F172A;
     }
 
     .sb-popup-role {
       font-size: 11px;
-      color: rgba(255, 255, 255, .4);
+      color: #94A3B8;
       margin-top: 1px;
     }
 
@@ -741,7 +735,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       gap: 9px;
       padding: 8px 10px;
       border-radius: 7px;
-      color: rgba(255, 255, 255, .7);
+      color: #475569;
       font-size: 13px;
       font-weight: 500;
       text-decoration: none;
@@ -750,16 +744,16 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     }
 
     .sb-popup-item:hover {
-      background: rgba(255, 255, 255, .07);
-      color: #fff;
+      background: #F1F5F9;
+      color: #0F172A;
     }
 
     .sb-popup-item.danger {
-      color: #FCA5A5;
+      color: #DC2626;
     }
 
     .sb-popup-item.danger:hover {
-      background: rgba(220, 38, 38, .15);
+      background: #FEF2F2;
     }
 
     .sb-popup-item svg {
