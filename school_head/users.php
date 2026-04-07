@@ -552,6 +552,18 @@ $roleLabels = [
     opacity: .6;
     cursor: wait;
   }
+
+  @keyframes slideInToast {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
 </style>
 
 <!-- Create Modal -->
@@ -809,19 +821,110 @@ $roleLabels = [
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) btn?.closest('tr')?.remove();
   }
+  function showUploadToast() {
+    const existing = document.getElementById('uploadToast');
+    if (existing) existing.remove();
+    const el = document.createElement('div');
+    el.id = 'uploadToast';
+    el.innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div style="flex-shrink:0;margin-top:2px;">
+          <svg id="uploadSpinner" width="18" height="18" viewBox="0 0 24 24"
+               fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round">
+            <path d="M12 2a10 10 0 1 0 10 10" style="opacity:.25"/>
+            <path d="M12 2a10 10 0 0 1 10 10"/>
+          </svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:13.5px;color:#0F172A;margin-bottom:2px;">Uploading…</div>
+          <div style="font-size:12.5px;color:#64748B;" id="uploadToastSub">Your file is being uploaded.</div>
+          <div style="margin-top:8px;height:4px;background:#E2E8F0;border-radius:999px;overflow:hidden;">
+            <div id="uploadProgressBar"
+                 style="height:100%;width:0%;background:#2563EB;border-radius:999px;transition:width .3s ease;">
+            </div>
+          </div>
+        </div>
+        <button onclick="document.getElementById('uploadToast').remove()"
+                style="flex-shrink:0;background:none;border:none;cursor:pointer;
+                       color:#94A3B8;padding:2px;line-height:0;margin-top:1px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>`;
+    Object.assign(el.style, {
+      position: 'fixed', top: '20px', right: '20px', zIndex: '9999',
+      background: '#FFFFFF', border: '1px solid #E2E8F0',
+      borderLeft: '4px solid #2563EB', borderRadius: '12px',
+      padding: '14px 16px', width: '300px',
+      boxShadow: '0 8px 24px rgba(0,0,0,.12)',
+      fontFamily: "'Inter',sans-serif",
+      animation: 'slideInToast .2s ease',
+    });
+    document.body.appendChild(el);
+    const spinner = el.querySelector('#uploadSpinner');
+    let deg = 0;
+    const spinInterval = setInterval(() => { deg += 8; spinner.style.transform = `rotate(${deg}deg)`; }, 16);
+    el._spinInterval = spinInterval;
+    const bar = el.querySelector('#uploadProgressBar');
+    let pct = 0;
+    const progInterval = setInterval(() => {
+      if (pct < 85) { pct += Math.random() * 4; bar.style.width = Math.min(pct, 85) + '%'; }
+    }, 120);
+    el._progInterval = progInterval;
+    return el;
+  }
+
+  function finishUploadToast(toastEl, success, message) {
+    if (!toastEl) return;
+    clearInterval(toastEl._spinInterval);
+    clearInterval(toastEl._progInterval);
+    const bar = toastEl.querySelector('#uploadProgressBar');
+    const sub = toastEl.querySelector('#uploadToastSub');
+    const spinWrap = toastEl.querySelector('[style*="flex-shrink:0;margin-top:2px"]');
+    const title = toastEl.querySelector('[style*="font-weight:700"]');
+    bar.style.width = '100%';
+    bar.style.background = success ? '#16A34A' : '#DC2626';
+    toastEl.style.borderLeftColor = success ? '#16A34A' : '#DC2626';
+    if (spinWrap) {
+      spinWrap.innerHTML = success
+        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="20 6 9 17 4 12"/>
+           </svg>`
+        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="#DC2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+           </svg>`;
+    }
+    if (title) title.textContent = success ? 'Upload complete!' : 'Upload failed';
+    if (sub) sub.textContent = message || (success ? 'Import finished successfully.' : 'Something went wrong.');
+    setTimeout(() => {
+      if (toastEl.parentNode) {
+        toastEl.style.opacity = '0'; toastEl.style.transition = 'opacity .3s ease';
+        setTimeout(() => toastEl.remove(), 300);
+      }
+    }, 3000);
+  }
+
   async function importUsers() {
     const file = document.getElementById('csvFile').files[0];
     if (!file) { toast('Please select a CSV file.', 'err'); return; }
     const formData = new FormData();
     formData.append('action', 'import'); formData.append('csv', file);
     formData.append('csrf_token', '<?= csrfToken() ?>');
-    toast('Importing...', 'info');
+    closeModal('mImport');
+    const uploadToastEl = showUploadToast();
     try {
       const response = await fetch('users.php', { method: 'POST', body: formData });
       const r = await response.json();
-      toast(r.msg, r.ok ? 'ok' : 'err');
-      if (r.ok) { closeModal('mImport'); setTimeout(() => location.reload(), 1500); }
-    } catch (e) { toast('Upload failed.', 'err'); }
+      finishUploadToast(uploadToastEl, r.ok, r.msg);
+      if (r.ok) setTimeout(() => location.reload(), 2000);
+    } catch (e) {
+      finishUploadToast(uploadToastEl, false, 'Network error. Please try again.');
+    }
   }
   window.addEventListener('DOMContentLoaded', () => {
     if (new URLSearchParams(window.location.search).get('action') === 'create') openModal('mCreate');
