@@ -1090,10 +1090,14 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       font-family: var(--font-body);
       font-size: 13.5px;
       font-weight: 600;
-      transition: all var(--dur) var(--ease);
+      transition: all var(--dur) var(--ease), transform 0.15s ease;
       text-decoration: none;
       white-space: nowrap;
       line-height: 1.4;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
     }
 
     .btn svg {
@@ -1134,6 +1138,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     .btn-primary:hover {
       background: var(--brand-800);
+      box-shadow: 0 4px 12px rgba(21, 128, 61, .3);
     }
 
     .btn-secondary {
@@ -1144,6 +1149,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     .btn-secondary:hover {
       background: var(--n-200);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .08);
     }
 
     .btn-danger {
@@ -1156,6 +1162,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       background: var(--red);
       color: #fff;
       border-color: var(--red);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, .3);
     }
 
     .btn-success {
@@ -1168,6 +1175,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       background: var(--brand-700);
       color: #fff;
       border-color: var(--brand-700);
+      box-shadow: 0 4px 12px rgba(21, 128, 61, .3);
     }
 
     .btn-blue {
@@ -1179,6 +1187,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     .btn-blue:hover {
       background: var(--blue);
       color: #fff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, .3);
     }
 
     .btn-sm {
