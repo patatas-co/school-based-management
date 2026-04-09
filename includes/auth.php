@@ -69,6 +69,30 @@ function me(): array
     ];
 }
 
+function requireSystemAdmin(): void
+{
+    requireLogin();
+    $role = $_SESSION['role'] ?? '';
+    if ($role === 'system_admin') {
+        return;
+    }
+
+    $systemAdminCount = null;
+    try {
+        $db = getDB();
+        $systemAdminCount = (int) $db->query("SELECT COUNT(*) FROM users WHERE role='system_admin'")->fetchColumn();
+    } catch (Exception $e) {
+        $systemAdminCount = null;
+    }
+
+    if ($role === 'school_head' && $systemAdminCount === 0) {
+        return;
+    }
+
+    header('Location: ' . baseUrl() . '/login.php?err=access');
+    exit;
+}
+
 function baseUrl(): string
 {
     if (!empty($_ENV['SBM_BASE_URL'])) {
@@ -80,7 +104,7 @@ function baseUrl(): string
     $host = $_SERVER['HTTP_HOST'];
     $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
     $dir = preg_replace(
-        '#/(school_head|coordinator|teacher|stakeholder|includes|config|ml|api|assets|vendor)(/.*)?$#i',
+        '#/(system_admin|school_head|coordinator|teacher|stakeholder|includes|config|ml|api|assets|vendor)(/.*)?$#i',
         '',
         dirname($script)
     );
@@ -91,6 +115,8 @@ function baseUrl(): string
 function roleHome(string $role): string
 {
     switch ($role) {
+        case 'system_admin':
+            return 'system_admin/dashboard.php';
         case 'school_head':
             return 'school_head/dashboard.php';
         case 'sbm_coordinator':

@@ -553,26 +553,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
 <?php endif; ?>
 
-<!-- Progress -->
-<div class="card" style="margin-bottom:16px;">
-    <div class="card-body" style="padding:16px 20px;">
-        <div class="flex-cb" style="margin-bottom:8px;">
-            <span style="font-size:13.5px;font-weight:700;
-                   color:var(--n800);">Your Progress</span>
-            <span style="font-size:14px;font-weight:800;
-                   color:var(--g700);" id="progCountLabel">
-                <?= $totalDone ?>/<?= $totalInds ?> Rated
-            </span>
-        </div>
-        <div style="height:12px;background:var(--n100);
-                border-radius:999px;overflow:hidden;">
-            <div id="progBar" style="height:100%;border-radius:999px;
-                  background:var(--g400);
-                  width:<?= $progress ?>%;
-                  transition:width .4s ease;"></div>
-        </div>
-    </div>
-</div>
+
 
 <!-- Indicators -->
 <?php foreach ($grouped as $dimNo => $inds):
@@ -723,19 +704,7 @@ include __DIR__ . '/../includes/header.php';
         }
     }
 
-    function updateProgressBar() {
-        const pct = totalInds > 0
-            ? Math.round((doneSoFar / totalInds) * 100) : 0;
-        const bar = document.getElementById('progBar');
-        if (bar) bar.style.width = pct + '%';
-        const lbl = document.getElementById('progCountLabel');
-        if (lbl) lbl.textContent = `${doneSoFar}/${totalInds} Rated`;
-        const btn = document.getElementById('submitBtn');
-        if (btn) {
-            btn.querySelector('span').textContent =
-                `(${doneSoFar}/${totalInds} rated)`;
-        }
-    }
+
 
     async function submitMyAssessment() {
         if (!confirm(

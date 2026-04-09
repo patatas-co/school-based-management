@@ -1570,7 +1570,7 @@ CREATE TABLE `users` (
   `password` varchar(255) DEFAULT NULL,
   `email` varchar(120) NOT NULL,
   `full_name` varchar(120) NOT NULL,
-  `role` enum('school_head','sbm_coordinator','teacher','external_stakeholder') NOT NULL DEFAULT 'teacher',
+  `role` enum('system_admin','school_head','sbm_coordinator','teacher','external_stakeholder') NOT NULL DEFAULT 'teacher',
   `status` enum('active','inactive','suspended') NOT NULL DEFAULT 'active',
   `school_id` int(11) DEFAULT NULL,
   `last_login` datetime DEFAULT NULL,

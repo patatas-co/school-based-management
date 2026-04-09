@@ -125,6 +125,7 @@ $__initials = strtoupper(
 
 // ── Role display label ────────────────────────────────────────
 $__roleLabel = [
+  'system_admin' => 'System Admin',
   'sbm_coordinator' => 'SBM Coordinator',
   'teacher' => 'Teacher / Evaluator',
   'external_stakeholder' => 'External Stakeholder',
@@ -132,6 +133,7 @@ $__roleLabel = [
 
 // ── Role accent color ─────────────────────────────────────────
 $__roleColor = [
+  'system_admin' => '#7C3AED',
   'sbm_coordinator' => '#16A34A',
   'teacher' => '#0D9488',
   'external_stakeholder' => '#2563EB',

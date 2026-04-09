@@ -5,6 +5,7 @@
 // ============================================================
 
 define('ROLE_SCHOOL_HEAD',  'school_head');
+define('ROLE_SYSTEM_ADMIN', 'system_admin');
 define('ROLE_COORDINATOR',  'sbm_coordinator');
 define('ROLE_TEACHER',      'teacher');
 define('ROLE_STAKEHOLDER',  'external_stakeholder');
@@ -12,39 +13,13 @@ define('ROLE_STAKEHOLDER',  'external_stakeholder');
 define('SBM_MODULE_ACCESS', [
 
     // ── System Administration (School Head only) ────────────
-    'user_management'                  => [ROLE_SCHOOL_HEAD],
-    'system_settings'                  => [ROLE_SCHOOL_HEAD],
-    'school_years'                     => [ROLE_SCHOOL_HEAD],
-
-    // ── School-Level Configuration ──────────────────────────
-    'school_profile'                   => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
+    'system_admin_dashboard'           => [ROLE_SYSTEM_ADMIN],
+    'user_management'                  => [ROLE_SYSTEM_ADMIN],
+    'system_settings'                  => [ROLE_SYSTEM_ADMIN],
+    'school_years'                     => [ROLE_SYSTEM_ADMIN, ROLE_SCHOOL_HEAD],
+    'school_profile'                   => [ROLE_SYSTEM_ADMIN, ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 
     // ── Dashboards ──────────────────────────────────────────
-    'school_head_dashboard'            => [ROLE_SCHOOL_HEAD],
-    'coordinator_dashboard'            => [ROLE_COORDINATOR],
-    'teacher_dashboard'                => [ROLE_TEACHER],
-    'stakeholder_dashboard'            => [ROLE_STAKEHOLDER],
-
-    // ── Analytics ───────────────────────────────────────────
-    'analytics'                        => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
-    'analytics_export'                 => [ROLE_SCHOOL_HEAD],
-
-    // ── Assessment Lifecycle ─────────────────────────────────
-    'start_assessment'                 => [ROLE_SCHOOL_HEAD],
-    'close_assessment'                 => [ROLE_SCHOOL_HEAD],
-    'reopen_assessment'                => [ROLE_SCHOOL_HEAD],
-    'sh_self_assessment'               => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
-    'teacher_self_assessment'          => [ROLE_TEACHER],
-    'stakeholder_assessment'           => [ROLE_STAKEHOLDER],
-    'submit_assessment'                => [ROLE_SCHOOL_HEAD],
-    'override_teacher_rating'          => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
-    'override_coordinator_assignments' => [ROLE_SCHOOL_HEAD],
-
-    'assign_indicators'                => [ROLE_COORDINATOR],
-
-    // ── Assessment Validation ────────────────────────────────
-    'view_assessments'                 => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
-    'validate_assessment'              => [ROLE_SCHOOL_HEAD],
 
     // ── Improvement Plan ────────────────────────────────────
     'improvement_plan'                 => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
@@ -68,13 +43,20 @@ define('SBM_MODULE_ACCESS', [
 
 define('SBM_NAV', [
 
+    ROLE_SYSTEM_ADMIN => [
+        ['Overview', 'grid', [
+            ['Dashboard',             'system_admin/dashboard.php',           'grid'],
+            ['User Accounts',         'system_admin/users.php',               'users'],
+            ['School Years',          'school_head/settings.php',             'calendar'],
+        ]],
+    ],
+
     ROLE_SCHOOL_HEAD => [
         ['Overview', 'grid', [
             ['Dashboard',             'school_head/dashboard.php',            'grid'],
             ['Analytics',             'school_head/analytics.php',            'bar-chart-2'],
         ]],
         ['Management', 'users', [
-            ['User Accounts',         'school_head/users.php',                'users'],
             ['School Profile',        'school_head/school_profile.php',       'home'],
             ['School Years',          'school_head/settings.php',             'calendar'],
         ]],
@@ -89,9 +71,6 @@ define('SBM_NAV', [
         ]],
         ['Communication', 'bell', [
             ['Announcements',          'school_head/announcements.php',        'bell'],
-        ]],
-        ['System', 'settings', [
-            ['Settings',               'school_head/settings.php',             'settings'],
         ]],
     ],
 

@@ -21,7 +21,7 @@ if (!empty($_SESSION['user_id'])) {
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && (($_GET['err'] ?? '') === 'deactivated')) {
-  $error = 'This account has been deactivated. Please contact the School Head for support.';
+  $error = 'This account has been deactivated. Please contact the System Admin for support.';
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   verifyCsrf();
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $stmt->execute([$uname, $uname]);
       $row = $stmt->fetch();
       if ($row && $row['status'] === 'inactive') {
-        $error = 'This account has been deactivated. Please contact the School Head for support.';
+        $error = 'This account has been deactivated. Please contact the System Admin for support.';
       } elseif ($row && $row['status'] === 'active' && $row['password'] && password_verify($pass, $row['password'])) {
         unset($_SESSION['login_attempts'], $_SESSION['login_last_attempt']);
 
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: ' . roleHome($row['role']));
         exit;
       } elseif ($row && $row['status'] !== 'active') {
-        $error = 'This account is not available for sign-in. Please contact the School Head for support.';
+        $error = 'This account is not available for sign-in. Please contact the System Admin for support.';
       } else {
         $error = 'Incorrect username or password.';
       }
@@ -656,8 +656,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </button>
         </form>
 
-        <!-- Updated role pills: no SDO/RO -->
         <div class="roles">
+          <span class="role-pill"><span class="role-dot" style="background:#7C3AED;"></span>System Admin</span>
           <span class="role-pill"><span class="role-dot"></span>School Head</span>
           <span class="role-pill"><span class="role-dot" style="background:#16A34A;"></span>SBM Coordinator</span>
           <span class="role-pill"><span class="role-dot" style="background:#0D9488;"></span>Teacher</span>

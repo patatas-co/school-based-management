@@ -509,65 +509,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
 <?php endif; ?>
 
-<!-- ══════════════════════════════════════════════════════
-     LIVE PROGRESS CARD
-══════════════════════════════════════════════════════ -->
-<div class="card" style="margin-bottom:18px;overflow:hidden;" id="progressCard">
-    <div class="card-body" style="padding:16px 20px;">
 
-        <!-- Main progress row -->
-        <div class="flex-cb" style="margin-bottom:8px;">
-            <span style="font-size:13.5px;font-weight:700;color:var(--n800);">Your Progress</span>
-            <span style="font-size:14px;font-weight:800;color:var(--g700);" id="progCountLabel">
-                <?= $totalDone ?>/<?= $totalInds ?> Indicators Rated
-            </span>
-        </div>
-
-        <!-- Main progress bar -->
-        <div
-            style="position:relative;height:14px;background:var(--n100);border-radius:999px;overflow:hidden;margin-bottom:10px;">
-            <div id="progBar" style="height:100%;border-radius:999px;
-                        background:<?= $progress >= 100 ? 'var(--g500)' : 'var(--g400)' ?>;
-                        width:<?= $progress ?>%;
-                        transition:width .4s cubic-bezier(.4,0,.2,1);"></div>
-            <div id="progPct" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
-                        font-size:10px;font-weight:700;color:var(--n500);line-height:1;">
-                <?= $progress ?>%
-            </div>
-        </div>
-
-        <!-- Completion message -->
-        <div id="completeMsg" style="display:<?= $progress >= 100 ? 'flex' : 'none' ?>;
-                    align-items:center;gap:7px;
-                    font-size:12.5px;font-weight:600;color:var(--g700);
-                    background:var(--g50);border:1px solid var(--g200);
-                    border-radius:7px;padding:8px 12px;margin-bottom:12px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;">
-                <polyline points="20 6 9 17 4 12" />
-            </svg>
-            All your indicators are rated. Notify your School Head to review and submit.
-        </div>
-
-        <!-- Rating breakdown chips -->
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <?php foreach ([1, 2, 3, 4] as $rv):
-                $cnt = count(array_filter($responses, fn($x) => $x['rating'] == $rv));
-                ?>
-                <div id="ratingChip<?= $rv ?>" style="display:inline-flex;align-items:center;gap:5px;
-                        padding:4px 10px;border-radius:999px;
-                        background:<?= $ratingBgs[$rv] ?>;
-                        border:1px solid <?= $ratingColors[$rv] ?>33;">
-                    <span style="font-size:13px;font-weight:800;color:<?= $ratingColors[$rv] ?>;"
-                        id="ratingCnt<?= $rv ?>"><?= $cnt ?></span>
-                    <span
-                        style="font-size:11px;font-weight:600;color:<?= $ratingColors[$rv] ?>;"><?= $ratingLabels[$rv] ?></span>
-                </div>
-            <?php endforeach; ?>
-        </div>
-
-    </div>
-</div>
 
 <!-- ── STICKY DIMENSION TABS ── -->
 <div style="display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;
@@ -790,32 +732,7 @@ include __DIR__ . '/../includes/header.php';
         }
         prog.prevRatings[indId] = newRating;
 
-        const pct = prog.total > 0 ? Math.round((prog.done / prog.total) * 100) : 0;
 
-        // Update bar
-        const bar = document.getElementById('progBar');
-        if (bar) {
-            bar.style.width = pct + '%';
-            if (pct === 100) {
-                bar.style.background = 'var(--g500)';
-                bar.classList.add('prog-complete');
-            }
-        }
-        const pctEl = document.getElementById('progPct');
-        if (pctEl) pctEl.textContent = pct + '%';
-
-        const lbl = document.getElementById('progCountLabel');
-        if (lbl) lbl.textContent = `${prog.done}/${prog.total} Indicators Rated`;
-
-        // Completion message
-        const msg = document.getElementById('completeMsg');
-        if (msg) msg.style.display = pct === 100 ? 'flex' : 'none';
-
-        // Rating breakdown chips
-        [1, 2, 3, 4].forEach(rv => {
-            const el = document.getElementById('ratingCnt' + rv);
-            if (el) el.textContent = prog.ratings[rv] || 0;
-        });
 
         // Dimension tab
         updateDimTab(indId);
@@ -897,19 +814,7 @@ include __DIR__ . '/../includes/header.php';
         if (prevRating) prog.ratings[prevRating] = Math.max(0, (prog.ratings[prevRating] || 1) - 1);
         delete prog.prevRatings[indId];
 
-        const pct = prog.total > 0 ? Math.round((prog.done / prog.total) * 100) : 0;
-        const bar = document.getElementById('progBar');
-        if (bar) { bar.style.width = pct + '%'; bar.classList.remove('prog-complete'); }
-        const pctEl = document.getElementById('progPct');
-        if (pctEl) pctEl.textContent = pct + '%';
-        const lbl = document.getElementById('progCountLabel');
-        if (lbl) lbl.textContent = `${prog.done}/${prog.total} Indicators Rated`;
-        const msg = document.getElementById('completeMsg');
-        if (msg) msg.style.display = 'none';
-        [1, 2, 3, 4].forEach(rv => {
-            const el = document.getElementById('ratingCnt' + rv);
-            if (el) el.textContent = prog.ratings[rv] || 0;
-        });
+
 
         // Update dim tab
         const dimWrap = row.closest('.dim-wrap');

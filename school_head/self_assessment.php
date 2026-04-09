@@ -1199,85 +1199,7 @@ include __DIR__ . '/../includes/header.php';
 <?php else: ?>
 
 
-  <!-- ── PROGRESS CARD ─────────────────────────────────────── -->
-  <div class="card" style="margin-bottom:16px;overflow:hidden;" id="progressCard">
-    <div class="card-body" style="padding:16px 20px;">
 
-      <!-- SH progress row -->
-      <div class="flex-cb" style="margin-bottom:8px;">
-        <span style="font-size:13.5px;font-weight:700;color:var(--n800);">Your Progress</span>
-        <span style="font-size:14px;font-weight:800;color:var(--g700);" id="shCountLabel">
-          <?= $shResponded ?>/<?= $shTotal ?> Indicators Rated
-        </span>
-      </div>
-      <div
-        style="position:relative;height:14px;background:var(--n100);border-radius:999px;overflow:hidden;margin-bottom:8px;">
-        <div id="shProgBar" style="height:100%;border-radius:999px;background:var(--g500);
-                  width:<?= $shTotal > 0 ? round(($shResponded / $shTotal) * 100) : 0 ?>%;
-                  transition:width .4s cubic-bezier(.4,0,.2,1);"></div>
-        <div id="shProgPct" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
-                  font-size:10px;font-weight:700;color:var(--n500);line-height:1;">
-          <?= $shTotal > 0 ? round(($shResponded / $shTotal) * 100) : 0 ?>%
-        </div>
-      </div>
-
-      <?php if ($overridenCount > 0): ?>
-        <div style="font-size:11.5px;color:var(--n500);display:flex;align-items:center;gap:5px;margin-bottom:12px;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" style="width:13px;height:13px;">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-          </svg>
-          You have overriden <strong><?= $overridenCount ?></strong> teacher response<?= $overridenCount > 1 ? 's' : '' ?>.
-        </div>
-      <?php endif; ?>
-
-      <!-- Completion message — hidden until 100% -->
-      <div id="shCompleteMsg" style="display:<?= $shResponded >= $shTotal && $shTotal > 0 ? 'flex' : 'none' ?>;
-                align-items:center;gap:7px;
-                font-size:12.5px;font-weight:600;color:var(--g700);
-                background:var(--g50);border:1px solid var(--g200);
-                border-radius:7px;padding:8px 12px;margin-bottom:12px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-          stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-        All your indicators are rated. You can now submit the assessment.
-      </div>
-
-      <!-- All-roles row -->
-      <div class="flex-cb" style="margin-bottom:5px;">
-        <span style="font-size:12px;font-weight:600;color:var(--n500);">All Roles Combined</span>
-        <span style="font-size:12px;font-weight:700;color:var(--n500);" id="allCountLabel">
-          <?= $totalDone ?>/<?= $totalCount ?>
-        </span>
-      </div>
-      <div style="height:7px;background:var(--n100);border-radius:999px;overflow:hidden;margin-bottom:14px;">
-        <div id="allProgBar" style="height:100%;border-radius:999px;background:var(--blue);
-                  width:<?= $totalCount > 0 ? round(($totalDone / $totalCount) * 100) : 0 ?>%;
-                  transition:width .4s cubic-bezier(.4,0,.2,1);"></div>
-      </div>
-
-      <!-- Rating breakdown chips -->
-      <div style="display:flex;gap:10px;flex-wrap:wrap;" id="ratingBreakdown">
-        <?php
-        $rColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A'];
-        $rBgs = [1 => '#FEE2E2', 2 => '#FEF3C7', 3 => '#DBEAFE', 4 => '#DCFCE7'];
-        $rLabels = [1 => 'Not yet', 2 => 'Rarely', 3 => 'Frequently', 4 => 'Always'];
-        foreach ([1, 2, 3, 4] as $rv):
-          $cnt = count(array_filter($responses, fn($x) => $x['rating'] == $rv));
-          ?>
-          <div id="ratingChip<?= $rv ?>" style="display:inline-flex;align-items:center;gap:5px;
-                  padding:4px 10px;border-radius:999px;
-                  background:<?= $rBgs[$rv] ?>;
-                  border:1px solid <?= $rColors[$rv] ?>33;">
-            <span style="font-size:13px;font-weight:800;color:<?= $rColors[$rv] ?>;"
-              id="ratingCnt<?= $rv ?>"><?= $cnt ?></span>
-            <span style="font-size:11px;font-weight:600;color:<?= $rColors[$rv] ?>;"><?= $rLabels[$rv] ?></span>
-          </div>
-        <?php endforeach; ?>
-      </div>
-
-    </div>
-  </div>
 
   <!-- ── FILTER BAR ────────────────────────────────────────── -->
   <?php
@@ -1659,7 +1581,6 @@ include __DIR__ . '/../includes/header.php';
     <?php if (!$isLocked && $_SESSION['role'] === 'school_head'): ?>
       <button class="btn btn-primary" style="padding:12px 32px;font-size:15px;" onclick="submitAssessment()">
         <?= svgIcon('check') ?> Submit Self-Assessment
-        <span id="submitCount">(<?= $shResponded ?>/<?= $shTotal ?> your indicators rated)</span>
       </button>
     <?php elseif (!$isLocked && $_SESSION['role'] === 'sbm_coordinator'): ?>
       <div style="font-size:13px;color:var(--n500);font-style:italic;">
@@ -1718,41 +1639,7 @@ include __DIR__ . '/../includes/header.php';
     }
     progress.prevRatings[indId] = newRating;
 
-    // ── Update SH progress bar ──
-    const shPct = progress.shTotal > 0 ? Math.round((progress.shDone / progress.shTotal) * 100) : 0;
-    const shBar = document.getElementById('shProgBar');
-    const shPctEl = document.getElementById('shProgPct');
-    const shLbl = document.getElementById('shCountLabel');
-    if (shBar) {
-      shBar.style.width = shPct + '%';
-      if (shPct === 100) {
-        shBar.style.background = 'var(--g500)';
-        shBar.classList.add('prog-complete');
-      }
-    }
-    if (shPctEl) shPctEl.textContent = shPct + '%';
-    if (shLbl) shLbl.textContent = `${progress.shDone}/${progress.shTotal} Indicators Rated`;
 
-    // Show/hide completion message
-    const completeMsg = document.getElementById('shCompleteMsg');
-    if (completeMsg) completeMsg.style.display = shPct === 100 ? 'flex' : 'none';
-
-    // ── Update all-roles bar ──
-    const allPct = progress.allTotal > 0 ? Math.round((progress.allDone / progress.allTotal) * 100) : 0;
-    const allBar = document.getElementById('allProgBar');
-    const allLbl = document.getElementById('allCountLabel');
-    if (allBar) allBar.style.width = allPct + '%';
-    if (allLbl) allLbl.textContent = `${progress.allDone}/${progress.allTotal}`;
-
-    // ── Update rating breakdown chips ──
-    [1, 2, 3, 4].forEach(rv => {
-      const el = document.getElementById('ratingCnt' + rv);
-      if (el) el.textContent = progress.ratings[rv] || 0;
-    });
-
-    // ── Update submit button count ──
-    const submitCount = document.getElementById('submitCount');
-    if (submitCount) submitCount.textContent = `(${progress.shDone}/${progress.shTotal} your indicators rated)`;
 
     // ── Update dimension tab ──
     updateDimTab(indId);
@@ -1909,35 +1796,7 @@ include __DIR__ . '/../includes/header.php';
     }
     delete progress.prevRatings[indId];
 
-    // Rerender progress bars
-    const shPct = progress.shTotal > 0 ? Math.round((progress.shDone / progress.shTotal) * 100) : 0;
-    const shBar = document.getElementById('shProgBar');
-    if (shBar) {
-      shBar.style.width = shPct + '%';
-      shBar.style.background = shPct < 100 ? 'var(--g400)' : 'var(--g500)';
-      shBar.classList.remove('prog-complete');
-    }
-    const shPctEl = document.getElementById('shProgPct');
-    if (shPctEl) shPctEl.textContent = shPct + '%';
-    const shLbl = document.getElementById('shCountLabel');
-    if (shLbl) shLbl.textContent = `${progress.shDone}/${progress.shTotal} Indicators Rated`;
 
-    const completeMsg = document.getElementById('shCompleteMsg');
-    if (completeMsg) completeMsg.style.display = 'none';
-
-    const allPct = progress.allTotal > 0 ? Math.round((progress.allDone / progress.allTotal) * 100) : 0;
-    const allBar = document.getElementById('allProgBar');
-    if (allBar) allBar.style.width = allPct + '%';
-    const allLbl = document.getElementById('allCountLabel');
-    if (allLbl) allLbl.textContent = `${progress.allDone}/${progress.allTotal}`;
-
-    [1, 2, 3, 4].forEach(rv => {
-      const el = document.getElementById('ratingCnt' + rv);
-      if (el) el.textContent = progress.ratings[rv] || 0;
-    });
-
-    const submitCount = document.getElementById('submitCount');
-    if (submitCount) submitCount.textContent = `(${progress.shDone}/${progress.shTotal} your indicators rated)`;
 
     const row = document.getElementById('row' + indId);
     if (!row) return;
@@ -2003,30 +1862,7 @@ include __DIR__ . '/../includes/header.php';
       delete progress.prevRatings[indId];
     });
 
-    // Now do ONE single DOM update pass for all progress UI
-    const shPct = progress.shTotal > 0 ? Math.round((progress.shDone / progress.shTotal) * 100) : 0;
-    const shBar = document.getElementById('shProgBar');
-    if (shBar) { shBar.style.width = shPct + '%'; shBar.classList.remove('prog-complete'); }
-    const shPctEl = document.getElementById('shProgPct');
-    if (shPctEl) shPctEl.textContent = shPct + '%';
-    const shLbl = document.getElementById('shCountLabel');
-    if (shLbl) shLbl.textContent = `${progress.shDone}/${progress.shTotal} Indicators Rated`;
-    const completeMsg = document.getElementById('shCompleteMsg');
-    if (completeMsg) completeMsg.style.display = 'none';
 
-    const allPct = progress.allTotal > 0 ? Math.round((progress.allDone / progress.allTotal) * 100) : 0;
-    const allBar = document.getElementById('allProgBar');
-    if (allBar) allBar.style.width = allPct + '%';
-    const allLbl = document.getElementById('allCountLabel');
-    if (allLbl) allLbl.textContent = `${progress.allDone}/${progress.allTotal}`;
-
-    [1, 2, 3, 4].forEach(rv => {
-      const el = document.getElementById('ratingCnt' + rv);
-      if (el) el.textContent = progress.ratings[rv] || 0;
-    });
-
-    const submitCount = document.getElementById('submitCount');
-    if (submitCount) submitCount.textContent = `(${progress.shDone}/${progress.shTotal} your indicators rated)`;
 
     // Update dim tab ONCE
     const allCards = dimWrap.querySelectorAll('.indicator-row');

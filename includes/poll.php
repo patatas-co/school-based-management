@@ -41,11 +41,24 @@ function ago(string $dt): string
 
 if ($role === 'school_head') {
     $out['schools'] = (int) $db->query("SELECT COUNT(*) FROM schools")->fetchColumn();
-    $out['users'] = (int) $db->query("SELECT COUNT(*) FROM users WHERE status='active'")->fetchColumn();
-    $out['cycles'] = (int) $db->query("SELECT COUNT(*) FROM sbm_cycles")->fetchColumn();
-    $out['submitted'] = (int) $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status IN('submitted','validated')")->fetchColumn();
-    $out['validated'] = (int) $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='validated'")->fetchColumn();
-    $out['in_progress'] = (int) $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='in_progress'")->fetchColumn();
+    $usersStmt = $db->prepare("SELECT COUNT(*) FROM users WHERE school_id=? AND status='active'");
+    $usersStmt->execute([$schoolId]);
+    $out['users'] = (int) $usersStmt->fetchColumn();
+    $cycleBase = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+    $cycleBase->execute([$schoolId, $syId]);
+    $out['cycles'] = (int) $cycleBase->fetchColumn();
+
+    $cycleSubmitted = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE school_id=? AND sy_id=? AND status IN('submitted','validated')");
+    $cycleSubmitted->execute([$schoolId, $syId]);
+    $out['submitted'] = (int) $cycleSubmitted->fetchColumn();
+
+    $cycleValidated = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE school_id=? AND sy_id=? AND status='validated'");
+    $cycleValidated->execute([$schoolId, $syId]);
+    $out['validated'] = (int) $cycleValidated->fetchColumn();
+
+    $cycleInProgress = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE school_id=? AND sy_id=? AND status='in_progress'");
+    $cycleInProgress->execute([$schoolId, $syId]);
+    $out['in_progress'] = (int) $cycleInProgress->fetchColumn();
 
     $logs = $db->query("SELECT l.action,l.created_at,u.full_name FROM activity_log l LEFT JOIN users u ON l.user_id=u.user_id ORDER BY l.created_at DESC LIMIT 6")->fetchAll();
     $out['activity'] = array_map(fn($r) => ['name' => $r['full_name'] ?? 'System', 'action' => formatActivityAction($r['action']), 'ago' => ago($r['created_at'])], $logs);

@@ -4,7 +4,7 @@ ob_start();
 // Moved from admin/settings.php — school_head is now top role
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth.php';
-requireRole('school_head');
+requireAccess('school_years');
 $db = getDB();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -124,6 +124,10 @@ $cycleCount = $db->query("SELECT COUNT(*) FROM sbm_cycles")->fetchColumn();
 $validatedCount = $db->query("SELECT COUNT(*) FROM sbm_cycles WHERE status='validated'")->fetchColumn();
 $responseCount = $db->query("SELECT COUNT(*) FROM sbm_responses")->fetchColumn();
 $currentSY = $db->query("SELECT label FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
+$myCreatedAt = $db->prepare("SELECT created_at FROM users WHERE user_id=?");
+$myCreatedAt->execute([$_SESSION['user_id']]);
+$uCreated = $myCreatedAt->fetchColumn();
+$daysActive = $uCreated ? floor((time() - strtotime($uCreated)) / 86400) : 0;
 
 $pageTitle = 'Settings';
 $activePage = 'settings.php';
@@ -238,7 +242,8 @@ include __DIR__ . '/../includes/header.php';
         </div>
         <div class="sy-actions">
           <?php if (!(int) $sy['is_current']): ?>
-            <button class="btn btn-primary btn-sm" onclick="setCurrentSY(<?= $sy['sy_id'] ?>,'<?= e(addslashes($sy['label'])) ?>')">
+            <button class="btn btn-primary btn-sm"
+              onclick="setCurrentSY(<?= $sy['sy_id'] ?>,'<?= e(addslashes($sy['label'])) ?>')">
               <?= svgIcon('check') ?> Set Current
             </button>
           <?php endif; ?>
@@ -274,16 +279,16 @@ include __DIR__ . '/../includes/header.php';
       <div class="info-row"><span class="info-label">Current School Year</span><span class="info-value"
           style="color:var(--brand-700);"><?= e($currentSY ?: 'Not set') ?></span></div>
       <div class="info-row"><span class="info-label">School</span><span class="info-value"
-          style="color:var(--brand-700);">Dasmariñas Integrated HS</span></div>
+          style="color:var(--brand-700);">Dasmariñas Integrated High School</span></div>
       <div class="info-row"><span class="info-label">Total Users</span><span
           class="info-value"><?= number_format($userCount) ?> <span
             style="font-size:12px;color:var(--n-400);font-weight:400;">(<?= $activeUsers ?> active)</span></span></div>
-      <div class="info-row"><span class="info-label">Assessment Cycles</span><span
+      <div class="info-row"><span class="info-label">Overall Assessment Cycles</span><span
           class="info-value"><?= number_format($cycleCount) ?></span></div>
       <div class="info-row"><span class="info-label">Validated Cycles</span><span class="info-value"
           style="color:var(--brand-700);"><?= number_format($validatedCount) ?></span></div>
-      <div class="info-row"><span class="info-label">Indicator Responses</span><span
-          class="info-value"><?= number_format($responseCount) ?></span></div>
+      <div class="info-row"><span class="info-label">Account Age</span><span class="info-value"
+          style="color:var(--brand-700);"><?= number_format($daysActive) ?> days active</span></div>
       <div class="info-row"><span class="info-label">PHP Version</span><span class="info-value"
           style="font-family:monospace;font-size:13px;"><?= phpversion() ?></span></div>
       <div class="info-row"><span class="info-label">DepEd Order Reference</span><span class="info-value"
@@ -303,18 +308,18 @@ include __DIR__ . '/../includes/header.php';
           <div class="settings-section-desc">Jump to related configuration pages.</div>
         </div>
       </div>
-      <div class="info-row"><a href="users.php"
+      <div class="info-row"><a href="<?= baseUrl() ?>/system_admin/users.php"
           style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">User Management</a><span
           style="font-size:12px;color:var(--n-400);"><?= $userCount ?> users</span></div>
-      <div class="info-row"><a href="school_profile.php"
-          style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">School Profile</a><span
-          style="font-size:12px;color:var(--n-400);">DIHS info & contacts</span></div>
-      <div class="info-row"><a href="workflow.php"
-          style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">Workflow &
-          Timeline</a><span style="font-size:12px;color:var(--n-400);">SBM 3-step cycle</span></div>
-      <div class="info-row"><a href="analytics.php"
-          style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">Analytics
-          Dashboard</a><span style="font-size:12px;color:var(--n-400);">Performance insights</span></div>
+      <div class="info-row"><a href="<?= baseUrl() ?>/system_admin/dashboard.php"
+          style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">System Admin
+          Dashboard</a><span style="font-size:12px;color:var(--n-400);">Admin overview</span></div>
+      <div class="info-row"><span
+          style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">School Years</span><span
+          style="font-size:12px;color:var(--n-400);"><?= count($syears) ?> configured</span></div>
+      <div class="info-row"><span
+          style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">Current Cycle
+          Data</span><span style="font-size:12px;color:var(--n-400);"><?= $cycleCount ?> assessment cycles</span></div>
     </div>
   </div>
 </div>
