@@ -295,6 +295,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       echo json_encode(['ok' => false, 'msg' => 'No active cycle.']);
       exit;
     }
+    $rl = checkRateLimit('ml_recommendation', 5, 60);
+    if (!$rl['allowed']) {
+      echo json_encode(['ok' => false, 'msg' => "Rate limit reached. Try again in {$rl['retry_after']}s.", 'retry_after' => $rl['retry_after']]);
+      exit;
+    }
     require_once dirname(__DIR__) . '/includes/ml_service.php';
     $db->prepare("DELETE FROM ml_recommendations WHERE cycle_id=?")->execute([$cycleEarly['cycle_id']]);
     $ok = runMLPipeline($db, $cycleEarly['cycle_id']);
@@ -1148,8 +1153,23 @@ if ($cycle) {
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) setTimeout(() => location.reload(), 800);
     else if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = `${svgI('refresh-cw')} Regenerate AI Report`;
+      if (r.retry_after) {
+        let remaining = r.retry_after;
+        btn.textContent = `Wait ${remaining}s…`;
+        const iv = setInterval(() => {
+          remaining--;
+          if (remaining <= 0) {
+            clearInterval(iv);
+            btn.disabled = false;
+            btn.innerHTML = `${svgI('refresh-cw')} Regenerate AI Report`;
+          } else {
+            btn.textContent = `Wait ${remaining}s…`;
+          }
+        }, 1000);
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = `${svgI('refresh-cw')} Regenerate AI Report`;
+      }
     }
   }
 </script>

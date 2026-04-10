@@ -305,12 +305,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       logActivity('submit_assessment', 'self_assessment', 'Submitted SBM assessment cycle ' . $cyc['cycle_id']);
 
       // ── Trigger ML pipeline directly ──────────────────────────────
-      require_once dirname(__DIR__) . '/includes/ml_service.php';
-      try {
-        runMLPipeline($db, $cyc['cycle_id']);
-      } catch (Exception $e) {
-        error_log("ML pipeline error: " . $e->getMessage());
-        // Silent fail — submission still succeeds
+      $rl = checkRateLimit('ml_recommendation', 5, 60);
+      if ($rl['allowed']) {
+        require_once dirname(__DIR__) . '/includes/ml_service.php';
+        try {
+          runMLPipeline($db, $cyc['cycle_id']);
+        } catch (Exception $e) {
+          error_log("ML pipeline error: " . $e->getMessage());
+          // Silent fail — submission still succeeds
+        }
+      } else {
+        error_log("ML pipeline skipped: rate limit reached (retry_after={$rl['retry_after']}s)");
       }
 
       echo json_encode(['ok' => true, 'msg' => 'Assessment submitted successfully!']);

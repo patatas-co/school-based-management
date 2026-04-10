@@ -5,7 +5,8 @@
       "Bash(python -c \"import os; print\\(''GROQ_API_KEY:'', repr\\(os.getenv\\(''GROQ_API_KEY''\\)\\)\\)\")",
       "Read(//c/xampp/apache/logs//**)",
       "Read(//c/xampp/apache/logs/**)",
-      "Bash(wc -l C:/xampp/htdocs/sbm/school_head/*.php)"
+      "Bash(wc -l C:/xampp/htdocs/sbm/school_head/*.php)",
+      "Bash(ls:*)"
     ]
   }
 }

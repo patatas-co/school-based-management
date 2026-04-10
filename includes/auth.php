@@ -252,6 +252,39 @@ function computeMaturity(float $pct): string
     return 'Beginning';
 }
 
+/**
+ * Simple session-based rate limiter.
+ * Returns ['allowed' => bool, 'retry_after' => int (seconds remaining)]
+ *
+ * Usage:  $rl = checkRateLimit('ml_recommendation', 5, 60);
+ *         if (!$rl['allowed']) { ... blocked ... }
+ */
+function checkRateLimit(string $key, int $maxAttempts, int $windowSeconds): array
+{
+    $now = time();
+    $sessionKey = "rl_{$key}_attempts";
+    $windowKey  = "rl_{$key}_window_start";
+
+    $windowStart = (int) ($_SESSION[$windowKey] ?? 0);
+    $attempts    = (int) ($_SESSION[$sessionKey] ?? 0);
+
+    // Reset if the window has expired
+    if ($now - $windowStart >= $windowSeconds) {
+        $_SESSION[$windowKey]  = $now;
+        $_SESSION[$sessionKey] = 0;
+        $attempts    = 0;
+        $windowStart = $now;
+    }
+
+    if ($attempts >= $maxAttempts) {
+        $retryAfter = $windowSeconds - ($now - $windowStart);
+        return ['allowed' => false, 'retry_after' => max(1, $retryAfter)];
+    }
+
+    $_SESSION[$sessionKey] = $attempts + 1;
+    return ['allowed' => true, 'retry_after' => 0];
+}
+
 function logActivity(string $action, string $module = '', string $details = ''): void
 {
     try {
