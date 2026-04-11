@@ -163,14 +163,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         'user_id' => $userId,
       ]);
     } catch (\Throwable $e) {
-      if ($db->inTransaction()) $db->rollBack();
+      if ($db->inTransaction())
+        $db->rollBack();
       echo json_encode(['ok' => false, 'msg' => 'Error: ' . $e->getMessage()]);
     }
     exit;
   }
 
   if ($action === 'set_cycle_dates') {
-    $cycleId = (int)($_POST['cycle_id'] ?? 0);
+    $cycleId = (int) ($_POST['cycle_id'] ?? 0);
     $start = $_POST['start_date'] ?: null;
     $end = $_POST['end_date'] ?: null;
 
@@ -181,8 +182,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     try {
       $db->prepare("UPDATE sbm_cycles SET stakeholder_access_start=?, stakeholder_access_end=?, auto_deactivated_at=NULL, auto_deactivated_by=NULL WHERE cycle_id=?")
-         ->execute([$start, $end, $cycleId]);
-      
+        ->execute([$start, $end, $cycleId]);
+
       logActivity('set_cycle_dates', 'sbm_cycles', "Updated access window for cycle $cycleId: $start to $end");
       echo json_encode(['ok' => true, 'msg' => 'Access window updated successfully.']);
     } catch (Exception $e) {
@@ -192,7 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   }
 
   if ($action === 'get_cycle_dates') {
-    $cycleId = (int)($_POST['cycle_id'] ?? 0);
+    $cycleId = (int) ($_POST['cycle_id'] ?? 0);
     $st = $db->prepare("SELECT stakeholder_access_start, stakeholder_access_end, auto_deactivated_at FROM sbm_cycles WHERE cycle_id=?");
     $st->execute([$cycleId]);
     echo json_encode(['ok' => true, 'dates' => $st->fetch()]);
@@ -200,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   }
 
   if ($action === 'reactivate_evaluators') {
-    $cycleId = (int)($_POST['cycle_id'] ?? 0);
+    $cycleId = (int) ($_POST['cycle_id'] ?? 0);
     $userIds = $_POST['user_ids'] ?? null; // array or null for ALL
     $newEnd = $_POST['new_end_date'] ?: null;
 
@@ -209,8 +210,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       exit;
     }
 
-    $res = reactivateEvaluators($db, $cycleId, $userIds, $newEnd, (int)$_SESSION['user_id']);
-    
+    $res = reactivateEvaluators($db, $cycleId, $userIds, $newEnd, (int) $_SESSION['user_id']);
+
     if ($res['reactivated'] > 0) {
       logActivity('reactivate_evaluators', 'users', "Reactivated {$res['reactivated']} evaluators for cycle $cycleId");
       echo json_encode(['ok' => true, 'msg' => "Successfully reactivated {$res['reactivated']} account(s)."]);
@@ -483,9 +484,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   }
   exit;
 }
+if (isset($_GET['action']) && $_GET['action'] === 'download_template') {
+  header('Content-Type: text/csv');
+  header('Content-Disposition: attachment; filename="stakeholder_template.csv"');
+  $out = fopen('php://output', 'w');
+  fputcsv($out, ['full_name', 'email']);
+  fclose($out);
+  exit;
+}
+if (isset($_GET['action']) && $_GET['action'] === 'download_user_template') {
+  header('Content-Type: text/csv');
+  header('Content-Disposition: attachment; filename="user_template.csv"');
+  $out = fopen('php://output', 'w');
+  fputcsv($out, ['full_name', 'username', 'email', 'role', 'password']);
+  fclose($out);
+  exit;
+}
 
 $q = $_GET['q'] ?? '';
 $rf = $_GET['role'] ?? '';
+$sf = $_GET['status'] ?? '';
+
 $sql = "SELECT u.user_id,u.username,u.email,u.full_name,u.role,u.status,u.school_id,u.last_login,u.created_at,u.email_verified,u.force_password_change,s.school_name FROM users u LEFT JOIN schools s ON u.school_id=s.school_id WHERE 1=1";
 $p = [];
 if ($q) {
@@ -496,6 +515,10 @@ if ($q) {
 if ($rf) {
   $sql .= " AND u.role=?";
   $p[] = $rf;
+}
+if ($sf) {
+  $sql .= " AND u.status=?";
+  $p[] = $sf;
 }
 $sql .= " ORDER BY u.created_at DESC";
 $stmt = $db->prepare($sql);
@@ -542,14 +565,15 @@ $roleLabels = [
 
 <!-- Role tabs -->
 <div class="status-tabs">
-  <a href="users.php<?= $q ? "?q=" . urlencode($q) : '' ?>" class="status-tab <?= !$rf ? 'active' : '' ?>">
+  <a href="users.php<?= ($q || $sf) ? "?" . http_build_query(array_filter(['q' => $q, 'status' => $sf])) : '' ?>"
+    class="status-tab <?= !$rf ? 'active' : '' ?>">
     All <span class="status-tab-count"><?= $totalUsers ?></span>
   </a>
   <?php foreach (['system_admin', 'school_head', 'sbm_coordinator', 'teacher', 'external_stakeholder'] as $r):
     $cnt = $roleCounts[$r] ?? 0;
     if (!$cnt)
       continue; ?>
-    <a href="users.php?role=<?= $r ?><?= $q ? "&q=" . urlencode($q) : '' ?>"
+    <a href="users.php?role=<?= $r ?><?= ($q || $sf) ? "&" . http_build_query(array_filter(['q' => $q, 'status' => $sf])) : '' ?>"
       class="status-tab <?= $rf === $r ? 'active' : '' ?>">
       <span
         style="display:inline-block;width:7px;height:7px;border-radius:50%;background:<?= $roleColors[$r] ?>;margin-right:4px;"></span>
@@ -567,8 +591,46 @@ $roleLabels = [
       <input type="text" name="q" placeholder="Search by name, username or email…" value="<?= e($q) ?>">
       <?php if ($rf): ?><input type="hidden" name="role" value="<?= e($rf) ?>"><?php endif; ?>
     </div>
+    <div class="p-select" id="pStatusDropdown">
+      <input type="hidden" name="status" id="pStatusValue" value="<?= e($sf) ?>">
+      <div class="p-select-trigger" onclick="togglePSelect(event)">
+        <span class="p-select-val">
+          <?= $sf === 'active' ? 'Active' : ($sf === 'inactive' ? 'Inactive' : 'All Status') ?>
+        </span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--n-400)" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </div>
+      <div class="p-select-menu">
+        <!-- All Status -->
+        <div class="p-select-item <?= !$sf ? 'active' : '' ?>" onclick="setPStatus('')">
+          <div class="p-item-content">
+            <div class="p-item-title">All Status</div>
+            <div class="p-item-desc">View all accounts</div>
+          </div>
+          <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+        </div>
+        <!-- Active -->
+        <div class="p-select-item <?= $sf === 'active' ? 'active' : '' ?>" onclick="setPStatus('active')">
+          <div class="p-item-content">
+            <div class="p-item-title">Active</div>
+            <div class="p-item-desc">Can access the portal</div>
+          </div>
+          <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+        </div>
+        <!-- Inactive -->
+        <div class="p-select-item <?= $sf === 'inactive' ? 'active' : '' ?>" onclick="setPStatus('inactive')">
+          <div class="p-item-content">
+            <div class="p-item-title">Inactive</div>
+            <div class="p-item-desc">Account is locked</div>
+          </div>
+          <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+        </div>
+      </div>
+    </div>
     <button type="submit" class="btn btn-primary btn-sm">Search</button>
-    <?php if ($q || $rf): ?><a href="users.php" class="btn btn-secondary btn-sm">Reset</a><?php endif; ?>
+    <?php if ($q || $rf || $sf): ?><a href="users.php" class="btn btn-secondary btn-sm">Reset</a><?php endif; ?>
   </form>
 </div>
 
@@ -764,6 +826,12 @@ $roleLabels = [
     cursor: wait;
   }
 
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   @keyframes slideInToast {
     from {
       opacity: 0;
@@ -810,7 +878,8 @@ $roleLabels = [
     display: flex;
     gap: 12px;
   }
-  .dt-split > div {
+
+  .dt-split>div {
     flex: 1;
   }
 
@@ -819,12 +888,12 @@ $roleLabels = [
     cursor: pointer;
     opacity: 0.8;
   }
-  
+
   /* Date specific icon */
   input[type="date"].dt-premium::-webkit-calendar-picker-indicator {
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E") no-repeat center;
   }
-  
+
   /* Time specific icon */
   input[type="time"].dt-premium::-webkit-calendar-picker-indicator {
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'%3E%3C/circle%3E%3Cpolyline points='12 6 12 12 16 14'%3E%3C/polyline%3E%3C/svg%3E") no-repeat center;
@@ -833,6 +902,232 @@ $roleLabels = [
   .dt-premium::-webkit-calendar-picker-indicator:hover {
     opacity: 1;
   }
+
+  /* ── PREMIUM CSV IMPORT STYLES ── */
+  .import-card {
+    border: 1px solid var(--n-200);
+    border-radius: 16px;
+    background: #fff;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  }
+
+  .import-card.drag-over {
+    border-color: var(--brand-500);
+    background: var(--brand-50);
+    transform: scale(1.01);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+
+  .import-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--n-50);
+    border-bottom: 1px solid var(--n-100);
+    gap: 12px;
+  }
+
+  .import-icon-wrap {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand-600), #059669);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
+  }
+
+  .import-schema {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .import-col {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    padding: 2px 8px;
+    background: #fff;
+    border: 1px solid var(--n-200);
+    border-radius: 6px;
+    color: var(--n-600);
+    font-weight: 600;
+  }
+
+  .import-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .import-drop-zone {
+    border: 2px dashed var(--n-200);
+    border-radius: 14px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--n-30);
+    display: block;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .import-drop-zone:hover {
+    border-color: var(--brand-400);
+    background: var(--brand-50);
+  }
+
+  .import-placeholder-state {
+    display: block;
+  }
+
+  .has-file .import-placeholder-state {
+    display: none;
+  }
+
+  .import-file-pill {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #fff;
+    border: 1px solid var(--brand-200);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+    animation: slideInUp 0.3s ease;
+  }
+
+  .has-file .import-file-pill {
+    display: flex;
+  }
+
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .import-btn {
+    width: 100%;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--brand-600), #059669);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  }
+
+  .import-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+    filter: brightness(1.05);
+  }
+
+  .import-btn:active {
+    transform: translateY(0);
+  }
+
+  .import-btn:disabled {
+    background: var(--n-200);
+    color: var(--n-400);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .import-download-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--brand-600);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+
+  .import-download-link:hover {
+    background: var(--brand-50);
+    text-decoration: underline;
+  }
+
+  /* ── MANUAL ENTRY COLLAPSIBLY STYLES ── */
+  .manual-entry-card {
+    background: var(--n-50);
+    border: 1px solid var(--n-200);
+    border-radius: 14px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .manual-entry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s ease;
+  }
+
+  .manual-entry-header:hover {
+    background: var(--n-100);
+  }
+
+  .manual-entry-card.is-expanded {
+    background: #fff;
+    border-color: var(--brand-200);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .manual-entry-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0, 1, 0, 1);
+    padding: 0 20px;
+  }
+
+  .is-expanded .manual-entry-content {
+    max-height: 500px;
+    transition: max-height 0.4s cubic-bezier(1, 0, 1, 0);
+    padding: 0 20px 20px;
+  }
+
+  .chevron-icon {
+    transition: transform 0.3s ease;
+    color: var(--n-400);
+  }
+
+  .is-expanded .chevron-icon {
+    transform: rotate(180deg);
+    color: var(--brand-600);
+  }
+
 </style>
 
 <!-- Create Modal -->
@@ -849,20 +1144,50 @@ $roleLabels = [
       <div class="fg"><label>Email *</label><input class="fc" type="email" id="c_email" placeholder="juan@deped.gov.ph">
       </div>
       <div class="form-row">
-        <div class="fg"><label>Role *</label>
-          <select class="fc" id="c_role">
-            <option value="system_admin">System Admin</option>
-            <option value="school_head">School Head</option>
-            <option value="sbm_coordinator">SBM Coordinator</option>
-            <option value="teacher">Teacher</option>
-            <option value="external_stakeholder">External Stakeholder</option>
-          </select>
+        <div class="fg">
+          <label>Role *</label>
+          <div class="p-select p-select-fluid" id="pCRoleDropdown">
+            <input type="hidden" id="c_role" value="teacher">
+            <div class="p-select-trigger" onclick="togglePSelect(event, 'pCRoleDropdown')">
+              <span class="p-select-val" id="pCRoleLabel">Teacher</span>
+              <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
+            </div>
+            <div class="p-select-menu">
+              <?php foreach (['system_admin' => 'System Admin', 'school_head' => 'School Head', 'sbm_coordinator' => 'SBM Coordinator', 'teacher' => 'Teacher'] as $val => $lbl): ?>
+                <div class="p-select-item <?= $val === 'teacher' ? 'active' : '' ?>" data-val="<?= $val ?>"
+                  onclick="setCRole('<?= $val ?>', '<?= $lbl ?>')">
+                  <div class="p-item-content">
+                    <div class="p-item-title"><?= $lbl ?></div>
+                    <div class="p-item-desc"><?= $val === 'system_admin' ? 'Total system control' : 'Standard institutional access' ?>
+                    </div>
+                  </div>
+                  <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
         </div>
-        <div class="fg"><label>Status</label>
-          <select class="fc" id="c_status">
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+        <div class="fg">
+          <label>Status</label>
+          <div class="p-select p-select-fluid" id="pCStatusDropdown">
+            <input type="hidden" id="c_status" value="active">
+            <div class="p-select-trigger" onclick="togglePSelect(event, 'pCStatusDropdown')">
+              <span class="p-select-val" id="pCStatusLabel">Active</span>
+              <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
+            </div>
+            <div class="p-select-menu">
+              <?php foreach (['active' => 'Active', 'inactive' => 'Inactive'] as $val => $lbl): ?>
+                <div class="p-select-item <?= $val === 'active' ? 'active' : '' ?>" data-val="<?= $val ?>"
+                  onclick="setCStatus('<?= $val ?>', '<?= $lbl ?>')">
+                  <div class="p-item-content">
+                    <div class="p-item-title"><?= $lbl ?></div>
+                    <div class="p-item-desc"><?= $val === 'active' ? 'Account can log in' : 'Access is restricted' ?></div>
+                  </div>
+                  <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
         </div>
       </div>
       <div class="fg">
@@ -892,21 +1217,47 @@ $roleLabels = [
         <div class="fg"><label>Email</label><input class="fc" type="email" id="e_email"></div>
       </div>
       <div class="form-row">
-        <div class="fg"><label>Role</label>
-          <select class="fc" id="e_role">
-            <option value="system_admin">System Admin</option>
-            <option value="school_head">School Head</option>
-            <option value="sbm_coordinator">SBM Coordinator</option>
-            <option value="teacher">Teacher</option>
-            <option value="external_stakeholder">External Stakeholder</option>
-          </select>
+        <div class="fg">
+          <label>Role</label>
+          <div class="p-select p-select-fluid" id="pERoleDropdown">
+            <input type="hidden" id="e_role">
+            <div class="p-select-trigger" onclick="togglePSelect(event, 'pERoleDropdown')">
+              <span class="p-select-val" id="pERoleLabel">Select Role</span>
+              <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
+            </div>
+            <div class="p-select-menu">
+              <?php foreach (['system_admin' => 'System Admin', 'school_head' => 'School Head', 'sbm_coordinator' => 'SBM Coordinator', 'teacher' => 'Teacher', 'external_stakeholder' => 'External Stakeholder'] as $val => $lbl): ?>
+                <div class="p-select-item" data-val="<?= $val ?>" onclick="setERole('<?= $val ?>', '<?= $lbl ?>')">
+                  <div class="p-item-content">
+                    <div class="p-item-title"><?= $lbl ?></div>
+                    <div class="p-item-desc"><?= e($lbl) ?> account access level</div>
+                  </div>
+                  <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
         </div>
-        <div class="fg"><label>Status</label>
-          <select class="fc" id="e_status">
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="suspended">Suspended</option>
-          </select>
+        <div class="fg">
+          <label>Status</label>
+          <div class="p-select p-select-fluid" id="pEStatusDropdown">
+            <input type="hidden" id="e_status">
+            <div class="p-select-trigger" onclick="togglePSelect(event, 'pEStatusDropdown')">
+              <span class="p-select-val" id="pEStatusLabel">Select Status</span>
+              <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
+            </div>
+            <div class="p-select-menu">
+              <?php foreach (['active' => 'Active', 'inactive' => 'Inactive', 'suspended' => 'Suspended'] as $val => $lbl): ?>
+                <div class="p-select-item" data-val="<?= $val ?>" onclick="setEStatus('<?= $val ?>', '<?= $lbl ?>')">
+                  <div class="p-item-content">
+                    <div class="p-item-title"><?= $lbl ?></div>
+                    <div class="p-item-desc">User account set to <?= strtolower($lbl) ?></div>
+                  </div>
+                  <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
         </div>
       </div>
       <div class="fg">
@@ -945,100 +1296,248 @@ $roleLabels = [
       <!-- Cycle selector -->
       <div class="fg">
         <label>Assessment Cycle *</label>
-        <select class="fc" id="ev_cycle_id" onchange="loadEvaluators()">
-          <option value="">— Select a cycle —</option>
-          <?php
-          $cycles = $db->query("
-            SELECT c.cycle_id, sy.label, c.status
-            FROM sbm_cycles c
-            JOIN school_years sy ON c.sy_id = sy.sy_id
-            WHERE c.school_id = " . SCHOOL_ID . "
-            ORDER BY c.cycle_id DESC
-          ")->fetchAll();
-          foreach ($cycles as $cyc):
-            ?>
-            <option value="<?= $cyc['cycle_id'] ?>">
-              SY
-              <?= e($cyc['label']) ?> —
-              <?= ucfirst(str_replace('_', ' ', $cyc['status'])) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
+        <div class="p-select p-select-fluid" id="pCycleDropdown">
+          <input type="hidden" id="ev_cycle_id">
+          <div class="p-select-trigger" onclick="togglePSelect(event, 'pCycleDropdown')">
+            <span class="p-select-val" id="pCycleLabel">Select a cycle</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--n-400)" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div class="p-select-menu">
+            <?php
+            $cycles = $db->query("
+              SELECT c.cycle_id, sy.label, c.status
+              FROM sbm_cycles c
+              JOIN school_years sy ON c.sy_id = sy.sy_id
+              WHERE c.school_id = " . SCHOOL_ID . "
+              ORDER BY c.cycle_id DESC
+            ")->fetchAll();
+            foreach ($cycles as $cyc):
+              $label = "SY " . e($cyc['label']) . " — " . ucfirst(str_replace('_', ' ', $cyc['status']));
+              $desc = ($cyc['status'] === 'open') ? "Currently assessing school year" : "Historical assessment records";
+              ?>
+              <div class="p-select-item" onclick="setMCycle('<?= $cyc['cycle_id'] ?>', '<?= e($label) ?>')">
+                <div class="p-item-content">
+                  <div class="p-item-title"><?= e($label) ?></div>
+                  <div class="p-item-desc"><?= $desc ?></div>
+                </div>
+                <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
       </div>
 
       <!-- Stakeholder Access Window Card -->
-      <div id="cycleDatesCard" style="display:none;margin-bottom:18px;">
-        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div id="cycleDatesCard" style="display:none;margin-bottom:20px;">
+        <div
+          style="background:var(--brand-50);border:1px solid var(--brand-200);border-radius:16px;padding:20px;box-shadow:var(--shadow-sm);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
             <div>
-              <div style="font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:#166534;margin-bottom:4px;">Stakeholder Access Window</div>
-              <div id="cycleStatusBanner" style="font-size:12px;font-weight:600;"></div>
+              <div
+                style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--brand-700);margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+                <div style="width:6px;height:6px;border-radius:50%;background:var(--brand-600);"></div>
+                Stakeholder Access Window
+              </div>
+              <div id="cycleStatusBanner" style="font-size:14px;font-weight:700;color:var(--n-900);"></div>
             </div>
-            <button class="btn btn-primary" onclick="saveCycleDates()" style="padding:6px 12px;font-size:12px;border-radius:8px;">Save Window</button>
+            <button class="btn btn-primary" onclick="saveCycleDates()"
+              style="padding:7px 14px;font-size:12.5px;border-radius:9px;box-shadow:0 4px 12px rgba(22, 163, 74, .2);">Save
+              Window</button>
           </div>
-          
-          <div style="display:flex;flex-direction:column;gap:12px;">
+
+          <div class="form-row">
             <!-- Start Group -->
             <div>
-              <label style="color:#166534;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-                <?= svgIcon('calendar', '', 'width:14px;height:14px;') ?> Start Date & Time
+              <label
+                style="color:var(--n-600);font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                <?= svgIcon('calendar') ?> Opening Date & Time
               </label>
               <div class="dt-split">
-                <input type="date" id="ev_start_d" class="dt-premium">
-                <input type="time" id="ev_start_t" class="dt-premium">
+                <input type="date" id="ev_start_d" class="dt-premium" style="flex:1.4;">
+                <input type="time" id="ev_start_t" class="dt-premium" style="flex:1;">
               </div>
             </div>
 
             <!-- End Group -->
             <div>
-              <label style="color:#166534;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-                <?= svgIcon('calendar', '', 'width:14px;height:14px;') ?> End Date & Time *
+              <label
+                style="color:var(--n-600);font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                <?= svgIcon('calendar') ?> Closing Date & Time
               </label>
               <div class="dt-split">
-                <input type="date" id="ev_end_d" class="dt-premium">
-                <input type="time" id="ev_end_t" class="dt-premium">
+                <input type="date" id="ev_end_d" class="dt-premium" style="flex:1.4;">
+                <input type="time" id="ev_end_t" class="dt-premium" style="flex:1;">
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Add evaluator form -->
-      <div
-        style="background:var(--n-50);border:1px solid var(--n-200);border-radius:10px;padding:16px;margin-bottom:18px;">
-        <div style="font-size:13px;font-weight:700;color:var(--n-800);margin-bottom:12px;">Add Evaluator</div>
-        <div class="form-row">
-          <div class="fg" style="margin-bottom:0;">
-            <label>Full Name *</label>
-            <input class="fc" id="ev_name" placeholder="e.g. Juan dela Cruz">
+      <!-- Bulk CSV Import for Stakeholders -->
+      <div id="evCsvSection" style="margin-bottom:16px;">
+        <div class="import-card" id="evCsvDrop">
+          <!-- Header -->
+          <div class="import-head">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div class="import-icon-wrap">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <path d="M12 18v-6" />
+                  <path d="M9 15h6" />
+                </svg>
+              </div>
+              <div>
+                <div style="font-size:14px;font-weight:800;color:var(--n-900);line-height:1.2;">Bulk Import
+                </div>
+                <div style="font-size:11px;color:var(--n-500);margin-top:2px;">Upload CSV to add evaluators</div>
+              </div>
+            </div>
+            <div class="import-schema">
+              <span class="import-col">full_name</span>
+              <span class="import-col">email</span>
+            </div>
           </div>
-          <div class="fg" style="margin-bottom:0;">
-            <label>Email Address *</label>
-            <input class="fc" type="email" id="ev_email" placeholder="evaluator@email.com">
+
+          <!-- Body -->
+          <div class="import-body">
+            <label for="evCsvFile" class="import-drop-zone" id="evCsvDropZone">
+              <input type="file" id="evCsvFile" accept=".csv" style="display:none;" onchange="handleEvCsvSelect(this)">
+
+              <!-- Placeholder state -->
+              <div class="import-placeholder-state">
+                <div
+                  style="width:44px;height:44px;border-radius:12px;background:var(--brand-50);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:1px solid var(--brand-100);">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--brand-600)" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </div>
+                <div style="font-size:14px;font-weight:700;color:var(--n-800);margin-bottom:4px;">Drop your CSV here
+                </div>
+                <div style="font-size:12px;color:var(--n-400);">
+                  or <span style="color:var(--brand-600);font-weight:600;text-decoration:underline;">click to
+                    browse</span>
+                </div>
+              </div>
+
+              <!-- Selected file pill -->
+              <div class="import-file-pill" id="evCsvFilePill">
+                <div
+                  style="width:32px;height:32px;border-radius:8px;background:var(--brand-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--brand-700)"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <div style="flex:1;min-width:0;text-align:left;">
+                  <div id="evCsvFileName"
+                    style="font-size:13px;font-weight:700;color:var(--n-900);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                  </div>
+                  <div id="evCsvFileSize" style="font-size:11px;color:var(--n-500);"></div>
+                </div>
+                <button type="button" onclick="event.preventDefault(); clearEvCsv();"
+                  style="background:var(--n-100);border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--n-500);line-height:0;transition:all .2s;"
+                  title="Remove file">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            </label>
+
+            <button class="import-btn" id="evCsvImportBtn" onclick="importStakeholderCsv()" disabled>
+              <?= svgIcon('send') ?> Import &amp; Send Invites
+            </button>
+
+            <div style="text-align:center;">
+              <a href="users.php?action=download_template" class="import-download-link">
+                <?= svgIcon('download') ?> Download CSV Template
+              </a>
+            </div>
           </div>
         </div>
-        <div style="margin-top:10px;">
-          <button class="btn btn-primary btn-sm" onclick="addEvaluator()">
-            <?= svgIcon('plus') ?> Add & Send Invite
-          </button>
-          <span style="font-size:11.5px;color:var(--n-400);margin-left:8px;">A password setup email will be sent
-            automatically.</span>
+      </div>
+
+      <!-- Add evaluator form (Collapsible) -->
+      <div class="manual-entry-card" id="manualEntryCard">
+        <div class="manual-entry-header" onclick="toggleManualEntry()">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div
+              style="width:32px;height:32px;border-radius:8px;background:var(--n-100);display:flex;align-items:center;justify-content:center;color:var(--n-600);"
+              id="manualIconWrap">
+              <?= svgIcon('plus') ?>
+            </div>
+            <div>
+              <div style="font-size:14px;font-weight:800;color:var(--n-800);line-height:1;">Manual Entry</div>
+              <div style="font-size:11px;color:var(--n-400);margin-top:2px;">Add a single evaluator manually</div>
+            </div>
+          </div>
+          <div class="chevron-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="manual-entry-content">
+          <div style="padding-top:10px;">
+            <div class="form-row">
+              <div class="fg" style="margin-bottom:0;">
+                <label>Full Name *</label>
+                <input class="fc" id="ev_name" placeholder="e.g. Juan dela Cruz">
+              </div>
+              <div class="fg" style="margin-bottom:0;">
+                <label>Email Address *</label>
+                <input class="fc" type="email" id="ev_email" placeholder="evaluator@email.com">
+              </div>
+            </div>
+            <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+              <button class="btn btn-primary btn-sm" onclick="addEvaluator()" style="padding:8px 16px;">
+                <?= svgIcon('user-plus') ?> Add & Send Invite
+              </button>
+              <div style="display:flex;align-items:center;gap:6px;color:var(--n-400);font-size:11px;">
+                <?= svgIcon('info') ?>
+                <span>System will email setup instructions.</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Evaluator list -->
       <div id="evaluatorListWrap">
-        <div style="text-align:center;padding:20px;color:var(--n-400);font-size:13px;">
-          Select a cycle above to see evaluators.
+        <div
+          style="text-align:center;padding:40px 20px;color:var(--n-400);font-size:13px;background:var(--n-50);border:2px dashed var(--n-200);border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+          <div
+            style="width:48px;height:48px;border-radius:50%;background:var(--n-100);display:flex;align-items:center;justify-content:center;color:var(--n-300);">
+            <?= svgIcon('users', '', 'width:24px;height:24px;') ?>
+          </div>
+          <div>
+            <div style="font-weight:700;color:var(--n-500);">No Evaluators Loaded</div>
+            <div style="font-size:12px;margin-top:2px;">Select an assessment cycle to view assigned stakeholders.</div>
+          </div>
         </div>
       </div>
     </div>
     <div class="modal-foot" style="justify-content:space-between;">
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-danger btn-sm" onclick="deactivateAllEvaluators()" id="deactivateAllBtn" style="display:none;">
+        <button class="btn btn-danger btn-sm" onclick="deactivateAllEvaluators()" id="deactivateAllBtn"
+          style="display:none;">
           <?= svgIcon('x') ?> Deactivate All
         </button>
-        <button class="btn btn-primary btn-sm" onclick="openReactivationModal()" id="reactivateAllBtn" style="display:none;background:#2563EB;">
+        <button class="btn btn-primary btn-sm" onclick="openReactivationModal()" id="reactivateAllBtn"
+          style="display:none;background:#2563EB;">
           <?= svgIcon('refresh') ?> Reactivate All
         </button>
       </div>
@@ -1067,34 +1566,103 @@ $roleLabels = [
             style="font-size:12px;font-family:monospace;background:#fff;border:1px solid var(--n-100);border-radius:4px;padding:3px 9px;color:var(--n-400);font-style:italic;">password
             (optional)</span>
         </div>
-        <div style="margin-top:10px;font-size:11px;color:var(--n-400);">Valid roles: school_head · sbm_coordinator ·
+        <div style="margin-top:10px;font-size:11px;color:var(--n-400);">Valid roles: school_head ·
+          sbm_coordinator ·
           teacher · external_stakeholder</div>
       </div>
-      <div class="fg">
-        <label>CSV File</label>
-        <label for="csvFile" id="csvFileLabel"
-          style="display:flex;align-items:center;gap:10px;padding:9px 14px;border:1.5px dashed var(--n-300);border-radius:8px;background:var(--n-50);cursor:pointer;transition:all .15s;">
-          <span
-            style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#fff;border:1px solid var(--n-200);border-radius:6px;font-size:12.5px;font-weight:600;color:var(--n-700);white-space:nowrap;box-shadow:var(--shadow-xs);">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            Choose File
-          </span>
-          <span id="csvFileName"
-            style="font-size:13px;color:var(--n-400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">No file
-            chosen</span>
-        </label>
-        <input type="file" id="csvFile" accept=".csv" style="display:none;"
-          onchange="document.getElementById('csvFileName').textContent = this.files[0]?.name || 'No file chosen'; document.getElementById('csvFileName').style.color = this.files[0] ? 'var(--n-800)' : 'var(--n-400)';">
+      <div style="margin-bottom:12px;">
+        <div class="import-card" id="userImportCard">
+          <div class="import-head">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div class="import-icon-wrap" style="background:linear-gradient(135deg, var(--blue), #1E40AF);">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="8.5" cy="7" r="4" />
+                  <polyline points="17 11 19 13 23 9" />
+                </svg>
+              </div>
+              <div>
+                <div style="font-size:14px;font-weight:800;color:var(--n-900);line-height:1.2;">Bulk User Upload
+                </div>
+                <div style="font-size:11px;color:var(--n-500);margin-top:2px;">Select CSV to import system users</div>
+              </div>
+            </div>
+            <div class="import-schema">
+              <span class="import-col">full_name</span>
+              <span class="import-col">username</span>
+              <span class="import-col">email</span>
+              <span class="import-col">role</span>
+            </div>
+          </div>
+
+          <div class="import-body">
+            <label for="csvFile" class="import-drop-zone" id="userImportDropZone">
+              <input type="file" id="csvFile" accept=".csv" style="display:none;" onchange="handleUserCsvSelect(this)">
+
+              <div class="import-placeholder-state" id="userImportPlaceholder">
+                <div
+                  style="width:44px;height:44px;border-radius:12px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:1px solid #BFDBFE;">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--blue)" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </div>
+                <div style="font-size:14px;font-weight:700;color:var(--n-800);margin-bottom:4px;">Drop CSV here
+                </div>
+                <div style="font-size:12px;color:var(--n-400);">or <span
+                    style="color:var(--blue);font-weight:600;text-decoration:underline;">browse files</span></div>
+              </div>
+
+              <!-- Selected file pill -->
+              <div class="import-file-pill" id="userImportFilePill">
+                <div
+                  style="width:32px;height:32px;border-radius:8px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--blue)" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <div style="flex:1;min-width:0;text-align:left;">
+                  <div id="userImportFileName"
+                    style="font-size:13px;font-weight:700;color:var(--n-900);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                  </div>
+                  <div id="userImportFileSize" style="font-size:11px;color:var(--n-500);"></div>
+                </div>
+                <button type="button" onclick="event.preventDefault(); clearUserCsv();"
+                  style="background:var(--n-100);border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--n-500);line-height:0;transition:all .2s;"
+                  title="Remove file">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            </label>
+
+            <button class="import-btn" id="userImportBtn"
+              style="background:linear-gradient(135deg, var(--blue), #1E40AF);box-shadow: 0 4px 12px rgba(37, 99, 235, .2);"
+              onclick="importUsers()">
+              <?= svgIcon('upload') ?> Upload &amp; Import Users
+            </button>
+
+            <div style="text-align:center;">
+              <a href="users.php?action=download_user_template" class="import-download-link" style="color:var(--blue);">
+                <?= svgIcon('download') ?> Download User Template
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-secondary" onclick="closeModal('mImport')">Cancel</button>
-      <button class="btn btn-primary" onclick="importUsers()"><?= svgIcon('upload') ?> Upload &amp; Import</button>
+      <button class="btn btn-primary" onclick="importUsers()"><?= svgIcon('upload') ?> Upload &amp;
+        Import</button>
     </div>
   </div>
 </div>
@@ -1110,8 +1678,9 @@ $roleLabels = [
       <div style="margin-bottom:16px;font-size:14px;color:var(--n-600);line-height:1.6;">
         This will reactivate the selected evaluator accounts. They will be able to log in again immediately.
       </div>
-      
-      <div id="deactivatedEvalsList" style="max-height:200px;overflow-y:auto;border:1px solid var(--n-200);border-radius:10px;padding:4px;margin-bottom:18px;background:var(--n-50);">
+
+      <div id="deactivatedEvalsList"
+        style="max-height:200px;overflow-y:auto;border:1px solid var(--n-200);border-radius:10px;padding:4px;margin-bottom:18px;background:var(--n-50);">
         <!-- List with checkboxes -->
       </div>
 
@@ -1130,7 +1699,8 @@ $roleLabels = [
     </div>
     <div class="modal-foot">
       <button class="btn btn-secondary" onclick="closeModal('mReactivate')">Cancel</button>
-      <button class="btn btn-primary" onclick="confirmReactivate()" style="background:#2563EB;">Confirm Reactivation</button>
+      <button class="btn btn-primary" onclick="confirmReactivate()" style="background:#2563EB;">Confirm
+        Reactivation</button>
     </div>
   </div>
 </div>
@@ -1196,7 +1766,14 @@ $roleLabels = [
     const r = await apiPost('users.php', { action: 'get', id });
     if (!r || !r.user_id) { toast('Failed to load user.', 'err'); return; }
     $v('e_id', r.user_id); $v('e_name', r.full_name); $v('e_email', r.email);
-    $el('e_role').value = r.role || 'teacher'; $el('e_status').value = r.status || 'active';
+
+    // Init custom dropdowns
+    const roleMap = { 'system_admin': 'System Admin', 'school_head': 'School Head', 'sbm_coordinator': 'SBM Coordinator', 'teacher': 'Teacher', 'external_stakeholder': 'External Stakeholder' };
+    setERole(r.role || 'teacher', roleMap[r.role] || 'Teacher');
+
+    const statusMap = { 'active': 'Active', 'inactive': 'Inactive', 'suspended': 'Suspended' };
+    setEStatus(r.status || 'active', statusMap[r.status] || 'Active');
+
     $v('e_school', r.school_id || ''); $v('e_pass', '');
     openModal('mEdit');
   }
@@ -1376,7 +1953,7 @@ $roleLabels = [
     const wrap = document.getElementById('evaluatorListWrap');
     const deactBtn = document.getElementById('deactivateAllBtn');
     const reactBtn = document.getElementById('reactivateAllBtn');
-    
+
     if (!cycleId) {
       wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--n-400);font-size:13px;">Select a cycle above to see evaluators.</div>';
       deactBtn.style.display = 'none';
@@ -1387,10 +1964,10 @@ $roleLabels = [
 
     refreshCycleDates(cycleId);
     wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--n-400);">Loading…</div>';
-    
+
     const r = await apiPost('users.php', { action: 'list_cycle_evaluators', cycle_id: cycleId });
     if (!r.ok || !r.data) { wrap.innerHTML = '<div style="color:var(--red);padding:12px;">Failed to load.</div>'; return; }
-    
+
     lastEvalsList = r.data;
 
     if (r.data.length === 0) {
@@ -1443,30 +2020,30 @@ $roleLabels = [
   async function refreshCycleDates(cycleId) {
     const card = document.getElementById('cycleDatesCard');
     const banner = document.getElementById('cycleStatusBanner');
-    
+
     card.style.display = 'block';
     const r = await apiPost('users.php', { action: 'get_cycle_dates', cycle_id: cycleId });
     if (r.ok && r.dates) {
       const s = r.dates.stakeholder_access_start || '';
       const e = r.dates.stakeholder_access_end || '';
-      
+
       document.getElementById('ev_start_d').value = s ? s.substring(0, 10) : '';
       document.getElementById('ev_start_t').value = s ? s.substring(11, 16) : '';
       document.getElementById('ev_end_d').value = e ? e.substring(0, 10) : '';
       document.getElementById('ev_end_t').value = e ? e.substring(11, 16) : '';
-      
+
       const now = new Date();
       const end = e ? new Date(e.replace(' ', 'T')) : null;
       const start = s ? new Date(s.replace(' ', 'T')) : null;
 
       if (!end) {
-        banner.innerHTML = '<span style="color:#991B1B;">⚠️ No end date set</span>';
+        banner.innerHTML = '<span style="color:#991B1B;">No end date set</span>';
       } else if (now > end) {
-        banner.innerHTML = '<span style="color:#991B1B;">🔴 Window Closed</span>';
+        banner.innerHTML = '<span style="color:#991B1B;">Window Closed</span>';
       } else if (start && now < start) {
-        banner.innerHTML = '<span style="color:#92400E;">🟠 Not Started Yet</span>';
+        banner.innerHTML = '<span style="color:#92400E;">Not Started Yet</span>';
       } else {
-        banner.innerHTML = '<span style="color:#166534;">🟢 Window Open</span>';
+        banner.innerHTML = '<span style="color:#166534;">Window Open</span>';
       }
     }
   }
@@ -1477,7 +2054,7 @@ $roleLabels = [
     const st = document.getElementById('ev_start_t').value;
     const ed = document.getElementById('ev_end_d').value;
     const et = document.getElementById('ev_end_t').value;
-    
+
     if (!ed || !et) { toast('Access end date and time are required.', 'warning'); return; }
 
     const start = sd && st ? (sd + ' ' + st + ':00') : '';
@@ -1502,7 +2079,7 @@ $roleLabels = [
         </div>
       </div>
     `).join('');
-    
+
     // Set default extension end date from current inputs
     document.getElementById('reactivate_end_d').value = document.getElementById('ev_end_d').value;
     document.getElementById('reactivate_end_t').value = document.getElementById('ev_end_t').value;
@@ -1513,7 +2090,7 @@ $roleLabels = [
     const cycleId = document.getElementById('ev_cycle_id').value;
     const checkboxes = document.querySelectorAll('input[name="reactivate_uid"]:checked');
     const userIds = Array.from(checkboxes).map(cb => cb.value);
-    
+
     const rd = document.getElementById('reactivate_end_d').value;
     const rt = document.getElementById('reactivate_end_t').value;
     const newEnd = rd && rt ? (rd + ' ' + rt + ':00') : '';
@@ -1553,6 +2130,181 @@ $roleLabels = [
   }
 
 
+  function handleEvCsvSelect(input) {
+    const file = input.files[0];
+    const drop = document.getElementById('evCsvDrop');
+    const btn = document.getElementById('evCsvImportBtn');
+    if (!file) { clearEvCsv(); return; }
+    drop.classList.add('has-file');
+    document.getElementById('evCsvFileName').textContent = file.name;
+    document.getElementById('evCsvFileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+    btn.disabled = false;
+  }
+
+  function clearEvCsv() {
+    const input = document.getElementById('evCsvFile');
+    input.value = '';
+    document.getElementById('evCsvDrop').classList.remove('has-file');
+    document.getElementById('evCsvFileName').textContent = '';
+    document.getElementById('evCsvFileSize').textContent = '';
+    document.getElementById('evCsvImportBtn').disabled = true;
+  }
+
+  function handleUserCsvSelect(input) {
+    const file = input.files[0];
+    const card = document.getElementById('userImportCard');
+    const btn = document.getElementById('userImportBtn');
+    if (!file) { clearUserCsv(); return; }
+    card.classList.add('has-file');
+    document.getElementById('userImportFileName').textContent = file.name;
+    document.getElementById('userImportFileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+    btn.disabled = false;
+  }
+
+  function clearUserCsv() {
+    const input = document.getElementById('csvFile');
+    input.value = '';
+    document.getElementById('userImportCard').classList.remove('has-file');
+    document.getElementById('userImportFileName').textContent = '';
+    document.getElementById('userImportFileSize').textContent = '';
+    document.getElementById('userImportBtn').disabled = true;
+  }
+
+  // Drag-and-drop wiring
+  document.addEventListener('DOMContentLoaded', () => {
+    // Evaluators Zone
+    const evZone = document.getElementById('evCsvDropZone');
+    const evCard = document.getElementById('evCsvDrop');
+    if (evZone) {
+      evZone.addEventListener('dragover', e => { e.preventDefault(); evCard.classList.add('drag-over'); });
+      evZone.addEventListener('dragleave', () => evCard.classList.remove('drag-over'));
+      evZone.addEventListener('drop', e => {
+        e.preventDefault(); evCard.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file && file.name.endsWith('.csv')) {
+          const input = document.getElementById('evCsvFile');
+          const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+          handleEvCsvSelect(input);
+        } else { toast('Please drop a .csv file.', 'warning'); }
+      });
+    }
+
+    // Users Zone
+    const userZone = document.getElementById('userImportDropZone');
+    const userCard = document.getElementById('userImportCard');
+    if (userZone) {
+      userZone.addEventListener('dragover', e => { e.preventDefault(); userCard.classList.add('drag-over'); });
+      userZone.addEventListener('dragleave', () => userCard.classList.remove('drag-over'));
+      userZone.addEventListener('drop', e => {
+        e.preventDefault(); userCard.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file && file.name.endsWith('.csv')) {
+          const input = document.getElementById('csvFile');
+          const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+          handleUserCsvSelect(input);
+        } else { toast('Please drop a .csv file.', 'warning'); }
+      });
+    }
+  });
+
+  function setPStatus(val) {
+    document.getElementById('pStatusValue').value = val;
+    document.getElementById('pStatusDropdown').closest('form').submit();
+  }
+
+  // mCreate helpers
+  function setCRole(v, l) {
+    $v('c_role', v);
+    document.getElementById('pCRoleLabel').textContent = l;
+    document.querySelectorAll('#pCRoleDropdown .p-select-item').forEach(i => i.classList.toggle('active', i.dataset.val === v));
+    closeAllPSelects();
+  }
+  function setCStatus(v, l) {
+    $v('c_status', v);
+    document.getElementById('pCStatusLabel').textContent = l;
+    document.querySelectorAll('#pCStatusDropdown .p-select-item').forEach(i => i.classList.toggle('active', i.dataset.val === v));
+    closeAllPSelects();
+  }
+
+  // mEdit helpers
+  function setERole(v, l) {
+    $v('e_role', v);
+    document.getElementById('pERoleLabel').textContent = l;
+    document.querySelectorAll('#pERoleDropdown .p-select-item').forEach(i => i.classList.toggle('active', i.dataset.val === v));
+    closeAllPSelects();
+  }
+  function setEStatus(v, l) {
+    $v('e_status', v);
+    document.getElementById('pEStatusLabel').textContent = l;
+    document.querySelectorAll('#pEStatusDropdown .p-select-item').forEach(i => i.classList.toggle('active', i.dataset.val === v));
+    closeAllPSelects();
+  }
+
+  function setMCycle(id, label) {
+    document.getElementById('ev_cycle_id').value = id;
+    document.getElementById('pCycleLabel').textContent = label;
+    // Update active state in UI
+    document.querySelectorAll('#pCycleDropdown .p-select-item').forEach(item => {
+      item.classList.toggle('active', item.getAttribute('onclick').includes(`'${id}'`));
+    });
+    closeAllPSelects();
+    loadEvaluators();
+  }
+
+  function toggleManualEntry() {
+    const card = document.getElementById('manualEntryCard');
+    const iconWrap = document.getElementById('manualIconWrap');
+    const isExpanded = card.classList.toggle('is-expanded');
+
+    if (isExpanded) {
+      iconWrap.style.background = 'var(--brand-100)';
+      iconWrap.style.color = 'var(--brand-600)';
+    } else {
+      iconWrap.style.background = 'var(--n-100)';
+      iconWrap.style.color = 'var(--n-600)';
+    }
+  }
+
+  async function importStakeholderCsv() {
+    const cycleId = document.getElementById('ev_cycle_id').value;
+    if (!cycleId) { toast('Please select a cycle first.', 'warning'); return; }
+    const file = document.getElementById('evCsvFile').files[0];
+    if (!file) { toast('Please choose a CSV file first.', 'warning'); return; }
+
+    const btn = document.getElementById('evCsvImportBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin .7s linear infinite;"><path d="M12 2a10 10 0 1 0 10 10" /></svg> Importing…`;
+
+    const text = await file.text();
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    if (lines.length < 2) {
+      toast('CSV is empty or has no data rows.', 'err');
+      btn.disabled = false;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg> Import &amp; Send Invites`;
+      return;
+    }
+
+    const rows = lines.slice(1);
+    let success = 0, failed = 0, errors = [];
+
+    for (const line of rows) {
+      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      const [full_name, email] = cols;
+      if (!full_name || !email) { failed++; errors.push('Skipped empty row'); continue; }
+      if (!email.includes('@')) { failed++; errors.push(`Invalid email: ${email}`); continue; }
+      const r = await apiPost('users.php', { action: 'create_temp_evaluator', cycle_id: cycleId, full_name, email });
+      if (r.ok) { success++; } else { failed++; errors.push(`${email}: ${r.msg}`); }
+    }
+
+    if (errors.length) console.warn('Import errors:', errors);
+    toast(`Import done — ${success} added${failed ? ', ' + failed + ' failed' : ''}.`, success > 0 ? 'ok' : 'err');
+    clearEvCsv();
+    if (success > 0) loadEvaluators();
+
+    btn.disabled = true;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg> Import &amp; Send Invites`;
+  }
+
   window.addEventListener('DOMContentLoaded', () => {
     if (new URLSearchParams(window.location.search).get('action') === 'create') openModal('mCreate');
   });
@@ -1560,7 +2312,9 @@ $roleLabels = [
     if (!event.target.closest('.row-menu')) closeRowMenus();
   });
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') closeRowMenus();
+    if (event.key === 'Escape') {
+      closeRowMenus();
+    }
   });
 </script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

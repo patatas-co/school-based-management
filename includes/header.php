@@ -917,7 +917,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       border-radius: var(--radius-lg);
       border: 1px solid var(--n-200);
       box-shadow: var(--shadow-xs);
-      overflow: hidden;
+      /* overflow:hidden removed — was clipping .p-select-menu dropdowns */
+      position: relative;
     }
 
     .card-head {
@@ -1511,7 +1512,9 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       width: 100%;
       max-width: 520px;
       max-height: 92vh;
-      overflow-y: auto;
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
       transform: scale(.97) translateY(8px);
       transition: transform 200ms var(--ease);
     }
@@ -1526,6 +1529,9 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-shrink: 0;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      background: #fff;
     }
 
     .modal-title {
@@ -1566,6 +1572,9 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     .modal-body {
       padding: 20px 22px;
+      overflow-y: auto;
+      flex: 1;
+      max-height: calc(92vh - 120px);
     }
 
     .modal-foot {
@@ -1574,6 +1583,9 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       display: flex;
       justify-content: flex-end;
       gap: 8px;
+      flex-shrink: 0;
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      background: #fff;
     }
 
     .search {
@@ -2099,10 +2111,15 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         grid-template-columns: 1fr 1fr;
       }
 
-      /* Dashboard custom grids — collapse to single column on mobile */
       .sh-main-grid,
       .sh-bottom-grid {
         grid-template-columns: 1fr !important;
+      }
+
+      /* Premium Dropdown Responsive Overrides */
+      .p-select {
+        width: 100%;
+        max-width: 100%;
       }
     }
 
@@ -2227,6 +2244,147 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       .page {
         padding: 0 !important;
       }
+    }
+
+    /* ── PREMIUM CUSTOM DROPDOWN (p-select) ── */
+    .p-select {
+      position: relative;
+      width: 160px;
+      font-family: var(--font-body);
+    }
+
+    .p-select-trigger {
+      height: 38px;
+      padding: 0 12px;
+      background: #fff;
+      border: 1.5px solid var(--n-200);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      gap: 8px;
+    }
+
+    .p-select-trigger:hover {
+      border-color: var(--n-300);
+      background: var(--n-50);
+    }
+
+    .p-select.open .p-select-trigger {
+      border-color: var(--brand-500);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    .p-select-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--n-800);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .p-select-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: -8px;
+      width: calc(100% + 16px);
+      max-height: 280px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid var(--n-200);
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+      display: none;
+      z-index: 9999;
+      padding: 6px;
+      animation: pDropdownSlide 0.2s ease-out;
+    }
+
+    /* Premium Scrollbar for the menu */
+    .p-select-menu::-webkit-scrollbar {
+      width: 5px;
+    }
+    .p-select-menu::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .p-select-menu::-webkit-scrollbar-thumb {
+      background: var(--n-200);
+      border-radius: 10px;
+    }
+    .p-select-menu::-webkit-scrollbar-thumb:hover {
+      background: var(--n-300);
+    }
+
+    .p-select-fluid {
+      width: 100%;
+    }
+    /* .p-select-fluid .p-select-menu positioning is handled by JS (fixed portal) */
+
+    @keyframes pDropdownSlide {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .p-select.open .p-select-menu {
+      display: block;
+    }
+
+    .p-select-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      gap: 12px;
+    }
+
+    .p-select-item:hover {
+      background: var(--n-50);
+    }
+
+    .p-select-item.active {
+      background: var(--brand-50);
+    }
+
+    .p-item-content {
+      flex: 1;
+    }
+
+    .p-item-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--n-900);
+      line-height: 1.3;
+    }
+
+    .p-item-desc {
+      font-size: 11.5px;
+      color: var(--n-400);
+      font-weight: 400;
+      line-height: 1.2;
+      margin-top: 1px;
+    }
+
+    .p-item-check {
+      display: none;
+      color: var(--brand-600);
+      flex-shrink: 0;
+    }
+
+    .p-select-item.active .p-item-check {
+      display: flex;
     }
   </style>
 </head>
@@ -2501,6 +2659,9 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
           const tile = document.getElementById('userTile');
           const popup = document.getElementById('userPopup');
           if (popup && tile && !tile.contains(e.target) && !popup.contains(e.target)) popup.classList.remove('open');
+
+          // Premium Dropdown close on click-away
+          if (!e.target.closest('.p-select')) closeAllPSelects();
         });
 
         // ── Modal helpers ──
@@ -2511,6 +2672,22 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         });
         document.addEventListener('click', e => {
           if (e.target.classList.contains('overlay') && e.target.classList.contains('open')) e.target.classList.remove('open');
+        });
+
+        // ── Premium Dropdown Helpers ──
+        function togglePSelect(e, targetId) {
+          if (e) e.stopPropagation();
+          const drop = targetId ? document.getElementById(targetId) : (e?.target?.closest('.p-select'));
+          if (!drop) return;
+          const wasOpen = drop.classList.contains('open');
+          closeAllPSelects();
+          if (!wasOpen) drop.classList.add('open');
+        }
+        function closeAllPSelects() {
+          document.querySelectorAll('.p-select.open').forEach(el => el.classList.remove('open'));
+        }
+        document.addEventListener('keydown', e => {
+          if (e.key === 'Escape') closeAllPSelects();
         });
 
         // ── Toast ──

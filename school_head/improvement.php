@@ -606,7 +606,8 @@ include __DIR__ . '/../includes/header.php';
             <?php foreach ($inds as $ind): ?>
               <span class="weak-chip rating-<?= (int) $ind['rating'] ?>" title="<?= e($ind['indicator_text']) ?>">
                 <?= e($ind['indicator_code']) ?> —
-                <?= (int) $ind['rating'] === 1 ? 'Not yet Manifested' : 'Rarely Manifested' ?>       <?= $ind['has_plan'] ? ' ✓' : '' ?>
+                <?= (int) $ind['rating'] === 1 ? 'Not yet Manifested' : 'Rarely Manifested' ?>
+                <?= $ind['has_plan'] ? ' ✓' : '' ?>
               </span>
             <?php endforeach; ?>
           </div>
@@ -1037,27 +1038,47 @@ if ($cycle) {
       <input type="hidden" id="p_id">
       <div class="form-row">
         <div class="fg"><label>Dimension *</label>
-          <select class="fc" id="p_dim" onchange="filterIndicators()">
-            <option value="">— Select —</option>
-            <?php foreach ($dims as $d): ?>
-              <option value="<?= $d['dimension_id'] ?>">D<?= $d['dimension_no'] ?>: <?= e($d['dimension_name']) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
+          <div class="p-select" id="dimSelect">
+            <input type="hidden" id="p_dim" value="">
+            <div class="p-select-trigger" onclick="togglePSelect(event, 'dimSelect')">
+              <span class="p-select-val" id="p_dim_val">Select</span>
+            </div>
+            <div class="p-select-menu">
+              <div class="p-select-item selected" onclick="setPDim('', 'Select')">Select</div>
+              <?php foreach ($dims as $d): ?>
+                <div class="p-select-item"
+                  onclick="setPDim('<?= $d['dimension_id'] ?>', 'D<?= $d['dimension_no'] ?>: <?= e(str_replace('\'', '\\\'', $d['dimension_name'])) ?>')">
+                  D<?= $d['dimension_no'] ?>: <?= e($d['dimension_name']) ?>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
         </div>
         <div class="fg"><label>Indicator (optional)</label>
-          <select class="fc" id="p_ind">
-            <option value="">— Dimension-wide —</option>
-          </select>
+          <div class="p-select" id="indSelect">
+            <input type="hidden" id="p_ind" value="">
+            <div class="p-select-trigger" onclick="togglePSelect(event, 'indSelect')">
+              <span class="p-select-val" id="p_ind_val">Dimension-wide</span>
+            </div>
+            <div class="p-select-menu" id="p_ind_menu">
+              <div class="p-select-item selected" onclick="setPInd('', 'Dimension-wide')">Dimension-wide</div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="form-row">
         <div class="fg"><label>Priority Level</label>
-          <select class="fc" id="p_priority">
-            <option value="High">High</option>
-            <option value="Medium" selected>Medium</option>
-            <option value="Low">Low</option>
-          </select>
+          <div class="p-select" id="prioritySelect">
+            <input type="hidden" id="p_priority" value="Medium">
+            <div class="p-select-trigger" onclick="togglePSelect(event, 'prioritySelect')">
+              <span class="p-select-val" id="p_priority_val">Medium</span>
+            </div>
+            <div class="p-select-menu">
+              <div class="p-select-item" onclick="setPPrio('High', 'High')">High</div>
+              <div class="p-select-item selected" onclick="setPPrio('Medium', 'Medium')">Medium</div>
+              <div class="p-select-item" onclick="setPPrio('Low', 'Low')">Low</div>
+            </div>
+          </div>
         </div>
         <div class="fg"><label>Target Date</label><input class="fc" type="date" id="p_date"></div>
       </div>
@@ -1084,20 +1105,51 @@ if ($cycle) {
 <script>
   const ALL_INDICATORS = <?= json_encode($allIndicators) ?>;
 
+  function setPDim(val, lbl) {
+    document.getElementById('p_dim').value = val;
+    document.getElementById('p_dim_val').textContent = lbl;
+    document.getElementById('dimSelect').querySelectorAll('.p-select-item').forEach(i => {
+      i.classList.toggle('selected', i.textContent.trim() === lbl.trim());
+    });
+    filterIndicators();
+  }
+
+  function setPInd(val, lbl) {
+    document.getElementById('p_ind').value = val;
+    document.getElementById('p_ind_val').textContent = lbl;
+    document.getElementById('indSelect').querySelectorAll('.p-select-item').forEach(i => {
+      i.classList.toggle('selected', i.textContent.trim() === lbl.trim());
+    });
+  }
+
+  function setPPrio(val, lbl) {
+    document.getElementById('p_priority').value = val;
+    document.getElementById('p_priority_val').textContent = lbl;
+    document.getElementById('prioritySelect').querySelectorAll('.p-select-item').forEach(i => {
+      i.classList.toggle('selected', i.textContent.trim() === lbl.trim());
+    });
+  }
+
   function filterIndicators() {
     const dimId = parseInt($('p_dim'));
-    const sel = $el('p_ind');
-    sel.innerHTML = '<option value="">— Dimension-wide —</option>';
+    const menu = $el('p_ind_menu');
+    menu.innerHTML = '<div class="p-select-item selected" onclick="setPInd(\'\', \'Dimension-wide\')">Dimension-wide</div>';
+    setPInd('', 'Dimension-wide');
+
+    if (!dimId) return;
+
     ALL_INDICATORS.filter(i => i.dimension_id == dimId).forEach(i => {
-      const opt = document.createElement('option');
-      opt.value = i.indicator_id;
-      opt.textContent = i.indicator_code + ': ' + i.indicator_text.substring(0, 60) + '…';
-      sel.appendChild(opt);
+      const div = document.createElement('div');
+      div.className = 'p-select-item';
+      const safeText = (i.indicator_code + ': ' + i.indicator_text.substring(0, 60) + '…').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      div.setAttribute('onclick', `setPInd('${i.indicator_id}', '${safeText}')`);
+      div.textContent = i.indicator_code + ': ' + i.indicator_text.substring(0, 60) + '…';
+      menu.appendChild(div);
     });
   }
 
   function resetPlan() {
-    $v('p_id', ''); $v('p_dim', ''); $v('p_ind', ''); $v('p_priority', 'Medium');
+    $v('p_id', ''); setPDim('', 'Select'); setPPrio('Medium', 'Medium');
     $v('p_date', ''); $v('p_objective', ''); $v('p_strategy', '');
     $v('p_person', ''); $v('p_resources', ''); $v('p_output', '');
     $el('mPlanTitle').textContent = 'Add Action Plan';
@@ -1118,9 +1170,23 @@ if ($cycle) {
 
   async function editPlan(id) {
     const r = await apiPost('improvement.php', { action: 'get', id });
-    $v('p_id', r.plan_id); $v('p_dim', r.dimension_id); filterIndicators();
-    setTimeout(() => { $v('p_ind', r.indicator_id || ''); }, 100);
-    $v('p_priority', r.priority_level); $v('p_date', r.target_date || '');
+    $v('p_id', r.plan_id);
+
+    const dimItems = Array.from(document.getElementById('dimSelect').querySelectorAll('.p-select-item'));
+    const dItem = dimItems.find(i => i.getAttribute('onclick').includes(`'${r.dimension_id}'`));
+    if (dItem) setPDim(r.dimension_id, dItem.textContent.trim());
+
+    setTimeout(() => {
+      const indItems = Array.from(document.getElementById('indSelect').querySelectorAll('.p-select-item'));
+      const iItem = indItems.find(i => i.getAttribute('onclick').includes(`'${r.indicator_id || ''}'`));
+      if (iItem) setPInd(r.indicator_id || '', iItem.textContent.trim());
+    }, 100);
+
+    const prioItems = Array.from(document.getElementById('prioritySelect').querySelectorAll('.p-select-item'));
+    const pItem = prioItems.find(i => i.getAttribute('onclick').includes(`'${r.priority_level}'`));
+    if (pItem) setPPrio(r.priority_level, pItem.textContent.trim());
+
+    $v('p_date', r.target_date || '');
     $v('p_objective', r.objective); $v('p_strategy', r.strategy);
     $v('p_person', r.person_responsible || ''); $v('p_resources', r.resources_needed || '');
     $v('p_output', r.expected_output || '');

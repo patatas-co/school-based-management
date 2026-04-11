@@ -423,12 +423,25 @@ include __DIR__ . '/../includes/header.php';
     </div>
   </div>
   <div class="ph2-right">
-    <select class="fc" onchange="location.href='analytics.php?sy='+this.value+'&compare_sy=<?= $compareSyId ?>'"
-      style="width:155px;">
-      <?php foreach ($syears as $sy): ?>
-        <option value="<?= $sy['sy_id'] ?>" <?= $sy['sy_id'] == $syId ? 'selected' : '' ?>>SY <?= e($sy['label']) ?></option>
-      <?php endforeach; ?>
-    </select>
+    <div class="p-select" id="sySelect" style="width:165px;">
+      <input type="hidden" name="sy_id" value="<?= $syId ?>">
+      <div class="p-select-trigger" onclick="togglePSelect(event, 'sySelect')">
+        <span class="p-select-val">
+          SY <?= e(array_column($syears, 'label', 'sy_id')[$syId] ?? 'Select SY') ?>
+        </span>
+      </div>
+      <div class="p-select-menu">
+        <?php foreach ($syears as $sy): ?>
+          <div class="p-select-item <?= $sy['sy_id'] == $syId ? 'selected' : '' ?>" 
+               onclick="location.href='analytics.php?sy=<?= $sy['sy_id'] ?>&compare_sy=<?= $compareSyId ?>'">
+            SY <?= e($sy['label']) ?>
+            <?php if ($sy['sy_id'] == $syId): ?>
+              <span class="p-select-check"></span>
+            <?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -440,17 +453,30 @@ include __DIR__ . '/../includes/header.php';
   </span>
   <div style="width:1px;height:18px;background:var(--n-200);margin:0 4px;"></div>
   <label>Compare with:</label>
-  <select class="fc" style="width:150px;font-size:12.5px;padding:5px 9px;"
-    onchange="location.href='analytics.php?sy=<?= $syId ?>&compare_sy='+this.value">
-    <option value="0">None</option>
-    <?php foreach ($syears as $sy):
-      if ($sy['sy_id'] == $syId)
-        continue; ?>
-      <option value="<?= $sy['sy_id'] ?>" <?= $sy['sy_id'] == $compareSyId ? 'selected' : '' ?>>
-        SY <?= e($sy['label']) ?>
-      </option>
-    <?php endforeach; ?>
-  </select>
+  <div class="p-select" id="compareSelect" style="width:160px;">
+    <input type="hidden" name="compare_sy_id" value="<?= $compareSyId ?>">
+    <div class="p-select-trigger" onclick="togglePSelect(event, 'compareSelect')" style="padding: 5px 12px; font-size: 12.5px; min-height: 32px;">
+      <span class="p-select-val">
+        <?= $compareSyId ? 'SY ' . e(array_column($syears, 'label', 'sy_id')[$compareSyId]) : 'None' ?>
+      </span>
+    </div>
+    <div class="p-select-menu">
+      <div class="p-select-item <?= !$compareSyId ? 'selected' : '' ?>" 
+           onclick="location.href='analytics.php?sy=<?= $syId ?>&compare_sy=0'">
+        None
+      </div>
+      <?php foreach ($syears as $sy):
+        if ($sy['sy_id'] == $syId) continue; ?>
+        <div class="p-select-item <?= $sy['sy_id'] == $compareSyId ? 'selected' : '' ?>" 
+             onclick="location.href='analytics.php?sy=<?= $syId ?>&compare_sy=<?= $sy['sy_id'] ?>'">
+          SY <?= e($sy['label']) ?>
+          <?php if ($sy['sy_id'] == $compareSyId): ?>
+            <span class="p-select-check"></span>
+          <?php endif; ?>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
   <?php if ($compareSyId): ?>
     <span
       style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--blue-bg);color:var(--blue);">

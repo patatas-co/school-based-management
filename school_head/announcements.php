@@ -190,20 +190,34 @@ $catBgs = ['general' => '#DCFCE7', 'policy' => '#EDE9FE', 'deadline' => '#FEE2E2
     <div class="modal-body">
       <div class="form-row">
         <div class="fg"><label>Category</label>
-          <select class="fc" id="a_cat">
-            <?php foreach (['general', 'policy', 'deadline', 'advisory', 'emergency'] as $c): ?>
-              <option value="<?= $c ?>"><?= ucfirst($c) ?></option>
-            <?php endforeach; ?>
-          </select>
+          <div class="p-select" id="catSelect">
+            <input type="hidden" id="a_cat" value="general">
+            <div class="p-select-trigger" onclick="togglePSelect(event, 'catSelect')">
+              <span class="p-select-val" id="a_cat_val">General</span>
+            </div>
+            <div class="p-select-menu">
+              <div class="p-select-item selected" onclick="setACat('general', 'General')">General</div>
+              <div class="p-select-item" onclick="setACat('policy', 'Policy')">Policy</div>
+              <div class="p-select-item" onclick="setACat('deadline', 'Deadline')">Deadline</div>
+              <div class="p-select-item" onclick="setACat('advisory', 'Advisory')">Advisory</div>
+              <div class="p-select-item" onclick="setACat('emergency', 'Emergency')">Emergency</div>
+            </div>
+          </div>
         </div>
         <div class="fg"><label>Target Audience</label>
-          <select class="fc" id="a_target">
-            <option value="all">All Users</option>
-            <option value="school_head">School Heads</option>
-            <option value="sbm_coordinator">SBM Coordinators</option>
-            <option value="teacher">Teachers</option>
-            <option value="external_stakeholder">External Stakeholders</option>
-          </select>
+          <div class="p-select" id="targetSelect">
+            <input type="hidden" id="a_target" value="all">
+            <div class="p-select-trigger" onclick="togglePSelect(event, 'targetSelect')">
+              <span class="p-select-val" id="a_target_val">All Users</span>
+            </div>
+            <div class="p-select-menu">
+              <div class="p-select-item selected" onclick="setATarget('all', 'All Users')">All Users</div>
+              <div class="p-select-item" onclick="setATarget('school_head', 'School Heads')">School Heads</div>
+              <div class="p-select-item" onclick="setATarget('sbm_coordinator', 'SBM Coordinators')">SBM Coordinators</div>
+              <div class="p-select-item" onclick="setATarget('teacher', 'Teachers')">Teachers</div>
+              <div class="p-select-item" onclick="setATarget('external_stakeholder', 'External Stakeholders')">External Stakeholders</div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="fg"><label>Title *</label><input class="fc" id="a_title" placeholder="Announcement title…"></div>
@@ -218,6 +232,21 @@ $catBgs = ['general' => '#DCFCE7', 'policy' => '#EDE9FE', 'deadline' => '#FEE2E2
 </div>
 
 <script>
+  function setACat(val, lbl) {
+    document.getElementById('a_cat').value = val;
+    document.getElementById('a_cat_val').textContent = lbl;
+    document.getElementById('catSelect').querySelectorAll('.p-select-item').forEach(i => {
+      i.classList.toggle('selected', i.textContent.trim() === lbl);
+    });
+  }
+  function setATarget(val, lbl) {
+    document.getElementById('a_target').value = val;
+    document.getElementById('a_target_val').textContent = lbl;
+    document.getElementById('targetSelect').querySelectorAll('.p-select-item').forEach(i => {
+      i.classList.toggle('selected', i.textContent.trim() === lbl);
+    });
+  }
+
   async function postAnn() {
     const r = await apiPost('announcements.php', { action: 'post', title: $('a_title'), content: $('a_content'), category: $('a_cat'), target: $('a_target') });
     toast(r.msg, r.ok ? 'ok' : 'err');

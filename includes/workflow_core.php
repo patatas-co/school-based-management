@@ -405,13 +405,25 @@ include __DIR__ . '/../includes/header.php';
         <p>SBM 3-Step Cycle — SY <?= htmlspecialchars($syRow['label'] ?? '—') ?></p>
     </div>
     <div class="page-head-actions">
-        <select class="fc" style="width:155px;" onchange="location.href='workflow.php?sy='+this.value">
+        <div class="p-select" id="wfCoreSySelect" style="width:160px;">
+          <input type="hidden" name="sy_id" value="<?= $syId ?>">
+          <div class="p-select-trigger" onclick="togglePSelect(event, 'wfCoreSySelect')">
+            <span class="p-select-val">
+              SY <?= htmlspecialchars(array_column($syears, 'label', 'sy_id')[$syId] ?? 'Select SY') ?>
+            </span>
+          </div>
+          <div class="p-select-menu">
             <?php foreach ($syears as $sy): ?>
-                <option value="<?= $sy['sy_id'] ?>" <?= $sy['sy_id'] == $syId ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($sy['label']) ?>
-                </option>
+              <div class="p-select-item <?= $sy['sy_id'] == $syId ? 'selected' : '' ?>"
+                   onclick="location.href='workflow.php?sy=<?= $sy['sy_id'] ?>'">
+                SY <?= htmlspecialchars($sy['label']) ?>
+                <?php if ($sy['sy_id'] == $syId): ?>
+                  <span class="p-select-check"></span>
+                <?php endif; ?>
+              </div>
             <?php endforeach; ?>
-        </select>
+          </div>
+        </div>
         <button class="btn btn-secondary" onclick="openModal('mConfigure')"><?= svgIcon('settings') ?>
             Configure</button>
         <?php if (!$dbPhases): ?>

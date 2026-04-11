@@ -39,11 +39,31 @@ include __DIR__.'/../includes/header.php';
     <form method="get" class="flex-c" style="gap:10px;flex-wrap:wrap;">
       <div style="padding:8px 14px;background:var(--brand-100);border-radius:8px;font-size:13.5px;font-weight:700;color:var(--brand-700);">Dasmariñas Integrated High School</div>
       <div class="fg" style="margin-bottom:0;">
-        <select name="sy" class="fc">
-          <?php foreach($syears as $sy): ?>
-          <option value="<?= $sy['sy_id'] ?>" <?= $sy['sy_id']==$syId?'selected':'' ?>><?= e($sy['label']) ?></option>
-          <?php endforeach; ?>
-        </select>
+    <div class="p-select" id="repSySelect" style="width:200px;">
+      <input type="hidden" name="sy" id="rep_sy_hidden" value="<?= $syId ?>">
+      <div class="p-select-trigger" onclick="togglePSelect(event, 'repSySelect')">
+        <span class="p-select-val">
+          SY <?= e(array_column($syears, 'label', 'sy_id')[$syId] ?? 'Select SY') ?>
+        </span>
+      </div>
+      <div class="p-select-menu">
+        <?php foreach ($syears as $sy): ?>
+          <div class="p-select-item <?= $syId == $sy['sy_id'] ? 'selected' : '' ?>" onclick="setRepSY('<?= $sy['sy_id'] ?>')">
+            SY <?= e($sy['label']) ?>
+            <?php if ($syId == $sy['sy_id']): ?>
+              <span class="p-select-check"></span>
+            <?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    
+    <script>
+      function setRepSY(val) {
+        document.getElementById('rep_sy_hidden').value = val;
+        document.getElementById('repSySelect').closest('form').submit();
+      }
+    </script>
       </div>
       <input type="hidden" name="school" value="<?= SCHOOL_ID ?>">
       <button type="submit" class="btn btn-primary">Generate Report</button>
