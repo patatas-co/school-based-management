@@ -106,6 +106,118 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
   }
 
+  if ($action === 'create_temp_evaluator') {
+    $email = trim($_POST['email'] ?? '');
+    $fullName = trim($_POST['full_name'] ?? '');
+    $cycleId = (int) ($_POST['cycle_id'] ?? 0);
+
+    if (!$email || !$fullName || !$cycleId) {
+      echo json_encode(['ok' => false, 'msg' => 'All fields are required.']);
+      exit;
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+      echo json_encode(['ok' => false, 'msg' => 'Invalid email address.']);
+      exit;
+    }
+
+    // Check cycle exists
+    $cycleChk = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE cycle_id=?");
+    $cycleChk->execute([$cycleId]);
+    if (!$cycleChk->fetchColumn()) {
+      echo json_encode(['ok' => false, 'msg' => 'Invalid assessment cycle.']);
+      exit;
+    }
+
+    $db->beginTransaction();
+    try {
+      // Check if user with this email already exists
+      $existing = $db->prepare("SELECT user_id, status FROM users WHERE email=?");
+      $existing->execute([$email]);
+      $existingUser = $existing->fetch();
+
+      if ($existingUser) {
+        $userId = $existingUser['user_id'];
+        // Reactivate if inactive
+        if ($existingUser['status'] !== 'active') {
+          $db->prepare("UPDATE users SET status='active' WHERE user_id=?")->execute([$userId]);
+        }
+      } else {
+        // Create new inactive stakeholder account
+        $username = 'eval_' . substr(md5($email . time()), 0, 8);
+        $db->prepare("INSERT INTO users (username, email, full_name, role, status, school_id, force_password_change)
+                      VALUES (?, ?, ?, 'external_stakeholder', 'inactive', ?, 1)")
+          ->execute([$username, $email, $fullName, SCHOOL_ID]);
+        $userId = (int) $db->lastInsertId();
+      }
+
+      // Link evaluator to cycle
+      $db->prepare("INSERT IGNORE INTO cycle_evaluators (cycle_id, user_id, school_id, added_by)
+                    VALUES (?, ?, ?, ?)")
+        ->execute([$cycleId, $userId, SCHOOL_ID, $_SESSION['user_id']]);
+
+      $db->commit();
+
+      // Send setup email
+      $userRow = $db->prepare("SELECT user_id, full_name, email, status FROM users WHERE user_id=?");
+      $userRow->execute([$userId]);
+      $userRow = $userRow->fetch();
+
+      require_once __DIR__ . '/../includes/email_service.php';
+      $sent = sendAccountCreationEmail($db, $userRow);
+
+      logActivity('create_temp_evaluator', 'users', "Created temp evaluator for cycle $cycleId: $email");
+
+      echo json_encode([
+        'ok' => true,
+        'msg' => $sent
+          ? 'Evaluator added. Setup email sent to ' . $email . '.'
+          : 'Evaluator added, but email failed to send. Check your mail settings.',
+        'user_id' => $userId,
+      ]);
+    } catch (\Throwable $e) {
+      $db->rollBack();
+      echo json_encode(['ok' => false, 'msg' => 'Error: ' . $e->getMessage()]);
+    }
+    exit;
+  }
+
+  if ($action === 'deactivate_cycle_evaluators') {
+    $cycleId = (int) ($_POST['cycle_id'] ?? 0);
+    if (!$cycleId) {
+      echo json_encode(['ok' => false, 'msg' => 'Invalid cycle ID.']);
+      exit;
+    }
+    $stmt = $db->prepare("
+      UPDATE users u
+      JOIN cycle_evaluators ce ON ce.user_id = u.user_id
+      SET u.status = 'inactive'
+      WHERE ce.cycle_id = ?
+        AND u.user_id != ?
+    ");
+    $stmt->execute([$cycleId, $_SESSION['user_id']]);
+    $count = $stmt->rowCount();
+    logActivity('deactivate_cycle_evaluators', 'users', "Deactivated $count evaluators for cycle $cycleId");
+    echo json_encode(['ok' => true, 'msg' => "Deactivated $count evaluator account(s)."]);
+    exit;
+  }
+
+  if ($action === 'list_cycle_evaluators') {
+    $cycleId = (int) ($_POST['cycle_id'] ?? 0);
+    $stmt = $db->prepare("
+      SELECT u.user_id, u.full_name, u.email, u.status,
+             ss.status AS submission_status, ss.submitted_at, ss.response_count
+      FROM cycle_evaluators ce
+      JOIN users u ON ce.user_id = u.user_id
+      LEFT JOIN stakeholder_submissions ss
+             ON ss.stakeholder_id = u.user_id AND ss.cycle_id = ce.cycle_id
+      WHERE ce.cycle_id = ?
+      ORDER BY u.full_name ASC
+    ");
+    $stmt->execute([$cycleId]);
+    echo json_encode(['ok' => true, 'data' => $stmt->fetchAll()]);
+    exit;
+  }
+
   if ($action === 'toggle_status') {
     $id = (int) ($_POST['id'] ?? 0);
     $targetStatus = $_POST['status'] ?? '';
@@ -331,6 +443,8 @@ $roleLabels = [
   </div>
   <div class="ph2-right">
     <button class="btn btn-secondary" onclick="openModal('mImport')"><?= svgIcon('upload') ?> Import CSV</button>
+    <button class="btn btn-secondary" onclick="openModal('mEvaluators')"><?= svgIcon('users') ?> Manage
+      Evaluators</button>
     <button class="btn btn-primary" onclick="openModal('mCreate')"><?= svgIcon('plus') ?> Add User</button>
   </div>
 </div>
@@ -668,6 +782,81 @@ $roleLabels = [
   </div>
 </div>
 
+<!-- Evaluator Management Modal -->
+<div class="overlay" id="mEvaluators">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head">
+      <span class="modal-title">Manage Cycle Evaluators</span>
+      <button class="modal-close" onclick="closeModal('mEvaluators')">
+        <?= svgIcon('x') ?>
+      </button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Cycle selector -->
+      <div class="fg">
+        <label>Assessment Cycle *</label>
+        <select class="fc" id="ev_cycle_id" onchange="loadEvaluators()">
+          <option value="">— Select a cycle —</option>
+          <?php
+          $cycles = $db->query("
+            SELECT c.cycle_id, sy.label, c.status
+            FROM sbm_cycles c
+            JOIN school_years sy ON c.sy_id = sy.sy_id
+            WHERE c.school_id = " . SCHOOL_ID . "
+            ORDER BY c.cycle_id DESC
+          ")->fetchAll();
+          foreach ($cycles as $cyc):
+            ?>
+            <option value="<?= $cyc['cycle_id'] ?>">
+              SY
+              <?= e($cyc['label']) ?> —
+              <?= ucfirst(str_replace('_', ' ', $cyc['status'])) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <!-- Add evaluator form -->
+      <div
+        style="background:var(--n-50);border:1px solid var(--n-200);border-radius:10px;padding:16px;margin-bottom:18px;">
+        <div style="font-size:13px;font-weight:700;color:var(--n-800);margin-bottom:12px;">Add Evaluator</div>
+        <div class="form-row">
+          <div class="fg" style="margin-bottom:0;">
+            <label>Full Name *</label>
+            <input class="fc" id="ev_name" placeholder="e.g. Juan dela Cruz">
+          </div>
+          <div class="fg" style="margin-bottom:0;">
+            <label>Email Address *</label>
+            <input class="fc" type="email" id="ev_email" placeholder="evaluator@email.com">
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-primary btn-sm" onclick="addEvaluator()">
+            <?= svgIcon('plus') ?> Add & Send Invite
+          </button>
+          <span style="font-size:11.5px;color:var(--n-400);margin-left:8px;">A password setup email will be sent
+            automatically.</span>
+        </div>
+      </div>
+
+      <!-- Evaluator list -->
+      <div id="evaluatorListWrap">
+        <div style="text-align:center;padding:20px;color:var(--n-400);font-size:13px;">
+          Select a cycle above to see evaluators.
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot" style="justify-content:space-between;">
+      <button class="btn btn-danger btn-sm" onclick="deactivateAllEvaluators()" id="deactivateAllBtn"
+        style="display:none;">
+        <?= svgIcon('x') ?> Deactivate All Evaluators
+      </button>
+      <button class="btn btn-secondary" onclick="closeModal('mEvaluators')">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Import Modal -->
 <div class="overlay" id="mImport">
   <div class="modal" style="max-width:540px;">
@@ -934,6 +1123,80 @@ $roleLabels = [
       finishUploadToast(uploadToastEl, false, 'Network error. Please try again.');
     }
   }
+
+  async function addEvaluator() {
+    const cycleId = document.getElementById('ev_cycle_id').value;
+    const name = document.getElementById('ev_name').value.trim();
+    const email = document.getElementById('ev_email').value.trim();
+    if (!cycleId) { toast('Please select a cycle first.', 'warning'); return; }
+    if (!name || !email) { toast('Name and email are required.', 'warning'); return; }
+    const r = await apiPost('users.php', {
+      action: 'create_temp_evaluator',
+      cycle_id: cycleId,
+      full_name: name,
+      email: email,
+    });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) {
+      document.getElementById('ev_name').value = '';
+      document.getElementById('ev_email').value = '';
+      loadEvaluators();
+    }
+  }
+
+  async function loadEvaluators() {
+    const cycleId = document.getElementById('ev_cycle_id').value;
+    const wrap = document.getElementById('evaluatorListWrap');
+    const deactBtn = document.getElementById('deactivateAllBtn');
+    if (!cycleId) {
+      wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--n-400);font-size:13px;">Select a cycle above to see evaluators.</div>';
+      deactBtn.style.display = 'none';
+      return;
+    }
+    wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--n-400);">Loading…</div>';
+    const r = await apiPost('users.php', { action: 'list_cycle_evaluators', cycle_id: cycleId });
+    if (!r.ok || !r.data) { wrap.innerHTML = '<div style="color:var(--red);padding:12px;">Failed to load.</div>'; return; }
+    if (r.data.length === 0) {
+      wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--n-400);font-size:13px;">No evaluators added to this cycle yet.</div>';
+      deactBtn.style.display = 'none';
+      return;
+    }
+    deactBtn.style.display = '';
+    let html = `<div style="font-size:13px;font-weight:700;color:var(--n-800);margin-bottom:10px;">
+      ${r.data.length} evaluator(s) for this cycle
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">`;
+    r.data.forEach(ev => {
+      const submitted = ev.submission_status === 'submitted';
+      const isActive = ev.status === 'active';
+      const statusDot = isActive ? '#16A34A' : '#9CA3AF';
+      const subBadge = submitted
+        ? `<span style="background:#DCFCE7;color:#166534;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;">Submitted</span>`
+        : `<span style="background:var(--n-100);color:var(--n-500);padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;">Pending</span>`;
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;
+                   border:1px solid var(--n-200);border-radius:9px;background:#fff;">
+        <span style="width:9px;height:9px;border-radius:50%;background:${statusDot};flex-shrink:0;"></span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--n-900);">${ev.full_name}</div>
+          <div style="font-size:11.5px;color:var(--n-500);">${ev.email}</div>
+        </div>
+        ${subBadge}
+        ${submitted ? `<span style="font-size:11px;color:var(--n-400);">${ev.response_count} responses</span>` : ''}
+      </div>`;
+    });
+    html += '</div>';
+    wrap.innerHTML = html;
+  }
+
+  async function deactivateAllEvaluators() {
+    const cycleId = document.getElementById('ev_cycle_id').value;
+    if (!cycleId) return;
+    if (!confirm('Deactivate ALL evaluator accounts for this cycle?\n\nTheir accounts will become inactive and they will no longer be able to log in.')) return;
+    const r = await apiPost('users.php', { action: 'deactivate_cycle_evaluators', cycle_id: cycleId });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) loadEvaluators();
+  }
+
   window.addEventListener('DOMContentLoaded', () => {
     if (new URLSearchParams(window.location.search).get('action') === 'create') openModal('mCreate');
   });

@@ -3,6 +3,8 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
 requireRole('external_stakeholder');
+header('Location: self_assessment.php');
+exit;
 $db = getDB();
 $uid = $_SESSION['user_id'];
 $schoolId = $_SESSION['school_id'] ?? 0;

@@ -124,7 +124,7 @@ function roleHome(string $role): string
         case 'teacher':
             return 'teacher/dashboard.php';
         case 'external_stakeholder':
-            return 'stakeholder/dashboard.php';
+            return 'stakeholder/self_assessment.php';
         default:
             return 'login.php';
     }

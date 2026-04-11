@@ -16,7 +16,7 @@ define('SBM_MODULE_ACCESS', [
     'system_admin_dashboard' => [ROLE_SYSTEM_ADMIN],
     'user_management' => [ROLE_SYSTEM_ADMIN],
     'system_settings' => [ROLE_SYSTEM_ADMIN],
-    'school_years' => [ROLE_SYSTEM_ADMIN, ROLE_SCHOOL_HEAD],
+    'school_years' => [ROLE_SYSTEM_ADMIN],
     'school_profile' => [ROLE_SYSTEM_ADMIN, ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 
     // ── Dashboards ──────────────────────────────────────────
@@ -43,6 +43,7 @@ define('SBM_MODULE_ACCESS', [
         ROLE_TEACHER,
         ROLE_STAKEHOLDER
     ],
+    'start_assessment' => [ROLE_SCHOOL_HEAD, ROLE_SYSTEM_ADMIN],
 ]);
 
 define('SBM_NAV', [
@@ -54,6 +55,14 @@ define('SBM_NAV', [
             [
                 ['Dashboard', 'system_admin/dashboard.php', 'grid'],
                 ['User Accounts', 'system_admin/users.php', 'users'],
+                ['Assign Indicators', 'system_admin/assign_indicators.php', 'check-square'],
+            ]
+        ],
+        [
+            'Management',
+            'users',
+            [
+                ['School Profile', 'school_head/school_profile.php', 'home'],
                 ['School Years', 'school_head/settings.php', 'calendar'],
             ]
         ],
@@ -74,7 +83,6 @@ define('SBM_NAV', [
             'users',
             [
                 ['School Profile', 'school_head/school_profile.php', 'home'],
-                ['School Years', 'school_head/settings.php', 'calendar'],
             ]
         ],
         [
@@ -118,7 +126,6 @@ define('SBM_NAV', [
             'check-circle',
             [
                 ['Self-Assessment', 'coordinator/self_assessment.php', 'check-circle'],
-                ['Assign Indicators', 'coordinator/assign_indicators.php', 'check-square'],
                 ['Teacher Status', 'coordinator/teacher_status.php', 'users'],
                 ['Evidence & MOV', 'coordinator/evidence.php', 'paperclip'],
             ]
@@ -172,24 +179,10 @@ define('SBM_NAV', [
 
     ROLE_STAKEHOLDER => [
         [
-            'Overview',
-            'grid',
-            [
-                ['Dashboard', 'stakeholder/dashboard.php', 'grid'],
-            ]
-        ],
-        [
             'Participation',
             'users',
             [
                 ['Self-Assessment', 'stakeholder/self_assessment.php', 'check-circle'],
-            ]
-        ],
-        [
-            'Communication',
-            'bell',
-            [
-                ['Announcements', 'stakeholder/announcement.php', 'bell'],
             ]
         ],
     ],

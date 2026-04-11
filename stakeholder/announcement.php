@@ -2,6 +2,8 @@
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
 requireRole('external_stakeholder');
+header('Location: self_assessment.php');
+exit;
 $db = getDB();
 
 $filterCat = $_GET['cat'] ?? '';

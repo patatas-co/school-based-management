@@ -89,24 +89,10 @@ if (isset($__role) && defined('SBM_NAV')) {
   } elseif ($__role === 'external_stakeholder') {
     $__navGroups = [
       [
-        'Overview',
-        'grid',
-        [
-          ['Dashboard', 'stakeholder/dashboard.php', 'grid'],
-        ]
-      ],
-      [
         'Participation',
         'users',
         [
           ['Self-Assessment', 'stakeholder/self_assessment.php', 'check-circle'],
-        ]
-      ],
-      [
-        'Communication',
-        'bell',
-        [
-          ['Announcements', 'stakeholder/announcement.php', 'bell'],
         ]
       ],
     ];

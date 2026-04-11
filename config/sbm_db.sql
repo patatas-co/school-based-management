@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 09, 2026 at 04:48 AM
+-- Generation Time: Apr 11, 2026 at 11:36 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -403,7 +403,81 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (424, 37, 'delete_user', 'users', 'Deleted user ID:66', '::1', '2026-04-07 07:31:59'),
 (425, 37, 'delete_user', 'users', 'Deleted user ID:69', '::1', '2026-04-07 07:33:31'),
 (426, 37, 'delete_user', 'users', 'Deleted user ID:70', '::1', '2026-04-07 07:33:36'),
-(427, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 02:39:36');
+(427, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 02:39:36'),
+(428, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 03:48:51'),
+(429, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 04:10:19'),
+(430, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 04:10:37'),
+(431, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-09 09:50:39'),
+(432, NULL, 'password_change', 'auth', 'User changed password', '::1', '2026-04-09 09:51:56'),
+(433, NULL, 'create_user', 'users', 'Created: Patty', '::1', '2026-04-09 09:53:37'),
+(434, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-04-09 09:55:08'),
+(435, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 09:55:20'),
+(436, 72, 'delete_user', 'users', 'Deleted user ID:71', '::1', '2026-04-09 09:55:30'),
+(437, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 09:57:35'),
+(438, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:00:19'),
+(439, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:00:25'),
+(440, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:00:31'),
+(441, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:00:39'),
+(442, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:01:13'),
+(443, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:39:26'),
+(444, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:39:54'),
+(445, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:43:15'),
+(446, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:43:43'),
+(447, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:06:04'),
+(448, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:12:57'),
+(449, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:18:36'),
+(450, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:19:24'),
+(451, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:19:39'),
+(452, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:22:02'),
+(453, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:22:17'),
+(454, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:23:34'),
+(455, 12, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:24:29'),
+(456, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:24:35'),
+(457, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:24:40'),
+(458, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 13:35:37'),
+(459, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 13:40:14'),
+(460, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 13:46:20'),
+(461, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:13:40'),
+(462, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:14:05'),
+(463, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:14:34'),
+(464, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:17:22'),
+(465, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:35:04'),
+(466, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:37:39'),
+(467, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:55:08'),
+(468, 12, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:00:57'),
+(469, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:02:35'),
+(470, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:02:42'),
+(471, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:02:57'),
+(472, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:03:12'),
+(473, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:03:20'),
+(474, 72, 'create_user', 'users', 'Created: Rol', '::1', '2026-04-10 03:05:14'),
+(475, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-04-10 03:06:04'),
+(476, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:06:24'),
+(477, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-10 04:25:53'),
+(478, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-10 14:50:09'),
+(479, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 02:51:17'),
+(480, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 02:52:15'),
+(481, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 02:54:43'),
+(482, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 02:56:05'),
+(483, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 02:56:45'),
+(484, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 02:58:38'),
+(485, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:12:59'),
+(486, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:17:35'),
+(487, 72, 'delete_user', 'users', 'Deleted user ID:73', '::1', '2026-04-11 03:17:57'),
+(488, 13, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:19:00'),
+(489, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:29:26'),
+(490, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:31:07'),
+(491, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:34:42'),
+(492, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:39:16'),
+(493, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:41:17'),
+(494, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:42:08'),
+(495, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:30:55'),
+(496, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:31:27'),
+(497, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:32:08'),
+(498, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:32:18'),
+(499, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:32:29'),
+(500, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:33:37'),
+(501, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:35:16');
 
 -- --------------------------------------------------------
 
@@ -427,24 +501,6 @@ CREATE TABLE `analytics_snapshots` (
   `maturity_level` enum('Beginning','Developing','Maturing','Advanced') DEFAULT NULL,
   `snapshot_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `analytics_snapshots`
---
-
-INSERT INTO `analytics_snapshots` (`snap_id`, `school_id`, `cycle_id`, `sy_id`, `sy_label`, `dimension_id`, `dimension_no`, `dimension_name`, `percentage`, `raw_score`, `max_score`, `overall_score`, `maturity_level`, `snapshot_at`) VALUES
-(1, 1, 5, 4, '2026-2027', 1, 1, 'Curriculum and Teaching', 62.50, 20.00, 32.00, 67.50, 'Maturing', '2026-04-04 18:06:47'),
-(2, 1, 5, 4, '2026-2027', 2, 2, 'Learning Environment', 65.00, 26.00, 40.00, 67.50, 'Maturing', '2026-04-04 18:06:47'),
-(3, 1, 5, 4, '2026-2027', 3, 3, 'Leadership', 68.75, 11.00, 16.00, 67.50, 'Maturing', '2026-04-04 18:06:47'),
-(4, 1, 5, 4, '2026-2027', 4, 4, 'Governance and Accountability', 68.33, 16.40, 24.00, 67.50, 'Maturing', '2026-04-04 18:06:47'),
-(5, 1, 5, 4, '2026-2027', 5, 5, 'Human Resources and Team Development', 67.86, 19.00, 28.00, 67.50, 'Maturing', '2026-04-04 18:06:47'),
-(6, 1, 5, 4, '2026-2027', 6, 6, 'Finance and Resource Management and Mobilization', 75.00, 21.00, 28.00, 67.50, 'Maturing', '2026-04-04 18:06:47'),
-(7, 1, 6, 6, '2027-2028', 1, 1, 'Curriculum and Teaching', 73.13, 23.40, 32.00, 70.95, 'Maturing', '2026-04-07 05:08:06'),
-(8, 1, 6, 6, '2027-2028', 2, 2, 'Learning Environment', 65.00, 26.00, 40.00, 70.95, 'Maturing', '2026-04-07 05:08:06'),
-(9, 1, 6, 6, '2027-2028', 3, 3, 'Leadership', 68.75, 11.00, 16.00, 70.95, 'Maturing', '2026-04-07 05:08:06'),
-(10, 1, 6, 6, '2027-2028', 4, 4, 'Governance and Accountability', 74.17, 17.80, 24.00, 70.95, 'Maturing', '2026-04-07 05:08:06'),
-(11, 1, 6, 6, '2027-2028', 5, 5, 'Human Resources and Team Development', 75.00, 21.00, 28.00, 70.95, 'Maturing', '2026-04-07 05:08:06'),
-(12, 1, 6, 6, '2027-2028', 6, 6, 'Finance and Resource Management and Mobilization', 71.43, 20.00, 28.00, 70.95, 'Maturing', '2026-04-07 05:08:06');
 
 -- --------------------------------------------------------
 
@@ -479,14 +535,20 @@ CREATE TABLE `cycle_audit_log` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+
 --
--- Dumping data for table `cycle_audit_log`
+-- Table structure for table `cycle_evaluators`
 --
 
-INSERT INTO `cycle_audit_log` (`log_id`, `cycle_id`, `stage_from`, `stage_to`, `actor_id`, `notes`, `created_at`) VALUES
-(1, 5, 'validated', 'finalized', 46, 'Cycle locked and archived.', '2026-04-05 01:43:58'),
-(2, 5, 'validated', 'finalized', 46, 'Cycle locked and archived.', '2026-04-05 03:28:22'),
-(3, 6, 'validated', 'finalized', 46, 'Cycle locked and archived.', '2026-04-07 13:07:33');
+CREATE TABLE `cycle_evaluators` (
+  `evaluator_id` int(11) NOT NULL,
+  `cycle_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `school_id` int(11) NOT NULL,
+  `added_by` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -546,7 +608,8 @@ CREATE TABLE `email_logs` (
 --
 
 INSERT INTO `email_logs` (`log_id`, `user_id`, `email_type`, `recipient_email`, `status`, `error_message`, `sent_at`) VALUES
-(29, 46, 'account_creation', 'mendozacharles11011@gmail.com', 'sent', NULL, '2026-04-01 02:35:53');
+(29, 46, 'account_creation', 'mendozacharles11011@gmail.com', 'sent', NULL, '2026-04-01 02:35:53'),
+(67, 72, 'account_creation', 'ariascharles00@gmail.com', 'sent', NULL, '2026-04-09 09:53:42');
 
 -- --------------------------------------------------------
 
@@ -609,31 +672,6 @@ CREATE TABLE `improvement_plans` (
   `created_by` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `improvement_plans`
---
-
-INSERT INTO `improvement_plans` (`plan_id`, `school_id`, `cycle_id`, `dimension_id`, `indicator_id`, `priority_level`, `objective`, `strategy`, `person_responsible`, `target_date`, `resources_needed`, `expected_output`, `status`, `remarks`, `created_by`, `created_at`) VALUES
-(28, 1, 5, 1, 1, 'Medium', 'Improve performance on indicator 1.1: Grade 3 learners achieve the proficiency level for each cluster of early language, literacy, and numeracy skills.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-04 17:33:12'),
-(29, 1, 5, 1, 2, 'Medium', 'Improve performance on indicator 1.2: Grade 6, 10, and 12 learners achieve the proficiency level in all 21st-century skills and core learning areas in the National Achievement Test (NAT).', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-04 17:33:12'),
-(30, 1, 5, 1, 4, 'Medium', 'Improve performance on indicator 1.4: Teachers prepare contextualized learning materials responsive to the needs of learners.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-04 17:33:12'),
-(31, 1, 5, 1, 5, 'Medium', 'Improve performance on indicator 1.5: Teachers conduct remediation activities to address learning gaps in reading and comprehension, science and technology, and mathematics.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-04 17:33:12'),
-(32, 1, 5, 4, 23, 'Medium', 'Improve performance on indicator 4.1: The school&#039;s strategic plan is operationalized through an implementation plan.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-04 17:33:12'),
-(33, 1, 5, 4, 28, 'Medium', 'Improve performance on indicator 4.6: The school maintains an average rating of satisfactory from its internal and external stakeholders.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-04 17:33:12'),
-(34, 1, 5, 5, 30, 'Medium', 'Improve performance on indicator 5.2: The school achieves an average rating of very satisfactory in the office performance commitment and review.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-04 17:33:12'),
-(35, 1, 5, 5, 34, 'Medium', 'Improve performance on indicator 5.6: The school facilitates receipt of correct salaries, allowances, and other additional compensation in a timely manner.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-04 17:33:12'),
-(36, 1, 5, 3, 21, 'Medium', 'Improve performance on indicator 3.3: The school has a functional Supreme Student Government/Supreme Pupil Government.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-04 17:33:12'),
-(37, 1, 5, 2, 9, 'Medium', 'Improve performance on indicator 2.1: The school has zero bullying incidence.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-04 17:33:12'),
-(38, 1, 5, 2, 12, 'Medium', 'Improve performance on indicator 2.4: The school conducts culture-sensitive activities.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-04 17:33:12'),
-(39, 1, 5, 2, 14, 'Medium', 'Improve performance on indicator 2.6: The school has a functional school-based ALS program.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-04 17:33:12'),
-(40, 1, 5, 2, 17, 'Medium', 'Improve performance on indicator 2.9: The school has a functional support mechanism for mental wellness.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-04 17:33:12'),
-(41, 1, 6, 6, 40, 'Medium', 'Improve performance on indicator 6.5: The school has a functional computer laboratory/classroom.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-07 05:06:59'),
-(42, 1, 6, 3, 22, 'Medium', 'Improve performance on indicator 3.4: The school innovates in its provision of frontline services to stakeholders.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-07 05:06:59'),
-(43, 1, 6, 2, 9, 'Medium', 'Improve performance on indicator 2.1: The school has zero bullying incidence.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-07 05:06:59'),
-(44, 1, 6, 2, 12, 'Medium', 'Improve performance on indicator 2.4: The school conducts culture-sensitive activities.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-07 05:06:59'),
-(45, 1, 6, 2, 14, 'Medium', 'Improve performance on indicator 2.6: The school has a functional school-based ALS program.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-07 05:06:59'),
-(46, 1, 6, 2, 18, 'Medium', 'Improve performance on indicator 2.10: The school has special education- and PWD-friendly facilities.', 'Develop targeted interventions to address areas rated \'Rarely Manifested\'. Identify root causes, allocate resources, and monitor progress.', NULL, NULL, NULL, NULL, 'planned', NULL, 46, '2026-04-07 05:06:59');
 
 -- --------------------------------------------------------
 
@@ -707,14 +745,6 @@ CREATE TABLE `ml_recommendations` (
   `generated_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `ml_recommendations`
---
-
-INSERT INTO `ml_recommendations` (`rec_id`, `cycle_id`, `recommendation_text`, `generated_by`, `top_topics`, `has_urgent`, `sentiment_summary`, `generated_at`) VALUES
-(15, 5, '[Assessment Overview]\nThe Dasmariñas Integrated High School achieved an overall SBM score of 67.52% with a maturity level of Maturing, as per DepEd Order No. 007, s. 2024, and this being the first assessment cycle, the focus is on building baseline systems.\n\n[Priority Recommendations]\n1. [1.1] The School Head shall convene a meeting with the Grade 3 teachers to develop a comprehensive plan to improve early language, literacy, and numeracy skills, including the creation of contextualized learning materials and regular progress monitoring, to be implemented by the start of the second quarter of the school year 2026-2027.\n2. [2.1] The School Head, in coordination with the School Discipline Committee, shall conduct a bullying prevention and awareness campaign among students, teachers, and parents, including the development of a bullying incident reporting system, to achieve zero bullying incidence by the end of the school year 2026-2027, as required by DepEd Order No. 007, s. 2024.\n3. [4.1] The School Head shall lead the School Governance Council (SGC) in reviewing and refining the school\'s strategic plan, ensuring it is operationalized through a detailed implementation plan, including specific targets, timelines, and resource allocation, to be completed by the end of the first semester of the school year 2026-2027.\n4. [1.5] The School Head shall provide training for teachers on conducting remediation activities to address learning gaps in reading and comprehension, science and technology, and mathematics, and ensure that these activities are integrated into the school\'s regular instructional program, with progress monitoring and evaluation to be conducted quarterly, starting from the second quarter of the school year 2026-2027.\n5. [5.2] The School Head shall work with the school\'s administrative staff to ensure timely and accurate submission of office performance commitment and review reports, aiming to achieve an average rating of very satisfactory, with a review and evaluation of the school\'s performance to be conducted at the end of each semester, as per DepEd Order No. 007, s. 2024.\n\n[Stakeholder Focus]\nNo specific stakeholder remarks or themes were identified that are not already covered by the indicator data, thus the focus remains on addressing the weak indicators to improve the school\'s overall SBM score and maturity level, in line with DepEd Order No. 007, s. 2024.', 'groq', '[]', 0, '[]', '2026-04-05 13:02:06'),
-(17, 6, '[Assessment Overview]\nThe Dasmariñas Integrated High School has achieved an overall SBM score of 71.04% with a maturity level of Maturing, marking its first assessment cycle with no prior data available for comparison, as per DepEd Order No. 007, s. 2024.\n\n[Priority Recommendations]\n1. [2.1] The School Head shall lead the formation of a Bullying Prevention Committee to develop and implement a comprehensive anti-bullying program, aiming to achieve zero bullying incidence by the end of the school year 2027-2028, with progress monitored through quarterly reports to the School Governance Council (SGC).\n2. [1.4] The Curriculum Team, in collaboration with subject area heads, will conduct a Learning Action Cell (LAC) session by the end of the first semester to develop contextualized learning materials responsive to the needs of learners, with a target of at least 80% of teachers utilizing these materials in their classes by the end of the school year.\n3. [6.5] The School Head will allocate funds in the Maintenance and Other Operating Expenses (MOOE) budget for the upgrading of the computer laboratory/classroom, ensuring it is functional and equipped with necessary hardware and software by the start of the second semester, with the ICT coordinator responsible for its maintenance and monitoring.\n4. [3.4] The School Head will convene a meeting with the SGC and key stakeholders to brainstorm and implement innovations in frontline services, such as online platforms for parent-teacher conferences and digital submission of student projects, aiming to reduce waiting times and increase stakeholder satisfaction ratings by 15% by the end of the school year.\n5. [2.10] The School Head, in partnership with the Local Government Unit (LGU), will conduct an accessibility audit of the school facilities by the end of the first semester and develop a plan to make necessary adjustments to ensure that the school has special education- and PWD-friendly facilities, with a target completion date of June 2028.\n\n[Stakeholder Focus]\nNo specific stakeholder remarks were identified that are not already covered by the indicator data, thus no additional recommendations are made beyond addressing the weak indicators.', 'groq', '[]', 0, '[]', '2026-04-07 05:07:05');
-
 -- --------------------------------------------------------
 
 --
@@ -731,14 +761,6 @@ CREATE TABLE `ml_training_snapshots` (
   `maturity_level` enum('Beginning','Developing','Maturing','Advanced') DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `ml_training_snapshots`
---
-
-INSERT INTO `ml_training_snapshots` (`snapshot_id`, `school_id`, `cycle_id`, `dim_scores`, `indicator_ratings`, `overall_score`, `maturity_level`, `created_at`) VALUES
-(11, 1, 5, '[{\"dimension_name\":\"Curriculum and Teaching\",\"dimension_no\":1,\"gap_from_avg\":5.02,\"maturity\":\"Maturing\",\"priority\":\"medium\",\"score\":62.5,\"weight\":1.2,\"weighted_gap\":6.03},{\"dimension_name\":\"Learning Environment\",\"dimension_no\":2,\"gap_from_avg\":2.52,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":65,\"weight\":1.2,\"weighted_gap\":3.03},{\"dimension_name\":\"Human Resource Development\",\"dimension_no\":5,\"gap_from_avg\":-0.34,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":67.86,\"weight\":0.9,\"weighted_gap\":-0.3},{\"dimension_name\":\"Accountability and Continuous Improvement\",\"dimension_no\":4,\"gap_from_avg\":-0.81,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":68.33,\"weight\":1,\"weighted_gap\":-0.81},{\"dimension_name\":\"Leadership and Governance\",\"dimension_no\":3,\"gap_from_avg\":-1.23,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":68.75,\"weight\":1,\"weighted_gap\":-1.23},{\"dimension_name\":\"Finance and Resource Management\",\"dimension_no\":6,\"gap_from_avg\":-7.48,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":75,\"weight\":0.9,\"weighted_gap\":-6.73}]', '[]', 67.50, 'Maturing', '2026-04-04 17:31:51'),
-(16, 1, 6, '[{\"dimension_name\":\"Learning Environment\",\"dimension_no\":2,\"gap_from_avg\":6.04,\"maturity\":\"Maturing\",\"priority\":\"medium\",\"score\":65,\"weight\":1.2,\"weighted_gap\":7.25},{\"dimension_name\":\"Leadership and Governance\",\"dimension_no\":3,\"gap_from_avg\":2.29,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":68.75,\"weight\":1,\"weighted_gap\":2.29},{\"dimension_name\":\"Finance and Resource Management\",\"dimension_no\":6,\"gap_from_avg\":-0.39,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":71.43,\"weight\":0.9,\"weighted_gap\":-0.35},{\"dimension_name\":\"Curriculum and Teaching\",\"dimension_no\":1,\"gap_from_avg\":-2.09,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":73.13,\"weight\":1.2,\"weighted_gap\":-2.51},{\"dimension_name\":\"Accountability and Continuous Improvement\",\"dimension_no\":4,\"gap_from_avg\":-3.13,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":74.17,\"weight\":1,\"weighted_gap\":-3.13},{\"dimension_name\":\"Human Resource Development\",\"dimension_no\":5,\"gap_from_avg\":-3.96,\"maturity\":\"Maturing\",\"priority\":\"low\",\"score\":75,\"weight\":0.9,\"weighted_gap\":-3.56}]', '[]', 70.95, 'Maturing', '2026-04-07 05:05:51');
 
 -- --------------------------------------------------------
 
@@ -761,7 +783,8 @@ CREATE TABLE `password_setup_tokens` (
 --
 
 INSERT INTO `password_setup_tokens` (`token_id`, `user_id`, `token`, `type`, `expires_at`, `used_at`, `created_at`) VALUES
-(36, 46, '25de0e85006db5c333e8d45d3733be2eff8b27e9fa2207f55e070ffac278a993', 'setup', '2026-04-03 10:35:08', '2026-04-01 10:40:39', '2026-04-01 02:35:08');
+(36, 46, '25de0e85006db5c333e8d45d3733be2eff8b27e9fa2207f55e070ffac278a993', 'setup', '2026-04-03 10:35:08', '2026-04-01 10:40:39', '2026-04-01 02:35:08'),
+(74, 72, '39f0807dde06988876bc2e355da85edc901ff689d4a30fb6aa115cf3b853b691', 'setup', '2026-04-11 17:53:37', '2026-04-09 17:55:08', '2026-04-09 09:53:37');
 
 -- --------------------------------------------------------
 
@@ -809,13 +832,6 @@ CREATE TABLE `response_attachments` (
   `replace_reason` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `response_attachments`
---
-
-INSERT INTO `response_attachments` (`attachment_id`, `version`, `parent_attachment_id`, `cycle_id`, `indicator_id`, `school_id`, `uploaded_by`, `uploader_role`, `category`, `is_current_version`, `original_name`, `stored_name`, `file_size`, `mime_type`, `uploaded_at`, `deleted_at`, `deleted_by`, `replace_reason`) VALUES
-(4, 1, NULL, 5, 9, 1, 15, 'teacher', 'other', 1, 'High-school-boys-bullying-a-smaller-student-155140748_2122x1415-1.jpeg', '95a858f5fb4fcaa8a25f075157d0e769.jpeg', 727083, 'image/jpeg', '2026-04-05 01:23:55', NULL, NULL, NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -843,14 +859,6 @@ CREATE TABLE `sbm_cycles` (
   `return_remarks` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `sbm_cycles`
---
-
-INSERT INTO `sbm_cycles` (`cycle_id`, `sy_id`, `school_id`, `status`, `overall_score`, `maturity_level`, `started_at`, `submitted_at`, `validated_at`, `validated_by`, `validator_remarks`, `consolidation_confirmed`, `consolidation_confirmed_by`, `consolidation_confirmed_at`, `finalized_at`, `returned_at`, `returned_by`, `return_remarks`, `created_at`) VALUES
-(5, 4, 1, 'finalized', 67.50, 'Maturing', '2026-04-01 22:31:55', '2026-04-05 03:25:12', '2026-04-05 03:27:59', 37, '', 0, NULL, NULL, '2026-04-05 03:28:22', NULL, NULL, NULL, '2026-04-01 14:31:55'),
-(6, 6, 1, 'finalized', 70.95, 'Maturing', '2026-04-07 12:59:51', '2026-04-07 13:05:44', '2026-04-07 13:06:20', 37, '', 0, NULL, NULL, '2026-04-07 13:07:33', NULL, NULL, NULL, '2026-04-07 04:59:51');
 
 -- --------------------------------------------------------
 
@@ -895,24 +903,6 @@ CREATE TABLE `sbm_dimension_scores` (
   `percentage` decimal(5,2) DEFAULT 0.00,
   `computed_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `sbm_dimension_scores`
---
-
-INSERT INTO `sbm_dimension_scores` (`score_id`, `cycle_id`, `school_id`, `dimension_id`, `raw_score`, `max_score`, `percentage`, `computed_at`) VALUES
-(63, 5, 1, 1, 20.00, 32.00, 62.50, '2026-04-04 19:25:11'),
-(64, 5, 1, 2, 26.00, 40.00, 65.00, '2026-04-04 19:25:11'),
-(65, 5, 1, 3, 11.00, 16.00, 68.75, '2026-04-04 19:25:12'),
-(66, 5, 1, 4, 16.40, 24.00, 68.33, '2026-04-04 19:25:12'),
-(67, 5, 1, 5, 19.00, 28.00, 67.86, '2026-04-04 19:25:12'),
-(68, 5, 1, 6, 21.00, 28.00, 75.00, '2026-04-04 19:25:12'),
-(119, 6, 1, 1, 23.40, 32.00, 73.13, '2026-04-07 05:05:44'),
-(120, 6, 1, 2, 26.00, 40.00, 65.00, '2026-04-07 05:05:44'),
-(121, 6, 1, 3, 11.00, 16.00, 68.75, '2026-04-07 05:05:44'),
-(122, 6, 1, 4, 17.80, 24.00, 74.17, '2026-04-07 05:05:44'),
-(123, 6, 1, 5, 21.00, 28.00, 75.00, '2026-04-07 05:05:44'),
-(124, 6, 1, 6, 20.00, 28.00, 71.43, '2026-04-07 05:05:44');
 
 -- --------------------------------------------------------
 
@@ -995,88 +985,6 @@ CREATE TABLE `sbm_responses` (
   `rated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `sbm_responses`
---
-
-INSERT INTO `sbm_responses` (`response_id`, `cycle_id`, `indicator_id`, `school_id`, `rating`, `evidence_text`, `rated_by`, `rated_at`) VALUES
-(31, 5, 1, 1, 2, '', 37, '2026-04-04 17:28:52'),
-(32, 5, 2, 1, 2, '', 37, '2026-04-04 17:28:54'),
-(33, 5, 3, 1, 3, '', 37, '2026-04-04 17:28:59'),
-(34, 5, 7, 1, 3, '', 37, '2026-04-04 17:29:12'),
-(35, 5, 8, 1, 3, '', 37, '2026-04-04 17:29:14'),
-(36, 5, 9, 1, 2, '', 37, '2026-04-04 17:29:17'),
-(37, 5, 10, 1, 3, '', 37, '2026-04-04 17:29:19'),
-(38, 5, 11, 1, 3, '', 37, '2026-04-04 17:29:30'),
-(39, 5, 12, 1, 2, '', 37, '2026-04-04 17:29:32'),
-(40, 5, 13, 1, 3, '', 37, '2026-04-04 17:29:34'),
-(41, 5, 14, 1, 2, '', 37, '2026-04-04 17:29:37'),
-(42, 5, 15, 1, 3, '', 37, '2026-04-04 17:29:40'),
-(43, 5, 16, 1, 3, '', 37, '2026-04-04 17:29:42'),
-(44, 5, 17, 1, 2, '', 37, '2026-04-04 17:29:44'),
-(45, 5, 18, 1, 3, '', 37, '2026-04-04 17:29:46'),
-(46, 5, 19, 1, 3, '', 37, '2026-04-04 17:29:50'),
-(47, 5, 20, 1, 3, '', 37, '2026-04-04 17:29:54'),
-(48, 5, 21, 1, 2, '', 37, '2026-04-04 17:29:56'),
-(49, 5, 22, 1, 3, '', 37, '2026-04-04 17:29:58'),
-(50, 5, 23, 1, 2, '', 37, '2026-04-04 17:29:59'),
-(51, 5, 24, 1, 3, '', 37, '2026-04-04 17:30:00'),
-(52, 5, 25, 1, 3, '', 37, '2026-04-04 17:30:02'),
-(53, 5, 26, 1, 3, '', 37, '2026-04-04 17:30:03'),
-(54, 5, 27, 1, 3, '', 37, '2026-04-04 17:30:04'),
-(55, 5, 29, 1, 3, '', 37, '2026-04-04 17:30:07'),
-(56, 5, 30, 1, 2, '', 37, '2026-04-04 17:30:09'),
-(57, 5, 31, 1, 3, '', 37, '2026-04-04 17:30:12'),
-(58, 5, 32, 1, 3, '', 37, '2026-04-04 17:30:14'),
-(59, 5, 33, 1, 3, '', 37, '2026-04-04 17:30:16'),
-(60, 5, 34, 1, 2, '', 37, '2026-04-04 17:30:18'),
-(61, 5, 35, 1, 3, '', 37, '2026-04-04 17:30:22'),
-(62, 5, 36, 1, 3, '', 37, '2026-04-04 17:30:24'),
-(63, 5, 37, 1, 3, '', 37, '2026-04-04 17:30:25'),
-(64, 5, 38, 1, 3, '', 37, '2026-04-04 17:30:27'),
-(65, 5, 39, 1, 3, '', 37, '2026-04-04 17:30:30'),
-(66, 5, 40, 1, 3, '', 37, '2026-04-04 17:30:31'),
-(67, 5, 41, 1, 3, '', 37, '2026-04-04 17:30:33'),
-(68, 5, 42, 1, 3, '', 37, '2026-04-04 17:30:34'),
-(69, 6, 1, 1, 3, '', 37, '2026-04-07 05:04:01'),
-(70, 6, 2, 1, 3, '', 37, '2026-04-07 05:04:03'),
-(71, 6, 3, 1, 3, '', 37, '2026-04-07 05:04:04'),
-(72, 6, 7, 1, 3, '', 37, '2026-04-07 05:04:51'),
-(73, 6, 8, 1, 3, '', 37, '2026-04-07 05:04:52'),
-(74, 6, 9, 1, 2, '', 37, '2026-04-07 05:04:53'),
-(75, 6, 10, 1, 3, '', 37, '2026-04-07 05:04:55'),
-(76, 6, 11, 1, 3, '', 37, '2026-04-07 05:04:56'),
-(77, 6, 12, 1, 2, '', 37, '2026-04-07 05:04:57'),
-(78, 6, 13, 1, 3, '', 37, '2026-04-07 05:04:59'),
-(79, 6, 14, 1, 2, '', 37, '2026-04-07 05:05:01'),
-(80, 6, 15, 1, 3, '', 37, '2026-04-07 05:05:02'),
-(81, 6, 16, 1, 3, '', 37, '2026-04-07 05:05:03'),
-(82, 6, 17, 1, 3, '', 37, '2026-04-07 05:05:04'),
-(83, 6, 18, 1, 2, '', 37, '2026-04-07 05:05:05'),
-(84, 6, 19, 1, 3, '', 37, '2026-04-07 05:05:07'),
-(85, 6, 20, 1, 3, '', 37, '2026-04-07 05:05:08'),
-(86, 6, 21, 1, 3, '', 37, '2026-04-07 05:05:09'),
-(87, 6, 22, 1, 2, '', 37, '2026-04-07 05:05:10'),
-(88, 6, 23, 1, 3, '', 37, '2026-04-07 05:05:12'),
-(89, 6, 24, 1, 3, '', 37, '2026-04-07 05:05:19'),
-(90, 6, 25, 1, 3, '', 37, '2026-04-07 05:05:20'),
-(91, 6, 26, 1, 3, '', 37, '2026-04-07 05:05:21'),
-(92, 6, 27, 1, 3, '', 37, '2026-04-07 05:05:22'),
-(93, 6, 29, 1, 3, '', 37, '2026-04-07 05:05:24'),
-(94, 6, 30, 1, 3, '', 37, '2026-04-07 05:05:25'),
-(95, 6, 31, 1, 3, '', 37, '2026-04-07 05:05:26'),
-(96, 6, 32, 1, 3, '', 37, '2026-04-07 05:05:27'),
-(97, 6, 33, 1, 3, '', 37, '2026-04-07 05:05:28'),
-(98, 6, 34, 1, 3, '', 37, '2026-04-07 05:05:30'),
-(99, 6, 35, 1, 3, '', 37, '2026-04-07 05:05:32'),
-(100, 6, 36, 1, 3, '', 37, '2026-04-07 05:05:33'),
-(102, 6, 37, 1, 3, '', 37, '2026-04-07 05:05:35'),
-(103, 6, 38, 1, 3, '', 37, '2026-04-07 05:05:36'),
-(104, 6, 39, 1, 3, '', 37, '2026-04-07 05:05:37'),
-(105, 6, 40, 1, 2, '', 37, '2026-04-07 05:05:38'),
-(106, 6, 41, 1, 3, '', 37, '2026-04-07 05:05:40'),
-(107, 6, 42, 1, 3, '', 37, '2026-04-07 05:05:41');
-
 -- --------------------------------------------------------
 
 --
@@ -1147,13 +1055,6 @@ CREATE TABLE `school_workflow_status` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `school_workflow_status`
---
-
-INSERT INTO `school_workflow_status` (`wf_id`, `school_id`, `sy_id`, `current_phase`, `phase1_started_at`, `phase1_done_at`, `phase2_started_at`, `phase2_done_at`, `phase3_started_at`, `q1_monitored_at`, `q2_monitored_at`, `q3_monitored_at`, `phase3_done_at`, `overall_status`, `remarks`, `updated_at`) VALUES
-(1, 1, 4, 1, '2026-03-29 18:38:33', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'in_progress', NULL, '2026-03-29 10:38:33');
-
 -- --------------------------------------------------------
 
 --
@@ -1173,8 +1074,7 @@ CREATE TABLE `school_years` (
 --
 
 INSERT INTO `school_years` (`sy_id`, `label`, `is_current`, `date_start`, `date_end`) VALUES
-(4, '2026-2027', 1, '2026-07-13', '2027-04-26'),
-(6, '2027-2028', 0, '2027-04-24', '2028-07-08');
+(8, '2026-2027', 1, '2026-07-15', '2027-04-25');
 
 -- --------------------------------------------------------
 
@@ -1298,233 +1198,6 @@ CREATE TABLE `teacher_responses` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `teacher_responses`
---
-
-INSERT INTO `teacher_responses` (`tr_id`, `cycle_id`, `indicator_id`, `school_id`, `teacher_id`, `rating`, `remarks`, `status`, `submitted_at`, `created_at`, `updated_at`) VALUES
-(477, 5, 1, 1, 15, 2, '', 'submitted', NULL, '2026-04-04 17:23:29', '2026-04-04 17:24:20'),
-(478, 5, 2, 1, 15, 2, '', 'submitted', NULL, '2026-04-04 17:23:30', '2026-04-04 17:24:20'),
-(479, 5, 4, 1, 15, 2, '', 'submitted', NULL, '2026-04-04 17:23:32', '2026-04-04 17:24:20'),
-(480, 5, 5, 1, 15, 3, '', 'submitted', NULL, '2026-04-04 17:23:33', '2026-04-04 17:24:20'),
-(481, 5, 6, 1, 15, 3, '', 'submitted', NULL, '2026-04-04 17:23:36', '2026-04-04 17:24:20'),
-(482, 5, 7, 1, 15, 3, '', 'submitted', NULL, '2026-04-04 17:23:39', '2026-04-04 17:24:20'),
-(483, 5, 9, 1, 15, 2, '', 'submitted', NULL, '2026-04-04 17:23:41', '2026-04-04 17:24:20'),
-(484, 5, 10, 1, 15, 3, '', 'submitted', NULL, '2026-04-04 17:23:44', '2026-04-04 17:24:20'),
-(485, 5, 11, 1, 15, 3, '', 'submitted', NULL, '2026-04-04 17:23:46', '2026-04-04 17:24:20'),
-(486, 5, 12, 1, 15, 4, '', 'submitted', NULL, '2026-04-04 17:23:48', '2026-04-04 17:24:20'),
-(487, 5, 17, 1, 15, 3, '', 'submitted', NULL, '2026-04-04 17:23:58', '2026-04-04 17:24:20'),
-(488, 5, 21, 1, 15, 3, '', 'submitted', NULL, '2026-04-04 17:24:00', '2026-04-04 17:24:20'),
-(489, 5, 28, 1, 15, 2, '', 'submitted', NULL, '2026-04-04 17:24:01', '2026-04-04 17:24:20'),
-(490, 5, 29, 1, 15, 3, '', 'submitted', NULL, '2026-04-04 17:24:04', '2026-04-04 17:24:20'),
-(491, 5, 31, 1, 15, 4, '', 'submitted', NULL, '2026-04-04 17:24:05', '2026-04-04 17:24:20'),
-(492, 5, 32, 1, 15, 2, '', 'submitted', NULL, '2026-04-04 17:24:07', '2026-04-04 17:24:20'),
-(493, 5, 33, 1, 15, 2, '', 'submitted', NULL, '2026-04-04 17:24:09', '2026-04-04 17:24:20'),
-(494, 5, 34, 1, 15, 3, '', 'submitted', NULL, '2026-04-04 17:24:11', '2026-04-04 17:24:20'),
-(495, 5, 35, 1, 15, 3, '', 'submitted', NULL, '2026-04-04 17:24:12', '2026-04-04 17:24:20'),
-(496, 5, 38, 1, 15, 2, '', 'submitted', NULL, '2026-04-04 17:24:13', '2026-04-04 17:24:20'),
-(497, 5, 39, 1, 15, 3, '', 'submitted', NULL, '2026-04-04 17:24:15', '2026-04-04 17:24:20'),
-(498, 5, 40, 1, 15, 3, '', 'submitted', NULL, '2026-04-04 17:24:16', '2026-04-04 17:24:20'),
-(499, 5, 1, 1, 2, 2, '', 'submitted', NULL, '2026-04-04 17:25:01', '2026-04-04 17:25:45'),
-(500, 5, 2, 1, 2, 3, '', 'submitted', NULL, '2026-04-04 17:25:03', '2026-04-04 17:25:45'),
-(501, 5, 4, 1, 2, 2, '', 'submitted', NULL, '2026-04-04 17:25:06', '2026-04-04 17:25:45'),
-(502, 5, 5, 1, 2, 2, '', 'submitted', NULL, '2026-04-04 17:25:08', '2026-04-04 17:25:45'),
-(503, 5, 6, 1, 2, 2, '', 'submitted', NULL, '2026-04-04 17:25:09', '2026-04-04 17:25:45'),
-(504, 5, 7, 1, 2, 2, '', 'submitted', NULL, '2026-04-04 17:25:11', '2026-04-04 17:25:45'),
-(505, 5, 9, 1, 2, 2, '', 'submitted', NULL, '2026-04-04 17:25:13', '2026-04-04 17:25:45'),
-(506, 5, 10, 1, 2, 3, '', 'submitted', NULL, '2026-04-04 17:25:15', '2026-04-04 17:25:45'),
-(507, 5, 11, 1, 2, 3, '', 'submitted', NULL, '2026-04-04 17:25:16', '2026-04-04 17:25:45'),
-(508, 5, 12, 1, 2, 2, '', 'submitted', NULL, '2026-04-04 17:25:18', '2026-04-04 17:25:45'),
-(509, 5, 17, 1, 2, 2, '', 'submitted', NULL, '2026-04-04 17:25:19', '2026-04-04 17:25:45'),
-(510, 5, 21, 1, 2, 3, '', 'submitted', NULL, '2026-04-04 17:25:21', '2026-04-04 17:25:45'),
-(511, 5, 28, 1, 2, 3, '', 'submitted', NULL, '2026-04-04 17:25:23', '2026-04-04 17:25:45'),
-(512, 5, 29, 1, 2, 2, '', 'submitted', NULL, '2026-04-04 17:25:25', '2026-04-04 17:25:45'),
-(513, 5, 31, 1, 2, 2, '', 'submitted', NULL, '2026-04-04 17:25:26', '2026-04-04 17:25:45'),
-(514, 5, 32, 1, 2, 3, '', 'submitted', NULL, '2026-04-04 17:25:28', '2026-04-04 17:25:45'),
-(515, 5, 33, 1, 2, 2, '', 'submitted', NULL, '2026-04-04 17:25:29', '2026-04-04 17:25:45'),
-(516, 5, 34, 1, 2, 3, '', 'submitted', NULL, '2026-04-04 17:25:30', '2026-04-04 17:25:45'),
-(517, 5, 35, 1, 2, 2, '', 'submitted', NULL, '2026-04-04 17:25:32', '2026-04-04 17:25:45'),
-(518, 5, 38, 1, 2, 3, '', 'submitted', NULL, '2026-04-04 17:25:35', '2026-04-04 17:25:45'),
-(519, 5, 39, 1, 2, 2, '', 'submitted', NULL, '2026-04-04 17:25:38', '2026-04-04 17:25:45'),
-(520, 5, 40, 1, 2, 3, '', 'submitted', NULL, '2026-04-04 17:25:40', '2026-04-04 17:25:45'),
-(521, 5, 1, 1, 12, 3, '', 'submitted', NULL, '2026-04-04 17:25:58', '2026-04-04 17:26:33'),
-(522, 5, 2, 1, 12, 3, '', 'submitted', NULL, '2026-04-04 17:26:00', '2026-04-04 17:26:33'),
-(523, 5, 4, 1, 12, 2, '', 'submitted', NULL, '2026-04-04 17:26:01', '2026-04-04 17:26:33'),
-(524, 5, 5, 1, 12, 3, '', 'submitted', NULL, '2026-04-04 17:26:03', '2026-04-04 17:26:33'),
-(525, 5, 6, 1, 12, 3, '', 'submitted', NULL, '2026-04-04 17:26:04', '2026-04-04 17:26:33'),
-(526, 5, 7, 1, 12, 2, '', 'submitted', NULL, '2026-04-04 17:26:05', '2026-04-04 17:26:33'),
-(527, 5, 9, 1, 12, 2, '', 'submitted', NULL, '2026-04-04 17:26:07', '2026-04-04 17:26:33'),
-(528, 5, 10, 1, 12, 3, '', 'submitted', NULL, '2026-04-04 17:26:09', '2026-04-04 17:26:33'),
-(529, 5, 11, 1, 12, 3, '', 'submitted', NULL, '2026-04-04 17:26:10', '2026-04-04 17:26:33'),
-(530, 5, 12, 1, 12, 2, '', 'submitted', NULL, '2026-04-04 17:26:11', '2026-04-04 17:26:33'),
-(531, 5, 17, 1, 12, 3, '', 'submitted', NULL, '2026-04-04 17:26:12', '2026-04-04 17:26:33'),
-(532, 5, 21, 1, 12, 3, '', 'submitted', NULL, '2026-04-04 17:26:14', '2026-04-04 17:26:33'),
-(533, 5, 28, 1, 12, 2, '', 'submitted', NULL, '2026-04-04 17:26:16', '2026-04-04 17:26:33'),
-(534, 5, 29, 1, 12, 3, '', 'submitted', NULL, '2026-04-04 17:26:18', '2026-04-04 17:26:33'),
-(535, 5, 31, 1, 12, 3, '', 'submitted', NULL, '2026-04-04 17:26:19', '2026-04-04 17:26:33'),
-(536, 5, 32, 1, 12, 2, '', 'submitted', NULL, '2026-04-04 17:26:20', '2026-04-04 17:26:33'),
-(537, 5, 33, 1, 12, 2, '', 'submitted', NULL, '2026-04-04 17:26:22', '2026-04-04 17:26:33'),
-(538, 5, 34, 1, 12, 2, '', 'submitted', NULL, '2026-04-04 17:26:23', '2026-04-04 17:26:33'),
-(539, 5, 35, 1, 12, 2, '', 'submitted', NULL, '2026-04-04 17:26:25', '2026-04-04 17:26:33'),
-(540, 5, 38, 1, 12, 2, '', 'submitted', NULL, '2026-04-04 17:26:26', '2026-04-04 17:26:33'),
-(541, 5, 39, 1, 12, 3, '', 'submitted', NULL, '2026-04-04 17:26:28', '2026-04-04 17:26:33'),
-(542, 5, 40, 1, 12, 3, '', 'submitted', NULL, '2026-04-04 17:26:30', '2026-04-04 17:26:33'),
-(543, 5, 1, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:26:49', '2026-04-04 17:27:29'),
-(544, 5, 2, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:26:51', '2026-04-04 17:27:29'),
-(545, 5, 4, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:26:53', '2026-04-04 17:27:29'),
-(546, 5, 5, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:26:55', '2026-04-04 17:27:29'),
-(547, 5, 6, 1, 13, 3, '', 'submitted', NULL, '2026-04-04 17:26:57', '2026-04-04 17:27:29'),
-(548, 5, 7, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:26:59', '2026-04-04 17:27:29'),
-(549, 5, 9, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:27:01', '2026-04-04 17:27:29'),
-(550, 5, 10, 1, 13, 3, '', 'submitted', NULL, '2026-04-04 17:27:03', '2026-04-04 17:27:29'),
-(551, 5, 11, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:27:04', '2026-04-04 17:27:29'),
-(552, 5, 12, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:27:06', '2026-04-04 17:27:29'),
-(553, 5, 17, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:27:07', '2026-04-04 17:27:29'),
-(554, 5, 21, 1, 13, 3, '', 'submitted', NULL, '2026-04-04 17:27:09', '2026-04-04 17:27:29'),
-(555, 5, 28, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:27:10', '2026-04-04 17:27:29'),
-(556, 5, 29, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:27:12', '2026-04-04 17:27:29'),
-(557, 5, 31, 1, 13, 3, '', 'submitted', NULL, '2026-04-04 17:27:13', '2026-04-04 17:27:29'),
-(558, 5, 32, 1, 13, 3, '', 'submitted', NULL, '2026-04-04 17:27:15', '2026-04-04 17:27:29'),
-(559, 5, 33, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:27:16', '2026-04-04 17:27:29'),
-(560, 5, 34, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:27:17', '2026-04-04 17:27:29'),
-(561, 5, 35, 1, 13, 3, '', 'submitted', NULL, '2026-04-04 17:27:19', '2026-04-04 17:27:29'),
-(562, 5, 38, 1, 13, 2, '', 'submitted', NULL, '2026-04-04 17:27:20', '2026-04-04 17:27:29'),
-(563, 5, 38, 1, 13, 3, '', 'submitted', NULL, '2026-04-04 17:27:22', '2026-04-04 17:27:29'),
-(564, 5, 39, 1, 13, 3, '', 'submitted', NULL, '2026-04-04 17:27:24', '2026-04-04 17:27:29'),
-(565, 5, 40, 1, 13, 3, '', 'submitted', NULL, '2026-04-04 17:27:25', '2026-04-04 17:27:29'),
-(566, 5, 1, 1, 14, 2, '', 'submitted', NULL, '2026-04-04 17:27:40', '2026-04-04 17:28:19'),
-(567, 5, 2, 1, 14, 3, '', 'submitted', NULL, '2026-04-04 17:27:42', '2026-04-04 17:28:19'),
-(568, 5, 4, 1, 14, 2, '', 'submitted', NULL, '2026-04-04 17:27:43', '2026-04-04 17:28:19'),
-(569, 5, 5, 1, 14, 2, '', 'submitted', NULL, '2026-04-04 17:27:44', '2026-04-04 17:28:19'),
-(570, 5, 6, 1, 14, 2, '', 'submitted', NULL, '2026-04-04 17:27:46', '2026-04-04 17:28:19'),
-(571, 5, 7, 1, 14, 3, '', 'submitted', NULL, '2026-04-04 17:27:47', '2026-04-04 17:28:19'),
-(572, 5, 9, 1, 14, 2, '', 'submitted', NULL, '2026-04-04 17:27:49', '2026-04-04 17:28:19'),
-(573, 5, 10, 1, 14, 3, '', 'submitted', NULL, '2026-04-04 17:27:50', '2026-04-04 17:28:19'),
-(574, 5, 11, 1, 14, 2, '', 'submitted', NULL, '2026-04-04 17:27:51', '2026-04-04 17:28:19'),
-(575, 5, 12, 1, 14, 2, '', 'submitted', NULL, '2026-04-04 17:27:53', '2026-04-04 17:28:19'),
-(576, 5, 17, 1, 14, 3, '', 'submitted', NULL, '2026-04-04 17:27:54', '2026-04-04 17:28:19'),
-(577, 5, 21, 1, 14, 3, '', 'submitted', NULL, '2026-04-04 17:27:56', '2026-04-04 17:28:19'),
-(578, 5, 28, 1, 14, 3, '', 'submitted', NULL, '2026-04-04 17:27:58', '2026-04-04 17:28:19'),
-(579, 5, 29, 1, 14, 2, '', 'submitted', NULL, '2026-04-04 17:28:01', '2026-04-04 17:28:19'),
-(580, 5, 31, 1, 14, 3, '', 'submitted', NULL, '2026-04-04 17:28:03', '2026-04-04 17:28:19'),
-(581, 5, 32, 1, 14, 2, '', 'submitted', NULL, '2026-04-04 17:28:06', '2026-04-04 17:28:19'),
-(582, 5, 33, 1, 14, 3, '', 'submitted', NULL, '2026-04-04 17:28:08', '2026-04-04 17:28:19'),
-(583, 5, 34, 1, 14, 2, '', 'submitted', NULL, '2026-04-04 17:28:10', '2026-04-04 17:28:19'),
-(584, 5, 35, 1, 14, 2, '', 'submitted', NULL, '2026-04-04 17:28:10', '2026-04-04 17:28:19'),
-(585, 5, 38, 1, 14, 3, '', 'submitted', NULL, '2026-04-04 17:28:13', '2026-04-04 17:28:19'),
-(586, 5, 39, 1, 14, 3, '', 'submitted', NULL, '2026-04-04 17:28:15', '2026-04-04 17:28:19'),
-(587, 5, 40, 1, 14, 3, '', 'submitted', NULL, '2026-04-04 17:28:16', '2026-04-04 17:28:19'),
-(588, 6, 1, 1, 15, 2, '', 'submitted', NULL, '2026-04-07 05:00:10', '2026-04-07 05:00:41'),
-(589, 6, 2, 1, 15, 3, '', 'submitted', NULL, '2026-04-07 05:00:12', '2026-04-07 05:00:41'),
-(590, 6, 4, 1, 15, 2, '', 'submitted', NULL, '2026-04-07 05:00:13', '2026-04-07 05:00:41'),
-(591, 6, 5, 1, 15, 3, '', 'submitted', NULL, '2026-04-07 05:00:14', '2026-04-07 05:00:41'),
-(592, 6, 6, 1, 15, 3, '', 'submitted', NULL, '2026-04-07 05:00:16', '2026-04-07 05:00:41'),
-(593, 6, 7, 1, 15, 2, '', 'submitted', NULL, '2026-04-07 05:00:17', '2026-04-07 05:00:41'),
-(594, 6, 9, 1, 15, 3, '', 'submitted', NULL, '2026-04-07 05:00:18', '2026-04-07 05:00:41'),
-(595, 6, 10, 1, 15, 2, '', 'submitted', NULL, '2026-04-07 05:00:19', '2026-04-07 05:00:41'),
-(596, 6, 11, 1, 15, 3, '', 'submitted', NULL, '2026-04-07 05:00:20', '2026-04-07 05:00:41'),
-(597, 6, 12, 1, 15, 3, '', 'submitted', NULL, '2026-04-07 05:00:22', '2026-04-07 05:00:41'),
-(598, 6, 17, 1, 15, 2, '', 'submitted', NULL, '2026-04-07 05:00:23', '2026-04-07 05:00:41'),
-(599, 6, 21, 1, 15, 3, '', 'submitted', NULL, '2026-04-07 05:00:24', '2026-04-07 05:00:41'),
-(600, 6, 28, 1, 15, 2, '', 'submitted', NULL, '2026-04-07 05:00:26', '2026-04-07 05:00:41'),
-(601, 6, 29, 1, 15, 3, '', 'submitted', NULL, '2026-04-07 05:00:28', '2026-04-07 05:00:41'),
-(602, 6, 31, 1, 15, 2, '', 'submitted', NULL, '2026-04-07 05:00:29', '2026-04-07 05:00:41'),
-(603, 6, 32, 1, 15, 3, '', 'submitted', NULL, '2026-04-07 05:00:30', '2026-04-07 05:00:41'),
-(604, 6, 33, 1, 15, 2, '', 'submitted', NULL, '2026-04-07 05:00:32', '2026-04-07 05:00:41'),
-(605, 6, 34, 1, 15, 2, '', 'submitted', NULL, '2026-04-07 05:00:33', '2026-04-07 05:00:41'),
-(606, 6, 35, 1, 15, 3, '', 'submitted', NULL, '2026-04-07 05:00:34', '2026-04-07 05:00:41'),
-(607, 6, 38, 1, 15, 3, '', 'submitted', NULL, '2026-04-07 05:00:36', '2026-04-07 05:00:41'),
-(608, 6, 39, 1, 15, 2, '', 'submitted', NULL, '2026-04-07 05:00:37', '2026-04-07 05:00:41'),
-(609, 6, 40, 1, 15, 3, '', 'submitted', NULL, '2026-04-07 05:00:38', '2026-04-07 05:00:41'),
-(610, 6, 1, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:00:59', '2026-04-07 05:01:42'),
-(611, 6, 2, 1, 2, 2, '', 'submitted', NULL, '2026-04-07 05:01:01', '2026-04-07 05:01:42'),
-(612, 6, 4, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:01:02', '2026-04-07 05:01:42'),
-(613, 6, 5, 1, 2, 2, '', 'submitted', NULL, '2026-04-07 05:01:03', '2026-04-07 05:01:42'),
-(614, 6, 6, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:01:04', '2026-04-07 05:01:42'),
-(615, 6, 7, 1, 2, 2, '', 'submitted', NULL, '2026-04-07 05:01:10', '2026-04-07 05:01:42'),
-(616, 6, 9, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:01:12', '2026-04-07 05:01:42'),
-(617, 6, 10, 1, 2, 2, '', 'submitted', NULL, '2026-04-07 05:01:19', '2026-04-07 05:01:42'),
-(618, 6, 11, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:01:21', '2026-04-07 05:01:42'),
-(619, 6, 12, 1, 2, 2, '', 'submitted', NULL, '2026-04-07 05:01:22', '2026-04-07 05:01:42'),
-(620, 6, 17, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:01:24', '2026-04-07 05:01:42'),
-(621, 6, 21, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:01:26', '2026-04-07 05:01:42'),
-(622, 6, 28, 1, 2, 2, '', 'submitted', NULL, '2026-04-07 05:01:27', '2026-04-07 05:01:42'),
-(623, 6, 29, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:01:29', '2026-04-07 05:01:42'),
-(624, 6, 31, 1, 2, 2, '', 'submitted', NULL, '2026-04-07 05:01:30', '2026-04-07 05:01:42'),
-(625, 6, 32, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:01:32', '2026-04-07 05:01:42'),
-(626, 6, 33, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:01:34', '2026-04-07 05:01:42'),
-(627, 6, 34, 1, 2, 2, '', 'submitted', NULL, '2026-04-07 05:01:35', '2026-04-07 05:01:42'),
-(628, 6, 35, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:01:36', '2026-04-07 05:01:42'),
-(629, 6, 38, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:01:38', '2026-04-07 05:01:42'),
-(630, 6, 39, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:01:39', '2026-04-07 05:01:42'),
-(631, 6, 40, 1, 2, 3, '', 'submitted', NULL, '2026-04-07 05:01:40', '2026-04-07 05:01:42'),
-(632, 6, 1, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:01:54', '2026-04-07 05:02:27'),
-(633, 6, 2, 1, 12, 2, '', 'submitted', NULL, '2026-04-07 05:01:55', '2026-04-07 05:02:27'),
-(634, 6, 4, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:01:57', '2026-04-07 05:02:27'),
-(635, 6, 5, 1, 12, 2, '', 'submitted', NULL, '2026-04-07 05:01:58', '2026-04-07 05:02:27'),
-(636, 6, 6, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:01:59', '2026-04-07 05:02:27'),
-(637, 6, 7, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:01', '2026-04-07 05:02:27'),
-(638, 6, 9, 1, 12, 2, '', 'submitted', NULL, '2026-04-07 05:02:02', '2026-04-07 05:02:27'),
-(639, 6, 10, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:04', '2026-04-07 05:02:27'),
-(640, 6, 11, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:05', '2026-04-07 05:02:27'),
-(641, 6, 12, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:06', '2026-04-07 05:02:27'),
-(642, 6, 17, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:08', '2026-04-07 05:02:27'),
-(643, 6, 21, 1, 12, 2, '', 'submitted', NULL, '2026-04-07 05:02:09', '2026-04-07 05:02:27'),
-(644, 6, 28, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:12', '2026-04-07 05:02:27'),
-(645, 6, 29, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:14', '2026-04-07 05:02:27'),
-(646, 6, 31, 1, 12, 2, '', 'submitted', NULL, '2026-04-07 05:02:16', '2026-04-07 05:02:27'),
-(647, 6, 32, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:18', '2026-04-07 05:02:27'),
-(648, 6, 33, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:19', '2026-04-07 05:02:27'),
-(649, 6, 34, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:20', '2026-04-07 05:02:27'),
-(650, 6, 35, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:21', '2026-04-07 05:02:27'),
-(651, 6, 38, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:23', '2026-04-07 05:02:27'),
-(652, 6, 39, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:24', '2026-04-07 05:02:27'),
-(653, 6, 40, 1, 12, 3, '', 'submitted', NULL, '2026-04-07 05:02:25', '2026-04-07 05:02:27'),
-(654, 6, 1, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:02:37', '2026-04-07 05:03:06'),
-(655, 6, 2, 1, 13, 2, '', 'submitted', NULL, '2026-04-07 05:02:38', '2026-04-07 05:03:06'),
-(656, 6, 4, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:02:40', '2026-04-07 05:03:06'),
-(657, 6, 5, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:02:41', '2026-04-07 05:03:06'),
-(658, 6, 6, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:02:42', '2026-04-07 05:03:06'),
-(659, 6, 7, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:02:44', '2026-04-07 05:03:06'),
-(660, 6, 9, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:02:45', '2026-04-07 05:03:06'),
-(661, 6, 10, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:02:46', '2026-04-07 05:03:06'),
-(662, 6, 11, 1, 13, 4, '', 'submitted', NULL, '2026-04-07 05:02:48', '2026-04-07 05:03:06'),
-(663, 6, 12, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:02:49', '2026-04-07 05:03:06'),
-(664, 6, 17, 1, 13, 2, '', 'submitted', NULL, '2026-04-07 05:02:50', '2026-04-07 05:03:06'),
-(665, 6, 21, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:02:51', '2026-04-07 05:03:06'),
-(666, 6, 28, 1, 13, 4, '', 'submitted', NULL, '2026-04-07 05:02:53', '2026-04-07 05:03:06'),
-(667, 6, 29, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:02:55', '2026-04-07 05:03:06'),
-(668, 6, 31, 1, 13, 4, '', 'submitted', NULL, '2026-04-07 05:02:56', '2026-04-07 05:03:06'),
-(669, 6, 32, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:02:57', '2026-04-07 05:03:06'),
-(670, 6, 33, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:02:58', '2026-04-07 05:03:06'),
-(671, 6, 34, 1, 13, 4, '', 'submitted', NULL, '2026-04-07 05:02:59', '2026-04-07 05:03:06'),
-(672, 6, 35, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:03:01', '2026-04-07 05:03:06'),
-(673, 6, 38, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:03:02', '2026-04-07 05:03:06'),
-(674, 6, 39, 1, 13, 3, '', 'submitted', NULL, '2026-04-07 05:03:03', '2026-04-07 05:03:06'),
-(675, 6, 40, 1, 13, 4, '', 'submitted', NULL, '2026-04-07 05:03:04', '2026-04-07 05:03:06'),
-(676, 6, 1, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:17', '2026-04-07 05:03:45'),
-(677, 6, 2, 1, 14, 2, '', 'submitted', NULL, '2026-04-07 05:03:18', '2026-04-07 05:03:45'),
-(678, 6, 4, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:19', '2026-04-07 05:03:45'),
-(679, 6, 5, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:20', '2026-04-07 05:03:45'),
-(680, 6, 6, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:22', '2026-04-07 05:03:45'),
-(681, 6, 7, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:23', '2026-04-07 05:03:45'),
-(682, 6, 9, 1, 14, 4, '', 'submitted', NULL, '2026-04-07 05:03:24', '2026-04-07 05:03:45'),
-(683, 6, 10, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:26', '2026-04-07 05:03:45'),
-(684, 6, 11, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:27', '2026-04-07 05:03:45'),
-(685, 6, 12, 1, 14, 4, '', 'submitted', NULL, '2026-04-07 05:03:28', '2026-04-07 05:03:45'),
-(686, 6, 17, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:29', '2026-04-07 05:03:45'),
-(687, 6, 21, 1, 14, 2, '', 'submitted', NULL, '2026-04-07 05:03:31', '2026-04-07 05:03:45'),
-(688, 6, 28, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:33', '2026-04-07 05:03:45'),
-(689, 6, 29, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:34', '2026-04-07 05:03:45'),
-(690, 6, 31, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:35', '2026-04-07 05:03:45'),
-(691, 6, 32, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:37', '2026-04-07 05:03:45'),
-(692, 6, 33, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:38', '2026-04-07 05:03:45'),
-(693, 6, 34, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:39', '2026-04-07 05:03:45'),
-(694, 6, 35, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:40', '2026-04-07 05:03:45'),
-(695, 6, 38, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:41', '2026-04-07 05:03:45'),
-(696, 6, 39, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:43', '2026-04-07 05:03:45'),
-(697, 6, 40, 1, 14, 3, '', 'submitted', NULL, '2026-04-07 05:03:44', '2026-04-07 05:03:45');
-
 -- --------------------------------------------------------
 
 --
@@ -1541,22 +1214,6 @@ CREATE TABLE `teacher_submissions` (
   `submitted_at` datetime DEFAULT NULL,
   `response_count` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `teacher_submissions`
---
-
-INSERT INTO `teacher_submissions` (`submission_id`, `cycle_id`, `school_id`, `sy_id`, `teacher_id`, `status`, `submitted_at`, `response_count`) VALUES
-(17, 5, 1, 4, 15, 'submitted', '2026-04-05 01:24:20', 22),
-(18, 5, 1, 4, 2, 'submitted', '2026-04-05 01:25:45', 22),
-(19, 5, 1, 4, 12, 'submitted', '2026-04-05 01:26:33', 22),
-(20, 5, 1, 4, 13, 'submitted', '2026-04-05 01:27:29', 23),
-(21, 5, 1, 4, 14, 'submitted', '2026-04-05 01:28:19', 22),
-(22, 6, 1, 6, 15, 'submitted', '2026-04-07 13:00:41', 22),
-(23, 6, 1, 6, 2, 'submitted', '2026-04-07 13:01:42', 22),
-(24, 6, 1, 6, 12, 'submitted', '2026-04-07 13:02:27', 22),
-(25, 6, 1, 6, 13, 'submitted', '2026-04-07 13:03:06', 22),
-(26, 6, 1, 6, 14, 'submitted', '2026-04-07 13:03:45', 22);
 
 -- --------------------------------------------------------
 
@@ -1588,12 +1245,13 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`) VALUES
 (2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, '2026-04-07 13:00:54', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0),
-(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, '2026-04-07 13:01:48', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0),
-(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, '2026-04-07 13:02:33', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0),
+(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, '2026-04-10 11:00:57', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0),
+(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, '2026-04-11 11:19:00', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0),
 (14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, '2026-04-07 13:03:13', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0),
-(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, '2026-04-07 13:00:06', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, '2026-04-07 13:08:00', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, '2026-04-09 10:39:36', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0);
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, '2026-04-11 11:42:08', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0),
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, '2026-04-11 17:35:16', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, '2026-04-11 10:58:37', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0),
+(72, 'Patty', '$2y$10$V5F8wLfNzHXU1XPrYScCBuTOd.le0o88IVEUGx52m4dDIg256otOC', 'ariascharles00@gmail.com', 'Charles Mendoza', 'system_admin', 'active', 1, '2026-04-11 17:33:37', '2026-04-09 09:53:37', 0, NULL, NULL, '2026-04-09 17:53:42', 0);
 
 -- --------------------------------------------------------
 
@@ -1615,18 +1273,6 @@ CREATE TABLE `workflow_checkpoints` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `workflow_checkpoints`
---
-
-INSERT INTO `workflow_checkpoints` (`cp_id`, `school_id`, `sy_id`, `phase_no`, `grading_period`, `cp_type`, `status`, `due_date`, `completed_at`, `completed_by`, `notes`, `created_at`) VALUES
-(1, 1, 4, 1, NULL, 'self_assessment', 'pending', '2026-04-28', NULL, NULL, NULL, '2026-03-29 10:38:33'),
-(2, 1, 4, 1, NULL, 'planning', 'pending', '2026-05-13', NULL, NULL, NULL, '2026-03-29 10:38:33'),
-(3, 1, 4, 2, 1, 'q1_monitoring', 'pending', '2026-06-27', NULL, NULL, NULL, '2026-03-29 10:38:33'),
-(4, 1, 4, 2, 2, 'q2_monitoring', 'pending', '2026-08-26', NULL, NULL, NULL, '2026-03-29 10:38:33'),
-(5, 1, 4, 2, 3, 'q3_monitoring', 'pending', '2026-10-25', NULL, NULL, NULL, '2026-03-29 10:38:33'),
-(6, 1, 4, 3, NULL, 'completion', 'pending', '2026-12-24', NULL, NULL, NULL, '2026-03-29 10:38:33');
 
 -- --------------------------------------------------------
 
@@ -1684,6 +1330,14 @@ ALTER TABLE `cycle_audit_log`
   ADD PRIMARY KEY (`log_id`),
   ADD KEY `cycle_id` (`cycle_id`),
   ADD KEY `actor_id` (`actor_id`);
+
+--
+-- Indexes for table `cycle_evaluators`
+--
+ALTER TABLE `cycle_evaluators`
+  ADD PRIMARY KEY (`evaluator_id`),
+  ADD UNIQUE KEY `unique_cycle_user` (`cycle_id`,`user_id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `cycle_stage_gates`
@@ -1984,7 +1638,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=428;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=502;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`
@@ -2005,6 +1659,12 @@ ALTER TABLE `cycle_audit_log`
   MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT for table `cycle_evaluators`
+--
+ALTER TABLE `cycle_evaluators`
+  MODIFY `evaluator_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `cycle_stage_gates`
 --
 ALTER TABLE `cycle_stage_gates`
@@ -2020,7 +1680,7 @@ ALTER TABLE `divisions`
 -- AUTO_INCREMENT for table `email_logs`
 --
 ALTER TABLE `email_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=67;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
 
 --
 -- AUTO_INCREMENT for table `evidence_audit_log`
@@ -2062,19 +1722,19 @@ ALTER TABLE `ml_predictions`
 -- AUTO_INCREMENT for table `ml_recommendations`
 --
 ALTER TABLE `ml_recommendations`
-  MODIFY `rec_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `rec_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `ml_training_snapshots`
 --
 ALTER TABLE `ml_training_snapshots`
-  MODIFY `snapshot_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `snapshot_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `password_setup_tokens`
 --
 ALTER TABLE `password_setup_tokens`
-  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
+  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=76;
 
 --
 -- AUTO_INCREMENT for table `regions`
@@ -2140,7 +1800,7 @@ ALTER TABLE `school_workflow_status`
 -- AUTO_INCREMENT for table `school_years`
 --
 ALTER TABLE `school_years`
-  MODIFY `sy_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `sy_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `sh_indicator_overrides`
@@ -2194,7 +1854,7 @@ ALTER TABLE `teacher_submissions`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=71;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
 
 --
 -- AUTO_INCREMENT for table `workflow_checkpoints`
@@ -2239,6 +1899,13 @@ ALTER TABLE `announcements`
 ALTER TABLE `cycle_audit_log`
   ADD CONSTRAINT `cal_ibfk_1` FOREIGN KEY (`cycle_id`) REFERENCES `sbm_cycles` (`cycle_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `cal_ibfk_2` FOREIGN KEY (`actor_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `cycle_evaluators`
+--
+ALTER TABLE `cycle_evaluators`
+  ADD CONSTRAINT `cycle_evaluators_ibfk_1` FOREIGN KEY (`cycle_id`) REFERENCES `sbm_cycles` (`cycle_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `cycle_evaluators_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `cycle_stage_gates`

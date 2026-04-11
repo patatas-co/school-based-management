@@ -1,14 +1,14 @@
 <?php
 // ============================================================
-// coordinator/assign_indicators.php
-// SBM Coordinator feature to assign specific SBM indicators
+// system_admin/assign_indicators.php
+// System Admin feature to assign specific SBM indicators
 // to individual teachers.
 // ============================================================
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
 
-requireRole('sbm_coordinator');
+requireSystemAdmin();
 $db = getDB();
 
 $schoolId = SCHOOL_ID;
