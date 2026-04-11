@@ -6,6 +6,7 @@ ob_start();
 // ============================================================
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/stakeholder_lifecycle.php';
 requireSystemAdmin();
 $db = getDB();
 
@@ -120,29 +121,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       exit;
     }
 
-    // Check cycle exists
-    $cycleChk = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE cycle_id=?");
-    $cycleChk->execute([$cycleId]);
-    if (!$cycleChk->fetchColumn()) {
-      echo json_encode(['ok' => false, 'msg' => 'Invalid assessment cycle.']);
-      exit;
-    }
-
     $db->beginTransaction();
     try {
-      // Check if user with this email already exists
       $existing = $db->prepare("SELECT user_id, status FROM users WHERE email=?");
       $existing->execute([$email]);
       $existingUser = $existing->fetch();
 
       if ($existingUser) {
-        $userId = $existingUser['user_id'];
-        // Reactivate if inactive
+        $userId = (int) $existingUser['user_id'];
         if ($existingUser['status'] !== 'active') {
           $db->prepare("UPDATE users SET status='active' WHERE user_id=?")->execute([$userId]);
         }
       } else {
-        // Create new inactive stakeholder account
         $username = 'eval_' . substr(md5($email . time()), 0, 8);
         $db->prepare("INSERT INTO users (username, email, full_name, role, status, school_id, force_password_change)
                       VALUES (?, ?, ?, 'external_stakeholder', 'inactive', ?, 1)")
@@ -150,33 +140,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $userId = (int) $db->lastInsertId();
       }
 
-      // Link evaluator to cycle
-      $db->prepare("INSERT IGNORE INTO cycle_evaluators (cycle_id, user_id, school_id, added_by)
-                    VALUES (?, ?, ?, ?)")
+      $db->prepare("INSERT IGNORE INTO cycle_evaluators (cycle_id, user_id, school_id, added_by, is_active)
+                    VALUES (?, ?, ?, ?, 1)")
         ->execute([$cycleId, $userId, SCHOOL_ID, $_SESSION['user_id']]);
 
       $db->commit();
 
-      // Send setup email
-      $userRow = $db->prepare("SELECT user_id, full_name, email, status FROM users WHERE user_id=?");
+      $userRow = $db->prepare("SELECT user_id, full_name, email FROM users WHERE user_id=?");
       $userRow->execute([$userId]);
       $userRow = $userRow->fetch();
 
-      require_once __DIR__ . '/../includes/email_service.php';
-      $sent = sendAccountCreationEmail($db, $userRow);
+      // Use the specialized stakeholder welcome email
+      $sent = sendStakeholderWelcomeEmail($db, $userRow, $cycleId);
 
       logActivity('create_temp_evaluator', 'users', "Created temp evaluator for cycle $cycleId: $email");
 
       echo json_encode([
         'ok' => true,
         'msg' => $sent
-          ? 'Evaluator added. Setup email sent to ' . $email . '.'
-          : 'Evaluator added, but email failed to send. Check your mail settings.',
+          ? 'Evaluator added. Stakeholder welcome email sent to ' . $email . '.'
+          : 'Evaluator added, but email failed to send. Check mail settings.',
         'user_id' => $userId,
       ]);
     } catch (\Throwable $e) {
-      $db->rollBack();
+      if ($db->inTransaction()) $db->rollBack();
       echo json_encode(['ok' => false, 'msg' => 'Error: ' . $e->getMessage()]);
+    }
+    exit;
+  }
+
+  if ($action === 'set_cycle_dates') {
+    $cycleId = (int)($_POST['cycle_id'] ?? 0);
+    $start = $_POST['start_date'] ?: null;
+    $end = $_POST['end_date'] ?: null;
+
+    if (!$cycleId || !$end) {
+      echo json_encode(['ok' => false, 'msg' => 'Cycle ID and Access End Date are required.']);
+      exit;
+    }
+
+    try {
+      $db->prepare("UPDATE sbm_cycles SET stakeholder_access_start=?, stakeholder_access_end=?, auto_deactivated_at=NULL, auto_deactivated_by=NULL WHERE cycle_id=?")
+         ->execute([$start, $end, $cycleId]);
+      
+      logActivity('set_cycle_dates', 'sbm_cycles', "Updated access window for cycle $cycleId: $start to $end");
+      echo json_encode(['ok' => true, 'msg' => 'Access window updated successfully.']);
+    } catch (Exception $e) {
+      echo json_encode(['ok' => false, 'msg' => 'Error: ' . $e->getMessage()]);
+    }
+    exit;
+  }
+
+  if ($action === 'get_cycle_dates') {
+    $cycleId = (int)($_POST['cycle_id'] ?? 0);
+    $st = $db->prepare("SELECT stakeholder_access_start, stakeholder_access_end, auto_deactivated_at FROM sbm_cycles WHERE cycle_id=?");
+    $st->execute([$cycleId]);
+    echo json_encode(['ok' => true, 'dates' => $st->fetch()]);
+    exit;
+  }
+
+  if ($action === 'reactivate_evaluators') {
+    $cycleId = (int)($_POST['cycle_id'] ?? 0);
+    $userIds = $_POST['user_ids'] ?? null; // array or null for ALL
+    $newEnd = $_POST['new_end_date'] ?: null;
+
+    if (!$cycleId) {
+      echo json_encode(['ok' => false, 'msg' => 'Invalid cycle.']);
+      exit;
+    }
+
+    $res = reactivateEvaluators($db, $cycleId, $userIds, $newEnd, (int)$_SESSION['user_id']);
+    
+    if ($res['reactivated'] > 0) {
+      logActivity('reactivate_evaluators', 'users', "Reactivated {$res['reactivated']} evaluators for cycle $cycleId");
+      echo json_encode(['ok' => true, 'msg' => "Successfully reactivated {$res['reactivated']} account(s)."]);
+    } else {
+      echo json_encode(['ok' => false, 'msg' => 'No accounts were reactivated. ' . implode(' ', $res['errors'])]);
     }
     exit;
   }
@@ -187,24 +226,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       echo json_encode(['ok' => false, 'msg' => 'Invalid cycle ID.']);
       exit;
     }
-    $stmt = $db->prepare("
-      UPDATE users u
-      JOIN cycle_evaluators ce ON ce.user_id = u.user_id
-      SET u.status = 'inactive'
-      WHERE ce.cycle_id = ?
-        AND u.user_id != ?
-    ");
-    $stmt->execute([$cycleId, $_SESSION['user_id']]);
-    $count = $stmt->rowCount();
-    logActivity('deactivate_cycle_evaluators', 'users', "Deactivated $count evaluators for cycle $cycleId");
-    echo json_encode(['ok' => true, 'msg' => "Deactivated $count evaluator account(s)."]);
+
+    try {
+      $db->beginTransaction();
+
+      // 1. Deactivate main user accounts
+      $stmtUsers = $db->prepare("
+        UPDATE users u
+        JOIN cycle_evaluators ce ON ce.user_id = u.user_id
+        SET u.status = 'inactive'
+        WHERE ce.cycle_id = ? AND u.user_id != ?
+      ");
+      $stmtUsers->execute([$cycleId, $_SESSION['user_id']]);
+      $countUsers = $stmtUsers->rowCount();
+
+      // 2. Mark in cycle_evaluators (Source of truth for the Evaluators Modal)
+      $stmtCycle = $db->prepare("
+        UPDATE cycle_evaluators
+        SET is_active = 0, deactivated_at = NOW()
+        WHERE cycle_id = ? AND is_active = 1
+      ");
+      $stmtCycle->execute([$cycleId]);
+      $countCycle = $stmtCycle->rowCount();
+
+      $db->commit();
+
+      logActivity('deactivate_cycle_evaluators', 'users', "Deactivated $countCycle evaluators for cycle $cycleId");
+      echo json_encode(['ok' => true, 'msg' => "Deactivated $countCycle evaluator account(s)."]);
+    } catch (Exception $e) {
+      $db->rollBack();
+      echo json_encode(['ok' => false, 'msg' => 'Error deactivating accounts: ' . $e->getMessage()]);
+    }
     exit;
   }
 
   if ($action === 'list_cycle_evaluators') {
     $cycleId = (int) ($_POST['cycle_id'] ?? 0);
+
+    // --- REAL-TIME ENFORCEMENT ---
+    // Check if window is closed and auto-deactivate expired accounts on-the-fly
+    $db->prepare("
+        UPDATE cycle_evaluators ce
+        JOIN sbm_cycles c ON ce.cycle_id = c.cycle_id
+        JOIN users u ON ce.user_id = u.user_id
+        SET ce.is_active = 0, 
+            ce.deactivated_at = NOW(),
+            u.status = 'inactive'
+        WHERE ce.cycle_id = ? 
+          AND ce.is_active = 1
+          AND c.stakeholder_access_end IS NOT NULL
+          AND c.stakeholder_access_end <= NOW()
+    ")->execute([$cycleId]);
+    // ----------------------------
+
     $stmt = $db->prepare("
       SELECT u.user_id, u.full_name, u.email, u.status,
+             ce.is_active, ce.deactivated_at, ce.reactivated_at,
              ss.status AS submission_status, ss.submitted_at, ss.response_count
       FROM cycle_evaluators ce
       JOIN users u ON ce.user_id = u.user_id
@@ -215,6 +292,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     ");
     $stmt->execute([$cycleId]);
     echo json_encode(['ok' => true, 'data' => $stmt->fetchAll()]);
+    exit;
+  }
+
+  if ($action === 'remove_cycle_evaluator') {
+    $cycleId = (int) ($_POST['cycle_id'] ?? 0);
+    $userId = (int) ($_POST['user_id'] ?? 0);
+    if (!$cycleId || !$userId) {
+      echo json_encode(['ok' => false, 'msg' => 'Invalid parameters.']);
+      exit;
+    }
+    $stmt = $db->prepare("DELETE FROM cycle_evaluators WHERE cycle_id = ? AND user_id = ?");
+    $stmt->execute([$cycleId, $userId]);
+    logActivity('remove_cycle_evaluator', 'users', "Removed evaluator $userId from cycle $cycleId");
+    echo json_encode(['ok' => true, 'msg' => 'Evaluator removed from cycle.']);
     exit;
   }
 
@@ -684,6 +775,64 @@ $roleLabels = [
       transform: translateX(0);
     }
   }
+
+  /* Premium Date Inputs */
+  .dt-premium {
+    appearance: none;
+    -webkit-appearance: none;
+    background: #ffffff;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    color: #0F172A;
+    width: 100%;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .dt-premium:hover {
+    border-color: #10B981;
+    background: #F0FDF4;
+  }
+
+  .dt-premium:focus {
+    outline: none;
+    border-color: #10B981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+    background: #ffffff;
+  }
+
+  /* Split layout */
+  .dt-split {
+    display: flex;
+    gap: 12px;
+  }
+  .dt-split > div {
+    flex: 1;
+  }
+
+  /* Custom picker icons */
+  .dt-premium::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.8;
+  }
+  
+  /* Date specific icon */
+  input[type="date"].dt-premium::-webkit-calendar-picker-indicator {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E") no-repeat center;
+  }
+  
+  /* Time specific icon */
+  input[type="time"].dt-premium::-webkit-calendar-picker-indicator {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'%3E%3C/circle%3E%3Cpolyline points='12 6 12 12 16 14'%3E%3C/polyline%3E%3C/svg%3E") no-repeat center;
+  }
+
+  .dt-premium::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
 </style>
 
 <!-- Create Modal -->
@@ -817,6 +966,43 @@ $roleLabels = [
         </select>
       </div>
 
+      <!-- Stakeholder Access Window Card -->
+      <div id="cycleDatesCard" style="display:none;margin-bottom:18px;">
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+            <div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:#166534;margin-bottom:4px;">Stakeholder Access Window</div>
+              <div id="cycleStatusBanner" style="font-size:12px;font-weight:600;"></div>
+            </div>
+            <button class="btn btn-primary" onclick="saveCycleDates()" style="padding:6px 12px;font-size:12px;border-radius:8px;">Save Window</button>
+          </div>
+          
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <!-- Start Group -->
+            <div>
+              <label style="color:#166534;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <?= svgIcon('calendar', '', 'width:14px;height:14px;') ?> Start Date & Time
+              </label>
+              <div class="dt-split">
+                <input type="date" id="ev_start_d" class="dt-premium">
+                <input type="time" id="ev_start_t" class="dt-premium">
+              </div>
+            </div>
+
+            <!-- End Group -->
+            <div>
+              <label style="color:#166534;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <?= svgIcon('calendar', '', 'width:14px;height:14px;') ?> End Date & Time *
+              </label>
+              <div class="dt-split">
+                <input type="date" id="ev_end_d" class="dt-premium">
+                <input type="time" id="ev_end_t" class="dt-premium">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Add evaluator form -->
       <div
         style="background:var(--n-50);border:1px solid var(--n-200);border-radius:10px;padding:16px;margin-bottom:18px;">
@@ -848,10 +1034,14 @@ $roleLabels = [
       </div>
     </div>
     <div class="modal-foot" style="justify-content:space-between;">
-      <button class="btn btn-danger btn-sm" onclick="deactivateAllEvaluators()" id="deactivateAllBtn"
-        style="display:none;">
-        <?= svgIcon('x') ?> Deactivate All Evaluators
-      </button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-danger btn-sm" onclick="deactivateAllEvaluators()" id="deactivateAllBtn" style="display:none;">
+          <?= svgIcon('x') ?> Deactivate All
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="openReactivationModal()" id="reactivateAllBtn" style="display:none;background:#2563EB;">
+          <?= svgIcon('refresh') ?> Reactivate All
+        </button>
+      </div>
       <button class="btn btn-secondary" onclick="closeModal('mEvaluators')">Close</button>
     </div>
   </div>
@@ -905,6 +1095,42 @@ $roleLabels = [
     <div class="modal-foot">
       <button class="btn btn-secondary" onclick="closeModal('mImport')">Cancel</button>
       <button class="btn btn-primary" onclick="importUsers()"><?= svgIcon('upload') ?> Upload &amp; Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reactivation Modal -->
+<div class="overlay" id="mReactivate">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <span class="modal-title">Reactivate Evaluators</span>
+      <button class="modal-close" onclick="closeModal('mReactivate')"><?= svgIcon('x') ?></button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;font-size:14px;color:var(--n-600);line-height:1.6;">
+        This will reactivate the selected evaluator accounts. They will be able to log in again immediately.
+      </div>
+      
+      <div id="deactivatedEvalsList" style="max-height:200px;overflow-y:auto;border:1px solid var(--n-200);border-radius:10px;padding:4px;margin-bottom:18px;background:var(--n-50);">
+        <!-- List with checkboxes -->
+      </div>
+
+      <div class="fg">
+        <label style="display:flex;align-items:center;gap:6px;color:#1E40AF;font-weight:600;">
+          <?= svgIcon('calendar', '', 'width:15px;height:15px;') ?> Optional: Extend Access End Date
+        </label>
+        <div class="dt-split" style="margin-top:8px;">
+          <input type="date" id="reactivate_end_d" class="dt-premium">
+          <input type="time" id="reactivate_end_t" class="dt-premium">
+        </div>
+        <div style="margin-top:8px;font-size:11.5px;color:var(--n-400);">
+          Leave blank to keep existing end date.
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mReactivate')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmReactivate()" style="background:#2563EB;">Confirm Reactivation</button>
     </div>
   </div>
 </div>
@@ -1144,48 +1370,169 @@ $roleLabels = [
     }
   }
 
+  let lastEvalsList = [];
   async function loadEvaluators() {
     const cycleId = document.getElementById('ev_cycle_id').value;
     const wrap = document.getElementById('evaluatorListWrap');
     const deactBtn = document.getElementById('deactivateAllBtn');
+    const reactBtn = document.getElementById('reactivateAllBtn');
+    
     if (!cycleId) {
       wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--n-400);font-size:13px;">Select a cycle above to see evaluators.</div>';
       deactBtn.style.display = 'none';
+      reactBtn.style.display = 'none';
+      document.getElementById('cycleDatesCard').style.display = 'none';
       return;
     }
+
+    refreshCycleDates(cycleId);
     wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--n-400);">Loading…</div>';
+    
     const r = await apiPost('users.php', { action: 'list_cycle_evaluators', cycle_id: cycleId });
     if (!r.ok || !r.data) { wrap.innerHTML = '<div style="color:var(--red);padding:12px;">Failed to load.</div>'; return; }
+    
+    lastEvalsList = r.data;
+
     if (r.data.length === 0) {
       wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--n-400);font-size:13px;">No evaluators added to this cycle yet.</div>';
       deactBtn.style.display = 'none';
+      reactBtn.style.display = 'none';
       return;
     }
-    deactBtn.style.display = '';
+
+    let hasActive = false;
+    let hasDeactivated = false;
     let html = `<div style="font-size:13px;font-weight:700;color:var(--n-800);margin-bottom:10px;">
       ${r.data.length} evaluator(s) for this cycle
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">`;
+
     r.data.forEach(ev => {
       const submitted = ev.submission_status === 'submitted';
-      const isActive = ev.status === 'active';
-      const statusDot = isActive ? '#16A34A' : '#9CA3AF';
+      const isAutoDeactivated = ev.is_active == 0;
+      if (!isAutoDeactivated) hasActive = true;
+      if (isAutoDeactivated) hasDeactivated = true;
+
+      const statusBadge = isAutoDeactivated
+        ? `<span style="background:#FEE2E2;color:#991B1B;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;">Deactivated</span>`
+        : `<span style="background:#DCFCE7;color:#16A34A;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;">Active</span>`;
+
       const subBadge = submitted
         ? `<span style="background:#DCFCE7;color:#166534;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;">Submitted</span>`
         : `<span style="background:var(--n-100);color:var(--n-500);padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;">Pending</span>`;
+
       html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;
-                   border:1px solid var(--n-200);border-radius:9px;background:#fff;">
-        <span style="width:9px;height:9px;border-radius:50%;background:${statusDot};flex-shrink:0;"></span>
+                   border:1px solid var(--n-200);border-radius:9px;background:#fff;${isAutoDeactivated ? 'opacity:0.75;' : ''}">
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;color:var(--n-900);">${ev.full_name}</div>
           <div style="font-size:11.5px;color:var(--n-500);">${ev.email}</div>
         </div>
-        ${subBadge}
-        ${submitted ? `<span style="font-size:11px;color:var(--n-400);">${ev.response_count} responses</span>` : ''}
+        <div style="display:flex;gap:4px;">${statusBadge}${subBadge}</div>
+        <button class="btn btn-danger btn-sm" onclick="removeEvaluator(${ev.user_id})" title="Remove from cycle" style="padding:4px 8px;">
+          ${svgIcon('trash')}
+        </button>
       </div>`;
     });
     html += '</div>';
     wrap.innerHTML = html;
+
+    deactBtn.style.display = hasActive ? '' : 'none';
+    reactBtn.style.display = hasDeactivated ? '' : 'none';
+  }
+
+  async function refreshCycleDates(cycleId) {
+    const card = document.getElementById('cycleDatesCard');
+    const banner = document.getElementById('cycleStatusBanner');
+    
+    card.style.display = 'block';
+    const r = await apiPost('users.php', { action: 'get_cycle_dates', cycle_id: cycleId });
+    if (r.ok && r.dates) {
+      const s = r.dates.stakeholder_access_start || '';
+      const e = r.dates.stakeholder_access_end || '';
+      
+      document.getElementById('ev_start_d').value = s ? s.substring(0, 10) : '';
+      document.getElementById('ev_start_t').value = s ? s.substring(11, 16) : '';
+      document.getElementById('ev_end_d').value = e ? e.substring(0, 10) : '';
+      document.getElementById('ev_end_t').value = e ? e.substring(11, 16) : '';
+      
+      const now = new Date();
+      const end = e ? new Date(e.replace(' ', 'T')) : null;
+      const start = s ? new Date(s.replace(' ', 'T')) : null;
+
+      if (!end) {
+        banner.innerHTML = '<span style="color:#991B1B;">⚠️ No end date set</span>';
+      } else if (now > end) {
+        banner.innerHTML = '<span style="color:#991B1B;">🔴 Window Closed</span>';
+      } else if (start && now < start) {
+        banner.innerHTML = '<span style="color:#92400E;">🟠 Not Started Yet</span>';
+      } else {
+        banner.innerHTML = '<span style="color:#166534;">🟢 Window Open</span>';
+      }
+    }
+  }
+
+  async function saveCycleDates() {
+    const cycleId = document.getElementById('ev_cycle_id').value;
+    const sd = document.getElementById('ev_start_d').value;
+    const st = document.getElementById('ev_start_t').value;
+    const ed = document.getElementById('ev_end_d').value;
+    const et = document.getElementById('ev_end_t').value;
+    
+    if (!ed || !et) { toast('Access end date and time are required.', 'warning'); return; }
+
+    const start = sd && st ? (sd + ' ' + st + ':00') : '';
+    const end = ed + ' ' + et + ':00';
+
+    const r = await apiPost('users.php', { action: 'set_cycle_dates', cycle_id: cycleId, start_date: start, end_date: end });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) refreshCycleDates(cycleId);
+  }
+
+  function openReactivationModal() {
+    const list = document.getElementById('deactivatedEvalsList');
+    const deactivated = lastEvalsList.filter(u => u.is_active == 0);
+    if (deactivated.length === 0) return;
+
+    list.innerHTML = deactivated.map(u => `
+      <div style="display:flex;align-items:center;padding:8px;border-bottom:1px solid var(--n-100);gap:10px;">
+        <input type="checkbox" name="reactivate_uid" value="${u.user_id}" checked style="width:16px;height:16px;">
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:13px;">${u.full_name}</div>
+          <div style="font-size:11px;color:var(--n-400);">${u.email}</div>
+        </div>
+      </div>
+    `).join('');
+    
+    // Set default extension end date from current inputs
+    document.getElementById('reactivate_end_d').value = document.getElementById('ev_end_d').value;
+    document.getElementById('reactivate_end_t').value = document.getElementById('ev_end_t').value;
+    openModal('mReactivate');
+  }
+
+  async function confirmReactivate() {
+    const cycleId = document.getElementById('ev_cycle_id').value;
+    const checkboxes = document.querySelectorAll('input[name="reactivate_uid"]:checked');
+    const userIds = Array.from(checkboxes).map(cb => cb.value);
+    
+    const rd = document.getElementById('reactivate_end_d').value;
+    const rt = document.getElementById('reactivate_end_t').value;
+    const newEnd = rd && rt ? (rd + ' ' + rt + ':00') : '';
+
+    if (userIds.length === 0) { toast('Please select at least one account.', 'warning'); return; }
+
+    const fd = new FormData();
+    fd.append('action', 'reactivate_evaluators');
+    fd.append('cycle_id', cycleId);
+    fd.append('csrf_token', '<?= csrfToken() ?>');
+    userIds.forEach(id => fd.append('user_ids[]', id));
+    fd.append('new_end_date', newEnd);
+
+    const r = await fetch('users.php', { method: 'POST', body: fd }).then(res => res.json());
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) {
+      closeModal('mReactivate');
+      loadEvaluators();
+    }
   }
 
   async function deactivateAllEvaluators() {
@@ -1196,6 +1543,15 @@ $roleLabels = [
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) loadEvaluators();
   }
+
+  async function removeEvaluator(userId) {
+    const cycleId = document.getElementById('ev_cycle_id').value;
+    if (!confirm('Remove this evaluator from the cycle?')) return;
+    const r = await apiPost('users.php', { action: 'remove_cycle_evaluator', cycle_id: cycleId, user_id: userId });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) loadEvaluators();
+  }
+
 
   window.addEventListener('DOMContentLoaded', () => {
     if (new URLSearchParams(window.location.search).get('action') === 'create') openModal('mCreate');

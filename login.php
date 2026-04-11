@@ -60,6 +60,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['role'] = $row['role'];
         $_SESSION['school_id'] = $row['school_id'];
 
+        // --- REAL-TIME STAKEHOLDER CHECK ---
+        if ($row['role'] === 'external_stakeholder') {
+          $stk = $db->prepare("
+            SELECT ce.cycle_id, c.stakeholder_access_start, c.stakeholder_access_end, ce.is_active
+            FROM cycle_evaluators ce
+            JOIN sbm_cycles c ON ce.cycle_id = c.cycle_id
+            WHERE ce.user_id = ?
+            LIMIT 1
+          ");
+          $stk->execute([$row['user_id']]);
+          $ce = $stk->fetch();
+          
+          if ($ce) {
+            $now = date('Y-m-d H:i:s');
+            $expired = $ce['stakeholder_access_end'] && $ce['stakeholder_access_end'] <= $now;
+            $notStarted = $ce['stakeholder_access_start'] && $ce['stakeholder_access_start'] > $now;
+
+            if ($expired || !$ce['is_active']) {
+              // Lazy Deactivation
+              $db->prepare("UPDATE users SET status='inactive' WHERE user_id=?")->execute([$row['user_id']]);
+              $db->prepare("UPDATE cycle_evaluators SET is_active=0, deactivated_at=NOW() WHERE user_id=? AND cycle_id=?")
+                 ->execute([$row['user_id'], $ce['cycle_id']]);
+              
+              session_unset();
+              session_destroy();
+              header('Location: ' . baseUrl() . '/login.php?err=deactivated');
+              exit;
+            }
+            if ($notStarted) {
+                session_unset();
+                session_destroy();
+                header('Location: ' . baseUrl() . '/login.php?err=not_started');
+                exit;
+            }
+            $_SESSION['cycle_id'] = $ce['cycle_id'];
+          }
+        }
+        // -----------------------------------
+
         if (password_needs_rehash($row['password'], PASSWORD_DEFAULT)) {
           try {
             $db->prepare("UPDATE users SET password=? WHERE user_id=?")
@@ -71,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->prepare("UPDATE users SET last_login=NOW() WHERE user_id=?")->execute([$row['user_id']]);
         logActivity('login', 'auth', 'User logged in');
 
-        if ($row['force_password_change']) {
+        if ($row['force_password_change'] ?? false) {
           $_SESSION['force_pw_change'] = true;
           header('Location: ' . baseUrl() . '/change_password.php');
           exit;
