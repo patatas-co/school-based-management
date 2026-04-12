@@ -14,6 +14,9 @@ require_once __DIR__ . '/workflow_data.php';
 
 // Handle any POST request and exit before any output
 handleWorkflowPost($db);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
+    exit;
+}
 
 // Load all view data into local variables
 $_wd = loadWorkflowData($db);

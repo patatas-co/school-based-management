@@ -290,9 +290,19 @@ function getDeadlineInfo(PDO $db, int $syId): ?array
 {
     if (!$syId)
         return null;
-    $st = $db->prepare("SELECT date_end FROM school_years WHERE sy_id=? LIMIT 1");
+
+    // 1. Try to get the specific Self-Assessment (Phase 1) deadline from workflow configuration
+    $st = $db->prepare("SELECT date_end FROM sbm_workflow_phases WHERE sy_id=? AND phase_no=1 LIMIT 1");
     $st->execute([$syId]);
     $dateEnd = $st->fetchColumn();
+
+    // 2. Fallback to School Year boundary if workflow is not yet configured
+    if (!$dateEnd) {
+        $st = $db->prepare("SELECT date_end FROM school_years WHERE sy_id=? LIMIT 1");
+        $st->execute([$syId]);
+        $dateEnd = $st->fetchColumn();
+    }
+
     if (!$dateEnd)
         return null;
 

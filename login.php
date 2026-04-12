@@ -20,8 +20,18 @@ if (!empty($_SESSION['user_id'])) {
 }
 
 $error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && (($_GET['err'] ?? '') === 'deactivated')) {
-  $error = 'This account has been deactivated. Please contact the System Admin for support.';
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+  $err = $_GET['err'] ?? '';
+  if ($err === 'deactivated') {
+    $error = 'This account has been deactivated. Please contact the System Admin for support.';
+  } elseif ($err === 'not_started') {
+    if (!empty($_GET['start'])) {
+      $startFormatted = date('M j, Y, g:i A', strtotime($_GET['start']));
+      $error = "The assessment access window has not started yet. Please check back on or after {$startFormatted}.";
+    } else {
+      $error = 'The assessment access window has not started yet. Please check back later.';
+    }
+  }
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   verifyCsrf();
@@ -91,7 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($notStarted) {
                 session_unset();
                 session_destroy();
-                header('Location: ' . baseUrl() . '/login.php?err=not_started');
+                $startParam = urlencode($ce['stakeholder_access_start']);
+                header('Location: ' . baseUrl() . '/login.php?err=not_started&start=' . $startParam);
                 exit;
             }
             $_SESSION['cycle_id'] = $ce['cycle_id'];

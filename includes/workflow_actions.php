@@ -570,5 +570,6 @@ function handleWorkflowPost(PDO $db): void
         exit;
     }
 
-    exit;
+    // Do not exit here unconditionally, to allow calling scripts (like school_head/workflow.php)
+    // to process their own additional actions.
 }
