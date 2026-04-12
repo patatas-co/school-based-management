@@ -844,36 +844,12 @@ $roleLabels = [
     }
   }
 
-  /* Premium Date Inputs */
+  /* ── CUSTOM DATETIME PICKER ── */
+  /* Hidden native inputs — still used for form values */
   .dt-premium {
-    appearance: none;
-    -webkit-appearance: none;
-    background: #ffffff;
-    border: 1.5px solid #E2E8F0;
-    border-radius: 12px;
-    padding: 10px 14px;
-    font-size: 14px;
-    font-family: 'Inter', sans-serif;
-    color: #0F172A;
-    width: 100%;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    display: none !important;
   }
 
-  .dt-premium:hover {
-    border-color: #10B981;
-    background: #F0FDF4;
-  }
-
-  .dt-premium:focus {
-    outline: none;
-    border-color: #10B981;
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
-    background: #ffffff;
-  }
-
-  /* Split layout */
   .dt-split {
     display: flex;
     gap: 12px;
@@ -883,24 +859,276 @@ $roleLabels = [
     flex: 1;
   }
 
-  /* Custom picker icons */
-  .dt-premium::-webkit-calendar-picker-indicator {
+  /* Trigger button shown instead of native input */
+  .dtp-trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    color: #0F172A;
+    width: 100%;
     cursor: pointer;
-    opacity: 0.8;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .05);
+    text-align: left;
+    position: relative;
   }
 
-  /* Date specific icon */
-  input[type="date"].dt-premium::-webkit-calendar-picker-indicator {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E") no-repeat center;
+  .dtp-trigger:hover {
+    border-color: #10B981;
+    background: #F0FDF4;
   }
 
-  /* Time specific icon */
-  input[type="time"].dt-premium::-webkit-calendar-picker-indicator {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'%3E%3C/circle%3E%3Cpolyline points='12 6 12 12 16 14'%3E%3C/polyline%3E%3C/svg%3E") no-repeat center;
+  .dtp-trigger svg {
+    flex-shrink: 0;
+    stroke: #059669;
   }
 
-  .dt-premium::-webkit-calendar-picker-indicator:hover {
-    opacity: 1;
+  .dtp-trigger-text {
+    flex: 1;
+    font-weight: 600;
+    color: #0F172A;
+  }
+
+  .dtp-trigger-text.placeholder {
+    color: #94A3B8;
+    font-weight: 400;
+  }
+
+  /* Popover shell */
+  .dtp-popover {
+    position: fixed;
+    z-index: 9999;
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, .18), 0 4px 16px rgba(15, 23, 42, .08);
+    width: 520px;
+    max-width: 96vw;
+    overflow: hidden;
+    display: none;
+    flex-direction: column;
+  }
+
+  .dtp-popover.open {
+    display: flex;
+  }
+
+  /* Popover body: calendar left + time right */
+  .dtp-body {
+    display: flex;
+    height: 340px;
+  }
+
+  /* ── CALENDAR SIDE ── */
+  .dtp-cal {
+    flex: 1;
+    padding: 18px 18px 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #F1F5F9;
+  }
+
+  .dtp-cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .dtp-cal-nav button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 6px;
+    color: #64748B;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s;
+  }
+
+  .dtp-cal-nav button:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+  }
+
+  .dtp-cal-nav button svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .dtp-cal-month {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0F172A;
+  }
+
+  .dtp-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    flex: 1;
+  }
+
+  .dtp-cal-dow {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94A3B8;
+    padding: 4px 0 6px;
+  }
+
+  .dtp-cal-day {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #0F172A;
+    cursor: pointer;
+    transition: background .12s, color .12s;
+    border: none;
+    background: none;
+  }
+
+  .dtp-cal-day:hover:not(.disabled):not(.selected) {
+    background: #F1F5F9;
+  }
+
+  .dtp-cal-day.other-month {
+    color: #CBD5E1;
+    pointer-events: none;
+  }
+
+  .dtp-cal-day.today:not(.selected) {
+    color: #10B981;
+    font-weight: 800;
+  }
+
+  .dtp-cal-day.selected {
+    background: #0F172A;
+    color: #fff;
+    font-weight: 700;
+    border-radius: 8px;
+  }
+
+  .dtp-cal-day.disabled {
+    color: #CBD5E1;
+    pointer-events: none;
+    cursor: default;
+  }
+
+  /* ── TIME SIDE ── */
+  .dtp-time {
+    width: 130px;
+    overflow-y: auto;
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    scrollbar-width: thin;
+    scrollbar-color: #E2E8F0 transparent;
+  }
+
+  .dtp-time::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .dtp-time::-webkit-scrollbar-thumb {
+    background: #E2E8F0;
+    border-radius: 4px;
+  }
+
+  .dtp-time-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    border: 1.5px solid #F1F5F9;
+    background: #fff;
+    transition: all .12s;
+    flex-shrink: 0;
+  }
+
+  .dtp-time-slot:hover:not(.selected) {
+    background: #F8FAFC;
+    border-color: #E2E8F0;
+  }
+
+  .dtp-time-slot.disabled {
+    color: #CBD5E1;
+    pointer-events: none;
+    border-color: transparent;
+    cursor: not-allowed;
+  }
+
+  .dtp-time-slot.selected {
+    background: #10B981;
+    color: #fff;
+    border-color: #10B981;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+  }
+
+  /* ── CONFIRM FOOTER ── */
+  .dtp-confirm {
+    padding: 16px 20px;
+    background: #F8FAFC;
+    border-top: 1px solid #E2E8F0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dtp-confirm-text {
+    font-size: 13.5px;
+    color: #64748B;
+  }
+
+  .dtp-confirm-text strong {
+    color: #0F172A;
+    font-weight: 700;
+  }
+
+  .dtp-confirm-btn {
+    padding: 9px 20px;
+    background: #0F172A;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.1);
+  }
+
+  .dtp-confirm-btn:hover {
+    background: #1E293B;
+    transform: translateY(-1px);
+  }
+
+  .dtp-confirm-btn:active {
+    transform: translateY(0);
   }
 
   /* ── PREMIUM CSV IMPORT STYLES ── */
@@ -1127,7 +1355,6 @@ $roleLabels = [
     transform: rotate(180deg);
     color: var(--brand-600);
   }
-
 </style>
 
 <!-- Create Modal -->
@@ -1158,7 +1385,8 @@ $roleLabels = [
                   onclick="setCRole('<?= $val ?>', '<?= $lbl ?>')">
                   <div class="p-item-content">
                     <div class="p-item-title"><?= $lbl ?></div>
-                    <div class="p-item-desc"><?= $val === 'system_admin' ? 'Total system control' : 'Standard institutional access' ?>
+                    <div class="p-item-desc">
+                      <?= $val === 'system_admin' ? 'Total system control' : 'Standard institutional access' ?>
                     </div>
                   </div>
                   <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
@@ -1181,7 +1409,8 @@ $roleLabels = [
                   onclick="setCStatus('<?= $val ?>', '<?= $lbl ?>')">
                   <div class="p-item-content">
                     <div class="p-item-title"><?= $lbl ?></div>
-                    <div class="p-item-desc"><?= $val === 'active' ? 'Account can log in' : 'Access is restricted' ?></div>
+                    <div class="p-item-desc"><?= $val === 'active' ? 'Account can log in' : 'Access is restricted' ?>
+                    </div>
                   </div>
                   <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
                 </div>
@@ -1353,24 +1582,56 @@ $roleLabels = [
             <div>
               <label
                 style="color:var(--n-600);font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                <?= svgIcon('calendar') ?> Opening Date & Time
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#059669" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                Opening Date &amp; Time
               </label>
-              <div class="dt-split">
-                <input type="date" id="ev_start_d" class="dt-premium" style="flex:1.4;">
-                <input type="time" id="ev_start_t" class="dt-premium" style="flex:1;">
-              </div>
+              <!-- Hidden native inputs (values still read by saveCycleDates) -->
+              <input type="date" id="ev_start_d" class="dt-premium">
+              <input type="time" id="ev_start_t" class="dt-premium">
+              <!-- Custom trigger -->
+              <button type="button" class="dtp-trigger" onclick="dtpOpen('start')">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                <span class="dtp-trigger-text placeholder" id="dtp_start_label">Pick opening date &amp; time</span>
+              </button>
             </div>
 
             <!-- End Group -->
             <div>
               <label
                 style="color:var(--n-600);font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                <?= svgIcon('calendar') ?> Closing Date & Time
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#059669" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                Closing Date &amp; Time
               </label>
-              <div class="dt-split">
-                <input type="date" id="ev_end_d" class="dt-premium" style="flex:1.4;">
-                <input type="time" id="ev_end_t" class="dt-premium" style="flex:1;">
-              </div>
+              <input type="date" id="ev_end_d" class="dt-premium">
+              <input type="time" id="ev_end_t" class="dt-premium">
+              <button type="button" class="dtp-trigger" onclick="dtpOpen('end')">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                <span class="dtp-trigger-text placeholder" id="dtp_end_label">Pick closing date &amp; time</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1558,7 +1819,7 @@ $roleLabels = [
           style="font-size:11px;font-weight:700;color:var(--n-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">
           Required CSV format</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <?php foreach (['full_name', 'username', 'email', 'role'] as $col): ?>
+          <?php foreach (['full name', 'username', 'email', 'role'] as $col): ?>
             <span
               style="font-size:12px;font-family:monospace;background:#fff;border:1px solid var(--n-200);border-radius:4px;padding:3px 9px;color:var(--n-700);"><?= $col ?></span>
           <?php endforeach; ?>
@@ -1566,9 +1827,9 @@ $roleLabels = [
             style="font-size:12px;font-family:monospace;background:#fff;border:1px solid var(--n-100);border-radius:4px;padding:3px 9px;color:var(--n-400);font-style:italic;">password
             (optional)</span>
         </div>
-        <div style="margin-top:10px;font-size:11px;color:var(--n-400);">Valid roles: school_head ·
-          sbm_coordinator ·
-          teacher · external_stakeholder</div>
+        <div style="margin-top:10px;font-size:11px;color:var(--n-400);">Valid roles: School Head ·
+          SBM Coordinator ·
+          Teacher</div>
       </div>
       <div style="margin-bottom:12px;">
         <div class="import-card" id="userImportCard">
@@ -1589,7 +1850,7 @@ $roleLabels = [
               </div>
             </div>
             <div class="import-schema">
-              <span class="import-col">full_name</span>
+              <span class="import-col">full name</span>
               <span class="import-col">username</span>
               <span class="import-col">email</span>
               <span class="import-col">role</span>
@@ -1686,15 +1947,30 @@ $roleLabels = [
 
       <div class="fg">
         <label style="display:flex;align-items:center;gap:6px;color:#1E40AF;font-weight:600;">
-          <?= svgIcon('calendar', '', 'width:15px;height:15px;') ?> Optional: Extend Access End Date
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#1E40AF" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          Optional: Extend Access End Date
         </label>
-        <div class="dt-split" style="margin-top:8px;">
-          <input type="date" id="reactivate_end_d" class="dt-premium">
-          <input type="time" id="reactivate_end_t" class="dt-premium">
-        </div>
-        <div style="margin-top:8px;font-size:11.5px;color:var(--n-400);">
-          Leave blank to keep existing end date.
-        </div>
+        <input type="date" id="reactivate_end_d" class="dt-premium">
+        <input type="time" id="reactivate_end_t" class="dt-premium">
+        <button type="button" class="dtp-trigger" onclick="dtpOpen('reactivate')"
+          style="margin-top:8px;border-color:#BFDBFE;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#1E40AF" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          <span class="dtp-trigger-text placeholder" id="dtp_reactivate_label">Pick new end date &amp; time
+            (optional)</span>
+        </button>
+        <div style="margin-top:8px;font-size:11.5px;color:var(--n-400);">Leave blank to keep existing end date.</div>
       </div>
     </div>
     <div class="modal-foot">
@@ -1704,6 +1980,279 @@ $roleLabels = [
     </div>
   </div>
 </div>
+
+<!-- Custom DateTime Picker Popover (shared, single instance) -->
+<div class="dtp-popover" id="dtpPopover">
+  <div class="dtp-body">
+    <!-- Calendar -->
+    <div class="dtp-cal">
+      <div class="dtp-cal-nav">
+        <button type="button" onclick="dtpPrevMonth()">
+          <svg viewBox="0 0 24 24">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <span class="dtp-cal-month" id="dtpMonthLabel"></span>
+        <button type="button" onclick="dtpNextMonth()">
+          <svg viewBox="0 0 24 24">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </div>
+      <div class="dtp-cal-grid" id="dtpCalGrid"></div>
+    </div>
+    <!-- Time slots -->
+    <div class="dtp-time" id="dtpTimeList"></div>
+  </div>
+  <div class="dtp-confirm">
+    <div class="dtp-confirm-text" id="dtpConfirmText">Select a date and time</div>
+    <button type="button" class="dtp-confirm-btn" onclick="dtpConfirm()">Continue</button>
+  </div>
+</div>
+
+<script>
+  // ── Custom DateTime Picker Engine ─────────────────────────────
+  (function () {
+    const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    let _target = null; // 'start' | 'end' | 'reactivate'
+    let _year = 0;
+    let _month = 0;   // 0-based
+    let _selDate = null; // Date object
+    let _selTime = null; // '09:00'
+
+    const popover = document.getElementById('dtpPopover');
+    const grid = document.getElementById('dtpCalGrid');
+    const timeList = document.getElementById('dtpTimeList');
+    const monthLbl = document.getElementById('dtpMonthLabel');
+    const confText = document.getElementById('dtpConfirmText');
+
+    // Config per target
+    const cfg = {
+      start: { dateId: 'ev_start_d', timeId: 'ev_start_t', labelId: 'dtp_start_label' },
+      end: { dateId: 'ev_end_d', timeId: 'ev_end_t', labelId: 'dtp_end_label' },
+      reactivate: { dateId: 'reactivate_end_d', timeId: 'reactivate_end_t', labelId: 'dtp_reactivate_label' },
+    };
+
+    window.dtpOpen = function (target) {
+      _target = target;
+      const c = cfg[target];
+      const now = new Date();
+
+      // Read existing native value if any
+      const existingDate = document.getElementById(c.dateId).value;
+      const existingTime = document.getElementById(c.timeId).value;
+
+      if (existingDate) {
+        const [y, m, d] = existingDate.split('-').map(Number);
+        _selDate = new Date(y, m - 1, d);
+        _year = y; _month = m - 1;
+      } else {
+        _selDate = null;
+        _year = now.getFullYear(); _month = now.getMonth();
+      }
+      _selTime = existingTime || null;
+
+      renderCal();
+      renderTimeSlots();
+      updateConfirmText();
+      positionPopover(event.currentTarget || document.querySelector('.dtp-trigger'));
+      popover.classList.add('open');
+    };
+
+    function positionPopover(trigger) {
+      const rect = trigger.getBoundingClientRect();
+      const pw = 520;
+      const ph = 390;
+      let left = rect.left;
+      let top = rect.bottom + 8;
+
+      if (left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if (left < 8) left = 8;
+      if (top + ph > window.innerHeight - 12) top = rect.top - ph - 8;
+
+      popover.style.left = left + 'px';
+      popover.style.top = top + 'px';
+      popover.style.width = pw + 'px';
+    }
+
+    function renderCal() {
+      monthLbl.textContent = MONTHS[_month] + ' ' + _year;
+      grid.innerHTML = '';
+
+      // Day-of-week headers
+      DOW.forEach(d => {
+        const el = document.createElement('div');
+        el.className = 'dtp-cal-dow';
+        el.textContent = d;
+        grid.appendChild(el);
+      });
+
+      const firstDay = new Date(_year, _month, 1).getDay();
+      const daysInMonth = new Date(_year, _month + 1, 0).getDate();
+      const daysInPrev = new Date(_year, _month, 0).getDate();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Prev-month filler
+      for (let i = firstDay - 1; i >= 0; i--) {
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'dtp-cal-day other-month';
+        el.textContent = daysInPrev - i;
+        grid.appendChild(el);
+      }
+
+      // Current month
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dt = new Date(_year, _month, d);
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.textContent = d;
+        let cls = 'dtp-cal-day';
+        
+        const isPastDate = dt.getTime() < today.getTime();
+        if (dt.getTime() === today.getTime()) cls += ' today';
+        if (_selDate && dt.toDateString() === _selDate.toDateString()) cls += ' selected';
+        if (isPastDate) cls += ' disabled';
+        
+        el.className = cls;
+        if (!isPastDate) {
+          el.onclick = () => { _selDate = dt; renderCal(); renderTimeSlots(); updateConfirmText(); };
+        }
+        grid.appendChild(el);
+      }
+
+      // Next-month filler
+      const totalCells = firstDay + daysInMonth;
+      const remainder = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+      for (let d = 1; d <= remainder; d++) {
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'dtp-cal-day other-month';
+        el.textContent = d;
+        grid.appendChild(el);
+      }
+    }
+
+    function renderTimeSlots() {
+      timeList.innerHTML = '';
+      const slots = [];
+      for (let h = 0; h < 24; h++) {
+        for (let m = 0; m < 60; m += 15) {
+          slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+        }
+      }
+      slots.forEach(slot => {
+        const el = document.createElement('div');
+        const [hh, mm] = slot.split(':').map(Number);
+        
+        let isDisabled = false;
+        if (_selDate) {
+           const now = new Date();
+           if (_selDate.toDateString() === now.toDateString()) {
+              if (hh < now.getHours() || (hh === now.getHours() && mm < now.getMinutes())) {
+                  isDisabled = true;
+              }
+           }
+        }
+        
+        let cls = 'dtp-time-slot';
+        if (slot === _selTime) cls += ' selected';
+        if (isDisabled) cls += ' disabled';
+        el.className = cls;
+        
+        // Display as 12-hr
+        const ampm = hh < 12 ? 'AM' : 'PM';
+        const disp = ((hh % 12) || 12) + ':' + String(mm).padStart(2, '0') + ' ' + ampm;
+        el.textContent = disp;
+        
+        if (!isDisabled) {
+           el.onclick = () => { _selTime = slot; renderTimeSlots(); updateConfirmText(); };
+        }
+        timeList.appendChild(el);
+      });
+
+      // Scroll to selected or current hour
+      const selectedEl = timeList.querySelector('.selected');
+      if (selectedEl) {
+        setTimeout(() => selectedEl.scrollIntoView({ block: 'center', behavior: 'smooth' }), 30);
+      } else {
+        const now = new Date();
+        const currentSlotIdx = now.getHours() * 4;
+        const all = timeList.querySelectorAll('.dtp-time-slot');
+        if (all[currentSlotIdx]) {
+          setTimeout(() => all[currentSlotIdx].scrollIntoView({ block: 'center' }), 30);
+        }
+      }
+    }
+
+    function updateConfirmText() {
+      if (!_selDate && !_selTime) {
+        confText.innerHTML = 'Select a date and time';
+        return;
+      }
+      const datePart = _selDate
+        ? _selDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+        : '—';
+      const timePart = _selTime ? fmtTime12(_selTime) : '—';
+      confText.innerHTML = `Your selection: <strong>${datePart} at ${timePart}</strong>`;
+    }
+
+    function fmtTime12(t) {
+      const [hh, mm] = t.split(':').map(Number);
+      const ampm = hh < 12 ? 'AM' : 'PM';
+      return ((hh % 12) || 12) + ':' + String(mm).padStart(2, '0') + ' ' + ampm;
+    }
+
+    window.dtpPrevMonth = function () {
+      _month--;
+      if (_month < 0) { _month = 11; _year--; }
+      renderCal();
+    };
+    window.dtpNextMonth = function () {
+      _month++;
+      if (_month > 11) { _month = 0; _year++; }
+      renderCal();
+    };
+
+    window.dtpConfirm = function () {
+      if (!_selDate || !_selTime) {
+        if (!_selDate) { alert('Please select a date.'); return; }
+        if (!_selTime) { alert('Please select a time slot.'); return; }
+      }
+      const c = cfg[_target];
+
+      // Write to hidden native inputs
+      const y = _selDate.getFullYear();
+      const m = String(_selDate.getMonth() + 1).padStart(2, '0');
+      const d = String(_selDate.getDate()).padStart(2, '0');
+      document.getElementById(c.dateId).value = `${y}-${m}-${d}`;
+      document.getElementById(c.timeId).value = _selTime;
+
+      // Update trigger label
+      const label = document.getElementById(c.labelId);
+      if (label) {
+        const datePart = _selDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        label.textContent = `${datePart}  ${fmtTime12(_selTime)}`;
+        label.classList.remove('placeholder');
+      }
+
+      popover.classList.remove('open');
+    };
+
+    // Close on outside click
+    document.addEventListener('mousedown', function (e) {
+      if (!popover.contains(e.target) && !e.target.closest('.dtp-trigger')) {
+        popover.classList.remove('open');
+      }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') popover.classList.remove('open');
+    });
+  })();
+</script>
 
 <script>
   const userStatusStyles = {
@@ -2031,6 +2580,29 @@ $roleLabels = [
       document.getElementById('ev_start_t').value = s ? s.substring(11, 16) : '';
       document.getElementById('ev_end_d').value = e ? e.substring(0, 10) : '';
       document.getElementById('ev_end_t').value = e ? e.substring(11, 16) : '';
+
+      // Restore trigger button labels from saved values
+      function fmtSavedLabel(dateStr, timeStr) {
+        if (!dateStr || !timeStr) return null;
+        const d = new Date(dateStr + 'T' + timeStr);
+        const datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const [hh, mm] = timeStr.split(':').map(Number);
+        const ampm = hh < 12 ? 'AM' : 'PM';
+        const timePart = ((hh % 12) || 12) + ':' + String(mm).padStart(2, '0') + ' ' + ampm;
+        return datePart + '  ' + timePart;
+      }
+      const startLbl = document.getElementById('dtp_start_label');
+      const endLbl = document.getElementById('dtp_end_label');
+      const startFormatted = fmtSavedLabel(s ? s.substring(0, 10) : '', s ? s.substring(11, 16) : '');
+      const endFormatted = fmtSavedLabel(e ? e.substring(0, 10) : '', e ? e.substring(11, 16) : '');
+      if (startLbl) {
+        if (startFormatted) { startLbl.textContent = startFormatted; startLbl.classList.remove('placeholder'); }
+        else { startLbl.textContent = 'Pick opening date & time'; startLbl.classList.add('placeholder'); }
+      }
+      if (endLbl) {
+        if (endFormatted) { endLbl.textContent = endFormatted; endLbl.classList.remove('placeholder'); }
+        else { endLbl.textContent = 'Pick closing date & time'; endLbl.classList.add('placeholder'); }
+      }
 
       const now = new Date();
       const end = e ? new Date(e.replace(' ', 'T')) : null;

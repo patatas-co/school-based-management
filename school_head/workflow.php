@@ -468,8 +468,8 @@ include __DIR__ . '/../includes/header.php';
       </div>
       <div class="p-select-menu">
         <?php foreach ($syears as $sy): ?>
-          <div class="p-select-item <?= $sy['sy_id'] == $syId ? 'selected' : '' ?>" 
-               onclick="location.href='workflow.php?sy=<?= $sy['sy_id'] ?>'">
+          <div class="p-select-item <?= $sy['sy_id'] == $syId ? 'selected' : '' ?>"
+            onclick="location.href='workflow.php?sy=<?= $sy['sy_id'] ?>'">
             SY <?= e($sy['label']) ?>
             <?php if ($sy['sy_id'] == $syId): ?>
               <span class="p-select-check"></span>
@@ -669,7 +669,8 @@ $currentStageIdx = array_search($currentCycleStatus, $SH_STAGE_ORDER);
   <div class="wf-step <?= ($cycle && $cycle['status'] === 'submitted') ? 'active' : '' ?>">
     <div class="wf-step-num" style="background:#FEF3C7;color:#D97706;">2</div>
     <div class="wf-step-title">Validation</div>
-    <div class="wf-step-sub">SDO validates the submitted assessment, reviews evidence, and provides official feedback.
+    <div class="wf-step-sub">School head validates the submitted assessment, reviews evidence, and provides official
+      feedback.
     </div>
     <?php if (!empty($phaseSchedule[2])): $ph = $phaseSchedule[2]; ?>
       <div class="wf-phase-dates" style="background:#FEF3C7;color:#D97706;border-color:#FDE68A;">
@@ -813,15 +814,16 @@ $pillMap = [
                 </div>
               </div>
               <div class="milestone-actions">
-                  <!-- Status quick-change -->
+                <!-- Status quick-change -->
                 <div class="p-select" id="ms<?= $m['milestone_id'] ?>" style="width:140px;">
-                  <div class="p-select-trigger" onclick="togglePSelect(event,'ms<?= $m['milestone_id'] ?>')" style="padding:3px 10px;min-height:28px;font-size:11.5px;font-weight:600;background:<?= $pillBg ?>;color:<?= $pillColor ?>;border-color:<?= $pillColor ?>33;">
+                  <div class="p-select-trigger" onclick="togglePSelect(event,'ms<?= $m['milestone_id'] ?>')"
+                    style="padding:3px 10px;min-height:28px;font-size:11.5px;font-weight:600;background:<?= $pillBg ?>;color:<?= $pillColor ?>;border-color:<?= $pillColor ?>33;">
                     <span class="p-select-val"><?= ucfirst(str_replace('_', ' ', $m['status'])) ?></span>
                   </div>
                   <div class="p-select-menu">
                     <?php foreach (['upcoming', 'in_progress', 'completed', 'delayed'] as $sv): ?>
                       <div class="p-select-item <?= $m['status'] === $sv ? 'selected' : '' ?>"
-                           onclick="updateStatus(<?= $m['milestone_id'] ?>,'<?= $sv ?>');document.getElementById('ms<?= $m['milestone_id'] ?>').querySelector('.p-select-val').textContent='<?= ucfirst(str_replace('_', ' ', $sv)) ?>';">
+                        onclick="updateStatus(<?= $m['milestone_id'] ?>,'<?= $sv ?>');document.getElementById('ms<?= $m['milestone_id'] ?>').querySelector('.p-select-val').textContent='<?= ucfirst(str_replace('_', ' ', $sv)) ?>';">
                         <?= ucfirst(str_replace('_', ' ', $sv)) ?>
                       </div>
                     <?php endforeach; ?>
@@ -978,7 +980,8 @@ $pillMap = [
               <span class="p-select-val" id="m_step_val">Step 1 — Self-Assessment</span>
             </div>
             <div class="p-select-menu">
-              <div class="p-select-item" onclick="setMStep('1', 'Step 1 — Self-Assessment')">Step 1 — Self-Assessment</div>
+              <div class="p-select-item" onclick="setMStep('1', 'Step 1 — Self-Assessment')">Step 1 — Self-Assessment
+              </div>
               <div class="p-select-item" onclick="setMStep('2', 'Step 2 — Validation')">Step 2 — Validation</div>
               <div class="p-select-item" onclick="setMStep('3', 'Step 3 — Improvement')">Step 3 — Improvement</div>
             </div>
@@ -1158,11 +1161,14 @@ $pillMap = [
             <span class="p-select-val" id="ret_to_stage_val">In Progress (teachers re-answer)</span>
           </div>
           <div class="p-select-menu">
-            <div class="p-select-item selected" onclick="setRetStage('in_progress', 'In Progress (teachers re-answer)')">In Progress (teachers re-answer)</div>
-            <div class="p-select-item" onclick="setRetStage('assigning', 'Assigning (re-assign indicators)')">Assigning (re-assign indicators)</div>
+            <div class="p-select-item selected"
+              onclick="setRetStage('in_progress', 'In Progress (teachers re-answer)')">In Progress (teachers re-answer)
+            </div>
+            <div class="p-select-item" onclick="setRetStage('assigning', 'Assigning (re-assign indicators)')">Assigning
+              (re-assign indicators)</div>
           </div>
         </div>
-        
+
         <script>
           function setRetStage(val, lbl) {
             document.getElementById('ret_to_stage').value = val;
