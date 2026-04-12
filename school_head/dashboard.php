@@ -101,6 +101,9 @@ $recentActivity = $db->query("
 $validationRate = $submitted > 0 ? round(($validated / $submitted) * 100) : 0;
 $hasData = ($totalCycles > 0);
 
+// ── Deadline awareness ────────────────────────────────────────
+$deadlineInfo = $selectedSyId ? getDeadlineInfo($db, $selectedSyId) : null;
+
 $pageTitle = 'Dashboard';
 $activePage = 'dashboard.php';
 include __DIR__ . '/../includes/header.php';
@@ -109,7 +112,6 @@ include __DIR__ . '/../includes/header.php';
 <style>
   /* ── HERO ── */
   .db-hero {
-    background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F4C25 100%);
     border-radius: var(--radius-lg);
     padding: 28px 32px;
     color: #fff;
@@ -123,7 +125,62 @@ include __DIR__ . '/../includes/header.php';
     flex-wrap: wrap;
   }
 
+  .db-hero-bg {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(ellipse 55% 90% at 92% 50%, rgba(34, 197, 94, 0.13) 0%, transparent 65%),
+      radial-gradient(ellipse 35% 55% at 8% 15%, rgba(22, 101, 52, 0.40) 0%, transparent 60%),
+      linear-gradient(135deg, #081a08 0%, #0d260d 35%, #14532d 65%, #166534 100%);
+    overflow: hidden;
+    z-index: 0;
+  }
 
+  .db-hero-bg::before {
+    content: '';
+    position: absolute;
+    right: -60px;
+    top: -60px;
+    width: 340px;
+    height: 340px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(74, 222, 128, 0.10) 0%, rgba(34, 197, 94, 0.05) 50%, transparent 75%);
+    pointer-events: none;
+    animation: heroOrbPulse 4s ease-in-out infinite;
+  }
+
+  @keyframes heroOrbPulse {
+    0%,
+    100% {
+      opacity: .7;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.07);
+    }
+  }
+
+  .db-hero-bg::after {
+    content: '';
+    position: absolute;
+    left: -40px;
+    bottom: -60px;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(22, 163, 74, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .db-hero-shimmer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.025) 50%, transparent 80%);
+    z-index: 0;
+  }
 
   .db-hero-left {
     position: relative;
@@ -915,97 +972,101 @@ include __DIR__ . '/../includes/header.php';
 
 <!-- ═══════════ HERO ═══════════ -->
 <div class="db-hero">
+  <div class="db-hero-bg"><div class="db-hero-shimmer"></div></div>
   <div class="db-hero-left">
     <div class="db-hero-greeting">SBM Online Monitoring System</div>
     <div class="db-hero-title">School Head Dashboard</div>
-    <div class="db-hero-sub">
+    <div class="db-hero-sub" style="margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
       <?= date('l, F j, Y') ?>
       &nbsp;·&nbsp; Dasmariñas Integrated High School
     </div>
-  </div>
-  <div class="db-hero-right">
-
-    <?php if (count($allSYs) > 0): ?>
-      <!-- Custom SY Dropdown -->
-      <div class="sy-dd" id="syDropdown">
-        <div class="sy-dd-trigger" id="syTrigger" onclick="toggleSyDropdown()" role="button" aria-haspopup="listbox"
-          aria-expanded="false">
-          <!-- Calendar icon -->
-          <svg class="sy-dd-icon" viewBox="0 0 24 24">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
-          <div class="sy-dd-text">
-            <span class="sy-dd-label">School Year</span>
-            <span class="sy-dd-value">SY <?= e($selectedSYLabel) ?></span>
-          </div>
-          <!-- Chevron -->
-          <svg class="sy-dd-chevron" viewBox="0 0 24 24">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </div>
-        <div class="sy-dd-panel" id="syPanel" role="listbox">
-          <?php
-          $hasCurrentProcessed = false;
-          foreach ($allSYs as $i => $sy):
-            $isActive = ($sy['sy_id'] == $selectedSyId);
-
-            // Show a divider once we move from 'Current' year to 'Previous' years
-            if ($i > 0 && $hasCurrentProcessed && !$sy['is_current']) {
-              echo '<div class="sy-dd-divider"></div>';
-              $hasCurrentProcessed = false; // Only show one divider
-            }
-            if ($sy['is_current']) {
-              $hasCurrentProcessed = true;
-            }
-            ?>
-            <a href="dashboard.php?sy_id=<?= $sy['sy_id'] ?>" class="sy-dd-item <?= $isActive ? 'active' : '' ?>"
-              role="option" aria-selected="<?= $isActive ? 'true' : 'false' ?>">
-              <div class="sy-dd-item-text">
-                <div class="sy-dd-item-name">SY <?= e($sy['label']) ?>
-                  <?php if ($sy['is_current']): ?>
-                    <span
-                      style="font-size:10px;font-weight:700;color:#16A34A;margin-left:5px;background:#DCFCE7;padding:1px 6px;border-radius:999px;">Current</span>
-                  <?php endif; ?>
-                </div>
-              </div>
-              <?php if ($isActive): ?><span class="sy-dd-dot"></span><?php endif; ?>
-            </a>
-          <?php endforeach; ?>
-        </div>
-      </div>
+    <?php if ($deadlineInfo): ?>
+      <?= renderDeadlineChip($deadlineInfo, 'dark') ?>
     <?php endif; ?>
-
-    <a href="assessment.php?status=submitted&sy_id=<?= $selectedSyId ?>" class="db-hero-btn db-hero-btn-primary">
-      <svg viewBox="0 0 24 24">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-        <polyline points="22 4 12 14.01 9 11.01" />
-      </svg>
-      Review Submissions
-      <?php if ($submitted - $validated > 0): ?>
-        <span
-          style="background:rgba(255,255,255,.2);border-radius:999px;padding:1px 7px;font-size:11px;"><?= $submitted - $validated ?></span>
-      <?php endif; ?>
-    </a>
-    <a href="analytics.php?sy_id=<?= $selectedSyId ?>" class="db-hero-btn db-hero-btn-secondary">
-      <svg viewBox="0 0 24 24">
-        <line x1="18" y1="20" x2="18" y2="10" />
-        <line x1="12" y1="20" x2="12" y2="4" />
-        <line x1="6" y1="20" x2="6" y2="14" />
-      </svg>
-      Analytics
-    </a>
-    <a href="reports.php?sy_id=<?= $selectedSyId ?>" class="db-hero-btn db-hero-btn-secondary">
-      <svg viewBox="0 0 24 24">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-      </svg>
-      Reports
-    </a>
   </div>
-</div>
+  <div class="db-hero-right" style="align-items:center;">
+
+      <?php if (count($allSYs) > 0): ?>
+        <!-- Custom SY Dropdown -->
+        <div class="sy-dd" id="syDropdown">
+          <div class="sy-dd-trigger" id="syTrigger" onclick="toggleSyDropdown()" role="button" aria-haspopup="listbox"
+            aria-expanded="false">
+            <!-- Calendar icon -->
+            <svg class="sy-dd-icon" viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <div class="sy-dd-text">
+              <span class="sy-dd-label">School Year</span>
+              <span class="sy-dd-value">SY <?= e($selectedSYLabel) ?></span>
+            </div>
+            <!-- Chevron -->
+            <svg class="sy-dd-chevron" viewBox="0 0 24 24">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div class="sy-dd-panel" id="syPanel" role="listbox">
+            <?php
+            $hasCurrentProcessed = false;
+            foreach ($allSYs as $i => $sy):
+              $isActive = ($sy['sy_id'] == $selectedSyId);
+
+              // Show a divider once we move from 'Current' year to 'Previous' years
+              if ($i > 0 && $hasCurrentProcessed && !$sy['is_current']) {
+                echo '<div class="sy-dd-divider"></div>';
+                $hasCurrentProcessed = false; // Only show one divider
+              }
+              if ($sy['is_current']) {
+                $hasCurrentProcessed = true;
+              }
+              ?>
+              <a href="dashboard.php?sy_id=<?= $sy['sy_id'] ?>" class="sy-dd-item <?= $isActive ? 'active' : '' ?>"
+                role="option" aria-selected="<?= $isActive ? 'true' : 'false' ?>">
+                <div class="sy-dd-item-text">
+                  <div class="sy-dd-item-name">SY <?= e($sy['label']) ?>
+                    <?php if ($sy['is_current']): ?>
+                      <span
+                        style="font-size:10px;font-weight:700;color:#16A34A;margin-left:5px;background:#DCFCE7;padding:1px 6px;border-radius:999px;">Current</span>
+                    <?php endif; ?>
+                  </div>
+                </div>
+                <?php if ($isActive): ?><span class="sy-dd-dot"></span><?php endif; ?>
+              </a>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
+
+      <a href="assessment.php?status=submitted&sy_id=<?= $selectedSyId ?>" class="db-hero-btn db-hero-btn-primary">
+        <svg viewBox="0 0 24 24">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+        Review Submissions
+        <?php if ($submitted - $validated > 0): ?>
+          <span
+            style="background:rgba(255,255,255,.2);border-radius:999px;padding:1px 7px;font-size:11px;"><?= $submitted - $validated ?></span>
+        <?php endif; ?>
+      </a>
+      <a href="analytics.php?sy_id=<?= $selectedSyId ?>" class="db-hero-btn db-hero-btn-secondary">
+        <svg viewBox="0 0 24 24">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+        Analytics
+      </a>
+      <a href="reports.php?sy_id=<?= $selectedSyId ?>" class="db-hero-btn db-hero-btn-secondary">
+        <svg viewBox="0 0 24 24">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
+        Reports
+      </a>
+  </div><!-- /db-hero-right -->
+</div><!-- /db-hero -->
 
 <!-- ═══════════ SY CONTEXT BAR ═══════════ -->
 <div class="sy-context-bar <?= $isCurrentSY ? 'is-current' : 'is-historical' ?>">
@@ -1022,12 +1083,14 @@ include __DIR__ . '/../includes/header.php';
     Viewing data for <strong>SY <?= e($selectedSYLabel) ?></strong>
     <?= $isCurrentSY ? '&nbsp;<span style="font-size:11px;font-weight:700;background:rgba(22,163,74,.15);padding:1px 8px;border-radius:999px;">Current</span>' : '' ?>
   <?php else: ?>
-    <span>No assessment data found for <strong>SY <?= e($selectedSYLabel) ?></strong> — this year may not have any cycles
+    <span>No assessment data found for <strong>SY <?= e($selectedSYLabel) ?></strong> — this year may not have any
+      cycles
       yet.</span>
   <?php endif; ?>
   <?php if (!$isCurrentSY): ?>
     <a href="dashboard.php?sy_id=<?= $currentSYRow['sy_id'] ?? '' ?>"
-      style="margin-left:auto;font-weight:700;white-space:nowrap;color:inherit;text-decoration:none;opacity:.8;">← Current
+      style="margin-left:auto;font-weight:700;white-space:nowrap;color:inherit;text-decoration:none;opacity:.8;">←
+      Current
       SY</a>
   <?php endif; ?>
 </div>
@@ -1080,7 +1143,8 @@ include __DIR__ . '/../includes/header.php';
     <div class="stat-v2-accent" style="background:#16A34A;"></div>
     <div class="stat-v2-label">Validated</div>
     <div class="stat-v2-value" data-live="validated"><?= number_format($validated) ?></div>
-    <div class="stat-v2-meta"><span class="stat-v2-badge badge-green"><?= $validationRate ?>% of submitted</span></div>
+    <div class="stat-v2-meta"><span class="stat-v2-badge badge-green"><?= $validationRate ?>% of submitted</span>
+    </div>
     <div class="kpi-bar">
       <div class="kpi-bar-fill" style="width:<?= $validationRate ?>%;background:#16A34A;"></div>
     </div>
@@ -1276,7 +1340,8 @@ include __DIR__ . '/../includes/header.php';
             <?php endforeach; ?>
           </div>
         <?php else: ?>
-          <p style="text-align:center;color:var(--n-400);font-size:13px;padding:24px 0;">No validated assessments yet.</p>
+          <p style="text-align:center;color:var(--n-400);font-size:13px;padding:24px 0;">No validated assessments yet.
+          </p>
         <?php endif; ?>
       </div>
     </div>
@@ -1309,7 +1374,8 @@ include __DIR__ . '/../includes/header.php';
             </a>
           <?php endforeach; ?>
           <?php if (!$allSYs): ?>
-            <p style="text-align:center;color:var(--n-400);font-size:12px;padding:12px 0;">No school years configured.</p>
+            <p style="text-align:center;color:var(--n-400);font-size:12px;padding:12px 0;">No school years configured.
+            </p>
           <?php endif; ?>
         </div>
       </div>
@@ -1478,4 +1544,6 @@ include __DIR__ . '/../includes/header.php';
   });
 </script>
 
+<?= deadlineChipCss() ?>
+<?= deadlineChipJs() ?>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

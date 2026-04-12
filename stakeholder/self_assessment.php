@@ -407,6 +407,8 @@ $school = $db->prepare(
 $school->execute([$schoolId]);
 $school = $school->fetch();
 
+$deadlineInfo = $syId ? getDeadlineInfo($db, (int) $syId) : null;
+
 $pageTitle = 'SBM Self-Assessment';
 $activePage = 'self_assessment.php';
 include __DIR__ . '/../includes/header.php';
@@ -522,6 +524,11 @@ include __DIR__ . '/../includes/header.php';
         <p><?= e($school['school_name'] ?? '') ?> &nbsp;·&nbsp;
             SY <?= e($sy['label'] ?? '—') ?></p>
     </div>
+    <?php if ($deadlineInfo): ?>
+        <div class="page-head-actions">
+            <?= renderDeadlineChip($deadlineInfo, 'light') ?>
+        </div>
+    <?php endif; ?>
 </div>
 
 <div class="alert alert-info" style="margin-bottom:16px;">
@@ -762,4 +769,6 @@ include __DIR__ . '/../includes/header.php';
             isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
     }
 </script>
+<?= deadlineChipCss() ?>
+<?= deadlineChipJs() ?>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

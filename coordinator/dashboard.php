@@ -87,6 +87,9 @@ if ($cycle) {
   }
 }
 
+// ── Deadline awareness ────────────────────────────────────────
+$deadlineInfo = $syId ? getDeadlineInfo($db, $syId) : null;
+
 $isLocked = $cycle && in_array($cycle['status'], ['submitted', 'validated']);
 $hasScore = $cycle && $cycle['overall_score'];
 $mat = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : null;
@@ -920,7 +923,7 @@ include __DIR__ . '/../includes/header.php';
   <div class="coord-hero-left">
     <div class="coord-hero-eyebrow">SBM Online Monitoring System</div>
     <div class="coord-hero-title">Coordinator Dashboard</div>
-    <div class="coord-hero-sub">
+    <div class="coord-hero-sub" style="align-items:center;">
       <?= date('l, F j, Y') ?>
       <?php if ($syLabel): ?>&nbsp;·&nbsp; SY <?= e($syLabel) ?><?php endif; ?>
       &nbsp;·&nbsp; Dasmariñas Integrated High School
@@ -933,6 +936,11 @@ include __DIR__ . '/../includes/header.php';
           Started</span>
       <?php endif; ?>
     </div>
+
+    <?php if ($deadlineInfo): ?>
+      <?= renderDeadlineChip($deadlineInfo, 'dark') ?>
+    <?php endif; ?>
+
   </div>
 
   <div class="coord-hero-right hero-actions-wrap">
@@ -1380,4 +1388,6 @@ include __DIR__ . '/../includes/header.php';
   }
 </script>
 
+<?= deadlineChipCss() ?>
+<?= deadlineChipJs() ?>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

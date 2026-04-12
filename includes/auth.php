@@ -263,16 +263,16 @@ function checkRateLimit(string $key, int $maxAttempts, int $windowSeconds): arra
 {
     $now = time();
     $sessionKey = "rl_{$key}_attempts";
-    $windowKey  = "rl_{$key}_window_start";
+    $windowKey = "rl_{$key}_window_start";
 
     $windowStart = (int) ($_SESSION[$windowKey] ?? 0);
-    $attempts    = (int) ($_SESSION[$sessionKey] ?? 0);
+    $attempts = (int) ($_SESSION[$sessionKey] ?? 0);
 
     // Reset if the window has expired
     if ($now - $windowStart >= $windowSeconds) {
-        $_SESSION[$windowKey]  = $now;
+        $_SESSION[$windowKey] = $now;
         $_SESSION[$sessionKey] = 0;
-        $attempts    = 0;
+        $attempts = 0;
         $windowStart = $now;
     }
 
@@ -283,6 +283,157 @@ function checkRateLimit(string $key, int $maxAttempts, int $windowSeconds): arra
 
     $_SESSION[$sessionKey] = $attempts + 1;
     return ['allowed' => true, 'retry_after' => 0];
+}
+
+
+function getDeadlineInfo(PDO $db, int $syId): ?array
+{
+    if (!$syId)
+        return null;
+    $st = $db->prepare("SELECT date_end FROM school_years WHERE sy_id=? LIMIT 1");
+    $st->execute([$syId]);
+    $dateEnd = $st->fetchColumn();
+    if (!$dateEnd)
+        return null;
+
+    $tz = new DateTimeZone('Asia/Manila');
+    $now = new DateTime('now', $tz);
+    $end = new DateTime($dateEnd . ' 23:59:59', $tz);
+    $diff = $now->diff($end);
+    $totalSec = $end->getTimestamp() - $now->getTimestamp();
+
+    return [
+        'date' => $dateEnd,
+        'seconds' => $totalSec,
+        'days' => (int) $diff->days,
+        'hours' => (int) $diff->h,
+        'minutes' => (int) $diff->i,
+        'overdue' => $totalSec < 0,
+        'today' => ($diff->days === 0 && $totalSec >= 0),
+    ];
+}
+
+function renderDeadlineChip(?array $dl, string $context = 'dark'): string
+{
+    if (!$dl)
+        return '';
+
+    // Determine visual state
+    if ($dl['overdue']) {
+        $dot = '#EF4444';
+        $color = $context === 'dark' ? '#FCA5A5' : '#DC2626';
+        $bg = $context === 'dark' ? 'rgba(220,38,38,0.18)' : '#FEE2E2';
+        $border = $context === 'dark' ? 'rgba(220,38,38,0.45)' : '#FECACA';
+        $anim = 'deadlinePulseRed 2s ease-in-out infinite';
+        $label = 'Overdue by ' . $dl['days'] . ' day' . ($dl['days'] !== 1 ? 's' : '');
+        $sub = 'Assessment period has ended · ' . date('M d, Y', strtotime($dl['date']));
+        $icon = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+    } elseif ($dl['today']) {
+        $dot = '#EF4444';
+        $color = $context === 'dark' ? '#FCA5A5' : '#DC2626';
+        $bg = $context === 'dark' ? 'rgba(220,38,38,0.14)' : '#FEE2E2';
+        $border = $context === 'dark' ? 'rgba(220,38,38,0.40)' : '#FECACA';
+        $anim = 'deadlinePulseRed 1.4s ease-in-out infinite';
+        $label = 'Due Today';
+        $sub = 'Assessment ends tonight at 11:59 PM';
+        $icon = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><polyline points="12 12 16 14"/>';
+    } elseif ($dl['days'] < 3) {
+        $dot = '#F59E0B';
+        $color = $context === 'dark' ? '#FCD34D' : '#D97706';
+        $bg = $context === 'dark' ? 'rgba(217,119,6,0.16)' : '#FEF3C7';
+        $border = $context === 'dark' ? 'rgba(217,119,6,0.40)' : '#FDE68A';
+        $anim = 'deadlinePulseAmber 2.5s ease-in-out infinite';
+        $label = $dl['days'] . 'd ' . $dl['hours'] . 'h left';
+        $sub = 'Deadline: ' . date('M d, Y', strtotime($dl['date']));
+        $icon = '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>';
+    } else {
+        $dot = '#4ADE80';
+        $color = $context === 'dark' ? '#86EFAC' : '#16A34A';
+        $bg = $context === 'dark' ? 'rgba(74,222,128,0.10)' : '#DCFCE7';
+        $border = $context === 'dark' ? 'rgba(74,222,128,0.28)' : '#86EFAC';
+        $anim = 'none';
+        $label = $dl['days'] . ' days left';
+        $sub = 'Deadline: ' . date('M d, Y', strtotime($dl['date']));
+        $icon = '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>';
+    }
+
+    $subColor = $context === 'dark' ? 'rgba(255,255,255,.38)' : '#6B7280';
+
+    return '
+    <div class="deadline-chip" data-deadline="' . htmlspecialchars($dl['date'], ENT_QUOTES) . '" style="
+        display:inline-flex;align-items:center;gap:9px;
+        background:' . $bg . ';border:1px solid ' . $border . ';
+        border-radius:10px;padding:8px 14px 8px 10px;
+        animation:' . $anim . ';max-width:fit-content;
+        backdrop-filter:blur(8px);">
+      <span style="width:8px;height:8px;border-radius:50%;
+          background:' . $dot . ';flex-shrink:0;
+          box-shadow:0 0 6px ' . $dot . ';"></span>
+      <div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="' . $color . '"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+               style="width:13px;height:13px;flex-shrink:0;">
+            ' . $icon . '
+          </svg>
+          <span class="dl-label" style="font-size:13px;font-weight:700;
+              color:' . $color . ';letter-spacing:.01em;">' . htmlspecialchars($label, ENT_QUOTES) . '</span>
+        </div>
+        <div class="dl-sub" style="font-size:10.5px;color:' . $subColor . ';
+            margin-top:1px;padding-left:20px;">' . htmlspecialchars($sub, ENT_QUOTES) . '</div>
+      </div>
+    </div>';
+}
+
+function deadlineChipCss(): string
+{
+    return '
+    <style>
+    @keyframes deadlinePulseRed {
+        0%,100% { box-shadow:0 0 0 0 rgba(220,38,38,0); }
+        50%      { box-shadow:0 0 0 5px rgba(220,38,38,0.20); }
+    }
+    @keyframes deadlinePulseAmber {
+        0%,100% { box-shadow:0 0 0 0 rgba(217,119,6,0); }
+        50%      { box-shadow:0 0 0 5px rgba(217,119,6,0.18); }
+    }
+    </style>';
+}
+
+function deadlineChipJs(): string
+{
+    return "
+    <script>
+    (function(){
+        document.querySelectorAll('.deadline-chip').forEach(function(chip){
+            var raw = chip.dataset.deadline;
+            if(!raw) return;
+            var end = new Date(raw + 'T23:59:59+08:00').getTime();
+            var labelEl = chip.querySelector('.dl-label');
+            var subEl   = chip.querySelector('.dl-sub');
+            function fmt(sec){
+                var abs  = Math.abs(sec);
+                var d    = Math.floor(abs/86400);
+                var h    = Math.floor((abs%86400)/3600);
+                var m    = Math.floor((abs%3600)/60);
+                var s    = abs%60;
+                if(sec < 0){
+                    if(d>0)  return 'Overdue by '+d+'d '+h+'h';
+                    if(h>0)  return 'Overdue by '+h+'h '+m+'m';
+                    return 'Overdue by '+m+'m '+s+'s';
+                }
+                if(d===0&&h===0) return m+'m '+s+'s left';
+                if(d===0)        return h+'h '+m+'m left';
+                if(d<3)          return d+'d '+h+'h '+m+'m left';
+                return d+' days left';
+            }
+            setInterval(function(){
+                var diff = Math.floor((end - Date.now())/1000);
+                if(labelEl) labelEl.textContent = fmt(diff);
+            }, 1000);
+        });
+    })();
+    <\/script>";
 }
 
 function logActivity(string $action, string $module = '', string $details = ''): void
@@ -308,70 +459,70 @@ function logActivity(string $action, string $module = '', string $details = ''):
 function renderPasswordToggle(): void
 {
     ?>
-        <style>
-            .pw-toggle-btn {
-                position: absolute;
-                right: 12px;
-                top: 50%;
-                transform: translateY(-50%);
-                background: none;
-                border: none;
-                padding: 4px;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: #9CA3AF;
-                transition: color 0.15s;
-                z-index: 10;
-                line-height: 0;
-                outline: none;
-            }
+    <style>
+        .pw-toggle-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            padding: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9CA3AF;
+            transition: color 0.15s;
+            z-index: 10;
+            line-height: 0;
+            outline: none;
+        }
 
-            .pw-toggle-btn:hover {
-                color: #16A34A;
-            }
+        .pw-toggle-btn:hover {
+            color: #16A34A;
+        }
 
-            .pw-toggle-btn svg {
-                width: 18px;
-                height: 18px;
-                pointer-events: none;
-                stroke: currentColor;
-                fill: none;
-            }
-        </style>
-        <script>
-            (function () {
-                function initPasswordToggle() {
-                    const passwordFields = document.querySelectorAll('input[type="password"]');
-                    passwordFields.forEach(field => {
-                        if (field.dataset.pwToggleInit) return;
-                        field.dataset.pwToggleInit = 'true';
+        .pw-toggle-btn svg {
+            width: 18px;
+            height: 18px;
+            pointer-events: none;
+            stroke: currentColor;
+            fill: none;
+        }
+    </style>
+    <script>
+        (function () {
+            function initPasswordToggle() {
+                const passwordFields = document.querySelectorAll('input[type="password"]');
+                passwordFields.forEach(field => {
+                    if (field.dataset.pwToggleInit) return;
+                    field.dataset.pwToggleInit = 'true';
 
-                        const parent = field.parentElement;
-                        if (!parent) return;
+                    const parent = field.parentElement;
+                    if (!parent) return;
 
-                        // Reuse an existing input wrapper when available so we do not disturb
-                        // sibling icons or layout that already depends on the current DOM shape.
-                        const wrapper = parent.classList.contains('field-wrap') || parent.classList.contains('input-wrap')
-                            ? parent
-                            : (() => {
-                                const el = document.createElement('div');
-                                el.style.cssText = 'position:relative;display:block;';
-                                parent.insertBefore(el, field);
-                                el.appendChild(field);
-                                return el;
-                            })();
+                    // Reuse an existing input wrapper when available so we do not disturb
+                    // sibling icons or layout that already depends on the current DOM shape.
+                    const wrapper = parent.classList.contains('field-wrap') || parent.classList.contains('input-wrap')
+                        ? parent
+                        : (() => {
+                            const el = document.createElement('div');
+                            el.style.cssText = 'position:relative;display:block;';
+                            parent.insertBefore(el, field);
+                            el.appendChild(field);
+                            return el;
+                        })();
 
-                        if (window.getComputedStyle(wrapper).position === 'static') {
-                            wrapper.style.position = 'relative';
-                        }
+                    if (window.getComputedStyle(wrapper).position === 'static') {
+                        wrapper.style.position = 'relative';
+                    }
 
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.className = 'pw-toggle-btn';
-                        btn.setAttribute('aria-label', 'Toggle password visibility');
-                        btn.innerHTML = `
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'pw-toggle-btn';
+                    btn.setAttribute('aria-label', 'Toggle password visibility');
+                    btn.innerHTML = `
                     <svg class="eye-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
@@ -382,34 +533,34 @@ function renderPasswordToggle(): void
                     </svg>
                 `;
 
-                        wrapper.appendChild(btn);
+                    wrapper.appendChild(btn);
 
-                        const style = window.getComputedStyle(field);
-                        if (parseInt(style.paddingRight) < 42) {
-                            field.style.paddingRight = '42px';
-                        }
+                    const style = window.getComputedStyle(field);
+                    if (parseInt(style.paddingRight) < 42) {
+                        field.style.paddingRight = '42px';
+                    }
 
-                        btn.addEventListener('click', function (e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const isPassword = field.type === 'password';
-                            field.type = isPassword ? 'text' : 'password';
-                            btn.querySelector('.eye-icon').style.display = isPassword ? 'none' : 'block';
-                            btn.querySelector('.eye-off-icon').style.display = isPassword ? 'block' : 'none';
-                            field.focus();
-                        });
+                    btn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const isPassword = field.type === 'password';
+                        field.type = isPassword ? 'text' : 'password';
+                        btn.querySelector('.eye-icon').style.display = isPassword ? 'none' : 'block';
+                        btn.querySelector('.eye-off-icon').style.display = isPassword ? 'block' : 'none';
+                        field.focus();
                     });
-                }
+                });
+            }
 
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', initPasswordToggle);
-                } else {
-                    initPasswordToggle();
-                }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initPasswordToggle);
+            } else {
+                initPasswordToggle();
+            }
 
-                const observer = new MutationObserver(initPasswordToggle);
-                observer.observe(document.body, { childList: true, subtree: true });
-            })();
-        </script>
-        <?php
+            const observer = new MutationObserver(initPasswordToggle);
+            observer.observe(document.body, { childList: true, subtree: true });
+        })();
+    </script>
+    <?php
 }
