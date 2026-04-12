@@ -67,6 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     if ($_POST['action'] === 'save_response') {
+      // SBM Coordinator is view-only — cannot submit ratings
+      if ($_SESSION['role'] === 'sbm_coordinator') {
+        echo json_encode(['ok' => false, 'msg' => 'SBM Coordinators can view but not modify assessments.']);
+        exit;
+      }
+
       $indicatorId = (int) $_POST['indicator_id'];
       $rating = (int) $_POST['rating'];
       $evidence = trim($_POST['evidence'] ?? '');
@@ -143,6 +149,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     if ($_POST['action'] === 'clear_response') {
+      // SBM Coordinator is view-only
+      if ($_SESSION['role'] === 'sbm_coordinator') {
+        echo json_encode(['ok' => false, 'msg' => 'SBM Coordinators cannot modify assessments.']);
+        exit;
+      }
+
       $indicatorId = (int) $_POST['indicator_id'];
 
       $chk = $db->prepare("SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?");
@@ -583,6 +595,9 @@ $ratingLabels = [1 => 'Not yet Manifested', 2 => 'Rarely Manifested', 3 => 'Freq
 $ratingColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A'];
 
 $isLocked = $cycle && in_array($cycle['status'], ['submitted', 'validated', 'finalized']);
+$isCoordinator = ($_SESSION['role'] === 'sbm_coordinator');
+// Coordinator is always effectively locked (view-only)
+$canEdit = !$isLocked && !$isCoordinator;
 
 // SH rates: SH_ONLY + SH_TEACHER + SH_EXT + SH_TCH_EXT (= SH_RATEABLE_CODES)
 $shIndicators = array_filter($indicators, fn($i) => in_array($i['indicator_code'], SH_RATEABLE_CODES));
@@ -1403,7 +1418,7 @@ include __DIR__ . '/../includes/header.php';
                   <span id="savedBadge<?= $ind['indicator_id'] ?>" style="font-size:11px;color:var(--g600);font-weight:600;">
                     <?= $rated ? 'Saved' : '' ?>
                   </span>
-                  <?php if (!$isLocked): ?>
+                  <?php if ($canEdit): ?>
                     <button class="clear-btn" id="clearBtn<?= $ind['indicator_id'] ?>"
                       onclick="confirmClear(<?= $ind['indicator_id'] ?>)" title="Clear this rating">
                       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1431,7 +1446,7 @@ include __DIR__ . '/../includes/header.php';
               <!-- SCHOOL HEAD RATING -->
               <div class="rating-group" id="ratingGroup<?= $ind['indicator_id'] ?>">
                 <?php foreach ([1, 2, 3, 4] as $r): ?>
-                  <button <?= $isLocked ? 'disabled' : '' ?> type="button"
+                  <button <?= !$canEdit ? 'disabled' : '' ?> type="button"
                     class="rating-btn <?= $resp && $resp['rating'] == $r ? 'selected-' . $r : '' ?>"
                     data-ind="<?= $ind['indicator_id'] ?>" data-rating="<?= $r ?>"
                     onclick="selectRating(<?= $ind['indicator_id'] ?>,<?= $r ?>)">
@@ -1441,7 +1456,7 @@ include __DIR__ . '/../includes/header.php';
               </div>
 
               <textarea class="fc" id="evidence<?= $ind['indicator_id'] ?>" rows="2"
-                placeholder="Describe evidence or attach MOV reference…" <?= $isLocked ? 'disabled' : '' ?>
+                placeholder="Describe evidence or attach MOV reference…" <?= !$canEdit ? 'disabled' : '' ?>
                 onblur="saveResponse(<?= $ind['indicator_id'] ?>)"><?= e($resp['evidence_text'] ?? '') ?></textarea>
               <div id="attachWidget_<?= $ind['indicator_id'] ?>"></div>
 
@@ -1517,7 +1532,7 @@ include __DIR__ . '/../includes/header.php';
                   <?php endif; ?>
 
                   <?php 
-                  $showOverrideBtn = !$isLocked && (
+                  $showOverrideBtn = $canEdit && (
                     ($trData && (int) $trData['teacher_count'] > 0 && $isTeacherCard) ||
                     $isCoordinatorView
                   );
@@ -1581,16 +1596,16 @@ include __DIR__ . '/../includes/header.php';
     </div><!-- /.dim-wrap -->
   <?php endforeach; ?>
 
-  <!-- ── SUBMIT BUTTON ─────────────────────────────────────── -->
+  <!-- ── SUBMIT BUTTON / VIEW-ONLY NOTICE ─────────────────── -->
   <div style="text-align:center;padding:20px 0;margin-top:8px;">
-    <?php if (!$isLocked && $_SESSION['role'] === 'school_head'): ?>
+    <?php if ($isCoordinator): ?>
+      <div style="display:inline-flex;align-items:center;gap:10px;padding:12px 24px;background:var(--brand-50);border:1.5px solid var(--brand-200);border-radius:10px;font-size:13.5px;font-weight:600;color:var(--brand-700);">
+        <?= svgIcon('eye') ?> View-Only Mode — Coordinators can review but not modify the assessment.
+      </div>
+    <?php elseif (!$isLocked): ?>
       <button class="btn btn-primary" style="padding:12px 32px;font-size:15px;" onclick="submitAssessment()">
         <?= svgIcon('check') ?> Submit Self-Assessment
       </button>
-    <?php elseif (!$isLocked && $_SESSION['role'] === 'sbm_coordinator'): ?>
-      <div style="font-size:13px;color:var(--n500);font-style:italic;">
-        Only the School Head can submit the final assessment.
-      </div>
     <?php endif; ?>
   </div>
 
@@ -2015,7 +2030,7 @@ include __DIR__ . '/../includes/header.php';
   (async function loadSHAttachments() {
     if (!<?= $cycle ? $cycle['cycle_id'] : 0 ?>) return;
     const cycleId = <?= $cycle ? $cycle['cycle_id'] : 0 ?>;
-    const isLocked = <?= $isLocked ? 'true' : 'false' ?>;
+    const isLocked = <?= !$canEdit ? 'true' : 'false' ?>;
     const indIds = <?= json_encode(array_column($indicators, 'indicator_id')) ?>;
     try {
       const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
