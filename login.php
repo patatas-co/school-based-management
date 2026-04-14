@@ -69,6 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['full_name'] = $row['full_name'];
         $_SESSION['role'] = $row['role'];
         $_SESSION['school_id'] = $row['school_id'];
+        $_SESSION['profile_picture'] = $row['profile_picture'] ?? null;
+        $_SESSION['contact_number'] = $row['contact_number'] ?? null;
 
         // --- REAL-TIME STAKEHOLDER CHECK ---
         if ($row['role'] === 'external_stakeholder') {

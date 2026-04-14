@@ -2307,13 +2307,16 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     .p-select-menu::-webkit-scrollbar {
       width: 5px;
     }
+
     .p-select-menu::-webkit-scrollbar-track {
       background: transparent;
     }
+
     .p-select-menu::-webkit-scrollbar-thumb {
       background: var(--n-200);
       border-radius: 10px;
     }
+
     .p-select-menu::-webkit-scrollbar-thumb:hover {
       background: var(--n-300);
     }
@@ -2321,6 +2324,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     .p-select-fluid {
       width: 100%;
     }
+
     /* .p-select-fluid .p-select-menu positioning is handled by JS (fixed portal) */
 
     @keyframes pDropdownSlide {
@@ -2495,8 +2499,14 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     </div>
 
     <div class="sb-footer">
-      <div class="sb-user-tile" id="userTile" onclick="toggleUserMenu()" role="button" tabindex="0">
-        <div class="sb-avatar" style="background:<?= $__roleColor ?>;"><?= e($__initials) ?></div>
+      <div class="sb-user-tile" id="userTile" onclick="toggleUserMenu()" role="button" tabindex="0"
+        style="cursor:pointer;">
+        <div class="sb-avatar" style="background:<?= $__roleColor ?>;overflow:hidden;">
+          <?php if (!empty($__me['profile_picture'])): ?>
+            <img src="<?= e($__base . '/' . $__me['profile_picture']) ?>?v=<?= time() ?>"
+              style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Avatar">
+          <?php else: ?>   <?= e($__initials) ?><?php endif; ?>
+        </div>
         <div class="sb-user-info">
           <div class="sb-user-name"><?= e($__me['name']) ?></div>
           <div class="sb-user-role"><?= e($__roleLabel) ?></div>
@@ -2510,14 +2520,26 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
       <div class="sb-popup" id="userPopup" role="menu">
         <div class="sb-popup-user">
-          <div class="sb-avatar" style="background:<?= $__roleColor ?>;width:36px;height:36px;font-size:13px;">
-            <?= e($__initials) ?>
+          <div class="sb-avatar"
+            style="background:<?= $__roleColor ?>;width:36px;height:36px;font-size:13px;overflow:hidden;">
+            <?php if (!empty($__me['profile_picture'])): ?>
+              <img src="<?= e($__base . '/' . $__me['profile_picture']) ?>?v=<?= time() ?>"
+                style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Avatar">
+            <?php else: ?>  <?= e($__initials) ?><?php endif; ?>
           </div>
           <div style="flex:1;min-width:0;">
             <div class="sb-popup-name"><?= e($__me['name']) ?></div>
             <div class="sb-popup-role"><?= e($__roleLabel) ?></div>
           </div>
         </div>
+        <a href="<?= $__base ?>/profile.php" class="sb-popup-item" role="menuitem">
+          <svg viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          My Profile
+        </a>
+        <div style="height:1px;background:var(--n-100);margin:4px 0;"></div>
         <a href="<?= $__base ?>/logout.php" class="sb-popup-item danger" role="menuitem">
           <svg viewBox="0 0 24 24">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

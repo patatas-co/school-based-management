@@ -505,7 +505,7 @@ $q = $_GET['q'] ?? '';
 $rf = $_GET['role'] ?? '';
 $sf = $_GET['status'] ?? '';
 
-$sql = "SELECT u.user_id,u.username,u.email,u.full_name,u.role,u.status,u.school_id,u.last_login,u.created_at,u.email_verified,u.force_password_change,s.school_name FROM users u LEFT JOIN schools s ON u.school_id=s.school_id WHERE 1=1";
+$sql = "SELECT u.user_id,u.username,u.email,u.full_name,u.role,u.status,u.school_id,u.last_login,u.created_at,u.email_verified,u.force_password_change,u.profile_picture,s.school_name FROM users u LEFT JOIN schools s ON u.school_id=s.school_id WHERE 1=1";
 $p = [];
 if ($q) {
   $qE = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($q)) . '%';
@@ -672,7 +672,13 @@ $roleLabels = [
             <tr data-user-id="<?= $u['user_id'] ?>" data-user-status="<?= e($u['status']) ?>">
               <td>
                 <div class="cell-avatar">
-                  <div class="cell-av" style="background:<?= $rc ?>;"><?= strtoupper(substr($u['full_name'], 0, 1)) ?></div>
+                  <?php if (!empty($u['profile_picture']) && file_exists(__DIR__ . '/../' . $u['profile_picture'])): ?>
+                    <img src="<?= baseUrl() . '/' . $u['profile_picture'] ?>?v=<?= time() ?>" 
+                         style="width:34px;height:34px;border-radius:9px;object-fit:cover;flex-shrink:0;" 
+                         alt="<?= e($u['full_name']) ?>">
+                  <?php else: ?>
+                    <div class="cell-av" style="background:<?= $rc ?>;"><?= strtoupper(substr($u['full_name'], 0, 1)) ?></div>
+                  <?php endif; ?>
                   <div class="cell-av-info">
                     <div class="cell-av-name"><?= e($u['full_name']) ?></div>
                     <div class="cell-av-sub"><?= e($u['email']) ?></div>

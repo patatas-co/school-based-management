@@ -66,6 +66,7 @@ function me(): array
         'role' => $_SESSION['role'] ?? '',
         'user' => $_SESSION['username'] ?? '',
         'school_id' => $_SESSION['school_id'] ?? null,
+        'profile_picture' => $_SESSION['profile_picture'] ?? null,
     ];
 }
 

@@ -1236,7 +1236,9 @@ CREATE TABLE `users` (
   `reset_token` varchar(64) DEFAULT NULL,
   `token_expiry` datetime DEFAULT NULL,
   `email_sent_at` datetime DEFAULT NULL,
-  `force_password_change` tinyint(1) DEFAULT 1
+  `force_password_change` tinyint(1) DEFAULT 1,
+  `profile_picture` varchar(255) DEFAULT NULL,
+  `contact_number` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

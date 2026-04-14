@@ -129,58 +129,15 @@ include __DIR__ . '/../includes/header.php';
     position: absolute;
     inset: 0;
     border-radius: var(--radius-lg);
-    background:
-      radial-gradient(ellipse 55% 90% at 92% 50%, rgba(34, 197, 94, 0.13) 0%, transparent 65%),
-      radial-gradient(ellipse 35% 55% at 8% 15%, rgba(22, 101, 52, 0.40) 0%, transparent 60%),
-      linear-gradient(135deg, #081a08 0%, #0d260d 35%, #14532d 65%, #166534 100%);
+    background: 
+      linear-gradient(to right, rgba(8, 26, 8, 0.8) 0%, rgba(8, 26, 8, 0.4) 50%, rgba(8, 26, 8, 0.1) 100%),
+      url('<?= e(baseUrl()) ?>/assets/cover.png') center/cover no-repeat;
+    background-color: #081a08;
     overflow: hidden;
     z-index: 0;
   }
 
-  .db-hero-bg::before {
-    content: '';
-    position: absolute;
-    right: -60px;
-    top: -60px;
-    width: 340px;
-    height: 340px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(74, 222, 128, 0.10) 0%, rgba(34, 197, 94, 0.05) 50%, transparent 75%);
-    pointer-events: none;
-    animation: heroOrbPulse 4s ease-in-out infinite;
-  }
 
-  @keyframes heroOrbPulse {
-    0%,
-    100% {
-      opacity: .7;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 1;
-      transform: scale(1.07);
-    }
-  }
-
-  .db-hero-bg::after {
-    content: '';
-    position: absolute;
-    left: -40px;
-    bottom: -60px;
-    width: 240px;
-    height: 240px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(22, 163, 74, 0.08) 0%, transparent 70%);
-    pointer-events: none;
-  }
-
-  .db-hero-shimmer {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.025) 50%, transparent 80%);
-    z-index: 0;
-  }
 
   .db-hero-left {
     position: relative;
