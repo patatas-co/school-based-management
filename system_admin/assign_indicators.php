@@ -21,6 +21,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     verifyCsrf();
 
     try {
+        if ($_POST['action'] === 'get_users_by_role') {
+            $roleFilter = $_POST['role_filter'] ?? 'teacher';
+            $allowedRoles = ['teacher', 'school_head', 'external_stakeholder'];
+            if (!in_array($roleFilter, $allowedRoles, true)) {
+                throw new Exception("Invalid role.");
+            }
+            $stmt = $db->prepare(
+                "SELECT user_id, full_name, email FROM users
+                 WHERE school_id=? AND role=? AND status='active'
+                 ORDER BY full_name ASC"
+            );
+            $stmt->execute([$schoolId, $roleFilter]);
+            echo json_encode(['ok' => true, 'users' => $stmt->fetchAll()]);
+            exit;
+        }
+
         if ($_POST['action'] === 'get_assignments') {
             $teacherId = (int) $_POST['teacher_id'];
 
@@ -65,6 +81,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             echo json_encode(['ok' => true, 'msg' => 'Assignments saved successfully!']);
             exit;
         }
+    if ($_POST['action'] === 'bulk_save_assignments') {
+            $userIds   = isset($_POST['user_ids'])   && is_array($_POST['user_ids'])   ? array_map('intval', $_POST['user_ids'])   : [];
+            $indicators = isset($_POST['indicators']) && is_array($_POST['indicators']) ? $_POST['indicators'] : [];
+            $roleFilter = $_POST['role_filter'] ?? 'teacher';
+
+            $allowedRoles = ['teacher', 'school_head', 'external_stakeholder'];
+            if (!in_array($roleFilter, $allowedRoles, true)) {
+                throw new Exception("Invalid role filter.");
+            }
+
+            // Map role to valid indicator codes
+            $roleCodeMap = [
+                'teacher'              => TEACHER_INDICATOR_CODES,
+                'external_stakeholder' => STAKEHOLDER_INDICATOR_CODES,
+                'school_head'          => SH_RATEABLE_CODES,
+            ];
+            $validCodes = $roleCodeMap[$roleFilter] ?? [];
+
+            if (empty($userIds)) {
+                throw new Exception("No users selected.");
+            }
+
+            $db->beginTransaction();
+            $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+            $verify = $db->prepare(
+                "SELECT user_id FROM users WHERE user_id IN ($placeholders) AND school_id=? AND role=? AND status='active'"
+            );
+            $verify->execute([...$userIds, $schoolId, $roleFilter]);
+            $validIds = $verify->fetchAll(PDO::FETCH_COLUMN);
+
+            if (empty($validIds)) {
+                throw new Exception("No valid users found for the selected role.");
+            }
+
+            $tableMap = [
+                'teacher'              => ['table' => 'teacher_indicator_assignments',      'col' => 'teacher_id'],
+                'external_stakeholder' => ['table' => 'stakeholder_indicator_assignments',  'col' => 'stakeholder_id'],
+                'school_head'          => ['table' => 'school_head_indicator_assignments',  'col' => 'user_id'],
+            ];
+            $tbl = $tableMap[$roleFilter];
+
+            foreach ($validIds as $uid) {
+                $db->prepare("DELETE FROM {$tbl['table']} WHERE {$tbl['col']} = ?")->execute([$uid]);
+                if (!empty($indicators)) {
+                    $insert = $db->prepare(
+                        "INSERT INTO {$tbl['table']} ({$tbl['col']}, indicator_code, assigned_by) VALUES (?, ?, ?)"
+                    );
+                    foreach ($indicators as $code) {
+                        if (in_array($code, $validCodes)) {
+                            $insert->execute([$uid, $code, $_SESSION['user_id']]);
+                        }
+                    }
+                }
+            }
+
+            $db->commit();
+            logActivity('bulk_assign_indicators', 'system_admin',
+                "Bulk assigned " . count($indicators) . " indicators to " . count($validIds) . " {$roleFilter}(s)");
+
+            echo json_encode(['ok' => true, 'msg' => 'Bulk assignments saved for ' . count($validIds) . ' user(s)!']);
+            exit;
+        }
+
     } catch (\Throwable $e) {
         if ($db->inTransaction())
             $db->rollBack();
@@ -233,12 +312,86 @@ foreach (SBM_INDICATORS as $ind) {
         font-weight: 700;
         color: var(--blue);
     }
+
+    /* Bulk modal */
+    .bulk-user-list {
+        max-height: 220px;
+        overflow-y: auto;
+        border: 1px solid var(--n200);
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .bulk-user-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 14px;
+        border-bottom: 1px solid var(--n100);
+        font-size: 13px;
+        cursor: pointer;
+    }
+
+    .bulk-user-item:last-child { border-bottom: none; }
+    .bulk-user-item:hover { background: var(--n50); }
+
+    .bulk-user-item input[type=checkbox] { accent-color: var(--brand-600); }
+
+    .bulk-search-input {
+        width: 100%;
+        padding: 9px 14px;
+        border: 1px solid var(--n200);
+        border-radius: 8px;
+        font-size: 13px;
+        margin-bottom: 8px;
+    }
+
+    .bulk-role-tabs {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+    }
+
+    .bulk-role-tab {
+        padding: 6px 14px;
+        border-radius: 20px;
+        border: 1px solid var(--n200);
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        background: #fff;
+        color: var(--n600);
+        transition: all .15s;
+    }
+
+    .bulk-role-tab.active {
+        background: var(--brand-600);
+        color: #fff;
+        border-color: var(--brand-600);
+    }
+
+    .selected-count-badge {
+        display: inline-block;
+        background: var(--brand-100);
+        color: var(--brand-700);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 10px;
+        margin-left: 6px;
+    }
 </style>
 
 <div class="page-head">
     <div class="page-head-text">
         <h2>Assign Indicators</h2>
-        <p>Assign specific SBM checklist indicators for each teacher to evaluate.</p>
+        <p>Assign specific SBM checklist indicators for teachers, school heads, or external stakeholders.</p>
+    </div>
+    <div class="page-head-actions">
+        <button class="btn btn-primary" onclick="openBulkModal()">
+            <?= svgIcon('users') ?> Bulk Assign Rules
+        </button>
     </div>
 </div>
 
@@ -361,6 +514,78 @@ foreach (SBM_INDICATORS as $ind) {
     </div>
 </div>
 
+<!-- Bulk Assign Modal -->
+<div id="bulkModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+           z-index:9999;align-items:center;justify-content:center;overflow:hidden;padding:20px;">
+    <div style="background:#fff;border-radius:12px;width:100%;max-width:820px;
+                max-height:calc(100vh - 40px);display:flex;flex-direction:column;
+                box-shadow:var(--shadow-lg);overflow:hidden;">
+
+        <!-- Header -->
+        <div style="padding:20px;border-bottom:1px solid var(--n200);display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="font-size:18px;font-weight:700;">Bulk Assign Indicators</h3>
+            <button onclick="closeBulkModal()" style="background:none;border:none;cursor:pointer;color:var(--n500);"><?= svgIcon('x') ?></button>
+        </div>
+
+        <div style="padding:20px;overflow-y:auto;flex:1;background:var(--n50);display:flex;flex-direction:column;gap:20px;">
+
+            <!-- Step 1: Role Filter -->
+            <div>
+                <div style="font-size:13px;font-weight:700;color:var(--n700);margin-bottom:8px;">
+                    Step 1 — Select Role to Assign Indicators For
+                </div>
+                <div class="bulk-role-tabs">
+                    <button class="bulk-role-tab active" data-role="teacher"               onclick="switchBulkRole('teacher', this)">Teachers</button>
+                    <button class="bulk-role-tab"        data-role="school_head"            onclick="switchBulkRole('school_head', this)">School Heads</button>
+                    <button class="bulk-role-tab"        data-role="external_stakeholder"   onclick="switchBulkRole('external_stakeholder', this)">External Stakeholders</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Select Users -->
+            <div>
+                <div style="font-size:13px;font-weight:700;color:var(--n700);margin-bottom:8px;">
+                    Step 2 — Select Accounts
+                    <span class="selected-count-badge" id="bulkSelectedCount">0 selected</span>
+                </div>
+                <input type="text" class="bulk-search-input" id="bulkUserSearch"
+                       placeholder="Search by name or email..." oninput="filterBulkUsers()">
+                <div class="bulk-user-list" id="bulkUserList">
+                    <div style="padding:16px;text-align:center;color:var(--n500);font-size:13px;">Loading users...</div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllBulkUsers(true)">Select All</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllBulkUsers(false)">Deselect All</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Select Indicators -->
+            <div>
+                <div style="font-size:13px;font-weight:700;color:var(--n700);margin-bottom:8px;">
+                    Step 3 — Choose Indicators to Assign
+                    <span style="font-size:12px;font-weight:400;color:var(--n500);">(Leave all unchecked to default to all applicable)</span>
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:10px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllBulkIndicators(true)">Select All</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllBulkIndicators(false)">Deselect All</button>
+                </div>
+                <div id="bulkIndicatorGroups">
+                    <!-- dynamically rendered by JS based on role -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div style="padding:16px 20px;border-top:1px solid var(--n200);display:flex;justify-content:flex-end;
+                    gap:10px;background:#fff;border-radius:0 0 12px 12px;">
+            <button type="button" class="btn btn-ghost" onclick="closeBulkModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" id="bulkSaveBtn" onclick="saveBulkAssignments()">
+                Save Bulk Assignments
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     // Auto close modal on escape or click outside
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
@@ -436,6 +661,194 @@ foreach (SBM_INDICATORS as $ind) {
             showToast('Error', 'Network error', 'error');
             btn.disabled = false;
             btn.textContent = 'Save Assignments';
+        }
+    }
+// ── BULK MODAL ────────────────────────────────────────────────────────────
+
+    // All indicators grouped by dimension, per role — built from PHP data
+    const ALL_GROUPED = <?= json_encode($groupedIndicators) ?>;
+
+    // Role → valid indicator codes (from PHP constants)
+    const ROLE_CODES = {
+        teacher:              <?= json_encode(TEACHER_INDICATOR_CODES) ?>,
+        school_head:          <?= json_encode(SH_RATEABLE_CODES) ?>,
+        external_stakeholder: <?= json_encode(STAKEHOLDER_INDICATOR_CODES) ?>,
+    };
+
+    let bulkCurrentRole = 'teacher';
+    let bulkAllUsers    = [];   // full list for current role
+
+    function openBulkModal() {
+        document.getElementById('bulkModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        switchBulkRole('teacher', document.querySelector('.bulk-role-tab[data-role="teacher"]'));
+    }
+
+    function closeBulkModal() {
+        document.getElementById('bulkModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    document.getElementById('bulkModal').addEventListener('click', e => {
+        if (e.target === e.currentTarget) closeBulkModal();
+    });
+
+    async function switchBulkRole(role, tabEl) {
+        // Update active tab
+        document.querySelectorAll('.bulk-role-tab').forEach(t => t.classList.remove('active'));
+        tabEl.classList.add('active');
+        bulkCurrentRole = role;
+
+        // Reset user search
+        document.getElementById('bulkUserSearch').value = '';
+
+        // Render indicator groups for this role
+        renderBulkIndicators(role);
+
+        // Fetch users for this role
+        const listEl = document.getElementById('bulkUserList');
+        listEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--n500);font-size:13px;">Loading...</div>';
+
+        try {
+            const fd = new FormData();
+            fd.append('action', 'get_users_by_role');
+            fd.append('role_filter', role);
+            fd.append('csrf_token', document.querySelector('[name=csrf_token]').value);
+            const res  = await fetch(location.href, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.ok) {
+                bulkAllUsers = data.users;
+                renderBulkUserList(data.users);
+            } else {
+                listEl.innerHTML = `<div style="padding:16px;color:var(--red);font-size:13px;">${data.msg}</div>`;
+            }
+        } catch (err) {
+            listEl.innerHTML = '<div style="padding:16px;color:var(--red);font-size:13px;">Failed to load users.</div>';
+        }
+        updateBulkSelectedCount();
+    }
+
+    function renderBulkUserList(users) {
+        const listEl = document.getElementById('bulkUserList');
+        if (!users.length) {
+            listEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--n500);font-size:13px;">No active users found.</div>';
+            return;
+        }
+        listEl.innerHTML = users.map(u => `
+            <label class="bulk-user-item">
+                <input type="checkbox" class="bulk-user-chk" value="${u.user_id}" onchange="updateBulkSelectedCount()">
+                <div>
+                    <div style="font-weight:600;">${escHtml(u.full_name)}</div>
+                    <div style="font-size:11.5px;color:var(--n500);">${escHtml(u.email)}</div>
+                </div>
+            </label>
+        `).join('');
+        updateBulkSelectedCount();
+    }
+
+    function filterBulkUsers() {
+        const q = document.getElementById('bulkUserSearch').value.toLowerCase();
+        const filtered = q
+            ? bulkAllUsers.filter(u =>
+                u.full_name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+            : bulkAllUsers;
+        renderBulkUserList(filtered);
+    }
+
+    function toggleAllBulkUsers(check) {
+        document.querySelectorAll('.bulk-user-chk').forEach(el => el.checked = check);
+        updateBulkSelectedCount();
+    }
+
+    function updateBulkSelectedCount() {
+        const n = document.querySelectorAll('.bulk-user-chk:checked').length;
+        document.getElementById('bulkSelectedCount').textContent = n + ' selected';
+    }
+
+    function renderBulkIndicators(role) {
+        const validCodes = ROLE_CODES[role] || [];
+        const container  = document.getElementById('bulkIndicatorGroups');
+
+        let html = '';
+        for (const [dimId, dim] of Object.entries(ALL_GROUPED)) {
+            // Only show indicators applicable to this role
+            const applicable = dim.indicators.filter(ind => validCodes.includes(ind.code));
+            if (!applicable.length) continue;
+
+            html += `
+                <div class="indicator-group" style="margin-bottom:12px;">
+                    <div class="indicator-group-head">
+                        <span>Dimension ${dimId}: ${escHtml(dim.name)}</span>
+                        <span style="font-size:12px;font-weight:600;color:var(--brand-600);cursor:pointer;"
+                              onclick="toggleBulkDim(${dimId})">Toggle All</span>
+                    </div>
+                    <div class="indicator-group-body">
+                        ${applicable.map(ind => `
+                            <label class="check-item">
+                                <input type="checkbox" class="bulk-ind-chk bulk-dim-chk-${dimId}" value="${ind.code}">
+                                <div class="check-badge">[${ind.code}]</div>
+                                <div style="flex:1;">${escHtml(ind.text)}</div>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>`;
+        }
+        container.innerHTML = html || '<div style="color:var(--n500);font-size:13px;">No applicable indicators for this role.</div>';
+    }
+
+    function toggleAllBulkIndicators(check) {
+        document.querySelectorAll('.bulk-ind-chk').forEach(el => el.checked = check);
+    }
+
+    function toggleBulkDim(dimId) {
+        const boxes = document.querySelectorAll('.bulk-dim-chk-' + dimId);
+        const allChecked = Array.from(boxes).every(el => el.checked);
+        boxes.forEach(el => el.checked = !allChecked);
+    }
+
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    async function saveBulkAssignments() {
+        const selectedUsers = Array.from(document.querySelectorAll('.bulk-user-chk:checked')).map(el => el.value);
+        if (!selectedUsers.length) {
+            showToast('Warning', 'Please select at least one user.', 'warning');
+            return;
+        }
+
+        const selectedIndicators = Array.from(document.querySelectorAll('.bulk-ind-chk:checked')).map(el => el.value);
+
+        const btn = document.getElementById('bulkSaveBtn');
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        try {
+            const fd = new FormData();
+            fd.append('action', 'bulk_save_assignments');
+            fd.append('role_filter', bulkCurrentRole);
+            fd.append('csrf_token', document.querySelector('[name=csrf_token]').value);
+            selectedUsers.forEach(id  => fd.append('user_ids[]', id));
+            selectedIndicators.forEach(c => fd.append('indicators[]', c));
+
+            const res  = await fetch(location.href, { method: 'POST', body: fd });
+            const data = await res.json();
+
+            if (data.ok) {
+                showToast('Success', data.msg, 'success');
+                closeBulkModal();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('Error', data.msg || 'Failed to save', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Save Bulk Assignments';
+            }
+        } catch (err) {
+            showToast('Error', 'Network error', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Save Bulk Assignments';
         }
     }
 </script>

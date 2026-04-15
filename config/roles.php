@@ -53,15 +53,16 @@ define('SBM_NAV', [
             'Overview',
             'grid',
             [
-                ['Dashboard', 'system_admin/dashboard.php', 'grid'],
-                ['User Accounts', 'system_admin/users.php', 'users'],
-                ['Assign Indicators', 'system_admin/assign_indicators.php', 'check-square'],
+                ['Dashboard', 'system_admin/dashboard.php', 'grid']
+
             ]
         ],
         [
             'Management',
             'users',
             [
+                ['User Accounts', 'system_admin/users.php', 'users'],
+                ['Assign Indicators', 'system_admin/assign_indicators.php', 'check-square'],
                 ['School Profile', 'school_head/school_profile.php', 'home'],
                 ['School Years', 'school_head/settings.php', 'calendar'],
             ]
