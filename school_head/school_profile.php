@@ -54,10 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 $school = $db->prepare("
-    SELECT s.*, d.division_name
-    FROM schools s
-    LEFT JOIN divisions d ON s.division_id = d.division_id
-    WHERE s.school_id = ?
+    SELECT *
+    FROM schools
+    WHERE school_id = ?
 ");
 $school->execute([$schoolId]);
 $school = $school->fetch();

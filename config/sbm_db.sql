@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 11, 2026 at 11:36 AM
+-- Generation Time: Apr 16, 2026 at 02:30 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -477,7 +477,170 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (498, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:32:18'),
 (499, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:32:29'),
 (500, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:33:37'),
-(501, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:35:16');
+(501, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:35:16'),
+(502, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-04-11 09:38:16'),
+(503, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:38:25'),
+(504, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:38:56'),
+(505, 72, 'create_temp_evaluator', 'users', 'Created temp evaluator for cycle 7: dozenjames54@gmail.com', '::1', '2026-04-11 09:39:55'),
+(506, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-04-11 09:41:55'),
+(507, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:42:21'),
+(508, 12, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:48:24'),
+(509, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:48:36'),
+(510, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:48:45'),
+(511, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 1 evaluators for cycle 7', '::1', '2026-04-11 10:00:13'),
+(512, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 10:07:51'),
+(513, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:08:06'),
+(514, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:08:09'),
+(515, 72, 'delete_user', 'users', 'Deleted user ID:74', '::1', '2026-04-11 10:08:17'),
+(516, 72, 'create_temp_evaluator', 'users', 'Created temp evaluator for cycle 7: dozenjames54@gmail.com', '::1', '2026-04-11 10:40:04'),
+(517, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-04-11 10:40:44'),
+(518, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 10:40:55'),
+(519, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 10:51:37'),
+(520, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 1 evaluators for cycle 7', '::1', '2026-04-11 10:54:35'),
+(521, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:38'),
+(522, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:43'),
+(523, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:47'),
+(524, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:49'),
+(525, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:52'),
+(526, 72, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 7: 2026-04-11 19:01:00 to 2026-04-11 19:05:00', '::1', '2026-04-11 11:01:26'),
+(527, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 11:02:30'),
+(528, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 11:02:38'),
+(529, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 1 evaluators for cycle 7', '::1', '2026-04-11 11:03:58'),
+(530, 72, 'reactivate_evaluators', 'users', 'Reactivated 1 evaluators for cycle 7', '::1', '2026-04-11 11:04:09'),
+(531, 72, 'delete_user', 'users', 'Deleted user ID:75', '::1', '2026-04-11 11:13:34'),
+(532, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 11:14:32'),
+(533, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-11 11:35:58'),
+(534, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 11:36:34'),
+(535, 72, 'create_temp_evaluator', 'users', 'Created temp evaluator for cycle 7: dozenjames54@gmail.com', '::1', '2026-04-11 11:37:39'),
+(536, 72, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 7: 2026-04-11 19:01:00 to 2026-04-11 19:05:00', '::1', '2026-04-11 11:37:46'),
+(537, 72, 'reactivate_evaluators', 'users', 'Reactivated 1 evaluators for cycle 7', '::1', '2026-04-11 11:37:57'),
+(538, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-04-11 11:39:09'),
+(539, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 11:39:16'),
+(540, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 12:02:26'),
+(541, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 12:02:45'),
+(542, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 12:14:13'),
+(543, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 12:36:50'),
+(544, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 14:09:46'),
+(545, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 14:55:14'),
+(546, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 15:29:23'),
+(547, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 1 evaluators for cycle 7', '::1', '2026-04-11 16:42:26'),
+(548, 72, 'reactivate_evaluators', 'users', 'Reactivated 1 evaluators for cycle 7', '::1', '2026-04-11 16:43:06'),
+(549, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 16:57:19'),
+(550, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 16:57:41'),
+(551, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 16:58:22'),
+(552, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:00:58'),
+(553, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:02:19'),
+(554, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:06:07'),
+(555, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:08:16'),
+(556, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:34:30'),
+(557, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:36:24'),
+(558, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:36:31'),
+(559, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:00:59'),
+(560, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:23:07'),
+(561, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:23:14'),
+(562, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:24:35'),
+(563, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:26:40'),
+(564, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:33:20'),
+(565, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:35:50'),
+(566, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:49:13'),
+(567, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:49:28'),
+(568, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:50:03'),
+(569, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:50:13'),
+(570, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-04-12 04:50:27'),
+(571, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:50:37'),
+(572, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:50:46'),
+(573, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:51:08'),
+(574, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:51:39'),
+(575, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:52:30'),
+(576, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:53:29'),
+(577, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:57:25'),
+(578, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:58:28'),
+(579, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:18:42'),
+(580, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 10', '::1', '2026-04-12 05:25:53'),
+(581, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:40:39'),
+(582, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:45:24'),
+(583, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:48:02'),
+(584, 12, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:52:14'),
+(585, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:52:34'),
+(586, 12, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:53:58'),
+(587, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:54:10'),
+(588, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 12', '::1', '2026-04-12 05:55:37'),
+(589, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-04-12 05:55:53'),
+(590, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:59:24'),
+(591, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:59:39'),
+(592, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:03:03'),
+(593, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 12', '::1', '2026-04-12 06:03:21'),
+(594, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:07:52'),
+(595, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:09:16'),
+(596, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:09:31'),
+(597, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 12', '::1', '2026-04-12 06:10:22'),
+(598, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 12', '::1', '2026-04-12 06:10:56'),
+(599, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:14:14'),
+(600, 72, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 9: 2026-04-12 16:00:00 to 2026-04-21 06:00:00', '::1', '2026-04-12 06:15:38'),
+(601, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:15:49'),
+(602, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:16:01'),
+(603, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:16:10'),
+(604, 72, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 9: 2026-04-12 16:00:00 to 2026-04-21 06:00:00', '::1', '2026-04-12 06:16:26'),
+(605, 72, 'delete_user', 'users', 'Deleted user ID:76', '::1', '2026-04-12 06:16:42'),
+(606, 72, 'create_temp_evaluator', 'users', 'Created temp evaluator for cycle 9: dozenjames54@gmail.com', '::1', '2026-04-12 06:17:36'),
+(607, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-04-12 06:19:12'),
+(608, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:20:51'),
+(609, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:25:01'),
+(610, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:25:17'),
+(611, 72, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 9: 2026-04-12 16:00:00 to 2026-04-21 06:00:00', '::1', '2026-04-12 06:55:08'),
+(612, 77, 'login', 'auth', 'User logged in', '::1', '2026-04-12 09:23:36'),
+(613, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 09:23:47'),
+(614, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-14 09:12:15'),
+(615, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 09:25:02'),
+(616, 77, 'login', 'auth', 'User logged in', '::1', '2026-04-14 09:25:43'),
+(617, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 09:27:04'),
+(618, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:06:42'),
+(619, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:06:55'),
+(620, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:06:56'),
+(621, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:06:57'),
+(622, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:06:58'),
+(623, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:06:59'),
+(624, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:07:00'),
+(625, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:21:36'),
+(626, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:23:28'),
+(627, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:28:25'),
+(628, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:38:07'),
+(629, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:38:26'),
+(630, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:41:14'),
+(631, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:43:57'),
+(632, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:44:11'),
+(633, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:45:11'),
+(634, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:48:12'),
+(635, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-14 10:48:48'),
+(636, 72, 'update_user', 'users', 'Updated user ID:15', '::1', '2026-04-14 10:58:20'),
+(637, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-14 10:58:44'),
+(638, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:16:46'),
+(639, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:20:37'),
+(640, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:20:53'),
+(641, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:21:36'),
+(642, 72, 'update_user', 'users', 'Updated user ID:15', '::1', '2026-04-14 11:21:44'),
+(643, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:21:55'),
+(644, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:23:10'),
+(645, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:23:35'),
+(646, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:24:25'),
+(647, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:25:00'),
+(648, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:25:33'),
+(649, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:29:06'),
+(650, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:29:16'),
+(651, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:29:26');
+INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, `ip_address`, `created_at`) VALUES
+(652, 37, 'sh_update_school_profile', 'school_profile', 'School Head updated school profile for school_id: 1', '::1', '2026-04-14 11:30:22'),
+(653, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:33:33'),
+(654, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:33:55'),
+(655, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-15 10:37:00'),
+(656, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-15 10:50:21'),
+(657, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-15 10:50:29'),
+(658, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-15 10:50:46'),
+(659, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-15 13:49:48'),
+(660, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-16 11:49:34'),
+(661, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-16 11:49:46'),
+(662, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-16 11:49:59'),
+(663, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-16 11:50:10');
 
 -- --------------------------------------------------------
 
@@ -547,8 +710,47 @@ CREATE TABLE `cycle_evaluators` (
   `user_id` int(11) NOT NULL,
   `school_id` int(11) NOT NULL,
   `added_by` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `is_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT '0 = deactivated for this cycle',
+  `deactivated_at` datetime DEFAULT NULL,
+  `reactivated_at` datetime DEFAULT NULL,
+  `custom_access_end` datetime DEFAULT NULL COMMENT 'Override the cycle-level end date for this specific evaluator'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `cycle_evaluators`
+--
+
+INSERT INTO `cycle_evaluators` (`evaluator_id`, `cycle_id`, `user_id`, `school_id`, `added_by`, `created_at`, `is_active`, `deactivated_at`, `reactivated_at`, `custom_access_end`) VALUES
+(4, 9, 77, 1, 72, '2026-04-12 06:17:32', 1, NULL, NULL, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `cycle_evaluator_status_log`
+--
+
+CREATE TABLE `cycle_evaluator_status_log` (
+  `log_id` int(11) NOT NULL,
+  `cycle_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `school_id` int(11) NOT NULL,
+  `action` enum('activated','deactivated','reactivated') NOT NULL,
+  `triggered_by` enum('cron','manual','admin') NOT NULL DEFAULT 'manual',
+  `actor_id` int(11) DEFAULT NULL COMMENT 'admin user_id; NULL for cron',
+  `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `cycle_evaluator_status_log`
+--
+
+INSERT INTO `cycle_evaluator_status_log` (`log_id`, `cycle_id`, `user_id`, `school_id`, `action`, `triggered_by`, `actor_id`, `notes`, `created_at`) VALUES
+(1, 7, 75, 1, 'reactivated', 'admin', 72, NULL, '2026-04-11 11:04:09'),
+(2, 7, 75, 1, 'deactivated', 'cron', NULL, NULL, '2026-04-11 11:09:00'),
+(3, 7, 76, 1, 'reactivated', 'admin', 72, NULL, '2026-04-11 11:37:57'),
+(4, 7, 76, 1, 'reactivated', 'admin', 72, NULL, '2026-04-11 16:43:06');
 
 -- --------------------------------------------------------
 
@@ -566,26 +768,6 @@ CREATE TABLE `cycle_stage_gates` (
   `passed` tinyint(1) NOT NULL DEFAULT 0,
   `blocker_details` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `divisions`
---
-
-CREATE TABLE `divisions` (
-  `division_id` int(11) NOT NULL,
-  `division_name` varchar(100) NOT NULL,
-  `region_id` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `divisions`
---
-
-INSERT INTO `divisions` (`division_id`, `division_name`, `region_id`) VALUES
-(1, 'Cavite Division', 1),
-(2, 'Cavite Division', 1);
 
 -- --------------------------------------------------------
 
@@ -609,7 +791,8 @@ CREATE TABLE `email_logs` (
 
 INSERT INTO `email_logs` (`log_id`, `user_id`, `email_type`, `recipient_email`, `status`, `error_message`, `sent_at`) VALUES
 (29, 46, 'account_creation', 'mendozacharles11011@gmail.com', 'sent', NULL, '2026-04-01 02:35:53'),
-(67, 72, 'account_creation', 'ariascharles00@gmail.com', 'sent', NULL, '2026-04-09 09:53:42');
+(67, 72, 'account_creation', 'ariascharles00@gmail.com', 'sent', NULL, '2026-04-09 09:53:42'),
+(72, 77, 'stakeholder_welcome', 'dozenjames54@gmail.com', 'sent', NULL, '2026-04-12 06:17:36');
 
 -- --------------------------------------------------------
 
@@ -784,26 +967,8 @@ CREATE TABLE `password_setup_tokens` (
 
 INSERT INTO `password_setup_tokens` (`token_id`, `user_id`, `token`, `type`, `expires_at`, `used_at`, `created_at`) VALUES
 (36, 46, '25de0e85006db5c333e8d45d3733be2eff8b27e9fa2207f55e070ffac278a993', 'setup', '2026-04-03 10:35:08', '2026-04-01 10:40:39', '2026-04-01 02:35:08'),
-(74, 72, '39f0807dde06988876bc2e355da85edc901ff689d4a30fb6aa115cf3b853b691', 'setup', '2026-04-11 17:53:37', '2026-04-09 17:55:08', '2026-04-09 09:53:37');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `regions`
---
-
-CREATE TABLE `regions` (
-  `region_id` int(11) NOT NULL,
-  `region_name` varchar(100) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `regions`
---
-
-INSERT INTO `regions` (`region_id`, `region_name`) VALUES
-(1, 'Region IV-A CALABARZON'),
-(2, 'Region IV-A CALABARZON');
+(74, 72, '39f0807dde06988876bc2e355da85edc901ff689d4a30fb6aa115cf3b853b691', 'setup', '2026-04-11 17:53:37', '2026-04-09 17:55:08', '2026-04-09 09:53:37'),
+(79, 77, '4e52026729f1beb8313388c9ba71692886beb2437e8f04bf3e422c15fd93edc7', 'setup', '2026-04-14 14:17:32', '2026-04-12 14:19:12', '2026-04-12 06:17:32');
 
 -- --------------------------------------------------------
 
@@ -857,8 +1022,19 @@ CREATE TABLE `sbm_cycles` (
   `returned_at` datetime DEFAULT NULL,
   `returned_by` int(11) DEFAULT NULL,
   `return_remarks` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `stakeholder_access_start` datetime DEFAULT NULL COMMENT 'When external stakeholder accounts become active for this cycle',
+  `stakeholder_access_end` datetime DEFAULT NULL COMMENT 'When external stakeholder accounts are automatically deactivated',
+  `auto_deactivated_at` datetime DEFAULT NULL COMMENT 'Timestamp of the last auto-deactivation run for this cycle',
+  `auto_deactivated_by` varchar(40) DEFAULT NULL COMMENT 'How deactivation was triggered: cron | manual | api'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `sbm_cycles`
+--
+
+INSERT INTO `sbm_cycles` (`cycle_id`, `sy_id`, `school_id`, `status`, `overall_score`, `maturity_level`, `started_at`, `submitted_at`, `validated_at`, `validated_by`, `validator_remarks`, `consolidation_confirmed`, `consolidation_confirmed_by`, `consolidation_confirmed_at`, `finalized_at`, `returned_at`, `returned_by`, `return_remarks`, `created_at`, `stakeholder_access_start`, `stakeholder_access_end`, `auto_deactivated_at`, `auto_deactivated_by`) VALUES
+(9, 12, 1, 'in_progress', NULL, NULL, '2026-04-12 13:55:53', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-12 05:55:53', '2026-04-12 16:00:00', '2026-04-21 06:00:00', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -903,6 +1079,18 @@ CREATE TABLE `sbm_dimension_scores` (
   `percentage` decimal(5,2) DEFAULT 0.00,
   `computed_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `sbm_dimension_scores`
+--
+
+INSERT INTO `sbm_dimension_scores` (`score_id`, `cycle_id`, `school_id`, `dimension_id`, `raw_score`, `max_score`, `percentage`, `computed_at`) VALUES
+(182, 9, 1, 1, 0.00, 0.00, 0.00, '2026-04-12 05:55:53'),
+(183, 9, 1, 2, 0.00, 0.00, 0.00, '2026-04-12 05:55:53'),
+(184, 9, 1, 3, 0.00, 0.00, 0.00, '2026-04-12 05:55:53'),
+(185, 9, 1, 4, 0.00, 0.00, 0.00, '2026-04-12 05:55:53'),
+(186, 9, 1, 5, 0.00, 0.00, 0.00, '2026-04-12 05:55:53'),
+(187, 9, 1, 6, 0.00, 0.00, 0.00, '2026-04-12 05:55:53');
 
 -- --------------------------------------------------------
 
@@ -1002,6 +1190,15 @@ CREATE TABLE `sbm_workflow_phases` (
   `is_active` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `sbm_workflow_phases`
+--
+
+INSERT INTO `sbm_workflow_phases` (`phase_id`, `sy_id`, `phase_no`, `phase_name`, `description`, `date_start`, `date_end`, `is_active`) VALUES
+(4, 12, 1, 'Self-Assessment', '', '2026-04-13', '2026-04-21', 1),
+(5, 12, 2, 'Validation', '', '2026-04-21', '2026-04-22', 1),
+(6, 12, 3, 'Improvement Planning', '', '2026-04-22', '2026-04-29', 1);
+
 -- --------------------------------------------------------
 
 --
@@ -1011,6 +1208,7 @@ CREATE TABLE `sbm_workflow_phases` (
 CREATE TABLE `schools` (
   `school_id` int(11) NOT NULL,
   `school_name` varchar(200) NOT NULL,
+  `division_name` varchar(100) DEFAULT NULL,
   `school_id_deped` varchar(20) DEFAULT NULL,
   `address` text DEFAULT NULL,
   `classification` enum('ES','JHS','SHS','IS','ALS') NOT NULL DEFAULT 'JHS',
@@ -1019,16 +1217,15 @@ CREATE TABLE `schools` (
   `email` varchar(120) DEFAULT NULL,
   `total_enrollment` int(11) DEFAULT 0,
   `total_teachers` int(11) DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `division_id` int(11) DEFAULT NULL
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `schools`
 --
 
-INSERT INTO `schools` (`school_id`, `school_name`, `school_id_deped`, `address`, `classification`, `school_head_name`, `contact_no`, `email`, `total_enrollment`, `total_teachers`, `created_at`, `division_id`) VALUES
-(1, 'Dasmariñas Integrated High School', '301143', 'Dasmariñas City, Cavite', 'JHS', 'Ryza Evangelio', '', '', 2500, 5, '2026-03-11 16:18:36', 1);
+INSERT INTO `schools` (`school_id`, `school_name`, `division_name`, `school_id_deped`, `address`, `classification`, `school_head_name`, `contact_no`, `email`, `total_enrollment`, `total_teachers`, `created_at`) VALUES
+(1, 'Dasmariñas Integrated High School', 'City Schools Division of Dasmariñas', '301143', 'Dasmariñas City, Cavite', 'JHS', 'Ryza Evangelio', '', 'dihs.edu.ph', 2500, 5, '2026-03-11 16:18:36');
 
 -- --------------------------------------------------------
 
@@ -1074,7 +1271,7 @@ CREATE TABLE `school_years` (
 --
 
 INSERT INTO `school_years` (`sy_id`, `label`, `is_current`, `date_start`, `date_end`) VALUES
-(8, '2026-2027', 1, '2026-07-15', '2027-04-25');
+(12, '2025-2026', 1, '2025-08-25', '2026-05-05');
 
 -- --------------------------------------------------------
 
@@ -1163,6 +1360,15 @@ CREATE TABLE `system_config` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `system_config`
+--
+
+INSERT INTO `system_config` (`config_id`, `config_key`, `config_value`, `updated_at`) VALUES
+(1, 'stakeholder_email_notify_days_before', '3', '2026-04-11 10:31:52'),
+(2, 'stakeholder_auto_deactivate_enabled', '1', '2026-04-11 10:31:52'),
+(3, 'stakeholder_reactivation_default_days', '7', '2026-04-11 10:31:52');
+
 -- --------------------------------------------------------
 
 --
@@ -1237,23 +1443,51 @@ CREATE TABLE `users` (
   `token_expiry` datetime DEFAULT NULL,
   `email_sent_at` datetime DEFAULT NULL,
   `force_password_change` tinyint(1) DEFAULT 1,
-  `profile_picture` varchar(255) DEFAULT NULL,
-  `contact_number` varchar(20) DEFAULT NULL
+  `contact_number` varchar(20) DEFAULT NULL,
+  `profile_picture` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`) VALUES
-(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, '2026-04-07 13:00:54', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0),
-(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, '2026-04-10 11:00:57', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0),
-(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, '2026-04-11 11:19:00', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0),
-(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, '2026-04-07 13:03:13', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0),
-(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, '2026-04-11 11:42:08', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, '2026-04-11 17:35:16', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, '2026-04-11 10:58:37', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0),
-(72, 'Patty', '$2y$10$V5F8wLfNzHXU1XPrYScCBuTOd.le0o88IVEUGx52m4dDIg256otOC', 'ariascharles00@gmail.com', 'Charles Mendoza', 'system_admin', 'active', 1, '2026-04-11 17:33:37', '2026-04-09 09:53:37', 0, NULL, NULL, '2026-04-09 17:53:42', 0);
+INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`, `contact_number`, `profile_picture`) VALUES
+(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, '2026-04-14 19:33:33', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, '2026-04-12 13:53:58', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, '2026-04-11 11:19:00', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, '2026-04-07 13:03:13', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, '2026-04-12 12:49:13', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza M. Evangelio', 'school_head', 'active', 1, '2026-04-16 19:50:10', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1776163511.jpg'),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, '2026-04-15 18:50:29', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
+(72, 'Patty', '$2y$10$V5F8wLfNzHXU1XPrYScCBuTOd.le0o88IVEUGx52m4dDIg256otOC', 'ariascharles00@gmail.com', 'Charles Mendoza', 'system_admin', 'active', 1, '2026-04-16 19:49:59', '2026-04-09 09:53:37', 0, NULL, NULL, '2026-04-09 17:53:42', 0, NULL, NULL),
+(77, 'eval_50223b97', '$2y$10$wDOaFLlv7XDmWw7QHyZecunzTJxUQ561FQW15zMmsiiIsYWNHmC7K', 'dozenjames54@gmail.com', 'Rolito Jr', 'external_stakeholder', 'active', 1, '2026-04-14 17:25:43', '2026-04-12 06:17:32', 0, NULL, NULL, '2026-04-12 14:17:36', 0, NULL, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `v_cycle_evaluator_summary`
+-- (See below for the actual view)
+--
+CREATE TABLE `v_cycle_evaluator_summary` (
+`evaluator_id` int(11)
+,`cycle_id` int(11)
+,`user_id` int(11)
+,`school_id` int(11)
+,`ce_is_active` tinyint(1)
+,`deactivated_at` datetime
+,`reactivated_at` datetime
+,`custom_access_end` datetime
+,`full_name` varchar(120)
+,`email` varchar(120)
+,`user_account_status` enum('active','inactive','suspended')
+,`submission_status` enum('draft','submitted')
+,`submitted_at` datetime
+,`response_count` int(11)
+,`stakeholder_access_start` datetime
+,`stakeholder_access_end` datetime
+,`auto_deactivated_at` datetime
+,`sy_label` varchar(20)
+);
 
 -- --------------------------------------------------------
 
@@ -1296,6 +1530,15 @@ CREATE TABLE `workflow_milestones` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `v_cycle_evaluator_summary`
+--
+DROP TABLE IF EXISTS `v_cycle_evaluator_summary`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_cycle_evaluator_summary`  AS SELECT `ce`.`evaluator_id` AS `evaluator_id`, `ce`.`cycle_id` AS `cycle_id`, `ce`.`user_id` AS `user_id`, `ce`.`school_id` AS `school_id`, `ce`.`is_active` AS `ce_is_active`, `ce`.`deactivated_at` AS `deactivated_at`, `ce`.`reactivated_at` AS `reactivated_at`, `ce`.`custom_access_end` AS `custom_access_end`, `u`.`full_name` AS `full_name`, `u`.`email` AS `email`, `u`.`status` AS `user_account_status`, `ss`.`status` AS `submission_status`, `ss`.`submitted_at` AS `submitted_at`, `ss`.`response_count` AS `response_count`, `c`.`stakeholder_access_start` AS `stakeholder_access_start`, `c`.`stakeholder_access_end` AS `stakeholder_access_end`, `c`.`auto_deactivated_at` AS `auto_deactivated_at`, `sy`.`label` AS `sy_label` FROM ((((`cycle_evaluators` `ce` join `users` `u` on(`ce`.`user_id` = `u`.`user_id`)) join `sbm_cycles` `c` on(`ce`.`cycle_id` = `c`.`cycle_id`)) join `school_years` `sy` on(`c`.`sy_id` = `sy`.`sy_id`)) left join `stakeholder_submissions` `ss` on(`ss`.`stakeholder_id` = `ce`.`user_id` and `ss`.`cycle_id` = `ce`.`cycle_id`)) ;
 
 --
 -- Indexes for dumped tables
@@ -1342,19 +1585,21 @@ ALTER TABLE `cycle_evaluators`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indexes for table `cycle_evaluator_status_log`
+--
+ALTER TABLE `cycle_evaluator_status_log`
+  ADD PRIMARY KEY (`log_id`),
+  ADD KEY `idx_cycle` (`cycle_id`),
+  ADD KEY `idx_user` (`user_id`),
+  ADD KEY `idx_action` (`action`);
+
+--
 -- Indexes for table `cycle_stage_gates`
 --
 ALTER TABLE `cycle_stage_gates`
   ADD PRIMARY KEY (`gate_id`),
   ADD KEY `cycle_id` (`cycle_id`),
   ADD KEY `checked_by` (`checked_by`);
-
---
--- Indexes for table `divisions`
---
-ALTER TABLE `divisions`
-  ADD PRIMARY KEY (`division_id`),
-  ADD KEY `region_id` (`region_id`);
 
 --
 -- Indexes for table `email_logs`
@@ -1434,12 +1679,6 @@ ALTER TABLE `password_setup_tokens`
   ADD PRIMARY KEY (`token_id`),
   ADD UNIQUE KEY `token` (`token`),
   ADD KEY `user_id` (`user_id`);
-
---
--- Indexes for table `regions`
---
-ALTER TABLE `regions`
-  ADD PRIMARY KEY (`region_id`);
 
 --
 -- Indexes for table `response_attachments`
@@ -1640,7 +1879,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=502;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=664;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`
@@ -1664,7 +1903,13 @@ ALTER TABLE `cycle_audit_log`
 -- AUTO_INCREMENT for table `cycle_evaluators`
 --
 ALTER TABLE `cycle_evaluators`
-  MODIFY `evaluator_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `evaluator_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `cycle_evaluator_status_log`
+--
+ALTER TABLE `cycle_evaluator_status_log`
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `cycle_stage_gates`
@@ -1673,16 +1918,10 @@ ALTER TABLE `cycle_stage_gates`
   MODIFY `gate_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `divisions`
---
-ALTER TABLE `divisions`
-  MODIFY `division_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
 -- AUTO_INCREMENT for table `email_logs`
 --
 ALTER TABLE `email_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
 
 --
 -- AUTO_INCREMENT for table `evidence_audit_log`
@@ -1724,25 +1963,19 @@ ALTER TABLE `ml_predictions`
 -- AUTO_INCREMENT for table `ml_recommendations`
 --
 ALTER TABLE `ml_recommendations`
-  MODIFY `rec_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `rec_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `ml_training_snapshots`
 --
 ALTER TABLE `ml_training_snapshots`
-  MODIFY `snapshot_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `snapshot_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `password_setup_tokens`
 --
 ALTER TABLE `password_setup_tokens`
-  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=76;
-
---
--- AUTO_INCREMENT for table `regions`
---
-ALTER TABLE `regions`
-  MODIFY `region_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=80;
 
 --
 -- AUTO_INCREMENT for table `response_attachments`
@@ -1754,7 +1987,7 @@ ALTER TABLE `response_attachments`
 -- AUTO_INCREMENT for table `sbm_cycles`
 --
 ALTER TABLE `sbm_cycles`
-  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `sbm_dimensions`
@@ -1766,7 +1999,7 @@ ALTER TABLE `sbm_dimensions`
 -- AUTO_INCREMENT for table `sbm_dimension_scores`
 --
 ALTER TABLE `sbm_dimension_scores`
-  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=170;
+  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=188;
 
 --
 -- AUTO_INCREMENT for table `sbm_indicators`
@@ -1784,7 +2017,7 @@ ALTER TABLE `sbm_responses`
 -- AUTO_INCREMENT for table `sbm_workflow_phases`
 --
 ALTER TABLE `sbm_workflow_phases`
-  MODIFY `phase_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `phase_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `schools`
@@ -1802,7 +2035,7 @@ ALTER TABLE `school_workflow_status`
 -- AUTO_INCREMENT for table `school_years`
 --
 ALTER TABLE `school_years`
-  MODIFY `sy_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `sy_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `sh_indicator_overrides`
@@ -1832,7 +2065,7 @@ ALTER TABLE `stakeholder_submissions`
 -- AUTO_INCREMENT for table `system_config`
 --
 ALTER TABLE `system_config`
-  MODIFY `config_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `config_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `teacher_indicator_assignments`
@@ -1856,7 +2089,7 @@ ALTER TABLE `teacher_submissions`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
 
 --
 -- AUTO_INCREMENT for table `workflow_checkpoints`
@@ -1915,12 +2148,6 @@ ALTER TABLE `cycle_evaluators`
 ALTER TABLE `cycle_stage_gates`
   ADD CONSTRAINT `csg_ibfk_1` FOREIGN KEY (`cycle_id`) REFERENCES `sbm_cycles` (`cycle_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `csg_ibfk_2` FOREIGN KEY (`checked_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
-
---
--- Constraints for table `divisions`
---
-ALTER TABLE `divisions`
-  ADD CONSTRAINT `divisions_ibfk_1` FOREIGN KEY (`region_id`) REFERENCES `regions` (`region_id`);
 
 --
 -- Constraints for table `email_logs`

@@ -49,11 +49,7 @@ $stReturned = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE sy_id = ? AND 
 $stReturned->execute([$selectedSyId, $mySchoolId]);
 $returned = (int) $stReturned->fetchColumn();
 
-// Portal users & active users are global (not SY-scoped)
-$enrollSt = $db->prepare("SELECT COUNT(*) FROM users WHERE school_id=? AND status='active'");
-$enrollSt->execute([$mySchoolId]);
-$portalUsers = (int) $enrollSt->fetchColumn();
-$totalUsers = (int) $db->query("SELECT COUNT(*) FROM users WHERE status='active'")->fetchColumn();
+// Assessment cycles stats are SY-scoped
 
 // ── Maturity distribution (SY-scoped) ────────────────────────
 $stMaturity = $db->prepare("
@@ -925,6 +921,48 @@ include __DIR__ . '/../includes/header.php';
     background: var(--n-100, #F3F4F6);
     margin: 4px 6px;
   }
+  /* ── VIEW TOGGLE ── */
+  .view-toggle-wrap {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 24px;
+  }
+
+  .view-toggle {
+    display: inline-flex;
+    background: var(--n-50);
+    border: 1px solid var(--n-200);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .vt-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-radius: 9px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--n-500);
+    text-decoration: none;
+    transition: all 140ms;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .vt-btn:hover {
+    color: var(--n-700);
+    background: rgba(0, 0, 0, 0.03);
+  }
+
+  .vt-btn.active {
+    background: #fff;
+    color: var(--n-900);
+    box-shadow: var(--shadow-sm);
+  }
 </style>
 
 <!-- ═══════════ HERO ═══════════ -->
@@ -1027,6 +1065,14 @@ include __DIR__ . '/../includes/header.php';
   </div><!-- /db-hero-right -->
 </div><!-- /db-hero -->
 
+<!-- ═══════════ VIEW TOGGLE ═══════════ -->
+<div class="view-toggle-wrap">
+  <div class="view-toggle">
+    <button class="vt-btn active" onclick="switchView('overview', this)">Overview</button>
+    <button class="vt-btn" onclick="switchView('analytics', this)">Analytics</button>
+  </div>
+</div>
+
 <!-- ═══════════ SY CONTEXT BAR (Hidden for current year) ═══════════ -->
 <?php if (!$isCurrentSY): ?>
   <div class="sy-context-bar is-historical">
@@ -1067,12 +1113,6 @@ include __DIR__ . '/../includes/header.php';
 <!-- ═══════════ KPI STATS ═══════════ -->
 <div class="stats-v2">
   <div class="stat-v2">
-    <div class="stat-v2-accent" style="background:#16A34A;"></div>
-    <div class="stat-v2-label">Portal Users</div>
-    <div class="stat-v2-value"><?= number_format($portalUsers) ?></div>
-    <div class="stat-v2-meta" style="color:var(--n-400);">Active portal accounts</div>
-  </div>
-  <div class="stat-v2">
     <div class="stat-v2-accent" style="background:#2563EB;"></div>
     <div class="stat-v2-label">Assessment Cycles</div>
     <div class="stat-v2-value" data-live="total-cycles"><?= number_format($totalCycles) ?></div>
@@ -1101,12 +1141,6 @@ include __DIR__ . '/../includes/header.php';
     <div class="kpi-bar">
       <div class="kpi-bar-fill" style="width:<?= $validationRate ?>%;background:#16A34A;"></div>
     </div>
-  </div>
-  <div class="stat-v2">
-    <div class="stat-v2-accent" style="background:#7C3AED;"></div>
-    <div class="stat-v2-label">Active Users</div>
-    <div class="stat-v2-value" data-live="total-users"><?= number_format($totalUsers) ?></div>
-    <div class="stat-v2-meta" style="color:var(--n-400);">Across all roles</div>
   </div>
 </div>
 
@@ -1299,86 +1333,6 @@ include __DIR__ . '/../includes/header.php';
       </div>
     </div>
 
-    <!-- School Years -->
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">School Years</span>
-        <a href="settings.php" class="btn btn-ghost btn-sm" style="margin-left:auto;">Manage</a>
-      </div>
-      <div class="card-body" style="padding:6px 8px;">
-        <div style="display:flex;flex-direction:column;gap:4px;">
-          <?php foreach ($allSYs as $sy):
-            $isSelected = ($sy['sy_id'] == $selectedSyId);
-            ?>
-            <a href="dashboard.php?sy_id=<?= $sy['sy_id'] ?>" class="sy-row <?= $isSelected ? 'sy-row-active' : '' ?>">
-              <div style="min-width:0;flex:1;">
-                <div class="sy-row-label">
-                  SY <?= e($sy['label']) ?>
-                  <?php if ($sy['is_current']): ?>
-                    <span class="pill pill-active" style="font-size:10px;margin-left:4px;">Current</span>
-                  <?php endif; ?>
-                </div>
-                <div class="sy-row-dates">
-                  <?= $sy['date_start'] ? date('M Y', strtotime($sy['date_start'])) : '—' ?> –
-                  <?= $sy['date_end'] ? date('M Y', strtotime($sy['date_end'])) : 'Present' ?>
-                </div>
-              </div>
-              <span class="sy-row-caret"><?= $isSelected ? '●' : '›' ?></span>
-            </a>
-          <?php endforeach; ?>
-          <?php if (!$allSYs): ?>
-            <p style="text-align:center;color:var(--n-400);font-size:12px;padding:12px 0;">No school years configured.
-            </p>
-          <?php endif; ?>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="card">
-      <div class="card-head"><span class="card-title">Quick Actions</span></div>
-      <div class="card-body" style="padding:10px 12px;">
-        <div class="quick-actions">
-          <a href="assessment.php" class="quick-action-btn">
-            <div class="quick-action-icon" style="background:var(--purple-bg);color:var(--purple);">
-              <svg viewBox="0 0 24 24">
-                <path d="M9 11l3 3L22 4" />
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-              </svg>
-            </div>
-            Assessments
-          </a>
-          <a href="school_profile.php" class="quick-action-btn">
-            <div class="quick-action-icon" style="background:var(--brand-100);color:var(--brand-700);">
-              <svg viewBox="0 0 24 24">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-            </div>
-            School Profile
-          </a>
-          <a href="announcements.php" class="quick-action-btn">
-            <div class="quick-action-icon" style="background:var(--amber-bg);color:var(--amber);">
-              <svg viewBox="0 0 24 24">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
-            </div>
-            Announce
-          </a>
-          <a href="workflow.php" class="quick-action-btn">
-            <div class="quick-action-icon" style="background:var(--n-100);color:var(--n-600);">
-              <svg viewBox="0 0 24 24">
-                <polyline points="22 6 12 16 8 12" />
-                <path d="M16 6h6v6" />
-                <path d="M12 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-7" />
-              </svg>
-            </div>
-            Workflow
-          </a>
-        </div>
-      </div>
-    </div>
 
     <!-- Recent Activity -->
     <div class="card">
@@ -1495,6 +1449,12 @@ include __DIR__ . '/../includes/header.php';
       }
     }
   });
+  function switchView(view, btn) {
+    document.querySelectorAll('.vt-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // For now it just toggles the UI state; logic can be added here if needed
+    console.log('Switched to:', view);
+  }
 </script>
 
 <?= deadlineChipCss() ?>

@@ -35,13 +35,12 @@ if ($cycleId) {
     $cycleStmt = $db->prepare("
         SELECT c.*, s.school_name, s.school_id_deped, s.classification,
                s.school_head_name, s.address, s.total_enrollment, s.total_teachers,
+               s.division_name,
                sy.label sy_label, sy.sy_id,
-               d.division_name,
                u.full_name validator_name
         FROM sbm_cycles c
         JOIN schools s   ON c.school_id = s.school_id
         JOIN school_years sy ON c.sy_id = sy.sy_id
-        LEFT JOIN divisions d  ON s.division_id = d.division_id
         LEFT JOIN users u ON c.validated_by = u.user_id
         WHERE c.cycle_id = ?
     ");
@@ -51,13 +50,12 @@ if ($cycleId) {
     $cycleStmt = $db->prepare("
         SELECT c.*, s.school_name, s.school_id_deped, s.classification,
                s.school_head_name, s.address, s.total_enrollment, s.total_teachers,
+               s.division_name,
                sy.label sy_label, sy.sy_id,
-               d.division_name,
                u.full_name validator_name
         FROM sbm_cycles c
         JOIN schools s   ON c.school_id = s.school_id
         JOIN school_years sy ON c.sy_id = sy.sy_id
-        LEFT JOIN divisions d  ON s.division_id = d.division_id
         LEFT JOIN users u ON c.validated_by = u.user_id
         WHERE c.school_id = ? AND c.sy_id = ?
         LIMIT 1
