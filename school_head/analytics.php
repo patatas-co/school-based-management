@@ -1,9 +1,16 @@
 <?php
 ob_start();
-// school_head/analytics.php — Analytics for School Head
+// school_head/analytics.php — Performance Insights
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth.php';
-requireRole('school_head', 'sbm_coordinator');
+
+// If School Head, redirect to the new integrated view on Dashboard
+if ($_SESSION['role'] === 'school_head') {
+    header("Location: dashboard.php?view=analytics");
+    exit;
+}
+
+requireRole(['school_head', 'sbm_coordinator']);
 $db = getDB();
 
 $syears = $db->query("SELECT * FROM school_years ORDER BY sy_id DESC")->fetchAll();

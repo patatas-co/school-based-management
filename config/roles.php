@@ -75,7 +75,6 @@ define('SBM_NAV', [
             'grid',
             [
                 ['Dashboard', 'school_head/dashboard.php', 'grid'],
-                ['Analytics', 'school_head/analytics.php', 'bar-chart-2'],
                 ['Reports', 'school_head/reports.php', 'file-text'],
             ]
         ],

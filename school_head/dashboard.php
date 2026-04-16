@@ -100,6 +100,149 @@ $hasData = ($totalCycles > 0);
 // ── Deadline awareness ────────────────────────────────────────
 $deadlineInfo = $selectedSyId ? getDeadlineInfo($db, $selectedSyId) : null;
 
+// ═══════════════════════════════════════════════════════════════
+// ANALYTICS DATA (loaded upfront for inline toggle)
+// ═══════════════════════════════════════════════════════════════
+
+// ── Comparison SY ─────────────────────────────────────────────
+$compareSyId = (int) ($_GET['compare_sy'] ?? 0);
+
+// ── Analytics dimension averages ──────────────────────────────
+$anDimAvgQ = $db->prepare("
+    SELECT d.dimension_no, d.dimension_name, d.color_hex,
+           ROUND(AVG(ds.percentage),1) AS avg_pct
+    FROM sbm_dimensions d
+    LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
+    LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id
+    WHERE c.sy_id = ? AND c.school_id = ?
+    GROUP BY d.dimension_id ORDER BY d.dimension_no
+");
+$anDimAvgQ->execute([$selectedSyId, $mySchoolId]);
+$anDimAvgs = $anDimAvgQ->fetchAll();
+
+// ── Comparison SY dimension averages ──────────────────────────
+$anDimAvgsCompare = [];
+if ($compareSyId && $compareSyId !== $selectedSyId) {
+  $cmpQ = $db->prepare("
+        SELECT d.dimension_no, d.dimension_name, d.color_hex,
+               ROUND(AVG(ds.percentage),1) AS avg_pct
+        FROM sbm_dimensions d
+        LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
+        LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id
+        WHERE c.sy_id = ? AND c.school_id = ?
+        GROUP BY d.dimension_id ORDER BY d.dimension_no
+    ");
+  $cmpQ->execute([$compareSyId, $mySchoolId]);
+  $anDimAvgsCompare = $cmpQ->fetchAll();
+}
+
+// ── Assessment history (all cycles) ───────────────────────────
+$historyQ = $db->prepare("
+    SELECT sy.label AS sy_label, sy.sy_id,
+           c.cycle_id, c.overall_score, c.maturity_level,
+           c.status, c.validated_at
+    FROM sbm_cycles c
+    JOIN school_years sy ON c.sy_id = sy.sy_id
+    WHERE c.school_id = ? AND c.overall_score IS NOT NULL
+    ORDER BY sy.date_start ASC
+");
+$historyQ->execute([$mySchoolId]);
+$cycleHistory = $historyQ->fetchAll();
+
+// ── Trend data: dimension scores across all cycles ────────────
+$trendQ = $db->prepare("
+    SELECT sy.label AS sy_label, sy.sy_id,
+           d.dimension_no, d.dimension_name, d.color_hex,
+           ROUND(AVG(ds.percentage),1) AS avg_pct
+    FROM sbm_dimension_scores ds
+    JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id
+    JOIN school_years sy ON c.sy_id = sy.sy_id
+    JOIN sbm_dimensions d ON ds.dimension_id = d.dimension_id
+    WHERE c.school_id = ? AND c.overall_score IS NOT NULL
+    GROUP BY sy.sy_id, d.dimension_id
+    ORDER BY sy.date_start ASC, d.dimension_no ASC
+");
+$trendQ->execute([$mySchoolId]);
+$trendRows = $trendQ->fetchAll();
+
+$trendBySY = [];
+$trendByDim = [];
+$trendSYLabels = [];
+foreach ($trendRows as $tr) {
+  $trendSYLabels[$tr['sy_id']] = $tr['sy_label'];
+  $trendBySY[$tr['sy_label']][$tr['dimension_no']] = floatval($tr['avg_pct']);
+  $trendByDim[$tr['dimension_no']][$tr['sy_label']] = floatval($tr['avg_pct']);
+}
+$trendSYLabels = array_values($trendSYLabels);
+
+// ── Weak indicators — current SY ──────────────────────────────
+$weakQ = $db->prepare("
+    SELECT i.indicator_code, i.indicator_text,
+           d.dimension_name, d.color_hex,
+           ROUND(AVG(all_r.rating), 2) AS avg_rating,
+           COUNT(all_r.rating) AS response_count
+    FROM (
+        SELECT cycle_id, indicator_id, rating FROM sbm_responses
+        UNION ALL
+        SELECT cycle_id, indicator_id, rating FROM teacher_responses
+    ) AS all_r
+    JOIN sbm_indicators i   ON all_r.indicator_id = i.indicator_id
+    JOIN sbm_dimensions d   ON i.dimension_id = d.dimension_id
+    JOIN sbm_cycles c       ON all_r.cycle_id = c.cycle_id
+    WHERE c.sy_id = ? AND c.school_id = ?
+    GROUP BY i.indicator_id
+    ORDER BY avg_rating ASC
+    LIMIT 8
+");
+$weakQ->execute([$selectedSyId, $mySchoolId]);
+$weakIndicatorRows = $weakQ->fetchAll();
+
+// ── Consistently weak indicators ──────────────────────────────
+$consistentlyWeakQ = $db->prepare("
+    SELECT i.indicator_code, i.indicator_text,
+           d.dimension_name, d.color_hex,
+           ROUND(AVG(all_r.rating), 2)  AS avg_rating,
+           COUNT(DISTINCT c.sy_id)      AS cycle_count,
+           MIN(ROUND(per_cy.avg_r, 2))  AS worst_cycle_avg,
+           MAX(ROUND(per_cy.avg_r, 2))  AS best_cycle_avg
+    FROM (
+        SELECT cycle_id, indicator_id, rating FROM sbm_responses
+        UNION ALL
+        SELECT cycle_id, indicator_id, rating FROM teacher_responses
+    ) AS all_r
+    JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
+    JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
+    JOIN sbm_cycles c     ON all_r.cycle_id = c.cycle_id AND c.school_id = ?
+    JOIN (
+        SELECT r2.indicator_id, r2.cycle_id, AVG(r2.rating) AS avg_r
+        FROM (
+            SELECT cycle_id, indicator_id, rating FROM sbm_responses
+            UNION ALL
+            SELECT cycle_id, indicator_id, rating FROM teacher_responses
+        ) r2
+        JOIN sbm_cycles c2 ON r2.cycle_id = c2.cycle_id AND c2.school_id = ?
+        GROUP BY r2.indicator_id, r2.cycle_id
+    ) per_cy ON per_cy.indicator_id = all_r.indicator_id
+    GROUP BY i.indicator_id
+    HAVING cycle_count >= 1 AND avg_rating <= 2.5
+    ORDER BY avg_rating ASC
+    LIMIT 6
+");
+$consistentlyWeakQ->execute([$mySchoolId, $mySchoolId]);
+$consistentlyWeak = $consistentlyWeakQ->fetchAll();
+
+// ── Summary insights ──────────────────────────────────────────
+$anAllPcts = array_filter(array_column($anDimAvgs, 'avg_pct'), fn($v) => $v !== null);
+$anAvgOverall = count($anAllPcts) > 0 ? round(array_sum($anAllPcts) / count($anAllPcts), 1) : null;
+$anTopDim = !empty($anAllPcts) ? $anDimAvgs[array_search(max($anAllPcts), array_column($anDimAvgs, 'avg_pct'))] : null;
+$anWeakDim = !empty($anAllPcts) ? $anDimAvgs[array_search(min($anAllPcts), array_column($anDimAvgs, 'avg_pct'))] : null;
+
+$prevCycle = count($cycleHistory) >= 2 ? $cycleHistory[count($cycleHistory) - 2] : null;
+$currCycle = count($cycleHistory) >= 1 ? $cycleHistory[count($cycleHistory) - 1] : null;
+$scoreDelta = ($currCycle && $prevCycle)
+  ? round(floatval($currCycle['overall_score']) - floatval($prevCycle['overall_score']), 2)
+  : null;
+
 $pageTitle = 'Dashboard';
 $activePage = 'dashboard.php';
 include __DIR__ . '/../includes/header.php';
@@ -930,11 +1073,12 @@ include __DIR__ . '/../includes/header.php';
 
   .view-toggle {
     display: inline-flex;
-    background: var(--n-50);
+    background: var(--n-100);
     border: 1px solid var(--n-200);
     border-radius: 12px;
     padding: 4px;
     gap: 4px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
   }
 
   .vt-btn {
@@ -961,7 +1105,159 @@ include __DIR__ . '/../includes/header.php';
   .vt-btn.active {
     background: #fff;
     color: var(--n-900);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 1px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  /* ── CHART LEGENDS ── */
+  .chart-legend {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--n-600);
+    line-height: 1;
+  }
+  .chart-legend-swatch {
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* ── ANALYTICS VIEW STYLES ── */
+  .an-insight-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .an-insight-card {
+    background: #fff;
+    border: 1px solid var(--n-200);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .an-insight-val {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--n-900);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .an-insight-lbl {
+    font-size: 11.5px;
+    color: var(--n-500);
+    font-weight: 500;
+  }
+
+  .an-insight-delta {
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 5px;
+  }
+
+  .an-insight-delta.up { color: var(--brand-600); }
+  .an-insight-delta.down { color: var(--red); }
+  .an-insight-delta.flat { color: var(--n-400); }
+
+  .an-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid var(--n-200);
+    border-radius: var(--radius-lg);
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .an-filter-bar label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--n-600);
+    white-space: nowrap;
+  }
+
+  .an-weak-prog {
+    height: 6px;
+    background: var(--n-100);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 5px;
+  }
+
+  .an-weak-fill {
+    height: 100%;
+    border-radius: 999px;
+  }
+
+  .an-tab-btns {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+
+  .an-tab-btn {
+    padding: 6px 14px;
+    border-radius: 7px;
+    border: 1.5px solid var(--n-200);
+    background: #fff;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--n-600);
+    cursor: pointer;
+    transition: all .14s;
+  }
+
+  .an-tab-btn:hover { background: var(--n-50); border-color: var(--n-300); }
+  .an-tab-btn.active { background: var(--n-900); color: #fff; border-color: var(--n-900); }
+
+  .an-tab-panel { display: none; }
+  .an-tab-panel.active { display: block; }
+
+  .an-cw-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--n-100);
+  }
+
+  .an-cw-badge {
+    min-width: 38px;
+    height: 22px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    flex-shrink: 0;
+  }
+
+  .an-cw-info { flex: 1; min-width: 0; }
+  .an-cw-title { font-size: 12.5px; font-weight: 600; color: var(--n-900); margin-bottom: 3px; line-height: 1.35; }
+  .an-cw-meta { font-size: 11.5px; color: var(--n-400); }
+  .an-cw-bar-track { height: 5px; background: var(--n-100); border-radius: 999px; margin-top: 5px; overflow: hidden; }
+  .an-cw-bar-fill { height: 100%; border-radius: 999px; }
+
+  @media(max-width:768px) {
+    .an-insight-strip { grid-template-columns: 1fr 1fr; }
   }
 </style>
 
@@ -1047,14 +1343,6 @@ include __DIR__ . '/../includes/header.php';
           style="background:rgba(255,255,255,.2);border-radius:999px;padding:1px 7px;font-size:11px;"><?= $submitted - $validated ?></span>
       <?php endif; ?>
     </a>
-    <a href="analytics.php?sy_id=<?= $selectedSyId ?>" class="db-hero-btn db-hero-btn-secondary">
-      <svg viewBox="0 0 24 24">
-        <line x1="18" y1="20" x2="18" y2="10" />
-        <line x1="12" y1="20" x2="12" y2="4" />
-        <line x1="6" y1="20" x2="6" y2="14" />
-      </svg>
-      Analytics
-    </a>
     <a href="reports.php?sy_id=<?= $selectedSyId ?>" class="db-hero-btn db-hero-btn-secondary">
       <svg viewBox="0 0 24 24">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -1068,10 +1356,13 @@ include __DIR__ . '/../includes/header.php';
 <!-- ═══════════ VIEW TOGGLE ═══════════ -->
 <div class="view-toggle-wrap">
   <div class="view-toggle">
-    <button class="vt-btn active" onclick="switchView('overview', this)">Overview</button>
+    <button class="vt-btn active" onclick="switchView('progress', this)">Progress</button>
     <button class="vt-btn" onclick="switchView('analytics', this)">Analytics</button>
   </div>
 </div>
+
+<!-- ═══════════ PROGRESS VIEW ═══════════ -->
+<div id="viewProgress">
 
 <!-- ═══════════ SY CONTEXT BAR (Hidden for current year) ═══════════ -->
 <?php if (!$isCurrentSY): ?>
@@ -1365,6 +1656,380 @@ include __DIR__ . '/../includes/header.php';
 
   </div>
 </div>
+</div><!-- /viewProgress -->
+
+<!-- ═══════════ ANALYTICS VIEW ═══════════ -->
+<div id="viewAnalytics" style="display:none;">
+
+<!-- Filter bar -->
+<div class="an-filter-bar">
+  <label>Primary SY:</label>
+  <span style="font-size:13px;font-weight:700;color:var(--n-900);">
+    <?= e($selectedSYLabel) ?>
+  </span>
+  <div style="width:1px;height:18px;background:var(--n-200);margin:0 4px;"></div>
+  <label>Compare with:</label>
+  <div class="p-select" id="anCompareSelect" style="width:160px;">
+    <input type="hidden" name="compare_sy_id" value="<?= $compareSyId ?>">
+    <div class="p-select-trigger" onclick="togglePSelect(event, 'anCompareSelect')" style="padding: 5px 12px; font-size: 12.5px; min-height: 32px;">
+      <span class="p-select-val">
+        <?= $compareSyId ? 'SY ' . e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') : 'None' ?>
+      </span>
+    </div>
+    <div class="p-select-menu">
+      <div class="p-select-item <?= !$compareSyId ? 'selected' : '' ?>" 
+           onclick="location.href='dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=0&view=analytics'">
+        None
+      </div>
+      <?php foreach ($allSYs as $sy):
+        if ($sy['sy_id'] == $selectedSyId) continue; ?>
+        <div class="p-select-item <?= $sy['sy_id'] == $compareSyId ? 'selected' : '' ?>" 
+             onclick="location.href='dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=<?= $sy['sy_id'] ?>&view=analytics'">
+          SY <?= e($sy['label']) ?>
+          <?php if ($sy['sy_id'] == $compareSyId): ?>
+            <span class="p-select-check"></span>
+          <?php endif; ?>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <?php if ($compareSyId): ?>
+    <span style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--blue-bg);color:var(--blue);">
+      Comparing 2 cycles
+    </span>
+    <a href="dashboard.php?sy_id=<?= $selectedSyId ?>&view=analytics" class="btn btn-ghost btn-sm">✕ Clear</a>
+  <?php endif; ?>
+</div>
+
+<!-- KPI insight strip -->
+<div class="an-insight-strip">
+  <div class="an-insight-card">
+    <div class="an-insight-val"
+      style="color:<?= $anAvgOverall !== null ? ($anAvgOverall >= 76 ? '#16A34A' : ($anAvgOverall >= 51 ? '#2563EB' : ($anAvgOverall >= 26 ? '#D97706' : '#DC2626'))) : 'var(--n-400)' ?>;">
+      <?= $anAvgOverall !== null ? $anAvgOverall . '%' : '—' ?>
+    </div>
+    <div class="an-insight-lbl">Overall SBM Score</div>
+    <?php if ($scoreDelta !== null): ?>
+      <div class="an-insight-delta <?= $scoreDelta > 0 ? 'up' : ($scoreDelta < 0 ? 'down' : 'flat') ?>">
+        <?= $scoreDelta > 0 ? '▲ +' : '▼ ' ?><?= abs($scoreDelta) ?>% vs prev cycle
+      </div>
+    <?php endif; ?>
+  </div>
+
+  <div class="an-insight-card">
+    <?php
+    $curMaturity = $currCycle['maturity_level'] ?? null;
+    $anMatColors = ['Beginning' => '#DC2626', 'Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
+    ?>
+    <div class="an-insight-val" style="font-size:18px;color:<?= $anMatColors[$curMaturity ?? ''] ?? 'var(--n-400)' ?>;">
+      <?= $curMaturity ?? '—' ?>
+    </div>
+    <div class="an-insight-lbl">Maturity Level</div>
+    <?php if ($prevCycle && $prevCycle['maturity_level'] && $curMaturity): ?>
+      <div class="an-insight-delta flat">Was: <?= e($prevCycle['maturity_level']) ?></div>
+    <?php endif; ?>
+  </div>
+
+  <div class="an-insight-card">
+    <?php if ($anTopDim): ?>
+      <div class="an-insight-val" style="font-size:20px;color:<?= e($anTopDim['color_hex']) ?>;">
+        D<?= $anTopDim['dimension_no'] ?>
+      </div>
+      <div class="an-insight-lbl">Strongest — <?= e(substr($anTopDim['dimension_name'], 0, 28)) ?></div>
+      <div class="an-insight-delta up"><?= $anTopDim['avg_pct'] ?>% average</div>
+    <?php else: ?>
+      <div class="an-insight-val">—</div>
+      <div class="an-insight-lbl">Strongest Dimension</div>
+    <?php endif; ?>
+  </div>
+
+  <div class="an-insight-card">
+    <?php if ($anWeakDim): ?>
+      <div class="an-insight-val" style="font-size:20px;color:var(--red);">D<?= $anWeakDim['dimension_no'] ?></div>
+      <div class="an-insight-lbl">Needs Work — <?= e(substr($anWeakDim['dimension_name'], 0, 28)) ?></div>
+      <div class="an-insight-delta down"><?= $anWeakDim['avg_pct'] ?>% average</div>
+    <?php else: ?>
+      <div class="an-insight-val">—</div>
+      <div class="an-insight-lbl">Weakest Dimension</div>
+    <?php endif; ?>
+  </div>
+
+  <div class="an-insight-card">
+    <div class="an-insight-val" style="color:<?= count($consistentlyWeak) > 0 ? 'var(--red)' : 'var(--brand-600)' ?>;">
+      <?= count($consistentlyWeak) ?>
+    </div>
+    <div class="an-insight-lbl">Indicators Below 2.5 Avg</div>
+    <?php if (count($consistentlyWeak) > 0): ?>
+      <div class="an-insight-delta down">Needs targeted intervention</div>
+    <?php else: ?>
+      <div class="an-insight-delta up">All indicators ≥ 2.5</div>
+    <?php endif; ?>
+  </div>
+
+  <div class="an-insight-card">
+    <div class="an-insight-val"><?= count($cycleHistory) ?></div>
+    <div class="an-insight-lbl">Cycles Assessed</div>
+    <?php if (count($cycleHistory) > 0): ?>
+      <div class="an-insight-delta flat">Since SY <?= e($cycleHistory[0]['sy_label']) ?></div>
+    <?php endif; ?>
+  </div>
+</div>
+
+<!-- Charts row -->
+<div class="grid2" style="margin-bottom:18px;">
+  <div class="chart-card">
+    <div class="chart-card-head">
+      <span class="chart-card-title">Dimension Performance Radar</span>
+      <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
+        <div style="display:flex;align-items:center;gap:10px;font-size:11.5px;">
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#16A34A;display:inline-block;"></span>SY <?= e($selectedSYLabel) ?></span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#2563EB;display:inline-block;"></span>SY <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></span>
+        </div>
+      <?php endif; ?>
+    </div>
+    <div class="chart-card-body" style="display:flex;justify-content:center;align-items:center;min-height:300px;">
+      <canvas id="anRadarChart" style="max-height:280px;"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-card-head">
+      <span class="chart-card-title">Overall Score Trend</span>
+      <span style="font-size:12px;color:var(--n-400);"><?= count($cycleHistory) ?> cycle(s)</span>
+    </div>
+    <div class="chart-card-body" style="min-height:300px;display:flex;align-items:center;justify-content:center;">
+      <?php if (count($cycleHistory) >= 1): ?>
+        <canvas id="anTrendLineChart"></canvas>
+      <?php else: ?>
+        <p style="color:var(--n-400);font-size:13px;text-align:center;">Not enough cycles to show a trend.</p>
+      <?php endif; ?>
+    </div>
+  </div>
+</div>
+
+<!-- Dimension trend over time -->
+<?php if (count($trendSYLabels) >= 2): ?>
+  <div class="chart-card" style="margin-bottom:18px;">
+    <div class="chart-card-head">
+      <span class="chart-card-title">Dimension Trend — All Cycles</span>
+      <span style="font-size:12px;color:var(--n-400);">Track how each dimension has moved over time</span>
+    </div>
+    <div class="chart-card-body"><canvas id="anDimTrendChart" height="90"></canvas></div>
+  </div>
+<?php endif; ?>
+
+<!-- Dimension Score Bar -->
+<div class="chart-card" style="margin-bottom:18px;">
+  <div class="chart-card-head">
+    <span class="chart-card-title">Dimension Score Comparison</span>
+    <div class="chart-legend" style="margin-bottom:0;">
+      <?php foreach ($anDimAvgs as $d): ?>
+        <div class="chart-legend-item">
+          <div class="chart-legend-swatch" style="background:<?= e($d['color_hex']) ?>;"></div>
+          D<?= $d['dimension_no'] ?>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <div class="chart-card-body"><canvas id="anDimBarChart" height="80"></canvas></div>
+</div>
+
+<!-- Tabbed bottom section -->
+<div class="an-tab-btns">
+  <button class="an-tab-btn active" onclick="anSwitchTab(this,'anTabHistory')">Cycle History</button>
+  <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabWeak')">Weak This Cycle</button>
+  <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabConsistent')">Consistently Weak</button>
+  <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
+    <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabCompare')">Side-by-Side</button>
+  <?php endif; ?>
+</div>
+
+<!-- TAB: Cycle History -->
+<div class="an-tab-panel active" id="anTabHistory">
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-head">
+      <span class="card-title">Assessment History</span>
+      <span style="font-size:12px;color:var(--n-400);"><?= count($cycleHistory) ?> cycle(s)</span>
+    </div>
+    <?php if ($cycleHistory): ?>
+      <div class="tbl-wrap">
+        <table class="tbl-enhanced">
+          <thead><tr><th>#</th><th>School Year</th><th>Overall Score</th><th>Maturity</th><th>vs Prev</th><th>Status</th><th>Validated</th></tr></thead>
+          <tbody>
+            <?php
+            $prevScore = null;
+            foreach ($cycleHistory as $i => $sc):
+              $mat = sbmMaturityLevel(floatval($sc['overall_score']));
+              $delta = $prevScore !== null ? round(floatval($sc['overall_score']) - $prevScore, 2) : null;
+              $prevScore = floatval($sc['overall_score']);
+              ?>
+              <tr>
+                <td style="width:32px;"><span style="width:22px;height:22px;border-radius:6px;background:var(--n-100);color:var(--n-600);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;"><?= $i + 1 ?></span></td>
+                <td><strong style="font-size:13px;">SY <?= e($sc['sy_label']) ?></strong></td>
+                <td>
+                  <div class="score-bar-cell">
+                    <div class="score-bar-track"><div class="score-bar-fill" style="width:<?= $sc['overall_score'] ?>%;background:<?= $mat['color'] ?>;"></div></div>
+                    <span class="score-val" style="color:<?= $mat['color'] ?>;"><?= $sc['overall_score'] ?>%</span>
+                  </div>
+                </td>
+                <td><span class="pill pill-<?= e($sc['maturity_level']) ?>"><?= e($sc['maturity_level']) ?></span></td>
+                <td>
+                  <?php if ($delta !== null): ?>
+                    <span style="font-size:12.5px;font-weight:700;color:<?= $delta > 0 ? '#16A34A' : ($delta < 0 ? '#DC2626' : '#9CA3AF') ?>;">
+                      <?= $delta > 0 ? '▲ +' : '▼ ' ?><?= abs($delta) ?>%
+                    </span>
+                  <?php else: ?><span style="color:var(--n-400);font-size:12px;">First</span><?php endif; ?>
+                </td>
+                <td><span class="pill pill-<?= e($sc['status']) ?>" style="font-size:10px;"><?= ucfirst($sc['status']) ?></span></td>
+                <td style="font-size:12px;color:var(--n-400);"><?= $sc['validated_at'] ? date('M d, Y', strtotime($sc['validated_at'])) : '—' ?></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php else: ?>
+      <div class="empty-state">
+        <div class="empty-title">No cycle history yet</div>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+
+<!-- TAB: Weak This Cycle -->
+<div class="an-tab-panel" id="anTabWeak">
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-head">
+      <span class="card-title">Indicators Needing Attention — Current SY</span>
+      <span style="font-size:12px;color:var(--n-400);">Lowest average ratings this cycle</span>
+    </div>
+    <?php if ($weakIndicatorRows): ?>
+      <div class="card-body" style="padding:0;">
+        <?php foreach ($weakIndicatorRows as $ind):
+          $avgR = floatval($ind['avg_rating']);
+          $pct = ($avgR / 4) * 100;
+          $color = $avgR >= 3 ? 'var(--brand-600)' : ($avgR >= 2 ? 'var(--amber)' : 'var(--red)');
+          ?>
+          <div style="padding:12px 20px;border-bottom:1px solid var(--n-100);">
+            <div class="flex-cb" style="margin-bottom:4px;">
+              <div>
+                <span style="font-size:10.5px;font-weight:700;color:var(--n-400);text-transform:uppercase;letter-spacing:.05em;"><?= e($ind['indicator_code']) ?></span>
+                <span style="font-size:10.5px;color:var(--n-400);margin-left:6px;padding:1px 7px;background:var(--n-100);border-radius:4px;"><?= e($ind['dimension_name']) ?></span>
+              </div>
+              <span style="font-size:13px;font-weight:700;color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</span>
+            </div>
+            <div style="font-size:12.5px;color:var(--n-700);margin-bottom:5px;line-height:1.45;">
+              <?= e(substr($ind['indicator_text'], 0, 100)) ?>…
+            </div>
+            <div class="an-weak-prog"><div class="an-weak-fill" style="width:<?= $pct ?>%;background:<?= $color ?>;"></div></div>
+            <div style="font-size:11px;color:var(--n-400);margin-top:4px;"><?= $ind['response_count'] ?> response(s)</div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php else: ?>
+      <div class="empty-state">
+        <div class="empty-title">No indicator data yet</div>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+
+<!-- TAB: Consistently Weak -->
+<div class="an-tab-panel" id="anTabConsistent">
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-head">
+      <span class="card-title">Consistently Weak Indicators</span>
+      <span style="font-size:12px;color:var(--n-400);">Average ≤ 2.5 across all assessed cycles</span>
+    </div>
+    <?php if ($consistentlyWeak): ?>
+      <div class="card-body" style="padding:0;">
+        <?php foreach ($consistentlyWeak as $cw):
+          $avgR = floatval($cw['avg_rating']);
+          $color = $avgR >= 2 ? 'var(--amber)' : 'var(--red)';
+          $pct = ($avgR / 4) * 100;
+          ?>
+          <div class="an-cw-row">
+            <div class="an-cw-badge" style="background:<?= $avgR < 2 ? 'var(--red-bg)' : 'var(--amber-bg)' ?>;color:<?= $color ?>;">
+              <?= e($cw['indicator_code']) ?>
+            </div>
+            <div class="an-cw-info">
+              <div class="an-cw-title"><?= e(substr($cw['indicator_text'], 0, 95)) ?>…</div>
+              <div class="an-cw-meta">
+                <?= e($cw['dimension_name']) ?> ·
+                Avg: <strong style="color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</strong> ·
+                Worst: <?= number_format($cw['worst_cycle_avg'], 2) ?> ·
+                Best: <?= number_format($cw['best_cycle_avg'], 2) ?>
+              </div>
+              <div class="an-cw-bar-track"><div class="an-cw-bar-fill" style="width:<?= $pct ?>%;background:<?= $color ?>;"></div></div>
+            </div>
+            <div style="font-size:11px;font-weight:700;color:var(--red);text-align:center;min-width:48px;">Priority<br>Action</div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php else: ?>
+      <div class="empty-state">
+        <div class="empty-title">No consistently weak indicators</div>
+        <div class="empty-sub">All indicators are averaging above 2.5 across cycles.</div>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+
+<!-- TAB: Side-by-Side Comparison -->
+<?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
+  <div class="an-tab-panel" id="anTabCompare">
+    <div class="card" style="margin-bottom:18px;">
+      <div class="card-head">
+        <span class="card-title">Side-by-Side Dimension Comparison</span>
+        <span style="font-size:12px;color:var(--n-400);">SY <?= e($selectedSYLabel) ?> vs SY <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl-enhanced">
+          <thead><tr><th>Dimension</th><th>SY <?= e($selectedSYLabel) ?></th><th>SY <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></th><th>Change</th></tr></thead>
+          <tbody>
+            <?php
+            $cmpByDim = array_column($anDimAvgsCompare, null, 'dimension_no');
+            foreach ($anDimAvgs as $d):
+              $curr = floatval($d['avg_pct'] ?? 0);
+              $prev = floatval($cmpByDim[$d['dimension_no']]['avg_pct'] ?? 0);
+              $chg = round($curr - $prev, 1);
+              $chgC = $chg > 0 ? '#16A34A' : ($chg < 0 ? '#DC2626' : '#9CA3AF');
+              ?>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:7px;">
+                    <span style="width:10px;height:10px;border-radius:2px;background:<?= e($d['color_hex']) ?>;flex-shrink:0;display:inline-block;"></span>
+                    <span style="font-size:12.5px;font-weight:600;">D<?= $d['dimension_no'] ?>: <?= e(substr($d['dimension_name'], 0, 30)) ?></span>
+                  </div>
+                </td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <div style="width:60px;height:5px;background:var(--n-100);border-radius:999px;overflow:hidden;"><div style="width:<?= $curr ?>%;height:100%;background:<?= e($d['color_hex']) ?>;border-radius:999px;"></div></div>
+                    <strong style="font-size:13px;color:<?= e($d['color_hex']) ?>;"><?= $curr ?>%</strong>
+                  </div>
+                </td>
+                <td>
+                  <?php if ($prev > 0): ?>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <div style="width:60px;height:5px;background:var(--n-100);border-radius:999px;overflow:hidden;"><div style="width:<?= $prev ?>%;height:100%;background:#9CA3AF;border-radius:999px;"></div></div>
+                      <span style="font-size:13px;color:var(--n-500);"><?= $prev ?>%</span>
+                    </div>
+                  <?php else: ?><span style="font-size:12px;color:var(--n-400);">No data</span><?php endif; ?>
+                </td>
+                <td>
+                  <span style="font-size:13px;font-weight:700;color:<?= $chgC ?>;">
+                    <?= $chg > 0 ? '▲ +' : ($chg < 0 ? '▼ ' : '') ?><?= abs($chg) ?>%
+                  </span>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<?php endif; ?>
+
+</div><!-- /viewAnalytics -->
 
 
 <script>
@@ -1452,9 +2117,177 @@ include __DIR__ . '/../includes/header.php';
   function switchView(view, btn) {
     document.querySelectorAll('.vt-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    // For now it just toggles the UI state; logic can be added here if needed
-    console.log('Switched to:', view);
+    document.getElementById('viewProgress').style.display = view === 'progress' ? '' : 'none';
+    document.getElementById('viewAnalytics').style.display = view === 'analytics' ? '' : 'none';
+
+    // Update URL to persist view on refresh
+    const url = new URL(window.location.href);
+    if (view === 'analytics') {
+      url.searchParams.set('view', 'analytics');
+    } else {
+      url.searchParams.delete('view');
+    }
+    window.history.replaceState({}, '', url.toString());
+
+    if (view === 'analytics' && !window._anChartsInit) {
+      window._anChartsInit = true;
+      initAnalyticsCharts();
+    }
   }
+
+  // ── Analytics tab switching ────────────────────────────────
+  function anSwitchTab(btn, panelId) {
+    document.querySelectorAll('.an-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.an-tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(panelId)?.classList.add('active');
+  }
+
+  // ── Analytics charts (lazy init) ──────────────────────────
+  const anDimLabels = <?= json_encode(array_map(fn($d) => 'D' . $d['dimension_no'], $anDimAvgs)) ?>;
+  const anDimColors = <?= json_encode(array_column($anDimAvgs, 'color_hex')) ?>;
+  const anDimValues = <?= json_encode(array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $anDimAvgs)) ?>;
+  const anDimValCmp = <?= json_encode(!empty($anDimAvgsCompare) ? array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $anDimAvgsCompare) : []) ?>;
+  const anRadarNames = <?= json_encode(array_map(fn($d) => 'D' . $d['dimension_no'] . ': ' . $d['dimension_name'], $anDimAvgs)) ?>;
+  const anCycleLabels = <?= json_encode(array_column($cycleHistory, 'sy_label')) ?>;
+  const anCycleScores = <?= json_encode(array_map(fn($c) => floatval($c['overall_score']), $cycleHistory)) ?>;
+  const anTrendSYLabels = <?= json_encode($trendSYLabels) ?>;
+  const anTrendByDim = <?= json_encode($trendByDim) ?>;
+  const anDimMeta = <?= json_encode(array_map(fn($d) => ['no' => $d['dimension_no'], 'name' => $d['dimension_name'], 'color' => $d['color_hex']], $anDimAvgs)) ?>;
+  const anCompareSyLabel = <?= json_encode(!empty($anDimAvgsCompare) ? (array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') : '') ?>;
+  const anCurrSyLabel = <?= json_encode($selectedSYLabel) ?>;
+
+  function initAnalyticsCharts() {
+    // ── Radar chart ──────────────────────────────────────────
+    if (anDimValues.some(v => v > 0)) {
+      const radarDatasets = [{
+        label: 'SY ' + anCurrSyLabel,
+        data: anDimValues,
+        backgroundColor: 'rgba(22,163,74,.13)',
+        borderColor: '#16A34A',
+        pointBackgroundColor: anDimColors,
+        pointRadius: 5, borderWidth: 2,
+      }];
+      if (anDimValCmp.length && anDimValCmp.some(v => v > 0)) {
+        radarDatasets.push({
+          label: 'SY ' + anCompareSyLabel,
+          data: anDimValCmp,
+          backgroundColor: 'rgba(37,99,235,.10)',
+          borderColor: '#2563EB',
+          pointBackgroundColor: '#2563EB',
+          pointRadius: 4, borderWidth: 2, borderDash: [4, 4],
+        });
+      }
+      new Chart(document.getElementById('anRadarChart'), {
+        type: 'radar',
+        data: { labels: anDimLabels, datasets: radarDatasets },
+        options: {
+          scales: { r: { min: 0, max: 100, ticks: { font: { size: 10 }, stepSize: 25, backdropColor: 'transparent' }, pointLabels: { font: { size: 13, weight: '700' }, color: '#374151' } } },
+          plugins: { legend: { display: radarDatasets.length > 1, position: 'bottom', labels: { font: { size: 11 }, padding: 10 } }, tooltip: { callbacks: { title: ctx => anRadarNames[ctx[0].dataIndex], label: ctx => ' ' + ctx.raw + '%' } } },
+          maintainAspectRatio: true, aspectRatio: 1,
+        }
+      });
+    } else {
+      const rc = document.getElementById('anRadarChart');
+      if (rc) rc.closest('.chart-card-body').innerHTML = '<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No dimension data for this school year.</p>';
+    }
+
+    // ── Overall score trend line ─────────────────────────────
+    const trendEl = document.getElementById('anTrendLineChart');
+    if (anCycleScores.length >= 1 && trendEl) {
+      new Chart(trendEl, {
+        type: 'line',
+        data: {
+          labels: anCycleLabels,
+          datasets: [{
+            label: 'Overall Score (%)',
+            data: anCycleScores,
+            borderColor: '#16A34A',
+            backgroundColor: 'rgba(22,163,74,.08)',
+            pointBackgroundColor: anCycleScores.map(s => s >= 76 ? '#16A34A' : (s >= 51 ? '#2563EB' : (s >= 26 ? '#D97706' : '#DC2626'))),
+            pointRadius: 6, pointHoverRadius: 8,
+            borderWidth: 2.5, tension: 0.3, fill: true,
+          }]
+        },
+        options: {
+          scales: {
+            y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
+            x: { ticks: { font: { size: 11, weight: '600' } }, grid: { display: false } }
+          },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' Score: ' + ctx.raw + '%' } } },
+          responsive: true, maintainAspectRatio: true, aspectRatio: 1.5,
+        }
+      });
+    }
+
+    // ── Dimension trend lines ────────────────────────────────
+    const dimTrendEl = document.getElementById('anDimTrendChart');
+    if (dimTrendEl && anTrendSYLabels.length >= 2) {
+      const dimTrendDatasets = anDimMeta.map(dm => {
+        const data = anTrendSYLabels.map(lbl => anTrendByDim[dm.no]?.[lbl] ?? null);
+        return {
+          label: 'D' + dm.no + ': ' + dm.name,
+          data, borderColor: dm.color, backgroundColor: dm.color + '22',
+          pointBackgroundColor: dm.color, pointRadius: 5, borderWidth: 2, tension: 0.3,
+        };
+      });
+      new Chart(dimTrendEl, {
+        type: 'line',
+        data: { labels: anTrendSYLabels, datasets: dimTrendDatasets },
+        options: {
+          scales: {
+            y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
+            x: { ticks: { font: { size: 11, weight: '600' } }, grid: { display: false } }
+          },
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, usePointStyle: true, pointStyleWidth: 8 } } },
+          responsive: true, maintainAspectRatio: true,
+        }
+      });
+    }
+
+    // ── Dimension bar chart ──────────────────────────────────
+    if (anDimValues.some(v => v !== null && v > 0)) {
+      const barDatasets = [{
+        label: 'SY ' + anCurrSyLabel,
+        data: anDimValues,
+        backgroundColor: anDimColors.map(c => c + '30'),
+        borderColor: anDimColors,
+        borderWidth: 2, borderRadius: 8, borderSkipped: false,
+      }];
+      if (anDimValCmp.length && anDimValCmp.some(v => v > 0)) {
+        barDatasets.push({
+          label: 'SY ' + anCompareSyLabel,
+          data: anDimValCmp,
+          backgroundColor: '#9CA3AF30', borderColor: '#9CA3AF',
+          borderWidth: 2, borderRadius: 8, borderSkipped: false,
+        });
+      }
+      new Chart(document.getElementById('anDimBarChart'), {
+        type: 'bar',
+        data: { labels: anDimLabels, datasets: barDatasets },
+        options: {
+          scales: {
+            y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
+            x: { ticks: { font: { size: 12, weight: '600' } }, grid: { display: false } }
+          },
+          plugins: { legend: { display: barDatasets.length > 1, position: 'bottom', labels: { font: { size: 11 }, padding: 10 } } },
+          responsive: true, maintainAspectRatio: true,
+        }
+      });
+    } else {
+      const bc = document.getElementById('anDimBarChart');
+      if (bc) bc.closest('.chart-card-body').innerHTML = '<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No dimension score data for this school year.</p>';
+    }
+  }
+
+  // ── Auto-switch to analytics if ?view=analytics is in URL ──
+  (function() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('view') === 'analytics') {
+      const btn = document.querySelectorAll('.vt-btn')[1];
+      if (btn) switchView('analytics', btn);
+    }
+  })();
 </script>
 
 <?= deadlineChipCss() ?>
