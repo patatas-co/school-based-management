@@ -591,7 +591,7 @@ $currentStageIdx = array_search($currentCycleStatus, $SH_STAGE_ORDER);
           </button>
         <?php endif; ?>
         <?php if ($currentCycleStatus === 'finalized'): ?>
-          <a href="reports.php" class="btn btn-secondary"><?= svgIcon('file-text') ?> View Final Report</a>
+          <a href="reports.php" class="btn btn-primary"><?= svgIcon('file-text') ?> View SBM Analytics & Reports</a>
         <?php endif; ?>
       </div>
     </div>
@@ -713,11 +713,8 @@ $currentStageIdx = array_search($currentCycleStatus, $SH_STAGE_ORDER);
     <a href="assessment.php" class="btn btn-secondary" style="flex:1;justify-content:center;min-width:140px;">
       <?= svgIcon('check') ?> Assessments
     </a>
-    <a href="improvement.php" class="btn btn-secondary" style="flex:1;justify-content:center;min-width:140px;">
-      <?= svgIcon('trending-up') ?> Improvement Plan
-    </a>
     <a href="reports.php" class="btn btn-secondary" style="flex:1;justify-content:center;min-width:140px;">
-      <?= svgIcon('file-text') ?> Reports
+      <?= svgIcon('file-text') ?> Performance Reports
     </a>
   </div>
 <?php endif; ?>

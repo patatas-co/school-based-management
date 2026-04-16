@@ -39,11 +39,10 @@ if (isset($__role) && defined('SBM_NAV')) {
         ]
       ],
       [
-        'Planning',
-        'trending-up',
+        'School',
+        'home',
         [
-          ['Improvement Plan', 'coordinator/improvement.php', 'trending-up'],
-          ['Reports', 'coordinator/reports.php', 'file-text'],
+          ['School Profile', 'coordinator/school_profile.php', 'home'],
         ]
       ],
       [

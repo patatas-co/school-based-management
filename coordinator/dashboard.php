@@ -1231,15 +1231,6 @@ include __DIR__ . '/../includes/header.php';
             </div>
             Teacher Status
           </a>
-          <a href="improvement.php" class="quick-action-btn">
-            <div class="quick-action-icon" style="background:var(--blue-bg);color:var(--blue);">
-              <svg viewBox="0 0 24 24">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                <polyline points="17 6 23 6 23 12" />
-              </svg>
-            </div>
-            Improvement Plan
-          </a>
           <a href="reports.php" class="quick-action-btn">
             <div class="quick-action-icon" style="background:var(--amber-bg);color:var(--amber);">
               <svg viewBox="0 0 24 24">

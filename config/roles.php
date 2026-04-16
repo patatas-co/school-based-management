@@ -21,10 +21,7 @@ define('SBM_MODULE_ACCESS', [
 
     // ── Dashboards ──────────────────────────────────────────
 
-    // ── Improvement Plan ────────────────────────────────────
-    'improvement_plan' => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
-    'improvement_plan_view' => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
-
+    // ── Reports ─────────────────────────────────────────────
     // ── Reports ─────────────────────────────────────────────
     'reports_school' => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 
@@ -94,11 +91,10 @@ define('SBM_NAV', [
             ]
         ],
         [
-            'Workflow & SIP',
+            'Workflow',
             'trending-up',
             [
                 ['Workflow Overview', 'school_head/workflow.php', 'trending-up'],
-                ['Improvement Plan', 'school_head/improvement.php', 'award'],
             ]
         ],
         [
@@ -128,13 +124,6 @@ define('SBM_NAV', [
                 ['Self-Assessment', 'coordinator/self_assessment.php', 'check-circle'],
                 ['Teacher Status', 'coordinator/teacher_status.php', 'users'],
                 ['Evidence & MOV', 'coordinator/evidence.php', 'paperclip'],
-            ]
-        ],
-        [
-            'Planning',
-            'trending-up',
-            [
-                ['Improvement Plan', 'coordinator/improvement.php', 'trending-up'],
             ]
         ],
         [

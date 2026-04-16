@@ -8,11 +8,119 @@ require_once __DIR__ . '/../includes/auth.php';
 requireRole('school_head');
 $db = getDB();
 
-// ── All school years for the selector ────────────────────────
+// -- All school years for the selector ------------------------
 $allSYs = $db->query("SELECT * FROM school_years ORDER BY label DESC")->fetchAll();
 $currentSYRow = $db->query("SELECT * FROM school_years WHERE is_current=1 LIMIT 1")->fetch();
 
-// ── Resolve selected SY from ?sy_id= (fall back to current) ──
+// ── NEW: AI ASSISTANT AJAX HANDLER (GROQ) ─────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_ai_suggestions') {
+    header('Content-Type: application/json');
+    require_once __DIR__ . '/../includes/ml_service.php';
+
+    $schoolId = (int)($_SESSION['school_id'] ?? 0);
+    $syId     = (int)($_POST['sy_id'] ?? 0);
+
+    // 1. Get School Info
+    $sQ = $db->prepare("SELECT school_name FROM schools WHERE school_id = ?");
+    $sQ->execute([$schoolId]);
+    $schoolName = $sQ->fetchColumn() ?: 'School';
+
+    $syQ = $db->prepare("SELECT label FROM school_years WHERE sy_id = ?");
+    $syQ->execute([$syId]);
+    $syLabel = $syQ->fetchColumn() ?: 'Unknown';
+
+    // 2. Gather Dim Scores
+    $dimQ = $db->prepare("
+        SELECT d.dimension_no, d.dimension_name, ROUND(AVG(ds.percentage), 1) as avg_pct
+        FROM sbm_dimensions d
+        LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
+        LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id
+        WHERE c.sy_id = ? AND c.school_id = ?
+        GROUP BY d.dimension_id ORDER BY d.dimension_no
+    ");
+    $dimQ->execute([$syId, $schoolId]);
+    $dimScores = [];
+    foreach ($dimQ->fetchAll() as $row) {
+        $dimScores[] = [
+            'dimension_name' => $row['dimension_name'],
+            'score'          => (float)$row['avg_pct'],
+            'maturity'       => $row['avg_pct'] >= 66.6 ? 'Advanced' : ($row['avg_pct'] >= 33.3 ? 'Maturing' : 'Developing')
+        ];
+    }
+
+    // 3. Gather Weak Indicators (Rating < 2.5)
+    $weakQ = $db->prepare("
+        SELECT i.indicator_code, i.indicator_text, ROUND(AVG(all_r.rating), 2) as rating
+        FROM (
+            SELECT cycle_id, indicator_id, rating FROM sbm_responses
+            UNION ALL
+            SELECT cycle_id, indicator_id, rating FROM teacher_responses
+        ) AS all_r
+        JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
+        JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
+        WHERE c.sy_id = ? AND c.school_id = ?
+        GROUP BY i.indicator_id
+        HAVING rating < 2.5
+        ORDER BY rating ASC
+    ");
+    $weakQ->execute([$syId, $schoolId]);
+    $byRating = ['1' => [], '2' => []];
+    foreach ($weakQ->fetchAll() as $row) {
+        $r = (int)floor($row['rating']);
+        if ($r < 1) $r = 1;
+        if ($r > 2) $r = 2;
+        $byRating[strval($r)][] = [
+            'code' => $row['indicator_code'],
+            'text' => $row['indicator_text'],
+            'rating' => (float)$row['rating']
+        ];
+    }
+
+    // 4. History Trend
+    $histQ = $db->prepare("
+        SELECT overall_score FROM sbm_cycles 
+        WHERE school_id = ? AND status='validated' AND sy_id != ? 
+        ORDER BY created_at DESC LIMIT 3
+    ");
+    $histQ->execute([$schoolId, $syId]);
+    $history = $histQ->fetchAll();
+
+    // 5. Get Real Overall Score & Maturity
+    $scoreQ = $db->prepare("
+        SELECT overall_score, maturity_level FROM sbm_cycles 
+        WHERE school_id = ? AND sy_id = ? AND status='validated'
+        ORDER BY created_at DESC LIMIT 1
+    ");
+    $scoreQ->execute([$schoolId, $syId]);
+    $scoreData = $scoreQ->fetch();
+    $overallScore = $scoreData ? (float)$scoreData['overall_score'] : 0;
+    $overallMaturity = $scoreData ? $scoreData['maturity_level'] : 'N/A';
+
+    // 6. Call ML Service (Groq)
+    $payload = [
+        'school_name' => $schoolName,
+        'sy_label'    => $syLabel,
+        'analysis'    => [
+            'gap_analysis'    => [
+                'average_score'      => $overallScore,
+                'overall_maturity'   => $overallMaturity,
+                'weakest_dimensions' => array_slice($dimScores, 0, 3)
+            ],
+            'by_rating'       => $byRating,
+            'history'         => $history,
+            'comment_summary' => ['top_topics' => [], 'has_urgent' => false]
+        ]
+    ];
+
+    $response = ml_post('/api/recommend', $payload);
+    echo json_encode($response ?: [
+        'recommendations' => "I'm sorry, I'm having trouble connecting to my central intelligence. Please check if the ML service is running.",
+        'error' => 'Service Unavailable'
+    ]);
+    exit;
+}
+
+// -- Resolve selected SY from ?sy_id= (fall back to current) --
 $selectedSyId = isset($_GET['sy_id']) ? (int) $_GET['sy_id'] : ($currentSYRow['sy_id'] ?? 0);
 
 // Validate the sy_id actually exists
@@ -26,7 +134,7 @@ if (!$selectedSYRow && $currentSYRow) {
 $selectedSYLabel = $selectedSYRow['label'] ?? 'All Years';
 $isCurrentSY = ($selectedSYRow && $currentSYRow && $selectedSYRow['sy_id'] == $currentSYRow['sy_id']);
 
-// ── SY-scoped stats ───────────────────────────────────────────
+// -- SY-scoped stats ------------------------------------------â”€
 $mySchoolId = (int) ($_SESSION['school_id'] ?? 0);
 
 $stTotalCycles = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE sy_id = ? AND school_id = ?");
@@ -51,7 +159,7 @@ $returned = (int) $stReturned->fetchColumn();
 
 // Assessment cycles stats are SY-scoped
 
-// ── Maturity distribution (SY-scoped) ────────────────────────
+// -- Maturity distribution (SY-scoped) ------------------------
 $stMaturity = $db->prepare("
   SELECT maturity_level, COUNT(*) cnt FROM sbm_cycles
   WHERE sy_id = ? AND maturity_level IS NOT NULL
@@ -61,7 +169,7 @@ $stMaturity = $db->prepare("
 $stMaturity->execute([$selectedSyId]);
 $maturity = $stMaturity->fetchAll();
 
-// ── Recent cycles (SY-scoped) ─────────────────────────────────
+// -- Recent cycles (SY-scoped) --------------------------------â”€
 $stRecent = $db->prepare("
   SELECT c.*, s.school_name, sy.label sy_label
   FROM sbm_cycles c
@@ -73,7 +181,7 @@ $stRecent = $db->prepare("
 $stRecent->execute([$selectedSyId]);
 $recentCycles = $stRecent->fetchAll();
 
-// ── Dimension scores (SY-scoped — subquery ensures only scores from selected SY cycles)
+// -- Dimension scores (SY-scoped — subquery ensures only scores from selected SY cycles)
 $stDimScores = $db->prepare("
   SELECT d.dimension_no, d.dimension_name, d.color_hex,
          ROUND(AVG(ds.percentage), 1) avg_pct
@@ -87,7 +195,7 @@ $stDimScores = $db->prepare("
 $stDimScores->execute([$selectedSyId]);
 $dimScores = $stDimScores->fetchAll();
 
-// ── Recent activity (global — not SY-scoped) ──────────────────
+// -- Recent activity (global — not SY-scoped) ------------------
 $recentActivity = $db->query("
   SELECT l.*, u.full_name FROM activity_log l
   LEFT JOIN users u ON l.user_id=u.user_id
@@ -97,17 +205,17 @@ $recentActivity = $db->query("
 $validationRate = $submitted > 0 ? round(($validated / $submitted) * 100) : 0;
 $hasData = ($totalCycles > 0);
 
-// ── Deadline awareness ────────────────────────────────────────
+// -- Deadline awareness ----------------------------------------
 $deadlineInfo = $selectedSyId ? getDeadlineInfo($db, $selectedSyId) : null;
 
-// ═══════════════════════════════════════════════════════════════
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ANALYTICS DATA (loaded upfront for inline toggle)
-// ═══════════════════════════════════════════════════════════════
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-// ── Comparison SY ─────────────────────────────────────────────
+// -- Comparison SY --------------------------------------------â”€
 $compareSyId = (int) ($_GET['compare_sy'] ?? 0);
 
-// ── Analytics dimension averages ──────────────────────────────
+// -- Analytics dimension averages ------------------------------
 $anDimAvgQ = $db->prepare("
     SELECT d.dimension_no, d.dimension_name, d.color_hex,
            ROUND(AVG(ds.percentage),1) AS avg_pct
@@ -120,7 +228,7 @@ $anDimAvgQ = $db->prepare("
 $anDimAvgQ->execute([$selectedSyId, $mySchoolId]);
 $anDimAvgs = $anDimAvgQ->fetchAll();
 
-// ── Comparison SY dimension averages ──────────────────────────
+// -- Comparison SY dimension averages --------------------------
 $anDimAvgsCompare = [];
 if ($compareSyId && $compareSyId !== $selectedSyId) {
   $cmpQ = $db->prepare("
@@ -136,7 +244,7 @@ if ($compareSyId && $compareSyId !== $selectedSyId) {
   $anDimAvgsCompare = $cmpQ->fetchAll();
 }
 
-// ── Assessment history (all cycles) ───────────────────────────
+// -- Assessment history (all cycles) --------------------------â”€
 $historyQ = $db->prepare("
     SELECT sy.label AS sy_label, sy.sy_id,
            c.cycle_id, c.overall_score, c.maturity_level,
@@ -149,7 +257,7 @@ $historyQ = $db->prepare("
 $historyQ->execute([$mySchoolId]);
 $cycleHistory = $historyQ->fetchAll();
 
-// ── Trend data: dimension scores across all cycles ────────────
+// -- Trend data: dimension scores across all cycles ------------
 $trendQ = $db->prepare("
     SELECT sy.label AS sy_label, sy.sy_id,
            d.dimension_no, d.dimension_name, d.color_hex,
@@ -175,7 +283,7 @@ foreach ($trendRows as $tr) {
 }
 $trendSYLabels = array_values($trendSYLabels);
 
-// ── Weak indicators — current SY ──────────────────────────────
+// -- Weak indicators — current SY ------------------------------
 $weakQ = $db->prepare("
     SELECT i.indicator_code, i.indicator_text,
            d.dimension_name, d.color_hex,
@@ -197,7 +305,7 @@ $weakQ = $db->prepare("
 $weakQ->execute([$selectedSyId, $mySchoolId]);
 $weakIndicatorRows = $weakQ->fetchAll();
 
-// ── Consistently weak indicators ──────────────────────────────
+// -- Consistently weak indicators ------------------------------
 $consistentlyWeakQ = $db->prepare("
     SELECT i.indicator_code, i.indicator_text,
            d.dimension_name, d.color_hex,
@@ -231,7 +339,7 @@ $consistentlyWeakQ = $db->prepare("
 $consistentlyWeakQ->execute([$mySchoolId, $mySchoolId]);
 $consistentlyWeak = $consistentlyWeakQ->fetchAll();
 
-// ── Summary insights ──────────────────────────────────────────
+// -- Summary insights ------------------------------------------
 $anAllPcts = array_filter(array_column($anDimAvgs, 'avg_pct'), fn($v) => $v !== null);
 $anAvgOverall = count($anAllPcts) > 0 ? round(array_sum($anAllPcts) / count($anAllPcts), 1) : null;
 $anTopDim = !empty($anAllPcts) ? $anDimAvgs[array_search(max($anAllPcts), array_column($anDimAvgs, 'avg_pct'))] : null;
@@ -249,7 +357,7 @@ include __DIR__ . '/../includes/header.php';
 ?>
 
 <style>
-  /* ── HERO ── */
+  /* -- HERO -- */
   .db-hero {
     border-radius: var(--radius-lg);
     padding: 28px 32px;
@@ -361,7 +469,7 @@ include __DIR__ . '/../includes/header.php';
     stroke-linejoin: round;
   }
 
-  /* ── KPI STATS ── */
+  /* -- KPI STATS -- */
   .stats-v2 {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -434,7 +542,7 @@ include __DIR__ . '/../includes/header.php';
 
   .badge-green {
     background: var(--brand-100);
-    color: var(--brand-700);
+    color: var(--n-900);
   }
 
   .badge-amber {
@@ -460,7 +568,7 @@ include __DIR__ . '/../includes/header.php';
     border-radius: 999px;
   }
 
-  /* ── PIPELINE ── */
+  /* -- PIPELINE -- */
   .pipeline {
     display: flex;
     align-items: stretch;
@@ -504,7 +612,7 @@ include __DIR__ . '/../includes/header.php';
     letter-spacing: .05em;
   }
 
-  /* ── DIM LIST ── */
+  /* -- DIM LIST -- */
   .dim-list {
     display: flex;
     flex-direction: column;
@@ -567,7 +675,7 @@ include __DIR__ . '/../includes/header.php';
     letter-spacing: -0.3px;
   }
 
-  /* ── ACTIVITY ── */
+  /* -- ACTIVITY -- */
   .activity-feed {
     display: flex;
     flex-direction: column;
@@ -609,7 +717,7 @@ include __DIR__ . '/../includes/header.php';
     margin-top: 1px;
   }
 
-  /* ── QUICK ACTIONS ── */
+  /* -- QUICK ACTIONS -- */
   .quick-actions {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -659,7 +767,7 @@ include __DIR__ . '/../includes/header.php';
     stroke-linejoin: round;
   }
 
-  /* ── MATURITY LEGEND ── */
+  /* -- MATURITY LEGEND -- */
   .mat-legend {
     display: flex;
     flex-direction: column;
@@ -681,7 +789,7 @@ include __DIR__ . '/../includes/header.php';
     flex-shrink: 0;
   }
 
-  /* ── SCORE INLINE ── */
+  /* -- SCORE INLINE -- */
   .score-inline {
     display: flex;
     align-items: center;
@@ -702,10 +810,10 @@ include __DIR__ . '/../includes/header.php';
     border-radius: 999px;
   }
 
-  /* ═══════════════════════════════════════════
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    RESPONSIVE GRID CLASSES
    All grids use CSS classes — NO inline grid styles
-   ═══════════════════════════════════════════ */
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
   /* Main layout: wide left + right sidebar (v2 standardized) */
   .db-layout-main {
@@ -729,7 +837,7 @@ include __DIR__ . '/../includes/header.php';
     min-width: 0;
   }
 
-  /* ── BREAKPOINTS ── */
+  /* -- BREAKPOINTS -- */
 
   /* Tablet / medium zoom */
   @media (max-width: 1100px) {
@@ -786,7 +894,7 @@ include __DIR__ . '/../includes/header.php';
     }
   }
 
-  /* ── SY SELECTOR ── */
+  /* -- SY SELECTOR -- */
   .sy-selector-wrap {
     display: flex;
     align-items: center;
@@ -829,7 +937,7 @@ include __DIR__ . '/../includes/header.php';
     font-size: 14px;
   }
 
-  /* ── CONTEXT BAR ── */
+  /* -- CONTEXT BAR -- */
   .sy-context-bar {
     display: flex;
     align-items: center;
@@ -865,7 +973,7 @@ include __DIR__ . '/../includes/header.php';
     stroke-linejoin: round;
   }
 
-  /* ── SY SIDEBAR ROWS ── */
+  /* -- SY SIDEBAR ROWS -- */
   .sy-row {
     display: flex;
     align-items: center;
@@ -914,7 +1022,7 @@ include __DIR__ . '/../includes/header.php';
     color: var(--brand-600, #16A34A);
   }
 
-  /* ── CUSTOM SY DROPDOWN ── */
+  /* -- CUSTOM SY DROPDOWN -- */
   .sy-dd {
     position: relative;
     z-index: 200;
@@ -1064,7 +1172,7 @@ include __DIR__ . '/../includes/header.php';
     background: var(--n-100, #F3F4F6);
     margin: 4px 6px;
   }
-  /* ── VIEW TOGGLE ── */
+  /* -- VIEW TOGGLE -- */
   .view-toggle-wrap {
     display: flex;
     justify-content: flex-start;
@@ -1108,7 +1216,7 @@ include __DIR__ . '/../includes/header.php';
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 1px 4px rgba(0, 0, 0, 0.05);
   }
 
-  /* ── CHART LEGENDS ── */
+  /* -- CHART LEGENDS -- */
   .chart-legend {
     display: flex;
     align-items: center;
@@ -1131,7 +1239,7 @@ include __DIR__ . '/../includes/header.php';
     flex-shrink: 0;
   }
 
-  /* ── ANALYTICS VIEW STYLES ── */
+  /* -- ANALYTICS VIEW STYLES -- */
   .an-insight-strip {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
@@ -1148,6 +1256,204 @@ include __DIR__ . '/../includes/header.php';
   }
 
   .an-insight-val {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  /* -- AI ASSISTANT PANEL -- */
+  .ai-assistant-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: #1e293b;
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  .ai-assistant-btn:hover {
+    background: #0f172a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  .ai-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 420px;
+    max-width: calc(100vw - 40px);
+    height: 540px;
+    max-height: calc(100vh - 100px);
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    overflow: hidden;
+    transform: translateY(20px);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .ai-panel.open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .ai-panel.minimized {
+    height: 56px !important;
+    width: 56px !important;
+    border-radius: 28px !important;
+    cursor: pointer;
+  }
+  .ai-panel.minimized .ai-panel-header,
+  .ai-panel.minimized .ai-chat-body {
+    display: none !important;
+  }
+  .ai-panel-fab {
+    display: none;
+    width: 100%;
+    height: 100%;
+    background: #1e293b;
+    color: #fff;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 20px;
+    transition: background 0.2s;
+  }
+  .ai-panel-fab:hover {
+    background: #0f172a;
+  }
+  .ai-panel.minimized .ai-panel-fab {
+    display: flex;
+  }
+  #aiAssistant .ai-panel-header {
+    padding: 16px 20px !important;
+    background: #1e293b !important;
+    color: #ffffff !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    cursor: pointer !important;
+    border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+  }
+  .ai-panel-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .ai-panel-title { font-size: 15px; font-weight: 700; }
+  #aiAssistant .ai-panel-btn {
+    background: rgba(255,255,255,0.2) !important;
+    border: none !important;
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    color: #ffffff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: background .2s !important;
+    font-size: 16px !important;
+    outline: none !important;
+  }
+  #aiAssistant .ai-panel-btn:hover { background: rgba(255,255,255,0.3) !important; }
+  .ai-chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #fff;
+    scrollbar-width: thin;
+    scrollbar-color: #e5e7eb transparent;
+  }
+  .ai-chat-body::-webkit-scrollbar { width: 4px; }
+  .ai-chat-body::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
+
+  /* --- AI Message: clean prose block (not a chat bubble) --- */
+  .chat-msg {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--n-800);
+    font-family: var(--font-body);
+  }
+  .chat-msg.ai {
+    background: transparent;
+    align-self: flex-start;
+    border: none;
+    box-shadow: none;
+  }
+  .chat-msg.user {
+    background: var(--n-100);
+    color: var(--n-800);
+    align-self: flex-end;
+    padding: 10px 14px;
+    border-radius: 12px;
+    max-width: 85%;
+  }
+  /* Prose typography inside AI messages */
+  .chat-msg.ai p {
+    margin: 0 0 12px 0;
+  }
+  .chat-msg.ai p:last-child {
+    margin-bottom: 0;
+  }
+  .chat-msg.ai strong {
+    color: var(--n-900);
+    font-weight: 700;
+  }
+  .chat-msg.ai ul {
+    margin: 6px 0 14px 0;
+    padding-left: 18px;
+    list-style: disc;
+  }
+  .chat-msg.ai ul li {
+    margin-bottom: 5px;
+    padding-left: 2px;
+    color: var(--n-700);
+  }
+  .chat-msg.ai ul li::marker {
+    color: var(--n-400);
+  }
+  .chat-msg.ai hr {
+    border: none;
+    border-top: 1px solid var(--n-150, #eaecf0);
+    margin: 14px 0;
+  }
+  /* Status message (initial greeting) */
+  .chat-msg.status {
+    background: var(--n-50);
+    border: 1px solid var(--n-200);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    color: var(--n-500);
+    text-align: center;
+    width: 100%;
+  }
+
+  /* Typing Animation */
+  .typing { display: flex; gap: 5px; padding: 10px 14px; align-self: flex-start; }
+  .dot { width: 6px; height: 6px; background: #cbd5e1; border-radius: 50%; animation: blink 1.4s infinite both; }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
+
     font-family: var(--font-display);
     font-size: 26px;
     font-weight: 800;
@@ -1168,8 +1474,8 @@ include __DIR__ . '/../includes/header.php';
     margin-top: 5px;
   }
 
-  .an-insight-delta.up { color: var(--brand-600); }
-  .an-insight-delta.down { color: var(--red); }
+  .an-insight-delta.up { color: var(--n-800); }
+  .an-insight-delta.down { color: var(--n-900); font-weight: 800; }
   .an-insight-delta.flat { color: var(--n-400); }
 
   .an-filter-bar {
@@ -1259,9 +1565,44 @@ include __DIR__ . '/../includes/header.php';
   @media(max-width:768px) {
     .an-insight-strip { grid-template-columns: 1fr 1fr; }
   }
+
+  .ai-assistant-btn {
+    background: #fff !important;
+    color: var(--n-700) !important;
+    border: 1px solid var(--n-300) !important;
+    box-shadow: var(--shadow-xs) !important;
+  }
+  .ai-assistant-btn:hover {
+    background: var(--n-50) !important;
+    border-color: var(--n-400) !important;
+  }
+  .ai-panel-header {
+    background: var(--n-50) !important;
+    color: var(--n-900) !important;
+    border-bottom: 1px solid var(--n-200) !important;
+  }
+  .ai-panel-close {
+    background: transparent !important;
+    color: var(--n-500) !important;
+  }
+  .ai-panel-close:hover {
+    background: var(--n-200) !important;
+    color: var(--n-900) !important;
+  }
+  .chat-msg.user {
+    background: var(--n-800) !important;
+  }
+  .ai-suggestion-head {
+    color: var(--n-600) !important;
+    background: var(--n-50) !important;
+  }
+  .ai-priority-high {
+    background: var(--n-100) !important;
+    color: var(--n-900) !important;
+  }
 </style>
 
-<!-- ═══════════ HERO ═══════════ -->
+<!-- ━━━━━━━━━━━ HERO ━━━━━━━━━━━ -->
 <div class="db-hero">
   <div class="db-hero-bg">
     <div class="db-hero-shimmer"></div>
@@ -1353,7 +1694,7 @@ include __DIR__ . '/../includes/header.php';
   </div><!-- /db-hero-right -->
 </div><!-- /db-hero -->
 
-<!-- ═══════════ VIEW TOGGLE ═══════════ -->
+<!-- ━━━━━━━━━━━ VIEW TOGGLE ━━━━━━━━━━━ -->
 <div class="view-toggle-wrap">
   <div class="view-toggle">
     <button class="vt-btn active" onclick="switchView('progress', this)">Progress</button>
@@ -1361,10 +1702,10 @@ include __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
-<!-- ═══════════ PROGRESS VIEW ═══════════ -->
+<!-- ━━━━━━━━━━━ PROGRESS VIEW ━━━━━━━━━━━ -->
 <div id="viewProgress">
 
-<!-- ═══════════ SY CONTEXT BAR (Hidden for current year) ═══════════ -->
+<!-- ━━━━━━━━━━━ SY CONTEXT BAR (Hidden for current year) ━━━━━━━━━━━ -->
 <?php if (!$isCurrentSY): ?>
   <div class="sy-context-bar is-historical">
     <svg viewBox="0 0 24 24">
@@ -1379,7 +1720,7 @@ include __DIR__ . '/../includes/header.php';
         yet.</span>
     <?php endif; ?>
     <a href="dashboard.php?sy_id=<?= $currentSYRow['sy_id'] ?? '' ?>"
-      style="margin-left:auto;font-weight:700;white-space:nowrap;color:inherit;text-decoration:none;opacity:.8;">←
+      style="margin-left:auto;font-weight:700;white-space:nowrap;color:inherit;text-decoration:none;opacity:.8;">→
       Current
       SY</a>
   </div>
@@ -1401,7 +1742,7 @@ include __DIR__ . '/../includes/header.php';
   </div>
 <?php endif; ?>
 
-<!-- ═══════════ KPI STATS ═══════════ -->
+<!-- ━━━━━━━━━━━ KPI STATS ━━━━━━━━━━━ -->
 <div class="stats-v2">
   <div class="stat-v2">
     <div class="stat-v2-accent" style="background:#2563EB;"></div>
@@ -1435,7 +1776,7 @@ include __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
-<!-- ═══════════ PIPELINE ═══════════ -->
+<!-- ━━━━━━━━━━━ PIPELINE ━━━━━━━━━━━ -->
 <div class="card" style="margin-bottom:20px;">
   <div class="card-head">
     <span class="card-title">Assessment Pipeline</span>
@@ -1452,7 +1793,7 @@ include __DIR__ . '/../includes/header.php';
         <div class="pipeline-lbl">Pending Review</div>
       </div>
       <div class="pipeline-step">
-        <div class="pipeline-val" style="color:var(--brand-600);"><?= $validated ?></div>
+        <div class="pipeline-val" style="color:var(--n-800);"><?= $validated ?></div>
         <div class="pipeline-lbl">Validated</div>
       </div>
       <?php if ($returned > 0): ?>
@@ -1465,7 +1806,7 @@ include __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
-<!-- ═══════════ MAIN GRID ═══════════ -->
+<!-- ━━━━━━━━━━━ MAIN GRID ━━━━━━━━━━━ -->
 <div class="db-layout-main">
 
   <!-- LEFT: Dimension Performance + Chart -->
@@ -1519,7 +1860,7 @@ include __DIR__ . '/../includes/header.php';
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg></span>
-            <input type="text" placeholder="Search…" oninput="filterTable(this.value,'tblRecent')">
+            <input type="text" placeholder="Search”¦" oninput="filterTable(this.value,'tblRecent')">
           </div>
           <a href="assessment.php" class="btn btn-secondary btn-sm">View all</a>
         </div>
@@ -1658,7 +1999,7 @@ include __DIR__ . '/../includes/header.php';
 </div>
 </div><!-- /viewProgress -->
 
-<!-- ═══════════ ANALYTICS VIEW ═══════════ -->
+<!-- ━━━━━━━━━━━ ANALYTICS VIEW ━━━━━━━━━━━ -->
 <div id="viewAnalytics" style="display:none;">
 
 <!-- Filter bar -->
@@ -1699,6 +2040,15 @@ include __DIR__ . '/../includes/header.php';
     </span>
     <a href="dashboard.php?sy_id=<?= $selectedSyId ?>&view=analytics" class="btn btn-ghost btn-sm">✕ Clear</a>
   <?php endif; ?>
+
+  <div style="margin-left:auto;">
+    <button class="ai-assistant-btn" onclick="openAIAssistant()">
+      <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      AI Suggestions
+    </button>
+  </div>
 </div>
 
 <!-- KPI insight strip -->
@@ -1755,14 +2105,14 @@ include __DIR__ . '/../includes/header.php';
   </div>
 
   <div class="an-insight-card">
-    <div class="an-insight-val" style="color:<?= count($consistentlyWeak) > 0 ? 'var(--red)' : 'var(--brand-600)' ?>;">
+    <div class="an-insight-val" style="color:<?= count($consistentlyWeak) > 0 ? 'var(--red)' : 'var(--n-800)' ?>;">
       <?= count($consistentlyWeak) ?>
     </div>
     <div class="an-insight-lbl">Indicators Below 2.5 Avg</div>
     <?php if (count($consistentlyWeak) > 0): ?>
       <div class="an-insight-delta down">Needs targeted intervention</div>
     <?php else: ?>
-      <div class="an-insight-delta up">All indicators ≥ 2.5</div>
+      <div class="an-insight-delta up">All indicators â‰¥ 2.5</div>
     <?php endif; ?>
   </div>
 
@@ -1907,7 +2257,7 @@ include __DIR__ . '/../includes/header.php';
         <?php foreach ($weakIndicatorRows as $ind):
           $avgR = floatval($ind['avg_rating']);
           $pct = ($avgR / 4) * 100;
-          $color = $avgR >= 3 ? 'var(--brand-600)' : ($avgR >= 2 ? 'var(--amber)' : 'var(--red)');
+          $color = $avgR >= 3 ? 'var(--n-800)' : ($avgR >= 2 ? 'var(--amber)' : 'var(--red)');
           ?>
           <div style="padding:12px 20px;border-bottom:1px solid var(--n-100);">
             <div class="flex-cb" style="margin-bottom:4px;">
@@ -1918,7 +2268,7 @@ include __DIR__ . '/../includes/header.php';
               <span style="font-size:13px;font-weight:700;color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</span>
             </div>
             <div style="font-size:12.5px;color:var(--n-700);margin-bottom:5px;line-height:1.45;">
-              <?= e(substr($ind['indicator_text'], 0, 100)) ?>…
+              <?= e(substr($ind['indicator_text'], 0, 100)) ?>”¦
             </div>
             <div class="an-weak-prog"><div class="an-weak-fill" style="width:<?= $pct ?>%;background:<?= $color ?>;"></div></div>
             <div style="font-size:11px;color:var(--n-400);margin-top:4px;"><?= $ind['response_count'] ?> response(s)</div>
@@ -1938,7 +2288,7 @@ include __DIR__ . '/../includes/header.php';
   <div class="card" style="margin-bottom:18px;">
     <div class="card-head">
       <span class="card-title">Consistently Weak Indicators</span>
-      <span style="font-size:12px;color:var(--n-400);">Average ≤ 2.5 across all assessed cycles</span>
+      <span style="font-size:12px;color:var(--n-400);">Average â‰¤ 2.5 across all assessed cycles</span>
     </div>
     <?php if ($consistentlyWeak): ?>
       <div class="card-body" style="padding:0;">
@@ -1952,7 +2302,7 @@ include __DIR__ . '/../includes/header.php';
               <?= e($cw['indicator_code']) ?>
             </div>
             <div class="an-cw-info">
-              <div class="an-cw-title"><?= e(substr($cw['indicator_text'], 0, 95)) ?>…</div>
+              <div class="an-cw-title"><?= e(substr($cw['indicator_text'], 0, 95)) ?>”¦</div>
               <div class="an-cw-meta">
                 <?= e($cw['dimension_name']) ?> ·
                 Avg: <strong style="color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</strong> ·
@@ -2088,7 +2438,7 @@ include __DIR__ . '/../includes/header.php';
       }
     });
   <?php endif; ?>
-  // ── SY Dropdown toggle ──────────────────────────────────────
+  // -- SY Dropdown toggle --------------------------------------
   function toggleSyDropdown() {
     const dd = document.getElementById('syDropdown');
     const trigger = document.getElementById('syTrigger');
@@ -2135,7 +2485,7 @@ include __DIR__ . '/../includes/header.php';
     }
   }
 
-  // ── Analytics tab switching ────────────────────────────────
+  // -- Analytics tab switching --------------------------------
   function anSwitchTab(btn, panelId) {
     document.querySelectorAll('.an-tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.an-tab-panel').forEach(p => p.classList.remove('active'));
@@ -2143,7 +2493,7 @@ include __DIR__ . '/../includes/header.php';
     document.getElementById(panelId)?.classList.add('active');
   }
 
-  // ── Analytics charts (lazy init) ──────────────────────────
+  // -- Analytics charts (lazy init) --------------------------
   const anDimLabels = <?= json_encode(array_map(fn($d) => 'D' . $d['dimension_no'], $anDimAvgs)) ?>;
   const anDimColors = <?= json_encode(array_column($anDimAvgs, 'color_hex')) ?>;
   const anDimValues = <?= json_encode(array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $anDimAvgs)) ?>;
@@ -2158,7 +2508,7 @@ include __DIR__ . '/../includes/header.php';
   const anCurrSyLabel = <?= json_encode($selectedSYLabel) ?>;
 
   function initAnalyticsCharts() {
-    // ── Radar chart ──────────────────────────────────────────
+    // -- Radar chart ------------------------------------------
     if (anDimValues.some(v => v > 0)) {
       const radarDatasets = [{
         label: 'SY ' + anCurrSyLabel,
@@ -2192,7 +2542,7 @@ include __DIR__ . '/../includes/header.php';
       if (rc) rc.closest('.chart-card-body').innerHTML = '<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No dimension data for this school year.</p>';
     }
 
-    // ── Overall score trend line ─────────────────────────────
+    // -- Overall score trend line ----------------------------â”€
     const trendEl = document.getElementById('anTrendLineChart');
     if (anCycleScores.length >= 1 && trendEl) {
       new Chart(trendEl, {
@@ -2220,7 +2570,7 @@ include __DIR__ . '/../includes/header.php';
       });
     }
 
-    // ── Dimension trend lines ────────────────────────────────
+    // -- Dimension trend lines --------------------------------
     const dimTrendEl = document.getElementById('anDimTrendChart');
     if (dimTrendEl && anTrendSYLabels.length >= 2) {
       const dimTrendDatasets = anDimMeta.map(dm => {
@@ -2245,7 +2595,7 @@ include __DIR__ . '/../includes/header.php';
       });
     }
 
-    // ── Dimension bar chart ──────────────────────────────────
+    // -- Dimension bar chart ----------------------------------
     if (anDimValues.some(v => v !== null && v > 0)) {
       const barDatasets = [{
         label: 'SY ' + anCurrSyLabel,
@@ -2280,7 +2630,7 @@ include __DIR__ . '/../includes/header.php';
     }
   }
 
-  // ── Auto-switch to analytics if ?view=analytics is in URL ──
+  // -- Auto-switch to analytics if ?view=analytics is in URL --
   (function() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('view') === 'analytics') {
@@ -2290,6 +2640,221 @@ include __DIR__ . '/../includes/header.php';
   })();
 </script>
 
+
+<!-- ── AI ASSISTANT PANEL ── -->
+<div id="aiAssistant" class="ai-panel">
+  <div class="ai-panel-fab" onclick="checkToggleMinimize(event)" title="Open AI Assistant">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 20h9"></path>
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+    </svg>
+  </div>
+  <div class="ai-panel-header" onclick="checkToggleMinimize(event)">
+    <div>
+      <div class="ai-panel-title">AI Assistant</div>
+      <div style="font-size:11px;opacity:0.8;">Actionable Suggestions</div>
+    </div>
+    <div class="ai-panel-actions">
+      <button class="ai-panel-btn" onclick="toggleMinimizeAIAssistant(event)" title="Minimize">&minus;</button>
+      <button class="ai-panel-btn" onclick="closeAIAssistant(event)">&times;</button>
+    </div>
+  </div>
+  <div id="aiChatBody" class="ai-chat-body"></div>
+</div>
+
+<script>
+// Data for AI Assistant
+const weakIndicatorsBase = <?= json_encode($weakIndicatorRows) ?>;
+
+// -- AI Panel State Management --
+function setAIPanelState(state) {
+  const panel = document.getElementById('aiAssistant');
+  if (!panel) return;
+
+  panel.classList.toggle('open', state === 'open' || state === 'minimized');
+  panel.classList.toggle('minimized', state === 'minimized');
+  
+  localStorage.setItem('ai_panel_state', state);
+}
+
+function openAIAssistant() {
+  setAIPanelState('open');
+  const body = document.getElementById('aiChatBody');
+  if (body.children.length === 0) {
+    startAISession();
+  }
+}
+
+function closeAIAssistant(e) {
+  if (e) e.stopPropagation();
+  setAIPanelState('closed');
+}
+
+function toggleMinimizeAIAssistant(e) {
+  if (e) e.stopPropagation();
+  const panel = document.getElementById('aiAssistant');
+  const newState = panel.classList.contains('minimized') ? 'open' : 'minimized';
+  setAIPanelState(newState);
+}
+
+function checkToggleMinimize(e) {
+  const panel = document.getElementById('aiAssistant');
+  if (panel.classList.contains('minimized')) {
+    setAIPanelState('open');
+  }
+}
+
+// Restore state on load
+document.addEventListener('DOMContentLoaded', () => {
+  const savedState = localStorage.getItem('ai_panel_state') || 'closed';
+  
+  if (savedState !== 'closed') {
+    const panel = document.getElementById('aiAssistant');
+    const body = document.getElementById('aiChatBody');
+    
+    // Explicitly set classes based on saved state
+    panel.classList.add('open');
+    if (savedState === 'minimized') {
+      panel.classList.add('minimized');
+    }
+
+    // Trigger data fetching if panel was active
+    if (body.children.length === 0) {
+      startAISession();
+    }
+  }
+});
+
+function addMessage(text, type = 'ai', delay = 0) {
+  const body = document.getElementById('aiChatBody');
+  
+  if (delay > 0) {
+    const typing = document.createElement('div');
+    typing.className = 'typing';
+    typing.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+    body.appendChild(typing);
+    body.scrollTop = body.scrollHeight;
+    
+    return new Promise(resolve => {
+      setTimeout(() => {
+        typing.remove();
+        renderMessage(text, type);
+        resolve();
+      }, delay);
+    });
+  } else {
+    renderMessage(text, type);
+    return Promise.resolve();
+  }
+}
+
+function renderMessage(content, type) {
+  const body = document.getElementById('aiChatBody');
+  const msg = document.createElement('div');
+  msg.className = `chat-msg ${type}`;
+  
+  if (type === 'ai') {
+    msg.innerHTML = parseAILogicToHtml(content);
+  } else {
+    msg.textContent = content;
+  }
+  
+  body.appendChild(msg);
+  body.scrollTop = body.scrollHeight;
+}
+
+/** Simple parser for AI markdown-like response */
+function parseAILogicToHtml(text) {
+  // Bold: **text** -> <strong>text</strong>
+  let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  // Bullets: - item -> <li>item</li>
+  const lines = html.split('\n');
+  let finalHtml = '';
+  let inList = false;
+
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('- ')) {
+      if (!inList) {
+        finalHtml += '<ul>';
+        inList = true;
+      }
+      finalHtml += '<li>' + trimmed.substring(2) + '</li>';
+    } else if (trimmed === '---') {
+       if (inList) { finalHtml += '</ul>'; inList = false; }
+       finalHtml += '<hr>';
+    } else {
+      if (inList) {
+        finalHtml += '</ul>';
+        inList = false;
+      }
+      if (trimmed) {
+        finalHtml += '<p>' + trimmed + '</p>';
+      }
+    }
+  });
+
+  if (inList) finalHtml += '</ul>';
+  return finalHtml;
+}
+
+async function startAISession() {
+  const body = document.getElementById('aiChatBody');
+
+  // Show a subtle status message instead of a full chat bubble
+  const status = document.createElement('div');
+  status.className = 'chat-msg status';
+  status.textContent = 'Analyzing your SBM data...';
+  body.appendChild(status);
+
+  // Show thinking dots
+  const thinking = document.createElement('div');
+  thinking.className = 'typing';
+  thinking.id = 'groqThinking';
+  thinking.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  body.appendChild(thinking);
+  body.scrollTop = body.scrollHeight;
+
+  const formData = new FormData();
+  formData.append('action', 'get_ai_suggestions');
+  formData.append('sy_id', '<?= $selectedSyId ?>');
+
+  try {
+    const res = await fetch(window.location.href, { method: 'POST', body: formData });
+    const data = await res.json();
+    
+    status.remove();
+    if (thinking) thinking.remove();
+
+    if (data.error) {
+      addMessage("I couldn't reach the analysis service right now. Please check if the ML service is running.", 'ai', 0);
+      renderFallbackSuggestions();
+      return;
+    }
+
+    const recs = data.recommendations || '';
+    if (recs) {
+      addMessage(recs, 'ai', 0);
+    } else {
+      addMessage("I've reviewed your data. Your performance is currently optimal with no critical gaps detected. Keep up the great work!", 'ai', 0);
+    }
+  } catch (err) {
+    console.error(err);
+    status.remove();
+    if (thinking) thinking.remove();
+    addMessage("Connection failed. Please ensure the ML microservice is active.", 'ai', 0);
+    renderFallbackSuggestions();
+  }
+}
+
+function renderFallbackSuggestions() {
+  if (weakIndicatorsBase && weakIndicatorsBase.length > 0) {
+    addMessage(`I identified ${weakIndicatorsBase.length} weak indicators. Focusing on ${weakIndicatorsBase[0].dimension_name}...`, 'ai', 1000);
+  }
+}
+</script>
 <?= deadlineChipCss() ?>
 <?= deadlineChipJs() ?>
+
 <?php include __DIR__ . '/../includes/footer.php'; ?>
