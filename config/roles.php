@@ -79,6 +79,7 @@ define('SBM_NAV', [
             'Management',
             'users',
             [
+                ['Evidence & MOV', 'school_head/evidence.php', 'paperclip'],
                 ['School Profile', 'school_head/school_profile.php', 'home'],
             ]
         ],
@@ -130,7 +131,6 @@ define('SBM_NAV', [
             'check-circle',
             [
                 ['Self-Assessment', 'coordinator/self_assessment.php', 'check-circle'],
-                ['Evidence & MOV', 'coordinator/evidence.php', 'paperclip'],
             ]
         ],
         [

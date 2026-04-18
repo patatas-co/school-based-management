@@ -9,6 +9,32 @@ require_once __DIR__ . '/../includes/auth.php';
 requireRole('sbm_coordinator');
 $db = getDB();
 
+// ── AJAX HANDLER ──────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_sh_improvement_plans') {
+  header('Content-Type: application/json');
+  $cycleId = (int)($_POST['cycle_id'] ?? 0);
+  if (!$cycleId) {
+    echo json_encode(['ok' => false, 'msg' => 'Invalid cycle ID']);
+    exit;
+  }
+  
+  $st = $db->prepare("
+    SELECT ip.*, d.dimension_name, d.dimension_no, d.color_hex, i.indicator_code, i.indicator_text
+    FROM improvement_plans ip
+    JOIN sbm_dimensions d ON ip.dimension_id = d.dimension_id
+    LEFT JOIN sbm_indicators i ON ip.indicator_id = i.indicator_id
+    WHERE ip.cycle_id = ?
+      AND ip.target_date IS NOT NULL AND ip.target_date != ''
+      AND ip.person_responsible IS NOT NULL AND ip.person_responsible != ''
+    ORDER BY FIELD(ip.priority_level, 'High', 'Medium', 'Low'), ip.created_at
+  ");
+  $st->execute([$cycleId]);
+  $plans = $st->fetchAll(PDO::FETCH_ASSOC);
+  
+  echo json_encode(['ok' => true, 'plans' => $plans]);
+  exit;
+}
+
 $uid = $_SESSION['user_id'];
 $schoolId = SCHOOL_ID;
 
@@ -81,11 +107,20 @@ $totalTeachers = count($teacherList);
 
 // AI Recommendations
 $recommendations = [];
+$shPlanCount = 0;
 if ($cycle) {
   try {
     $recStmt = $db->prepare("SELECT * FROM ml_recommendations WHERE cycle_id=? ORDER BY priority_score DESC LIMIT 4");
     $recStmt->execute([$cycle['cycle_id']]);
     $recommendations = $recStmt->fetchAll();
+  } catch (Exception $e) {
+  }
+  
+  // Check if SH has made an improvement plan
+  try {
+    $planSt = $db->prepare("SELECT COUNT(*) FROM improvement_plans WHERE cycle_id=? AND target_date IS NOT NULL AND target_date != '' AND person_responsible IS NOT NULL AND person_responsible != ''");
+    $planSt->execute([$cycle['cycle_id']]);
+    $shPlanCount = (int)$planSt->fetchColumn();
   } catch (Exception $e) {
   }
 }
@@ -1282,6 +1317,209 @@ include __DIR__ . '/../includes/header.php';
       grid-template-columns: 1fr;
     }
   }
+
+  /* ── AI ASSISTANT & IMPROVEMENT PLAN MODAL STYLES ── */
+  .ai-assistant-fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 64px;
+    height: 64px;
+    border-radius: 999px;
+    background: #fff;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 12px 30px -8px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
+  }
+
+  .ai-assistant-fab:hover {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 20px 40px -12px rgba(22,163,74,0.25), 0 0 0 1px rgba(22,163,74,0.1);
+  }
+
+  .ai-assistant-fab img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 8px;
+    transition: transform 0.3s ease;
+  }
+
+  .ai-assistant-fab.minimized {
+    width: 50px;
+    height: 50px;
+    bottom: 20px;
+    right: 20px;
+  }
+
+  .ai-assistant-panel {
+    position: fixed;
+    bottom: 100px;
+    right: 30px;
+    width: 420px;
+    height: 600px;
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: 0 20px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.04);
+    display: none;
+    flex-direction: column;
+    z-index: 1001;
+    overflow: hidden;
+    animation: aiPanelSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+
+  @keyframes aiPanelSlideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .ai-assistant-panel.open { display: flex; }
+
+  .ai-assistant-panel.minimized {
+    height: 60px;
+    width: 280px;
+    bottom: 100px;
+  }
+
+  .ai-header {
+    padding: 18px 20px;
+    background: #fff;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .ai-header-left { display: flex; align-items: center; gap: 12px; }
+  .ai-header-seal { width: 32px; height: 32px; object-fit: contain; }
+  .ai-header-title { font-size: 15px; font-weight: 800; color: #1e293b; letter-spacing: -0.01em; }
+
+  .chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: #fbfcfe;
+    scrollbar-width: thin;
+  }
+
+  .chat-msg {
+    max-width: 85%;
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    position: relative;
+  }
+
+  .chat-msg.status {
+    align-self: center;
+    background: none;
+    color: var(--n-400);
+    font-size: 12px;
+    font-style: italic;
+    padding: 4px;
+    max-width: 100%;
+  }
+
+  .chat-msg.ai {
+    align-self: flex-start;
+    background: #fff;
+    color: #334155;
+    border: 1px solid #eef2f6;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+
+  .chat-msg.user {
+    align-self: flex-end;
+    background: var(--brand-600);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  /* Improvement Plan View Modal Styles */
+  .ip-view-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15,23,42,0.6);
+    backdrop-filter: blur(6px);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .ip-view-content {
+    background: #fff;
+    width: 100%;
+    max-width: 1100px;
+    height: 85vh;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3);
+  }
+
+  .ip-view-header {
+    padding: 20px 24px;
+    background: var(--brand-700);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .ip-view-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+  }
+
+  .ip-table {
+    width: 100%;
+    border-spacing: 0;
+    border-collapse: separate;
+  }
+
+  .ip-table th {
+    background: #f8fafc;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .ip-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 13px;
+    vertical-align: top;
+    color: #334155;
+  }
+
+  .ip-priority-High { border-left: 4px solid #ef4444; background: #fef2f2; }
+  .ip-priority-Medium { border-left: 4px solid #f59e0b; background: #fffbeb; }
+  .ip-priority-Low { border-left: 4px solid #3b82f6; background: #eff6ff; }
 </style>
 
 <?php if ($cycle && $cycle['status'] === 'returned'): ?>
@@ -1770,6 +2008,15 @@ include __DIR__ . '/../includes/header.php';
       <a href="dashboard.php?view=analytics" class="btn btn-ghost btn-sm">✕ Clear</a>
     <?php endif; ?>
     <div style="margin-left:auto;display:flex;gap:8px;">
+      <?php if (($shPlanCount ?? 0) > 0): ?>
+        <button class="ai-assistant-btn" onclick="viewSHImprovementPlan()" style="border-color:var(--brand-300);background:var(--brand-50);color:var(--brand-700);">
+          <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+          View SH Improvement Plan
+        </button>
+      <?php endif; ?>
       <button class="ai-assistant-btn" onclick="openAIAssistant()">
         <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
@@ -2349,6 +2596,257 @@ include __DIR__ . '/../includes/header.php';
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) setTimeout(() => location.reload(), 800);
   }
+
+  // ── SCHOOL HEAD IMPROVEMENT PLAN LOGIC ──────────────────────
+  async function viewSHImprovementPlan() {
+    const modal = document.getElementById('shImprovementPlanModal');
+    const tableBody = document.getElementById('shIpTableBody');
+    const syLabel = <?= json_encode($syLabel) ?>;
+    
+    modal.style.display = 'flex';
+    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:100px;color:var(--n-400);">Loading plans...</td></tr>';
+    
+    try {
+      const formData = new FormData();
+      formData.append('action', 'get_sh_improvement_plans');
+      formData.append('cycle_id', '<?= $cycle ? $cycle['cycle_id'] : '' ?>');
+      
+      const res = await fetch(window.location.href, { method: 'POST', body: formData });
+      const data = await res.json();
+      
+      if (!data.ok) {
+        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:100px;color:var(--n-400);">${data.msg}</td></tr>`;
+        return;
+      }
+      
+      if (data.plans.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:100px;color:var(--n-400);">No improvement plans have been submitted by the School Head for SY ${syLabel} yet.</td></tr>`;
+        return;
+      }
+      
+      let html = '';
+      data.plans.forEach(p => {
+        html += `
+          <tr class="ip-priority-${p.priority_level}">
+            <td>
+              <div style="font-weight:800;margin-bottom:4px;">${p.priority_level}</div>
+              <div style="font-size:11px;color:#64748b;font-weight:600;">Priority</div>
+            </td>
+            <td style="width:220px;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <span style="width:10px;height:10px;border-radius:2px;background:${p.color_hex};"></span>
+                <span style="font-weight:700;">Dimension ${p.dimension_no}</span>
+              </div>
+              <div style="font-size:12px;color:#64748b;line-height:1.4;">${p.dimension_name}</div>
+            </td>
+            <td>
+              <div style="font-weight:600;color:var(--brand-700);margin-bottom:4px;">${p.indicator_code || 'General'}</div>
+              <div style="font-size:11.5px;color:#64748b;line-height:1.4;">${p.indicator_text || '—'}</div>
+            </td>
+            <td>
+              <div style="font-weight:700;margin-bottom:6px;color:#1e293b;">Objective:</div>
+              <div style="margin-bottom:12px;line-height:1.5;">${p.objective}</div>
+              <div style="font-weight:700;margin-bottom:6px;color:#1e293b;">Strategy:</div>
+              <div style="line-height:1.5;">${p.strategy}</div>
+            </td>
+            <td>
+              <div style="font-weight:700;color:#1e293b;margin-bottom:2px;">Target:</div>
+              <div style="margin-bottom:8px;">${p.target_date || '—'}</div>
+              <div style="font-weight:700;color:#1e293b;margin-bottom:2px;">Owner:</div>
+              <div>${p.person_responsible || '—'}</div>
+            </td>
+            <td>
+              <div style="background:#fff;padding:8px;border-radius:6px;border:1px solid #e2e8f0;">
+                <div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px;">EXPECTED OUTPUT</div>
+                <div style="line-height:1.4;">${p.expected_output || '—'}</div>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+      tableBody.innerHTML = html;
+      
+    } catch(err) {
+      console.error(err);
+      tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:100px;color:var(--n-400);">Failed to load data.</td></tr>';
+    }
+  }
+
+  function closeSHIpModal() {
+    document.getElementById('shImprovementPlanModal').style.display = 'none';
+  }
+
+  // ── AI ASSISTANT PANEL LOGIC ────────────────────────────────
+  function setAIPanelState(state) {
+    const panel = document.getElementById('aiAssistant');
+    const fab = document.getElementById('aiAssistantFab');
+    
+    panel.classList.remove('open', 'minimized');
+    fab.classList.remove('minimized');
+    
+    if (state === 'open') {
+      panel.classList.add('open');
+    } else if (state === 'minimized') {
+      panel.classList.add('open', 'minimized');
+      fab.classList.add('minimized');
+    }
+    localStorage.setItem('ai_panel_state', state);
+  }
+
+  function openAIAssistant() {
+    setAIPanelState('open');
+    const body = document.getElementById('aiChatBody');
+    if (body.children.length === 0) startAISession();
+  }
+
+  function closeAIAssistant(e) { if(e) e.stopPropagation(); setAIPanelState('closed'); }
+  function toggleMinimizeAIAssistant(e) {
+    if(e) e.stopPropagation();
+    const panel = document.getElementById('aiAssistant');
+    const newState = panel.classList.contains('minimized') ? 'open' : 'minimized';
+    setAIPanelState(newState);
+  }
+  function checkToggleMinimize(e) {
+    const panel = document.getElementById('aiAssistant');
+    if (panel.classList.contains('minimized')) setAIPanelState('open');
+  }
+
+  async function startAISession() {
+    const body = document.getElementById('aiChatBody');
+    body.innerHTML = '<div class="chat-msg ai">Analyzing SBM cycle data for SY ' + <?= json_encode($syLabel) ?> + '...</div>';
+    
+    const formData = new FormData();
+    formData.append('action', 'get_ai_suggestions');
+    formData.append('sy_id', '<?= $syId ?>');
+
+    try {
+      const res = await fetch('../school_head/dashboard.php', { method: 'POST', body: formData });
+      const data = await res.json();
+      
+      body.innerHTML = '';
+      if (data.recommendations) {
+        addMessage(data.recommendations, 'ai');
+      } else {
+        addMessage("I've reviewed your current cycle data. You're performing exceptionally well! Continue monitoring the evidence for Dimension 4 as it matures.", 'ai');
+      }
+    } catch (err) {
+      console.error(err);
+      addMessage("Connection to ML service failed. Please ensure the analysis engine is running.", 'ai');
+    }
+  }
+
+  function addMessage(text, type = 'ai') {
+    const body = document.getElementById('aiChatBody');
+    const msg = document.createElement('div');
+    msg.className = `chat-msg ${type}`;
+    msg.innerHTML = type === 'ai' ? parseAILogicToHtml(text) : text;
+    body.appendChild(msg);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function parseAILogicToHtml(text) {
+    let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    const lines = html.split('\n');
+    let finalHtml = '', inList = false;
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('- ')) {
+        if (!inList) { finalHtml += '<ul>'; inList = true; }
+        finalHtml += '<li>' + trimmed.substring(2) + '</li>';
+      } else {
+        if (inList) { finalHtml += '</ul>'; inList = false; }
+        if (trimmed) finalHtml += '<p>' + trimmed + '</p>';
+      }
+    });
+    if (inList) finalHtml += '</ul>';
+    return finalHtml;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedState = localStorage.getItem('ai_panel_state') || 'closed';
+    if (savedState !== 'closed') openAIAssistant();
+    if (savedState === 'minimized') setAIPanelState('minimized');
+  });
+</script>
+
+<!-- ── MODAL HTML ── -->
+
+<!-- View SH Improvement Plan Modal -->
+<div id="shImprovementPlanModal" class="ip-view-modal">
+  <div class="ip-view-content">
+    <div class="ip-view-header">
+      <div style="display:flex;align-items:center;gap:15px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;">
+          <svg style="width:24px;height:24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+        </div>
+        <div>
+          <h2 style="font-size:18px;font-weight:800;margin:0;">School Head Improvement Plan</h2>
+          <p style="font-size:12px;opacity:0.8;margin:0;">Registered Action Plans for SY <?= e($syLabel) ?></p>
+        </div>
+      </div>
+      <button onclick="closeSHIpModal()" style="background:none;border:none;color:#fff;cursor:pointer;padding:8px;border-radius:8px;">
+        <svg style="width:24px;height:24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+    <div class="ip-view-body">
+      <table class="ip-table">
+        <thead>
+          <tr>
+            <th>Priority</th>
+            <th>Dimension</th>
+            <th>Indicator</th>
+            <th>Objective & Strategy</th>
+            <th>Target & Owner</th>
+            <th>Output</th>
+          </tr>
+        </thead>
+        <tbody id="shIpTableBody">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid #f1f5f9;background:#f8fafc;display:flex;justify-content:flex-end;">
+      <a href="<?= baseUrl() ?>/export_pdf.php?cycle_id=<?= $cycle ? $cycle['cycle_id'] : '' ?>&type=improvement" target="_blank" class="btn btn-secondary btn-sm" style="background:#fff;">
+        <svg style="width:14px;height:14px;margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" />
+        </svg>
+        Print Report
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- AI Assistant FAB & Panel -->
+<button class="ai-assistant-fab" id="aiAssistantFab" onclick="openAIAssistant()">
+  <img src="<?= baseUrl() ?>/assets/seal.png" alt="School Seal">
+</button>
+
+<div class="ai-assistant-panel" id="aiAssistant">
+  <div class="ai-header" onclick="checkToggleMinimize(event)">
+    <div class="ai-header-left">
+      <img src="<?= baseUrl() ?>/assets/seal.png" class="ai-header-seal">
+      <span class="ai-header-title">SBM AI Assistant</span>
+    </div>
+    <div style="display:flex;gap:4px;">
+      <button class="btn-icon" onclick="toggleMinimizeAIAssistant(event)">
+         <svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="btn-icon" onclick="closeAIAssistant(event)">
+         <svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="chat-body" id="aiChatBody"></div>
+</div>
 </script>
 
 <?= deadlineChipCss() ?>
