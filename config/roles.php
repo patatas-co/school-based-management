@@ -41,6 +41,7 @@ define('SBM_MODULE_ACCESS', [
         ROLE_STAKEHOLDER
     ],
     'start_assessment' => [ROLE_SCHOOL_HEAD, ROLE_SYSTEM_ADMIN],
+    'assign_indicators' => [ROLE_SYSTEM_ADMIN, ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 ]);
 
 define('SBM_NAV', [
@@ -59,7 +60,6 @@ define('SBM_NAV', [
             'users',
             [
                 ['User Accounts', 'system_admin/users.php', 'users'],
-                ['Assign Indicators', 'system_admin/assign_indicators.php', 'check-square'],
                 ['School Profile', 'school_head/school_profile.php', 'home'],
                 ['School Years', 'school_head/settings.php', 'calendar'],
             ]
@@ -112,9 +112,17 @@ define('SBM_NAV', [
             'grid',
             [
                 ['Dashboard', 'coordinator/dashboard.php', 'grid'],
-                ['Analytics', 'coordinator/analytics.php', 'bar-chart-2'],
                 ['SBM Dimensions', 'coordinator/dimensions.php', 'layers'],
                 ['Reports', 'coordinator/reports.php', 'file-text'],
+            ]
+        ],
+
+        [
+            'Management',
+            'users',
+            [
+                ['Assign Indicators', 'coordinator/assign_indicators.php', 'check-square'],
+                ['Teacher Status', 'coordinator/teacher_status.php', 'users']
             ]
         ],
         [
@@ -122,7 +130,6 @@ define('SBM_NAV', [
             'check-circle',
             [
                 ['Self-Assessment', 'coordinator/self_assessment.php', 'check-circle'],
-                ['Teacher Status', 'coordinator/teacher_status.php', 'users'],
                 ['Evidence & MOV', 'coordinator/evidence.php', 'paperclip'],
             ]
         ],

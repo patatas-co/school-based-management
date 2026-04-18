@@ -8,7 +8,7 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
 
-requireSystemAdmin();
+requireRole(ROLE_SYSTEM_ADMIN, ROLE_SCHOOL_HEAD, ROLE_COORDINATOR);
 $db = getDB();
 
 $schoolId = SCHOOL_ID;
@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
 
             $db->commit();
-            logActivity('bulk_assign_indicators', 'system_admin',
+            logActivity('bulk_assign_indicators', 'coordinator',
                 "Bulk assigned " . count($indicators) . " indicators to " . count($validIds) . " {$roleFilter}(s)");
 
             echo json_encode(['ok' => true, 'msg' => 'Bulk assignments saved for ' . count($validIds) . ' user(s)!']);
