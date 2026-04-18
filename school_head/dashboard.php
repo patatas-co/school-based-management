@@ -11,26 +11,71 @@ $db = getDB();
 // -- All school years for the selector ------------------------
 $allSYs = $db->query("SELECT * FROM school_years ORDER BY label DESC")->fetchAll();
 $currentSYRow = $db->query("SELECT * FROM school_years WHERE is_current=1 LIMIT 1")->fetch();
+$myId = (int) ($_SESSION['user_id'] ?? 0);
+
+// ── NEW: SAVE IMPROVEMENT PLAN AJAX HANDLER ───────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_improvement_plan') {
+  header('Content-Type: application/json');
+  $schoolId = (int) ($_SESSION['school_id'] ?? 1);
+  $syId = (int) ($_POST['sy_id'] ?? 0);
+  $dimIds = explode(',', $_POST['dimension_ids'] ?? '');
+  $indIds = explode(',', $_POST['indicator_ids'] ?? '');
+  $obj = $_POST['objective'] ?? '';
+  $strat = $_POST['strategy'] ?? '';
+  $person = $_POST['person_responsible'] ?? '';
+  $target = $_POST['target_date'] ?? null;
+  $res = $_POST['resources_needed'] ?? '';
+  $output = $_POST['expected_output'] ?? '';
+  $priority = $_POST['priority_level'] ?? 'Medium';
+
+  // Get current cycle for this SY
+  $cQ = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id = ? AND sy_id = ? ORDER BY created_at DESC LIMIT 1");
+  $cQ->execute([$schoolId, $syId]);
+  $cycleId = $cQ->fetchColumn();
+
+  if (!$cycleId) {
+    echo json_encode(['success' => false, 'message' => 'No assessment cycle found for this year. Please create one first.']);
+    exit;
+  }
+
+  try {
+    $ins = $db->prepare("INSERT INTO improvement_plans (school_id, cycle_id, dimension_id, indicator_id, priority_level, objective, strategy, person_responsible, target_date, resources_needed, expected_output, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+    foreach ($indIds as $indId) {
+      if (!$indId) continue;
+      // Get the dimension for this indicator
+      $dimQ = $db->prepare("SELECT dimension_id FROM sbm_indicators WHERE indicator_id = ?");
+      $dimQ->execute([$indId]);
+      $dId = $dimQ->fetchColumn();
+
+      $ins->execute([$schoolId, $cycleId, $dId, $indId, $priority, $obj, $strat, $person, $target ?: null, $res, $output, $myId]);
+    }
+    echo json_encode(['success' => true]);
+  } catch (Exception $e) {
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+  }
+  exit;
+}
 
 // ── NEW: AI ASSISTANT AJAX HANDLER (GROQ) ─────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_ai_suggestions') {
-    header('Content-Type: application/json');
-    require_once __DIR__ . '/../includes/ml_service.php';
+  header('Content-Type: application/json');
+  require_once __DIR__ . '/../includes/ml_service.php';
 
-    $schoolId = (int)($_SESSION['school_id'] ?? 0);
-    $syId     = (int)($_POST['sy_id'] ?? 0);
+  $schoolId = (int) ($_SESSION['school_id'] ?? 0);
+  $syId = (int) ($_POST['sy_id'] ?? 0);
 
-    // 1. Get School Info
-    $sQ = $db->prepare("SELECT school_name FROM schools WHERE school_id = ?");
-    $sQ->execute([$schoolId]);
-    $schoolName = $sQ->fetchColumn() ?: 'School';
+  // 1. Get School Info
+  $sQ = $db->prepare("SELECT school_name FROM schools WHERE school_id = ?");
+  $sQ->execute([$schoolId]);
+  $schoolName = $sQ->fetchColumn() ?: 'School';
 
-    $syQ = $db->prepare("SELECT label FROM school_years WHERE sy_id = ?");
-    $syQ->execute([$syId]);
-    $syLabel = $syQ->fetchColumn() ?: 'Unknown';
+  $syQ = $db->prepare("SELECT label FROM school_years WHERE sy_id = ?");
+  $syQ->execute([$syId]);
+  $syLabel = $syQ->fetchColumn() ?: 'Unknown';
 
-    // 2. Gather Dim Scores
-    $dimQ = $db->prepare("
+  // 2. Gather Dim Scores
+  $dimQ = $db->prepare("
         SELECT d.dimension_no, d.dimension_name, ROUND(AVG(ds.percentage), 1) as avg_pct
         FROM sbm_dimensions d
         LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
@@ -38,18 +83,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
         WHERE c.sy_id = ? AND c.school_id = ?
         GROUP BY d.dimension_id ORDER BY d.dimension_no
     ");
-    $dimQ->execute([$syId, $schoolId]);
-    $dimScores = [];
-    foreach ($dimQ->fetchAll() as $row) {
-        $dimScores[] = [
-            'dimension_name' => $row['dimension_name'],
-            'score'          => (float)$row['avg_pct'],
-            'maturity'       => $row['avg_pct'] >= 66.6 ? 'Advanced' : ($row['avg_pct'] >= 33.3 ? 'Maturing' : 'Developing')
-        ];
-    }
+  $dimQ->execute([$syId, $schoolId]);
+  $dimScores = [];
+  foreach ($dimQ->fetchAll() as $row) {
+    $dimScores[] = [
+      'dimension_name' => $row['dimension_name'],
+      'score' => (float) $row['avg_pct'],
+      'maturity' => $row['avg_pct'] >= 66.6 ? 'Advanced' : ($row['avg_pct'] >= 33.3 ? 'Maturing' : 'Developing')
+    ];
+  }
 
-    // 3. Gather Weak Indicators (Rating < 2.5)
-    $weakQ = $db->prepare("
+  // 3. Gather Weak Indicators (Rating < 2.5)
+  $weakQ = $db->prepare("
         SELECT i.indicator_code, i.indicator_text, ROUND(AVG(all_r.rating), 2) as rating
         FROM (
             SELECT cycle_id, indicator_id, rating FROM sbm_responses
@@ -63,61 +108,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
         HAVING rating < 2.5
         ORDER BY rating ASC
     ");
-    $weakQ->execute([$syId, $schoolId]);
-    $byRating = ['1' => [], '2' => []];
-    foreach ($weakQ->fetchAll() as $row) {
-        $r = (int)floor($row['rating']);
-        if ($r < 1) $r = 1;
-        if ($r > 2) $r = 2;
-        $byRating[strval($r)][] = [
-            'code' => $row['indicator_code'],
-            'text' => $row['indicator_text'],
-            'rating' => (float)$row['rating']
-        ];
-    }
+  $weakQ->execute([$syId, $schoolId]);
+  $byRating = ['1' => [], '2' => []];
+  foreach ($weakQ->fetchAll() as $row) {
+    $r = (int) floor($row['rating']);
+    if ($r < 1)
+      $r = 1;
+    if ($r > 2)
+      $r = 2;
+    $byRating[strval($r)][] = [
+      'code' => $row['indicator_code'],
+      'text' => $row['indicator_text'],
+      'rating' => (float) $row['rating']
+    ];
+  }
 
-    // 4. History Trend
-    $histQ = $db->prepare("
+  // 4. History Trend
+  $histQ = $db->prepare("
         SELECT overall_score FROM sbm_cycles 
         WHERE school_id = ? AND status='validated' AND sy_id != ? 
         ORDER BY created_at DESC LIMIT 3
     ");
-    $histQ->execute([$schoolId, $syId]);
-    $history = $histQ->fetchAll();
+  $histQ->execute([$schoolId, $syId]);
+  $history = $histQ->fetchAll();
 
-    // 5. Get Real Overall Score & Maturity
-    $scoreQ = $db->prepare("
+  // 5. Get Real Overall Score & Maturity
+  $scoreQ = $db->prepare("
         SELECT overall_score, maturity_level FROM sbm_cycles 
         WHERE school_id = ? AND sy_id = ? AND status='validated'
         ORDER BY created_at DESC LIMIT 1
     ");
-    $scoreQ->execute([$schoolId, $syId]);
-    $scoreData = $scoreQ->fetch();
-    $overallScore = $scoreData ? (float)$scoreData['overall_score'] : 0;
-    $overallMaturity = $scoreData ? $scoreData['maturity_level'] : 'N/A';
+  $scoreQ->execute([$schoolId, $syId]);
+  $scoreData = $scoreQ->fetch();
+  $overallScore = $scoreData ? (float) $scoreData['overall_score'] : 0;
+  $overallMaturity = $scoreData ? $scoreData['maturity_level'] : 'N/A';
 
-    // 6. Call ML Service (Groq)
-    $payload = [
-        'school_name' => $schoolName,
-        'sy_label'    => $syLabel,
-        'analysis'    => [
-            'gap_analysis'    => [
-                'average_score'      => $overallScore,
-                'overall_maturity'   => $overallMaturity,
-                'weakest_dimensions' => array_slice($dimScores, 0, 3)
-            ],
-            'by_rating'       => $byRating,
-            'history'         => $history,
-            'comment_summary' => ['top_topics' => [], 'has_urgent' => false]
-        ]
-    ];
+  // 6. Call ML Service (Groq)
+  $payload = [
+    'school_name' => $schoolName,
+    'sy_label' => $syLabel,
+    'analysis' => [
+      'gap_analysis' => [
+        'average_score' => $overallScore,
+        'overall_maturity' => $overallMaturity,
+        'weakest_dimensions' => array_slice($dimScores, 0, 3)
+      ],
+      'by_rating' => $byRating,
+      'history' => $history,
+      'comment_summary' => ['top_topics' => [], 'has_urgent' => false]
+    ]
+  ];
 
-    $response = ml_post('/api/recommend', $payload);
-    echo json_encode($response ?: [
-        'recommendations' => "I'm sorry, I'm having trouble connecting to my central intelligence. Please check if the ML service is running.",
-        'error' => 'Service Unavailable'
-    ]);
-    exit;
+  $response = ml_post('/api/recommend', $payload);
+  echo json_encode($response ?: [
+    'recommendations' => "I'm sorry, I'm having trouble connecting to my central intelligence. Please check if the ML service is running.",
+    'error' => 'Service Unavailable'
+  ]);
+  exit;
 }
 
 // -- Resolve selected SY from ?sy_id= (fall back to current) --
@@ -183,7 +230,7 @@ $recentCycles = $stRecent->fetchAll();
 
 // -- Dimension scores (SY-scoped — subquery ensures only scores from selected SY cycles)
 $stDimScores = $db->prepare("
-  SELECT d.dimension_no, d.dimension_name, d.color_hex,
+  SELECT d.dimension_id, d.dimension_no, d.dimension_name, d.color_hex,
          ROUND(AVG(ds.percentage), 1) avg_pct
   FROM sbm_dimensions d
   LEFT JOIN sbm_dimension_scores ds
@@ -217,7 +264,7 @@ $compareSyId = (int) ($_GET['compare_sy'] ?? 0);
 
 // -- Analytics dimension averages ------------------------------
 $anDimAvgQ = $db->prepare("
-    SELECT d.dimension_no, d.dimension_name, d.color_hex,
+    SELECT d.dimension_id, d.dimension_no, d.dimension_name, d.color_hex,
            ROUND(AVG(ds.percentage),1) AS avg_pct
     FROM sbm_dimensions d
     LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
@@ -227,6 +274,18 @@ $anDimAvgQ = $db->prepare("
 ");
 $anDimAvgQ->execute([$selectedSyId, $mySchoolId]);
 $anDimAvgs = $anDimAvgQ->fetchAll();
+
+// -- Identify the lowest dimension(s) --
+$minDimVal = 1000;
+foreach($anDimAvgs as $da) {
+    if($da['avg_pct'] !== null && $da['avg_pct'] < $minDimVal) $minDimVal = $da['avg_pct'];
+}
+$lowestDimIds = [];
+if($minDimVal < 1000) {
+    foreach($anDimAvgs as $da) {
+        if($da['avg_pct'] == $minDimVal) $lowestDimIds[] = (int)$da['dimension_id'];
+    }
+}
 
 // -- Comparison SY dimension averages --------------------------
 $anDimAvgsCompare = [];
@@ -285,8 +344,8 @@ $trendSYLabels = array_values($trendSYLabels);
 
 // -- Weak indicators — current SY ------------------------------
 $weakQ = $db->prepare("
-    SELECT i.indicator_code, i.indicator_text,
-           d.dimension_name, d.color_hex,
+    SELECT i.indicator_id, i.indicator_code, i.indicator_text,
+           d.dimension_id, d.dimension_name, d.color_hex,
            ROUND(AVG(all_r.rating), 2) AS avg_rating,
            COUNT(all_r.rating) AS response_count
     FROM (
@@ -299,8 +358,8 @@ $weakQ = $db->prepare("
     JOIN sbm_cycles c       ON all_r.cycle_id = c.cycle_id
     WHERE c.sy_id = ? AND c.school_id = ?
     GROUP BY i.indicator_id
+    HAVING avg_rating <= 2.5
     ORDER BY avg_rating ASC
-    LIMIT 8
 ");
 $weakQ->execute([$selectedSyId, $mySchoolId]);
 $weakIndicatorRows = $weakQ->fetchAll();
@@ -610,6 +669,31 @@ include __DIR__ . '/../includes/header.php';
     color: var(--n-500);
     text-transform: uppercase;
     letter-spacing: .05em;
+  }
+
+  /* -- ANALYTICS INSIGHTS -- */
+  .an-insight-delta {
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 8px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+
+  .an-insight-delta.up {
+    color: var(--brand-700, #15803d);
+    background: rgba(22, 163, 74, 0.1);
+  }
+
+  .an-insight-delta.down {
+    color: var(--red);
+    background: rgba(220, 38, 38, 0.1);
+  }
+
+  .an-insight-delta.flat {
+    color: var(--n-600);
+    background: var(--n-100);
   }
 
   /* -- DIM LIST -- */
@@ -1172,6 +1256,7 @@ include __DIR__ . '/../includes/header.php';
     background: var(--n-100, #F3F4F6);
     margin: 4px 6px;
   }
+
   /* -- VIEW TOGGLE -- */
   .view-toggle-wrap {
     display: flex;
@@ -1223,6 +1308,7 @@ include __DIR__ . '/../includes/header.php';
     gap: 16px;
     flex-wrap: wrap;
   }
+
   .chart-legend-item {
     display: flex;
     align-items: center;
@@ -1232,6 +1318,7 @@ include __DIR__ . '/../includes/header.php';
     color: var(--n-600);
     line-height: 1;
   }
+
   .chart-legend-swatch {
     width: 11px;
     height: 11px;
@@ -1278,11 +1365,13 @@ include __DIR__ . '/../includes/header.php';
     transition: all .2s;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
+
   .ai-assistant-btn:hover {
     background: #0f172a;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
+
   .ai-panel {
     position: fixed;
     bottom: 20px;
@@ -1293,7 +1382,7 @@ include __DIR__ . '/../includes/header.php';
     max-height: calc(100vh - 100px);
     background: #fff;
     border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
     display: flex;
     flex-direction: column;
     z-index: 1000;
@@ -1303,62 +1392,75 @@ include __DIR__ . '/../includes/header.php';
     pointer-events: none;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
+
   .ai-panel.open {
     transform: translateY(0);
     opacity: 1;
     pointer-events: auto;
   }
+
   .ai-panel.minimized {
     height: 56px !important;
     width: 56px !important;
     border-radius: 28px !important;
     cursor: pointer;
   }
+
   .ai-panel.minimized .ai-panel-header,
   .ai-panel.minimized .ai-chat-body {
     display: none !important;
   }
+
   .ai-panel-fab {
     display: none;
     width: 100%;
     height: 100%;
-    background: #1e293b;
-    color: #fff;
+    background: transparent;
+    color: var(--n-800);
     align-items: center;
     justify-content: center;
     border-radius: 50%;
     font-size: 20px;
     transition: background 0.2s;
   }
+
   .ai-panel-fab:hover {
     background: #0f172a;
   }
+
   .ai-panel.minimized .ai-panel-fab {
     display: flex;
   }
+
   #aiAssistant .ai-panel-header {
     padding: 16px 20px !important;
-    background: #1e293b !important;
-    color: #ffffff !important;
+    background: #C0C0C0 !important;
+    color: var(--n-900) !important;
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
     flex-shrink: 0 !important;
     cursor: pointer !important;
-    border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+    border-bottom: 1px solid var(--n-200) !important;
   }
+
   .ai-panel-actions {
     display: flex;
     gap: 8px;
   }
-  .ai-panel-title { font-size: 15px; font-weight: 700; }
+
+  .ai-panel-title {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
   #aiAssistant .ai-panel-btn {
-    background: rgba(255,255,255,0.2) !important;
+    background: var(--n-200) !important;
     border: none !important;
     width: 28px !important;
     height: 28px !important;
     border-radius: 50% !important;
-    color: #ffffff !important;
+    color: var(--n-700) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -1367,7 +1469,11 @@ include __DIR__ . '/../includes/header.php';
     font-size: 16px !important;
     outline: none !important;
   }
-  #aiAssistant .ai-panel-btn:hover { background: rgba(255,255,255,0.3) !important; }
+
+  #aiAssistant .ai-panel-btn:hover {
+    background: var(--n-300) !important;
+  }
+
   .ai-chat-body {
     flex: 1;
     overflow-y: auto;
@@ -1379,8 +1485,15 @@ include __DIR__ . '/../includes/header.php';
     scrollbar-width: thin;
     scrollbar-color: #e5e7eb transparent;
   }
-  .ai-chat-body::-webkit-scrollbar { width: 4px; }
-  .ai-chat-body::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
+
+  .ai-chat-body::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .ai-chat-body::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-radius: 4px;
+  }
 
   /* --- AI Message: clean prose block (not a chat bubble) --- */
   .chat-msg {
@@ -1392,12 +1505,14 @@ include __DIR__ . '/../includes/header.php';
     color: var(--n-800);
     font-family: var(--font-body);
   }
+
   .chat-msg.ai {
-    background: transparent;
+    background: #fff;
     align-self: flex-start;
     border: none;
     box-shadow: none;
   }
+
   .chat-msg.user {
     background: var(--n-100);
     color: var(--n-800);
@@ -1406,35 +1521,43 @@ include __DIR__ . '/../includes/header.php';
     border-radius: 12px;
     max-width: 85%;
   }
+
   /* Prose typography inside AI messages */
   .chat-msg.ai p {
     margin: 0 0 12px 0;
   }
+
   .chat-msg.ai p:last-child {
     margin-bottom: 0;
   }
+
   .chat-msg.ai strong {
     color: var(--n-900);
     font-weight: 700;
   }
+
   .chat-msg.ai ul {
     margin: 6px 0 14px 0;
     padding-left: 18px;
     list-style: disc;
   }
+
   .chat-msg.ai ul li {
     margin-bottom: 5px;
     padding-left: 2px;
     color: var(--n-700);
   }
+
   .chat-msg.ai ul li::marker {
     color: var(--n-400);
   }
+
   .chat-msg.ai hr {
     border: none;
     border-top: 1px solid var(--n-150, #eaecf0);
     margin: 14px 0;
   }
+
   /* Status message (initial greeting) */
   .chat-msg.status {
     background: var(--n-50);
@@ -1448,18 +1571,48 @@ include __DIR__ . '/../includes/header.php';
   }
 
   /* Typing Animation */
-  .typing { display: flex; gap: 5px; padding: 10px 14px; align-self: flex-start; }
-  .dot { width: 6px; height: 6px; background: #cbd5e1; border-radius: 50%; animation: blink 1.4s infinite both; }
-  .dot:nth-child(2) { animation-delay: 0.2s; }
-  .dot:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes blink { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
+  .typing {
+    display: flex;
+    gap: 5px;
+    padding: 10px 14px;
+    align-self: flex-start;
+  }
 
-    font-family: var(--font-display);
-    font-size: 26px;
-    font-weight: 800;
-    color: var(--n-900);
-    line-height: 1;
-    margin-bottom: 4px;
+  .dot {
+    width: 6px;
+    height: 6px;
+    background: #cbd5e1;
+    border-radius: 50%;
+    animation: blink 1.4s infinite both;
+  }
+
+  .dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  @keyframes blink {
+
+    0%,
+    80%,
+    100% {
+      opacity: 0;
+    }
+
+    40% {
+      opacity: 1;
+    }
+  }
+
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--n-900);
+  line-height: 1;
+  margin-bottom: 4px;
   }
 
   .an-insight-lbl {
@@ -1474,9 +1627,18 @@ include __DIR__ . '/../includes/header.php';
     margin-top: 5px;
   }
 
-  .an-insight-delta.up { color: var(--n-800); }
-  .an-insight-delta.down { color: var(--n-900); font-weight: 800; }
-  .an-insight-delta.flat { color: var(--n-400); }
+  .an-insight-delta.up {
+    color: var(--n-800);
+  }
+
+  .an-insight-delta.down {
+    color: var(--n-900);
+    font-weight: 800;
+  }
+
+  .an-insight-delta.flat {
+    color: var(--n-400);
+  }
 
   .an-filter-bar {
     display: flex;
@@ -1529,11 +1691,24 @@ include __DIR__ . '/../includes/header.php';
     transition: all .14s;
   }
 
-  .an-tab-btn:hover { background: var(--n-50); border-color: var(--n-300); }
-  .an-tab-btn.active { background: var(--n-900); color: #fff; border-color: var(--n-900); }
+  .an-tab-btn:hover {
+    background: var(--n-50);
+    border-color: var(--n-300);
+  }
 
-  .an-tab-panel { display: none; }
-  .an-tab-panel.active { display: block; }
+  .an-tab-btn.active {
+    background: var(--n-900);
+    color: #fff;
+    border-color: var(--n-900);
+  }
+
+  .an-tab-panel {
+    display: none;
+  }
+
+  .an-tab-panel.active {
+    display: block;
+  }
 
   .an-cw-row {
     display: flex;
@@ -1556,14 +1731,41 @@ include __DIR__ . '/../includes/header.php';
     flex-shrink: 0;
   }
 
-  .an-cw-info { flex: 1; min-width: 0; }
-  .an-cw-title { font-size: 12.5px; font-weight: 600; color: var(--n-900); margin-bottom: 3px; line-height: 1.35; }
-  .an-cw-meta { font-size: 11.5px; color: var(--n-400); }
-  .an-cw-bar-track { height: 5px; background: var(--n-100); border-radius: 999px; margin-top: 5px; overflow: hidden; }
-  .an-cw-bar-fill { height: 100%; border-radius: 999px; }
+  .an-cw-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .an-cw-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--n-900);
+    margin-bottom: 3px;
+    line-height: 1.35;
+  }
+
+  .an-cw-meta {
+    font-size: 11.5px;
+    color: var(--n-400);
+  }
+
+  .an-cw-bar-track {
+    height: 5px;
+    background: var(--n-100);
+    border-radius: 999px;
+    margin-top: 5px;
+    overflow: hidden;
+  }
+
+  .an-cw-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+  }
 
   @media(max-width:768px) {
-    .an-insight-strip { grid-template-columns: 1fr 1fr; }
+    .an-insight-strip {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 
   .ai-assistant-btn {
@@ -1572,33 +1774,422 @@ include __DIR__ . '/../includes/header.php';
     border: 1px solid var(--n-300) !important;
     box-shadow: var(--shadow-xs) !important;
   }
+
   .ai-assistant-btn:hover {
     background: var(--n-50) !important;
     border-color: var(--n-400) !important;
   }
+
   .ai-panel-header {
     background: var(--n-50) !important;
     color: var(--n-900) !important;
     border-bottom: 1px solid var(--n-200) !important;
   }
+
   .ai-panel-close {
     background: transparent !important;
     color: var(--n-500) !important;
   }
+
   .ai-panel-close:hover {
     background: var(--n-200) !important;
     color: var(--n-900) !important;
   }
+
   .chat-msg.user {
     background: var(--n-800) !important;
   }
+
   .ai-suggestion-head {
     color: var(--n-600) !important;
     background: var(--n-50) !important;
   }
+
   .ai-priority-high {
     background: var(--n-100) !important;
     color: var(--n-900) !important;
+  }
+
+  /* -- MODAL STYLES -- */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(2px);
+  }
+
+  .modal-content {
+    background: #fff;
+    width: 600px;
+    max-width: calc(100vw - 40px);
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: modalSlideUp 0.3s ease-out;
+  }
+
+  @keyframes modalSlideUp {
+    from {
+      transform: translateY(30px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .modal-header {
+    background: #f8fafc;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--n-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--n-900);
+  }
+
+  .modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
+  }
+
+  .modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--n-200);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--n-600);
+    margin-bottom: 6px;
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--n-300);
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-control:focus {
+    border-color: var(--n-600);
+  }
+
+  .btn-primary {
+    background: var(--n-900);
+    color: #fff;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-secondary {
+    background: #fff;
+    border: 1px solid var(--n-300);
+    color: var(--n-700);
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* -- DUAL PANEL MODAL -- */
+  .modal-content.split-view {
+    width: 1100px;
+    flex-direction: row;
+    align-items: stretch;
+    transition: width 0.3s ease;
+  }
+
+  .modal-form-side {
+    flex: 1;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--n-200);
+    height: 700px;
+    max-height: 85vh;
+  }
+
+  .modal-ai-side-panel {
+    flex: 0;
+    background: #f8fafc;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    height: 700px;
+    max-height: 85vh;
+  }
+
+  .split-view .modal-ai-side-panel {
+    display: flex;
+    flex: 0.95;
+    border-left: 1px solid var(--n-200);
+    animation: fadeIn 0.4s ease;
+  }
+
+  .ai-side-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--n-200);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    flex-shrink: 0;
+  }
+
+  .ai-side-header-title {
+    font-weight: 700;
+    color: var(--n-900);
+    font-size: 14.5px;
+  }
+
+  .ai-side-body {
+    padding: 24px;
+    flex: 1;
+    overflow-y: auto;
+    font-size: 13.8px;
+    line-height: 1.65;
+    color: var(--n-800);
+    background: #fff;
+    scrollbar-width: thin;
+    scrollbar-color: var(--n-200) transparent;
+  }
+
+  .ai-side-body::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .ai-side-body::-webkit-scrollbar-thumb {
+    background: var(--n-200);
+    border-radius: 4px;
+  }
+
+  /* AI Prose styles replication */
+  .ai-side-body p {
+    margin: 0 0 12px 0;
+  }
+
+  .ai-side-body strong {
+    color: var(--n-900);
+    font-weight: 700;
+  }
+
+  .ai-side-body ul {
+    margin: 6px 0 14px 0;
+    padding-left: 18px;
+    list-style: disc;
+  }
+
+  .ai-side-body ul li {
+    margin-bottom: 6px;
+    color: var(--n-700);
+  }
+
+  .ai-side-body ul li::marker {
+    color: var(--n-400);
+  }
+
+  @media (max-width: 1100px) {
+    .modal-content.split-view {
+      flex-direction: column;
+      width: 600px;
+      max-height: 90vh;
+    }
+
+    .modal-form-side,
+    .modal-ai-side-panel {
+      height: auto;
+      max-height: 45vh;
+    }
+
+    .modal-form-side {
+      border-right: none;
+      border-bottom: 1px solid var(--n-200);
+    }
+  }
+
+  /* -- TAG MULTI-SELECT STYLES -- */
+  /* -- TAG MULTI-SELECT STYLES (Refined) -- */
+  .tag-select-container {
+    border: 1px solid var(--n-300);
+    border-radius: 8px;
+    padding: 2px 4px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    min-height: 42px;
+    background: #fff;
+    cursor: text;
+    position: relative;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .tag-select-container:focus-within {
+    border-color: var(--n-800);
+    box-shadow: 0 0 0 2px rgba(31, 41, 55, 0.05);
+  }
+
+  .tag-pill {
+    background: #fff;
+    border: 1px solid var(--n-200);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--n-700);
+    font-weight: 500;
+    box-shadow: var(--shadow-xs);
+    user-select: none;
+    animation: tagIn 0.2s ease;
+  }
+
+  @keyframes tagIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .tag-pill i {
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--n-400);
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    margin-left: 2px;
+    line-height: 1;
+  }
+
+  .tag-pill i:hover {
+    color: #ef4444;
+    background: #fee2e2;
+  }
+
+  .tag-input-ghost {
+    border: none;
+    outline: none;
+    flex: 1;
+    min-width: 80px;
+    font-size: 13.5px;
+    padding: 6px 4px;
+    background: transparent;
+  }
+
+  .tag-select-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-right: 8px;
+    margin-left: auto;
+    color: var(--n-400);
+    font-size: 12px;
+  }
+
+  .tag-select-actions i {
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.1s;
+  }
+
+  .tag-select-actions i:hover {
+    background: var(--n-100);
+    color: var(--n-700);
+  }
+
+  .tag-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--n-200);
+    border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+    z-index: 2000;
+    max-height: 250px;
+    overflow-y: auto;
+    display: none;
+    padding: 4px;
+    min-height: 40px;
+  }
+
+  .tag-no-options {
+    padding: 12px;
+    font-size: 13px;
+    color: var(--n-400);
+    text-align: center;
+    font-style: italic;
+  }
+
+  .tag-option {
+    padding: 10px 12px;
+    font-size: 13.5px;
+    cursor: pointer;
+    color: var(--n-700);
+    border-radius: 6px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tag-option:hover {
+    background: var(--n-50);
+    color: var(--n-900);
+    padding-left: 16px;
+  }
+
+  .tag-option.selected {
+    display: none;
+  }
+
+  .tag-option.hidden {
+    display: none;
+  }
+
+  .form-group {
+    position: relative;
+    overflow: visible !important;
   }
 </style>
 
@@ -1705,679 +2296,736 @@ include __DIR__ . '/../includes/header.php';
 <!-- ━━━━━━━━━━━ PROGRESS VIEW ━━━━━━━━━━━ -->
 <div id="viewProgress">
 
-<!-- ━━━━━━━━━━━ SY CONTEXT BAR (Hidden for current year) ━━━━━━━━━━━ -->
-<?php if (!$isCurrentSY): ?>
-  <div class="sy-context-bar is-historical">
-    <svg viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-    <?php if ($hasData): ?>
-      Viewing data for <strong>SY <?= e($selectedSYLabel) ?></strong>
-    <?php else: ?>
-      <span>No assessment data found for <strong>SY <?= e($selectedSYLabel) ?></strong> — this year may not have any
-        cycles
-        yet.</span>
-    <?php endif; ?>
-    <a href="dashboard.php?sy_id=<?= $currentSYRow['sy_id'] ?? '' ?>"
-      style="margin-left:auto;font-weight:700;white-space:nowrap;color:inherit;text-decoration:none;opacity:.8;">→
-      Current
-      SY</a>
-  </div>
-<?php endif; ?>
-
-<?php if ($returned > 0): ?>
-  <div
-    style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:var(--amber-bg);border:1px solid #FDE68A;margin-bottom:14px;font-size:13px;">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-      style="width:14px;height:14px;flex-shrink:0;">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="8" x2="12" y2="12" />
-      <line x1="12" y1="16" x2="12.01" y2="16" />
-    </svg>
-    <span><strong><?= $returned ?> assessment<?= $returned !== 1 ? 's' : '' ?></strong> returned for revision — awaiting
-      feedback.</span>
-    <a href="assessment.php?status=returned"
-      style="margin-left:auto;font-weight:700;color:var(--amber);white-space:nowrap;">View →</a>
-  </div>
-<?php endif; ?>
-
-<!-- ━━━━━━━━━━━ KPI STATS ━━━━━━━━━━━ -->
-<div class="stats-v2">
-  <div class="stat-v2">
-    <div class="stat-v2-accent" style="background:#2563EB;"></div>
-    <div class="stat-v2-label">Assessment Cycles</div>
-    <div class="stat-v2-value" data-live="total-cycles"><?= number_format($totalCycles) ?></div>
-    <div class="stat-v2-meta"><span class="stat-v2-badge badge-blue"><?= $inProgress ?> in progress</span></div>
-    <div class="kpi-bar">
-      <div class="kpi-bar-fill" style="width:<?= min(100, $totalCycles * 10) ?>%;background:#2563EB;"></div>
-    </div>
-  </div>
-  <div class="stat-v2">
-    <div class="stat-v2-accent" style="background:#D97706;"></div>
-    <div class="stat-v2-label">Awaiting Validation</div>
-    <div class="stat-v2-value" style="color:<?= ($submitted - $validated) > 0 ? 'var(--amber)' : 'var(--n-900)' ?>;">
-      <?= $submitted - $validated ?>
-    </div>
-    <div class="stat-v2-meta"><span class="stat-v2-badge badge-amber"><?= $submitted ?> total submitted</span></div>
-    <div class="kpi-bar">
-      <div class="kpi-bar-fill" style="width:<?= $validationRate ?>%;background:#D97706;"></div>
-    </div>
-  </div>
-  <div class="stat-v2">
-    <div class="stat-v2-accent" style="background:#16A34A;"></div>
-    <div class="stat-v2-label">Validated</div>
-    <div class="stat-v2-value" data-live="validated"><?= number_format($validated) ?></div>
-    <div class="stat-v2-meta"><span class="stat-v2-badge badge-green"><?= $validationRate ?>% of submitted</span>
-    </div>
-    <div class="kpi-bar">
-      <div class="kpi-bar-fill" style="width:<?= $validationRate ?>%;background:#16A34A;"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ━━━━━━━━━━━ PIPELINE ━━━━━━━━━━━ -->
-<div class="card" style="margin-bottom:20px;">
-  <div class="card-head">
-    <span class="card-title">Assessment Pipeline</span>
-    <a href="assessment.php" class="btn btn-ghost btn-sm">View all →</a>
-  </div>
-  <div class="card-body" style="padding:8px 0;">
-    <div class="pipeline">
-      <div class="pipeline-step">
-        <div class="pipeline-val" style="color:var(--n-500);"><?= $inProgress ?></div>
-        <div class="pipeline-lbl">In Progress</div>
-      </div>
-      <div class="pipeline-step">
-        <div class="pipeline-val" style="color:var(--amber);"><?= $submitted - $validated ?></div>
-        <div class="pipeline-lbl">Pending Review</div>
-      </div>
-      <div class="pipeline-step">
-        <div class="pipeline-val" style="color:var(--n-800);"><?= $validated ?></div>
-        <div class="pipeline-lbl">Validated</div>
-      </div>
-      <?php if ($returned > 0): ?>
-        <div class="pipeline-step">
-          <div class="pipeline-val" style="color:var(--red);"><?= $returned ?></div>
-          <div class="pipeline-lbl">Returned</div>
-        </div>
+  <!-- ━━━━━━━━━━━ SY CONTEXT BAR (Hidden for current year) ━━━━━━━━━━━ -->
+  <?php if (!$isCurrentSY): ?>
+    <div class="sy-context-bar is-historical">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      <?php if ($hasData): ?>
+        Viewing data for <strong>SY <?= e($selectedSYLabel) ?></strong>
+      <?php else: ?>
+        <span>No assessment data found for <strong>SY <?= e($selectedSYLabel) ?></strong> — this year may not have any
+          cycles
+          yet.</span>
       <?php endif; ?>
+      <a href="dashboard.php?sy_id=<?= $currentSYRow['sy_id'] ?? '' ?>"
+        style="margin-left:auto;font-weight:700;white-space:nowrap;color:inherit;text-decoration:none;opacity:.8;">→
+        Current
+        SY</a>
+    </div>
+  <?php endif; ?>
+
+  <?php if ($returned > 0): ?>
+    <div
+      style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:var(--amber-bg);border:1px solid #FDE68A;margin-bottom:14px;font-size:13px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+      <span><strong><?= $returned ?> assessment<?= $returned !== 1 ? 's' : '' ?></strong> returned for revision — awaiting
+        feedback.</span>
+      <a href="assessment.php?status=returned"
+        style="margin-left:auto;font-weight:700;color:var(--amber);white-space:nowrap;">View →</a>
+    </div>
+  <?php endif; ?>
+
+  <!-- ━━━━━━━━━━━ KPI STATS ━━━━━━━━━━━ -->
+  <div class="stats-v2">
+    <div class="stat-v2">
+      <div class="stat-v2-accent" style="background:#2563EB;"></div>
+      <div class="stat-v2-label">Assessment Cycles</div>
+      <div class="stat-v2-value" data-live="total-cycles"><?= number_format($totalCycles) ?></div>
+      <div class="stat-v2-meta"><span class="stat-v2-badge badge-blue"><?= $inProgress ?> in progress</span></div>
+      <div class="kpi-bar">
+        <div class="kpi-bar-fill" style="width:<?= min(100, $totalCycles * 10) ?>%;background:#2563EB;"></div>
+      </div>
+    </div>
+    <div class="stat-v2">
+      <div class="stat-v2-accent" style="background:#D97706;"></div>
+      <div class="stat-v2-label">Awaiting Validation</div>
+      <div class="stat-v2-value" style="color:<?= ($submitted - $validated) > 0 ? 'var(--amber)' : 'var(--n-900)' ?>;">
+        <?= $submitted - $validated ?>
+      </div>
+      <div class="stat-v2-meta"><span class="stat-v2-badge badge-amber"><?= $submitted ?> total submitted</span></div>
+      <div class="kpi-bar">
+        <div class="kpi-bar-fill" style="width:<?= $validationRate ?>%;background:#D97706;"></div>
+      </div>
+    </div>
+    <div class="stat-v2">
+      <div class="stat-v2-accent" style="background:#16A34A;"></div>
+      <div class="stat-v2-label">Validated</div>
+      <div class="stat-v2-value" data-live="validated"><?= number_format($validated) ?></div>
+      <div class="stat-v2-meta"><span class="stat-v2-badge badge-green"><?= $validationRate ?>% of submitted</span>
+      </div>
+      <div class="kpi-bar">
+        <div class="kpi-bar-fill" style="width:<?= $validationRate ?>%;background:#16A34A;"></div>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ━━━━━━━━━━━ MAIN GRID ━━━━━━━━━━━ -->
-<div class="db-layout-main">
-
-  <!-- LEFT: Dimension Performance + Chart -->
-  <div class="col-stack">
-
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">Dimension Performance</span>
-        <span style="font-size:12px;color:var(--n-400);">SY <?= e($selectedSYLabel) ?> averages</span>
-      </div>
-      <div class="card-body">
-        <div class="dim-list">
-          <?php foreach ($dimScores as $d):
-            $pct = floatval($d['avg_pct']);
-            $matColor = $pct >= 76 ? '#16A34A' : ($pct >= 51 ? '#2563EB' : ($pct >= 26 ? '#D97706' : '#DC2626'));
-            ?>
-            <div class="dim-row">
-              <div class="dim-num" style="background:<?= e($d['color_hex']) ?>;"><?= $d['dimension_no'] ?></div>
-              <div class="dim-info">
-                <div class="dim-name"><?= e($d['dimension_name']) ?></div>
-                <div class="dim-prog">
-                  <div class="dim-prog-fill" style="width:<?= min(100, $pct) ?>%;background:<?= e($d['color_hex']) ?>;">
-                  </div>
-                </div>
-              </div>
-              <div class="dim-pct" style="color:<?= $pct > 0 ? $matColor : 'var(--n-400)' ?>;">
-                <?= $pct > 0 ? $pct . '%' : '—' ?>
-              </div>
-            </div>
-          <?php endforeach; ?>
-        </div>
-      </div>
+  <!-- ━━━━━━━━━━━ PIPELINE ━━━━━━━━━━━ -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-head">
+      <span class="card-title">Assessment Pipeline</span>
+      <a href="assessment.php" class="btn btn-ghost btn-sm">View all →</a>
     </div>
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">Dimension Score Comparison</span></div>
-      <div class="card-body" style="padding:16px 20px 18px;">
-        <div style="position:relative;height:190px;">
-          <canvas id="dimBarChart"></canvas>
+    <div class="card-body" style="padding:8px 0;">
+      <div class="pipeline">
+        <div class="pipeline-step">
+          <div class="pipeline-val" style="color:var(--n-500);"><?= $inProgress ?></div>
+          <div class="pipeline-lbl">In Progress</div>
         </div>
-      </div>
-    </div>
-
-    <!-- Recent Assessment Cycles -->
-    <div class="card" style="min-width:0; margin-top: 10px;">
-      <div class="card-head">
-        <span class="card-title">Recent Assessment Cycles</span>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <div class="search" style="min-width:160px;">
-            <span class="si"><svg viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg></span>
-            <input type="text" placeholder="Search”¦" oninput="filterTable(this.value,'tblRecent')">
-          </div>
-          <a href="assessment.php" class="btn btn-secondary btn-sm">View all</a>
+        <div class="pipeline-step">
+          <div class="pipeline-val" style="color:var(--amber);"><?= $submitted - $validated ?></div>
+          <div class="pipeline-lbl">Pending Review</div>
         </div>
-      </div>
-      <div class="tbl-wrap">
-        <table id="tblRecent" class="tbl-enhanced">
-          <thead>
-            <tr>
-              <th>School</th>
-              <th>Year</th>
-              <th>Status</th>
-              <th>Score</th>
-              <th>Maturity</th>
-              <th>Updated</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($recentCycles as $c): ?>
-              <tr>
-                <td>
-                  <div style="font-size:13px;font-weight:600;color:var(--n-900);"><?= e($c['school_name']) ?></div>
-                </td>
-                <td style="color:var(--n-500);font-size:12.5px;"><?= e($c['sy_label']) ?></td>
-                <td><span
-                    class="pill pill-<?= e($c['status']) ?>"><?= ucfirst(str_replace('_', ' ', $c['status'])) ?></span>
-                </td>
-                <td>
-                  <?php if ($c['overall_score']): ?>
-                    <div class="score-inline">
-                      <div class="score-inline-bar">
-                        <div class="score-inline-fill"
-                          style="width:<?= $c['overall_score'] ?>%;background:<?= sbmMaturityLevel(floatval($c['overall_score']))['color'] ?>;">
-                        </div>
-                      </div>
-                      <span
-                        style="font-family:var(--font-display);font-size:14px;font-weight:800;color:<?= sbmMaturityLevel(floatval($c['overall_score']))['color'] ?>;"><?= $c['overall_score'] ?>%</span>
-                    </div>
-                  <?php else: ?><span style="color:var(--n-300);">—</span><?php endif; ?>
-                </td>
-                <td><?php if ($c['maturity_level']): ?><span
-                      class="pill pill-<?= e($c['maturity_level']) ?>"><?= e($c['maturity_level']) ?></span><?php else: ?><span
-                      style="color:var(--n-300);">—</span><?php endif; ?></td>
-                <td style="font-size:12px;color:var(--n-400);"><?= timeAgo($c['created_at']) ?></td>
-                <td><a href="view_assessment.php?id=<?= $c['cycle_id'] ?>" class="btn btn-ghost btn-sm">View</a></td>
-              </tr>
-            <?php endforeach; ?>
-            <?php if (!$recentCycles): ?>
-              <tr>
-                <td colspan="7" style="text-align:center;color:var(--n-400);padding:40px;font-size:13px;">No assessment
-                  cycles found for SY <?= e($selectedSYLabel) ?>.</td>
-              </tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- RIGHT: Maturity + Quick Actions -->
-  <div class="col-stack">
-
-    <!-- Maturity Distribution -->
-    <div class="card">
-      <div class="card-head"><span class="card-title">Maturity Distribution</span></div>
-      <div class="card-body" style="padding:14px 16px;">
-        <?php
-        $matData = array_column($maturity, 'cnt', 'maturity_level');
-        $matTotal = array_sum(array_column($maturity, 'cnt'));
-        $matColors = ['Beginning' => '#DC2626', 'Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
-        ?>
-        <?php if ($matTotal > 0): ?>
-          <div style="position:relative;max-width:130px;margin:0 auto 12px;">
-            <canvas id="maturityChart" style="height:130px;"></canvas>
-            <div
-              style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
-              <div
-                style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--n-900);line-height:1;">
-                <?= $matTotal ?>
-              </div>
-              <div style="font-size:10px;color:var(--n-400);font-weight:600;">cycles</div>
-            </div>
+        <div class="pipeline-step">
+          <div class="pipeline-val" style="color:var(--n-800);"><?= $validated ?></div>
+          <div class="pipeline-lbl">Validated</div>
+        </div>
+        <?php if ($returned > 0): ?>
+          <div class="pipeline-step">
+            <div class="pipeline-val" style="color:var(--red);"><?= $returned ?></div>
+            <div class="pipeline-lbl">Returned</div>
           </div>
-          <div class="mat-legend">
-            <?php foreach (['Beginning', 'Developing', 'Maturing', 'Advanced'] as $lv):
-              $cnt = $matData[$lv] ?? 0;
-              $pct2 = $matTotal > 0 ? round(($cnt / $matTotal) * 100) : 0;
-              ?>
-              <div class="mat-legend-row">
-                <span class="mat-dot" style="background:<?= $matColors[$lv] ?>;"></span>
-                <span style="flex:1;"><?= $lv ?></span>
-                <span style="font-weight:700;font-size:13px;color:<?= $matColors[$lv] ?>;"><?= $cnt ?></span>
-                <span style="font-size:11px;color:var(--n-400);min-width:32px;text-align:right;"><?= $pct2 ?>%</span>
-              </div>
-            <?php endforeach; ?>
-          </div>
-        <?php else: ?>
-          <p style="text-align:center;color:var(--n-400);font-size:13px;padding:24px 0;">No validated assessments yet.
-          </p>
         <?php endif; ?>
       </div>
     </div>
+  </div>
 
+  <!-- ━━━━━━━━━━━ MAIN GRID ━━━━━━━━━━━ -->
+  <div class="db-layout-main">
 
-    <!-- Recent Activity -->
-    <div class="card">
-      <div class="card-head"><span class="card-title">Recent Activity</span></div>
-      <div class="card-body" style="padding:12px 16px;">
-        <div class="activity-feed">
-          <?php foreach ($recentActivity as $log):
-            $initials = strtoupper(substr($log['full_name'] ?? 'S', 0, 1));
-            $bgMap = ['A' => '#EDE9FE', 'B' => '#DBEAFE', 'C' => '#DCFCE7', 'D' => '#FEF3C7', 'E' => '#FEE2E2', 'F' => '#CCFBF1', 'G' => '#F0FDF4', 'H' => '#FEF9C3', 'I' => '#DBEAFE', 'J' => '#F3E8FF', 'K' => '#ECFDF5', 'L' => '#FFF7ED', 'M' => '#EFF6FF', 'N' => '#FDF4FF', 'O' => '#F0FDF4', 'P' => '#FFF1F2', 'Q' => '#F0FFFE', 'R' => '#FFF7ED', 'S' => '#F0FDF4', 'T' => '#EDE9FE', 'U' => '#DBEAFE', 'V' => '#DCFCE7', 'W' => '#FEF3C7', 'X' => '#FEE2E2', 'Y' => '#CCFBF1', 'Z' => '#EDE9FE'];
-            $txMap = ['A' => '#7C3AED', 'B' => '#2563EB', 'C' => '#16A34A', 'D' => '#D97706', 'E' => '#DC2626', 'F' => '#0D9488', 'G' => '#15803D', 'H' => '#CA8A04', 'I' => '#1D4ED8', 'J' => '#7E22CE', 'K' => '#059669', 'L' => '#C2410C', 'M' => '#1E40AF', 'N' => '#A21CAF', 'O' => '#166534', 'P' => '#BE123C', 'Q' => '#0F766E', 'R' => '#C2410C', 'S' => '#166534', 'T' => '#6D28D9', 'U' => '#1D4ED8', 'V' => '#15803D', 'W' => '#B45309', 'X' => '#B91C1C', 'Y' => '#0F766E', 'Z' => '#6D28D9'];
-            $bg = $bgMap[$initials] ?? '#DCFCE7';
-            $tx = $txMap[$initials] ?? '#16A34A';
-            ?>
-            <div class="activity-item">
-              <div class="activity-avatar" style="background:<?= $bg ?>;color:<?= $tx ?>;"> <?= $initials ?></div>
-              <div style="flex:1;min-width:0;">
-                <div class="activity-action"><strong><?= e($log['full_name'] ?? 'System') ?></strong> —
-                  <?= e(formatActivityAction($log['action'])) ?>
+    <!-- LEFT: Dimension Performance + Chart -->
+    <div class="col-stack">
+
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Dimension Performance</span>
+          <span style="font-size:12px;color:var(--n-400);">SY <?= e($selectedSYLabel) ?> averages</span>
+        </div>
+        <div class="card-body">
+          <div class="dim-list">
+            <?php foreach ($dimScores as $d):
+              $pct = floatval($d['avg_pct']);
+              $matColor = $pct >= 76 ? '#16A34A' : ($pct >= 51 ? '#2563EB' : ($pct >= 26 ? '#D97706' : '#DC2626'));
+              ?>
+              <div class="dim-row">
+                <div class="dim-num" style="background:<?= e($d['color_hex']) ?>;"><?= $d['dimension_no'] ?></div>
+                <div class="dim-info">
+                  <div class="dim-name"><?= e($d['dimension_name']) ?></div>
+                  <div class="dim-prog">
+                    <div class="dim-prog-fill" style="width:<?= min(100, $pct) ?>%;background:<?= e($d['color_hex']) ?>;">
+                    </div>
+                  </div>
                 </div>
-                <div class="activity-time"><?= timeAgo($log['created_at']) ?></div>
+                <div class="dim-pct" style="color:<?= $pct > 0 ? $matColor : 'var(--n-400)' ?>;">
+                  <?= $pct > 0 ? $pct . '%' : '—' ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="card-title">Dimension Score Comparison</span></div>
+        <div class="card-body" style="padding:16px 20px 18px;">
+          <div style="position:relative;height:190px;">
+            <canvas id="dimBarChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Assessment Cycles -->
+      <div class="card" style="min-width:0; margin-top: 10px;">
+        <div class="card-head">
+          <span class="card-title">Recent Assessment Cycles</span>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div class="search" style="min-width:160px;">
+              <span class="si"><svg viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg></span>
+              <input type="text" placeholder="Search..." oninput="filterTable(this.value,'tblRecent')">
+            </div>
+            <a href="assessment.php" class="btn btn-secondary btn-sm">View all</a>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table id="tblRecent" class="tbl-enhanced">
+            <thead>
+              <tr>
+                <th>School</th>
+                <th>Year</th>
+                <th>Status</th>
+                <th>Score</th>
+                <th>Maturity</th>
+                <th>Updated</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($recentCycles as $c): ?>
+                <tr>
+                  <td>
+                    <div style="font-size:13px;font-weight:600;color:var(--n-900);"><?= e($c['school_name']) ?></div>
+                  </td>
+                  <td style="color:var(--n-500);font-size:12.5px;"><?= e($c['sy_label']) ?></td>
+                  <td><span
+                      class="pill pill-<?= e($c['status']) ?>"><?= ucfirst(str_replace('_', ' ', $c['status'])) ?></span>
+                  </td>
+                  <td>
+                    <?php if ($c['overall_score']): ?>
+                      <div class="score-inline">
+                        <div class="score-inline-bar">
+                          <div class="score-inline-fill"
+                            style="width:<?= $c['overall_score'] ?>%;background:<?= sbmMaturityLevel(floatval($c['overall_score']))['color'] ?>;">
+                          </div>
+                        </div>
+                        <span
+                          style="font-family:var(--font-display);font-size:14px;font-weight:800;color:<?= sbmMaturityLevel(floatval($c['overall_score']))['color'] ?>;"><?= $c['overall_score'] ?>%</span>
+                      </div>
+                    <?php else: ?><span style="color:var(--n-300);">—</span><?php endif; ?>
+                  </td>
+                  <td><?php if ($c['maturity_level']): ?><span
+                        class="pill pill-<?= e($c['maturity_level']) ?>"><?= e($c['maturity_level']) ?></span><?php else: ?><span
+                        style="color:var(--n-300);">—</span><?php endif; ?></td>
+                  <td style="font-size:12px;color:var(--n-400);"><?= timeAgo($c['created_at']) ?></td>
+                  <td><a href="view_assessment.php?id=<?= $c['cycle_id'] ?>" class="btn btn-ghost btn-sm">View</a></td>
+                </tr>
+              <?php endforeach; ?>
+              <?php if (!$recentCycles): ?>
+                <tr>
+                  <td colspan="7" style="text-align:center;color:var(--n-400);padding:40px;font-size:13px;">No assessment
+                    cycles found for SY <?= e($selectedSYLabel) ?>.</td>
+                </tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Maturity + Quick Actions -->
+    <div class="col-stack">
+
+      <!-- Maturity Distribution -->
+      <div class="card">
+        <div class="card-head"><span class="card-title">Maturity Distribution</span></div>
+        <div class="card-body" style="padding:14px 16px;">
+          <?php
+          $matData = array_column($maturity, 'cnt', 'maturity_level');
+          $matTotal = array_sum(array_column($maturity, 'cnt'));
+          $matColors = ['Beginning' => '#DC2626', 'Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
+          ?>
+          <?php if ($matTotal > 0): ?>
+            <div style="position:relative;max-width:130px;margin:0 auto 12px;">
+              <canvas id="maturityChart" style="height:130px;"></canvas>
+              <div
+                style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+                <div
+                  style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--n-900);line-height:1;">
+                  <?= $matTotal ?>
+                </div>
+                <div style="font-size:10px;color:var(--n-400);font-weight:600;">cycles</div>
               </div>
             </div>
-          <?php endforeach; ?>
-          <?php if (!$recentActivity): ?>
-            <p style="text-align:center;color:var(--n-400);font-size:13px;padding:24px 0;">No activity yet.</p>
+            <div class="mat-legend">
+              <?php foreach (['Beginning', 'Developing', 'Maturing', 'Advanced'] as $lv):
+                $cnt = $matData[$lv] ?? 0;
+                $pct2 = $matTotal > 0 ? round(($cnt / $matTotal) * 100) : 0;
+                ?>
+                <div class="mat-legend-row">
+                  <span class="mat-dot" style="background:<?= $matColors[$lv] ?>;"></span>
+                  <span style="flex:1;"><?= $lv ?></span>
+                  <span style="font-weight:700;font-size:13px;color:<?= $matColors[$lv] ?>;"><?= $cnt ?></span>
+                  <span style="font-size:11px;color:var(--n-400);min-width:32px;text-align:right;"><?= $pct2 ?>%</span>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php else: ?>
+            <p style="text-align:center;color:var(--n-400);font-size:13px;padding:24px 0;">No validated assessments yet.
+            </p>
           <?php endif; ?>
         </div>
       </div>
-    </div>
 
+
+      <!-- Recent Activity -->
+      <div class="card">
+        <div class="card-head"><span class="card-title">Recent Activity</span></div>
+        <div class="card-body" style="padding:12px 16px;">
+          <div class="activity-feed">
+            <?php foreach ($recentActivity as $log):
+              $initials = strtoupper(substr($log['full_name'] ?? 'S', 0, 1));
+              $bgMap = ['A' => '#EDE9FE', 'B' => '#DBEAFE', 'C' => '#DCFCE7', 'D' => '#FEF3C7', 'E' => '#FEE2E2', 'F' => '#CCFBF1', 'G' => '#F0FDF4', 'H' => '#FEF9C3', 'I' => '#DBEAFE', 'J' => '#F3E8FF', 'K' => '#ECFDF5', 'L' => '#FFF7ED', 'M' => '#EFF6FF', 'N' => '#FDF4FF', 'O' => '#F0FDF4', 'P' => '#FFF1F2', 'Q' => '#F0FFFE', 'R' => '#FFF7ED', 'S' => '#F0FDF4', 'T' => '#EDE9FE', 'U' => '#DBEAFE', 'V' => '#DCFCE7', 'W' => '#FEF3C7', 'X' => '#FEE2E2', 'Y' => '#CCFBF1', 'Z' => '#EDE9FE'];
+              $txMap = ['A' => '#7C3AED', 'B' => '#2563EB', 'C' => '#16A34A', 'D' => '#D97706', 'E' => '#DC2626', 'F' => '#0D9488', 'G' => '#15803D', 'H' => '#CA8A04', 'I' => '#1D4ED8', 'J' => '#7E22CE', 'K' => '#059669', 'L' => '#C2410C', 'M' => '#1E40AF', 'N' => '#A21CAF', 'O' => '#166534', 'P' => '#BE123C', 'Q' => '#0F766E', 'R' => '#C2410C', 'S' => '#166534', 'T' => '#6D28D9', 'U' => '#1D4ED8', 'V' => '#15803D', 'W' => '#B45309', 'X' => '#B91C1C', 'Y' => '#0F766E', 'Z' => '#6D28D9'];
+              $bg = $bgMap[$initials] ?? '#DCFCE7';
+              $tx = $txMap[$initials] ?? '#16A34A';
+              ?>
+              <div class="activity-item">
+                <div class="activity-avatar" style="background:<?= $bg ?>;color:<?= $tx ?>;"> <?= $initials ?></div>
+                <div style="flex:1;min-width:0;">
+                  <div class="activity-action"><strong><?= e($log['full_name'] ?? 'System') ?></strong> —
+                    <?= e(formatActivityAction($log['action'])) ?>
+                  </div>
+                  <div class="activity-time"><?= timeAgo($log['created_at']) ?></div>
+                </div>
+              </div>
+            <?php endforeach; ?>
+            <?php if (!$recentActivity): ?>
+              <p style="text-align:center;color:var(--n-400);font-size:13px;padding:24px 0;">No activity yet.</p>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
-</div>
 </div><!-- /viewProgress -->
 
 <!-- ━━━━━━━━━━━ ANALYTICS VIEW ━━━━━━━━━━━ -->
 <div id="viewAnalytics" style="display:none;">
 
-<!-- Filter bar -->
-<div class="an-filter-bar">
-  <label>Primary SY:</label>
-  <span style="font-size:13px;font-weight:700;color:var(--n-900);">
-    <?= e($selectedSYLabel) ?>
-  </span>
-  <div style="width:1px;height:18px;background:var(--n-200);margin:0 4px;"></div>
-  <label>Compare with:</label>
-  <div class="p-select" id="anCompareSelect" style="width:160px;">
-    <input type="hidden" name="compare_sy_id" value="<?= $compareSyId ?>">
-    <div class="p-select-trigger" onclick="togglePSelect(event, 'anCompareSelect')" style="padding: 5px 12px; font-size: 12.5px; min-height: 32px;">
-      <span class="p-select-val">
-        <?= $compareSyId ? 'SY ' . e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') : 'None' ?>
-      </span>
-    </div>
-    <div class="p-select-menu">
-      <div class="p-select-item <?= !$compareSyId ? 'selected' : '' ?>" 
-           onclick="location.href='dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=0&view=analytics'">
-        None
+  <!-- Filter bar -->
+  <div class="an-filter-bar">
+    <label>Primary SY:</label>
+    <span style="font-size:13px;font-weight:700;color:var(--n-900);">
+      <?= e($selectedSYLabel) ?>
+    </span>
+    <div style="width:1px;height:18px;background:var(--n-200);margin:0 4px;"></div>
+    <label>Compare with:</label>
+    <div class="p-select" id="anCompareSelect" style="width:160px;">
+      <input type="hidden" name="compare_sy_id" value="<?= $compareSyId ?>">
+      <div class="p-select-trigger" onclick="togglePSelect(event, 'anCompareSelect')"
+        style="padding: 5px 12px; font-size: 12.5px; min-height: 32px;">
+        <span class="p-select-val">
+          <?= $compareSyId ? 'SY ' . e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') : 'None' ?>
+        </span>
       </div>
-      <?php foreach ($allSYs as $sy):
-        if ($sy['sy_id'] == $selectedSyId) continue; ?>
-        <div class="p-select-item <?= $sy['sy_id'] == $compareSyId ? 'selected' : '' ?>" 
-             onclick="location.href='dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=<?= $sy['sy_id'] ?>&view=analytics'">
-          SY <?= e($sy['label']) ?>
-          <?php if ($sy['sy_id'] == $compareSyId): ?>
-            <span class="p-select-check"></span>
-          <?php endif; ?>
+      <div class="p-select-menu">
+        <div class="p-select-item <?= !$compareSyId ? 'selected' : '' ?>"
+          onclick="location.href='dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=0&view=analytics'">
+          None
         </div>
-      <?php endforeach; ?>
+        <?php foreach ($allSYs as $sy):
+          if ($sy['sy_id'] == $selectedSyId)
+            continue; ?>
+          <div class="p-select-item <?= $sy['sy_id'] == $compareSyId ? 'selected' : '' ?>"
+            onclick="location.href='dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=<?= $sy['sy_id'] ?>&view=analytics'">
+            SY <?= e($sy['label']) ?>
+            <?php if ($sy['sy_id'] == $compareSyId): ?>
+              <span class="p-select-check"></span>
+            <?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <?php if ($compareSyId): ?>
+      <span
+        style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--blue-bg);color:var(--blue);">
+        Comparing 2 cycles
+      </span>
+      <a href="dashboard.php?sy_id=<?= $selectedSyId ?>&view=analytics" class="btn btn-ghost btn-sm">✕ Clear</a>
+    <?php endif; ?>
+
+    <div style="margin-left:auto; display:flex; gap:8px;">
+      <button class="ai-assistant-btn" onclick="manuallyAddImprovementPlan()">
+        <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+        Manually Add Improvement Plan
+      </button>
+      <button class="ai-assistant-btn" onclick="openAIAssistant()">
+        <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+        </svg>
+        AI Suggestions
+      </button>
     </div>
   </div>
-  <?php if ($compareSyId): ?>
-    <span style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--blue-bg);color:var(--blue);">
-      Comparing 2 cycles
-    </span>
-    <a href="dashboard.php?sy_id=<?= $selectedSyId ?>&view=analytics" class="btn btn-ghost btn-sm">✕ Clear</a>
+
+  <!-- KPI insight strip -->
+  <div class="an-insight-strip">
+    <div class="an-insight-card">
+      <div class="an-insight-val"
+        style="color:<?= $anAvgOverall !== null ? ($anAvgOverall >= 76 ? '#16A34A' : ($anAvgOverall >= 51 ? '#2563EB' : ($anAvgOverall >= 26 ? '#D97706' : '#DC2626'))) : 'var(--n-400)' ?>;">
+        <?= $anAvgOverall !== null ? $anAvgOverall . '%' : '—' ?>
+      </div>
+      <div class="an-insight-lbl">Overall SBM Score</div>
+      <?php if ($scoreDelta !== null): ?>
+        <div class="an-insight-delta <?= $scoreDelta > 0 ? 'up' : ($scoreDelta < 0 ? 'down' : 'flat') ?>">
+          <?= $scoreDelta > 0 ? '▲ +' : '▼ ' ?>   <?= abs($scoreDelta) ?>% vs prev cycle
+        </div>
+      <?php endif; ?>
+    </div>
+
+    <div class="an-insight-card">
+      <?php
+      $curMaturity = $currCycle['maturity_level'] ?? null;
+      $anMatColors = ['Beginning' => '#DC2626', 'Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
+      ?>
+      <div class="an-insight-val"
+        style="font-size:18px;color:<?= $anMatColors[$curMaturity ?? ''] ?? 'var(--n-400)' ?>;">
+        <?= $curMaturity ?? '—' ?>
+      </div>
+      <div class="an-insight-lbl">Maturity Level</div>
+      <?php if ($prevCycle && $prevCycle['maturity_level'] && $curMaturity): ?>
+        <div class="an-insight-delta flat">Was: <?= e($prevCycle['maturity_level']) ?></div>
+      <?php endif; ?>
+    </div>
+
+    <div class="an-insight-card">
+      <?php if ($anTopDim): ?>
+        <div class="an-insight-val" style="font-size:20px;color:<?= e($anTopDim['color_hex']) ?>;">
+          D<?= $anTopDim['dimension_no'] ?>
+        </div>
+        <div class="an-insight-lbl">Strongest — <?= e($anTopDim['dimension_name']) ?></div>
+        <div class="an-insight-delta up"><?= $anTopDim['avg_pct'] ?>% average</div>
+      <?php else: ?>
+        <div class="an-insight-val">—</div>
+        <div class="an-insight-lbl">Strongest Dimension</div>
+      <?php endif; ?>
+    </div>
+
+    <div class="an-insight-card">
+      <?php if ($anWeakDim): ?>
+        <div class="an-insight-val" style="font-size:20px;color:var(--red);">D<?= $anWeakDim['dimension_no'] ?></div>
+        <div class="an-insight-lbl">Needs Work — <?= e($anWeakDim['dimension_name']) ?></div>
+        <div class="an-insight-delta down"><?= $anWeakDim['avg_pct'] ?>% average</div>
+      <?php else: ?>
+        <div class="an-insight-val">—</div>
+        <div class="an-insight-lbl">Weakest Dimension</div>
+      <?php endif; ?>
+    </div>
+
+    <div class="an-insight-card">
+      <div class="an-insight-val" style="color:<?= count($consistentlyWeak) > 0 ? 'var(--red)' : 'var(--n-800)' ?>;">
+        <?= count($consistentlyWeak) ?>
+      </div>
+      <div class="an-insight-lbl">Indicators Below 2.5 Avg</div>
+      <?php if (count($consistentlyWeak) > 0): ?>
+        <div class="an-insight-delta down">Needs targeted intervention</div>
+      <?php else: ?>
+        <div class="an-insight-delta up">All indicators &ge; 2.5</div>
+      <?php endif; ?>
+    </div>
+
+    <div class="an-insight-card">
+      <div class="an-insight-val"><?= count($cycleHistory) ?></div>
+      <div class="an-insight-lbl">Cycles Assessed</div>
+      <?php if (count($cycleHistory) > 0): ?>
+        <div class="an-insight-delta flat">Since SY <?= e($cycleHistory[0]['sy_label']) ?></div>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="grid2" style="margin-bottom:18px;">
+    <div class="chart-card">
+      <div class="chart-card-head">
+        <span class="chart-card-title">Dimension Performance Radar</span>
+        <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
+          <div style="display:flex;align-items:center;gap:10px;font-size:11.5px;">
+            <span style="display:flex;align-items:center;gap:4px;"><span
+                style="width:10px;height:10px;border-radius:50%;background:#16A34A;display:inline-block;"></span>SY
+              <?= e($selectedSYLabel) ?></span>
+            <span style="display:flex;align-items:center;gap:4px;"><span
+                style="width:10px;height:10px;border-radius:50%;background:#2563EB;display:inline-block;"></span>SY
+              <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></span>
+          </div>
+        <?php endif; ?>
+      </div>
+      <div class="chart-card-body" style="display:flex;justify-content:center;align-items:center;min-height:300px;">
+        <canvas id="anRadarChart" style="max-height:280px;"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-head">
+        <span class="chart-card-title">Overall Score Trend</span>
+        <span style="font-size:12px;color:var(--n-400);"><?= count($cycleHistory) ?> cycle(s)</span>
+      </div>
+      <div class="chart-card-body" style="min-height:300px;display:flex;align-items:center;justify-content:center;">
+        <?php if (count($cycleHistory) >= 1): ?>
+          <canvas id="anTrendLineChart"></canvas>
+        <?php else: ?>
+          <p style="color:var(--n-400);font-size:13px;text-align:center;">Not enough cycles to show a trend.</p>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dimension trend over time -->
+  <?php if (count($trendSYLabels) >= 2): ?>
+    <div class="chart-card" style="margin-bottom:18px;">
+      <div class="chart-card-head">
+        <span class="chart-card-title">Dimension Trend — All Cycles</span>
+        <span style="font-size:12px;color:var(--n-400);">Track how each dimension has moved over time</span>
+      </div>
+      <div class="chart-card-body"><canvas id="anDimTrendChart" height="90"></canvas></div>
+    </div>
   <?php endif; ?>
 
-  <div style="margin-left:auto;">
-    <button class="ai-assistant-btn" onclick="openAIAssistant()">
-      <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-      </svg>
-      AI Suggestions
-    </button>
-  </div>
-</div>
-
-<!-- KPI insight strip -->
-<div class="an-insight-strip">
-  <div class="an-insight-card">
-    <div class="an-insight-val"
-      style="color:<?= $anAvgOverall !== null ? ($anAvgOverall >= 76 ? '#16A34A' : ($anAvgOverall >= 51 ? '#2563EB' : ($anAvgOverall >= 26 ? '#D97706' : '#DC2626'))) : 'var(--n-400)' ?>;">
-      <?= $anAvgOverall !== null ? $anAvgOverall . '%' : '—' ?>
-    </div>
-    <div class="an-insight-lbl">Overall SBM Score</div>
-    <?php if ($scoreDelta !== null): ?>
-      <div class="an-insight-delta <?= $scoreDelta > 0 ? 'up' : ($scoreDelta < 0 ? 'down' : 'flat') ?>">
-        <?= $scoreDelta > 0 ? '▲ +' : '▼ ' ?><?= abs($scoreDelta) ?>% vs prev cycle
-      </div>
-    <?php endif; ?>
-  </div>
-
-  <div class="an-insight-card">
-    <?php
-    $curMaturity = $currCycle['maturity_level'] ?? null;
-    $anMatColors = ['Beginning' => '#DC2626', 'Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
-    ?>
-    <div class="an-insight-val" style="font-size:18px;color:<?= $anMatColors[$curMaturity ?? ''] ?? 'var(--n-400)' ?>;">
-      <?= $curMaturity ?? '—' ?>
-    </div>
-    <div class="an-insight-lbl">Maturity Level</div>
-    <?php if ($prevCycle && $prevCycle['maturity_level'] && $curMaturity): ?>
-      <div class="an-insight-delta flat">Was: <?= e($prevCycle['maturity_level']) ?></div>
-    <?php endif; ?>
-  </div>
-
-  <div class="an-insight-card">
-    <?php if ($anTopDim): ?>
-      <div class="an-insight-val" style="font-size:20px;color:<?= e($anTopDim['color_hex']) ?>;">
-        D<?= $anTopDim['dimension_no'] ?>
-      </div>
-      <div class="an-insight-lbl">Strongest — <?= e(substr($anTopDim['dimension_name'], 0, 28)) ?></div>
-      <div class="an-insight-delta up"><?= $anTopDim['avg_pct'] ?>% average</div>
-    <?php else: ?>
-      <div class="an-insight-val">—</div>
-      <div class="an-insight-lbl">Strongest Dimension</div>
-    <?php endif; ?>
-  </div>
-
-  <div class="an-insight-card">
-    <?php if ($anWeakDim): ?>
-      <div class="an-insight-val" style="font-size:20px;color:var(--red);">D<?= $anWeakDim['dimension_no'] ?></div>
-      <div class="an-insight-lbl">Needs Work — <?= e(substr($anWeakDim['dimension_name'], 0, 28)) ?></div>
-      <div class="an-insight-delta down"><?= $anWeakDim['avg_pct'] ?>% average</div>
-    <?php else: ?>
-      <div class="an-insight-val">—</div>
-      <div class="an-insight-lbl">Weakest Dimension</div>
-    <?php endif; ?>
-  </div>
-
-  <div class="an-insight-card">
-    <div class="an-insight-val" style="color:<?= count($consistentlyWeak) > 0 ? 'var(--red)' : 'var(--n-800)' ?>;">
-      <?= count($consistentlyWeak) ?>
-    </div>
-    <div class="an-insight-lbl">Indicators Below 2.5 Avg</div>
-    <?php if (count($consistentlyWeak) > 0): ?>
-      <div class="an-insight-delta down">Needs targeted intervention</div>
-    <?php else: ?>
-      <div class="an-insight-delta up">All indicators â‰¥ 2.5</div>
-    <?php endif; ?>
-  </div>
-
-  <div class="an-insight-card">
-    <div class="an-insight-val"><?= count($cycleHistory) ?></div>
-    <div class="an-insight-lbl">Cycles Assessed</div>
-    <?php if (count($cycleHistory) > 0): ?>
-      <div class="an-insight-delta flat">Since SY <?= e($cycleHistory[0]['sy_label']) ?></div>
-    <?php endif; ?>
-  </div>
-</div>
-
-<!-- Charts row -->
-<div class="grid2" style="margin-bottom:18px;">
-  <div class="chart-card">
-    <div class="chart-card-head">
-      <span class="chart-card-title">Dimension Performance Radar</span>
-      <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
-        <div style="display:flex;align-items:center;gap:10px;font-size:11.5px;">
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#16A34A;display:inline-block;"></span>SY <?= e($selectedSYLabel) ?></span>
-          <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#2563EB;display:inline-block;"></span>SY <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></span>
-        </div>
-      <?php endif; ?>
-    </div>
-    <div class="chart-card-body" style="display:flex;justify-content:center;align-items:center;min-height:300px;">
-      <canvas id="anRadarChart" style="max-height:280px;"></canvas>
-    </div>
-  </div>
-
-  <div class="chart-card">
-    <div class="chart-card-head">
-      <span class="chart-card-title">Overall Score Trend</span>
-      <span style="font-size:12px;color:var(--n-400);"><?= count($cycleHistory) ?> cycle(s)</span>
-    </div>
-    <div class="chart-card-body" style="min-height:300px;display:flex;align-items:center;justify-content:center;">
-      <?php if (count($cycleHistory) >= 1): ?>
-        <canvas id="anTrendLineChart"></canvas>
-      <?php else: ?>
-        <p style="color:var(--n-400);font-size:13px;text-align:center;">Not enough cycles to show a trend.</p>
-      <?php endif; ?>
-    </div>
-  </div>
-</div>
-
-<!-- Dimension trend over time -->
-<?php if (count($trendSYLabels) >= 2): ?>
+  <!-- Dimension Score Bar -->
   <div class="chart-card" style="margin-bottom:18px;">
     <div class="chart-card-head">
-      <span class="chart-card-title">Dimension Trend — All Cycles</span>
-      <span style="font-size:12px;color:var(--n-400);">Track how each dimension has moved over time</span>
-    </div>
-    <div class="chart-card-body"><canvas id="anDimTrendChart" height="90"></canvas></div>
-  </div>
-<?php endif; ?>
-
-<!-- Dimension Score Bar -->
-<div class="chart-card" style="margin-bottom:18px;">
-  <div class="chart-card-head">
-    <span class="chart-card-title">Dimension Score Comparison</span>
-    <div class="chart-legend" style="margin-bottom:0;">
-      <?php foreach ($anDimAvgs as $d): ?>
-        <div class="chart-legend-item">
-          <div class="chart-legend-swatch" style="background:<?= e($d['color_hex']) ?>;"></div>
-          D<?= $d['dimension_no'] ?>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  </div>
-  <div class="chart-card-body"><canvas id="anDimBarChart" height="80"></canvas></div>
-</div>
-
-<!-- Tabbed bottom section -->
-<div class="an-tab-btns">
-  <button class="an-tab-btn active" onclick="anSwitchTab(this,'anTabHistory')">Cycle History</button>
-  <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabWeak')">Weak This Cycle</button>
-  <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabConsistent')">Consistently Weak</button>
-  <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
-    <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabCompare')">Side-by-Side</button>
-  <?php endif; ?>
-</div>
-
-<!-- TAB: Cycle History -->
-<div class="an-tab-panel active" id="anTabHistory">
-  <div class="card" style="margin-bottom:18px;">
-    <div class="card-head">
-      <span class="card-title">Assessment History</span>
-      <span style="font-size:12px;color:var(--n-400);"><?= count($cycleHistory) ?> cycle(s)</span>
-    </div>
-    <?php if ($cycleHistory): ?>
-      <div class="tbl-wrap">
-        <table class="tbl-enhanced">
-          <thead><tr><th>#</th><th>School Year</th><th>Overall Score</th><th>Maturity</th><th>vs Prev</th><th>Status</th><th>Validated</th></tr></thead>
-          <tbody>
-            <?php
-            $prevScore = null;
-            foreach ($cycleHistory as $i => $sc):
-              $mat = sbmMaturityLevel(floatval($sc['overall_score']));
-              $delta = $prevScore !== null ? round(floatval($sc['overall_score']) - $prevScore, 2) : null;
-              $prevScore = floatval($sc['overall_score']);
-              ?>
-              <tr>
-                <td style="width:32px;"><span style="width:22px;height:22px;border-radius:6px;background:var(--n-100);color:var(--n-600);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;"><?= $i + 1 ?></span></td>
-                <td><strong style="font-size:13px;">SY <?= e($sc['sy_label']) ?></strong></td>
-                <td>
-                  <div class="score-bar-cell">
-                    <div class="score-bar-track"><div class="score-bar-fill" style="width:<?= $sc['overall_score'] ?>%;background:<?= $mat['color'] ?>;"></div></div>
-                    <span class="score-val" style="color:<?= $mat['color'] ?>;"><?= $sc['overall_score'] ?>%</span>
-                  </div>
-                </td>
-                <td><span class="pill pill-<?= e($sc['maturity_level']) ?>"><?= e($sc['maturity_level']) ?></span></td>
-                <td>
-                  <?php if ($delta !== null): ?>
-                    <span style="font-size:12.5px;font-weight:700;color:<?= $delta > 0 ? '#16A34A' : ($delta < 0 ? '#DC2626' : '#9CA3AF') ?>;">
-                      <?= $delta > 0 ? '▲ +' : '▼ ' ?><?= abs($delta) ?>%
-                    </span>
-                  <?php else: ?><span style="color:var(--n-400);font-size:12px;">First</span><?php endif; ?>
-                </td>
-                <td><span class="pill pill-<?= e($sc['status']) ?>" style="font-size:10px;"><?= ucfirst($sc['status']) ?></span></td>
-                <td style="font-size:12px;color:var(--n-400);"><?= $sc['validated_at'] ? date('M d, Y', strtotime($sc['validated_at'])) : '—' ?></td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-    <?php else: ?>
-      <div class="empty-state">
-        <div class="empty-title">No cycle history yet</div>
-      </div>
-    <?php endif; ?>
-  </div>
-</div>
-
-<!-- TAB: Weak This Cycle -->
-<div class="an-tab-panel" id="anTabWeak">
-  <div class="card" style="margin-bottom:18px;">
-    <div class="card-head">
-      <span class="card-title">Indicators Needing Attention — Current SY</span>
-      <span style="font-size:12px;color:var(--n-400);">Lowest average ratings this cycle</span>
-    </div>
-    <?php if ($weakIndicatorRows): ?>
-      <div class="card-body" style="padding:0;">
-        <?php foreach ($weakIndicatorRows as $ind):
-          $avgR = floatval($ind['avg_rating']);
-          $pct = ($avgR / 4) * 100;
-          $color = $avgR >= 3 ? 'var(--n-800)' : ($avgR >= 2 ? 'var(--amber)' : 'var(--red)');
-          ?>
-          <div style="padding:12px 20px;border-bottom:1px solid var(--n-100);">
-            <div class="flex-cb" style="margin-bottom:4px;">
-              <div>
-                <span style="font-size:10.5px;font-weight:700;color:var(--n-400);text-transform:uppercase;letter-spacing:.05em;"><?= e($ind['indicator_code']) ?></span>
-                <span style="font-size:10.5px;color:var(--n-400);margin-left:6px;padding:1px 7px;background:var(--n-100);border-radius:4px;"><?= e($ind['dimension_name']) ?></span>
-              </div>
-              <span style="font-size:13px;font-weight:700;color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</span>
-            </div>
-            <div style="font-size:12.5px;color:var(--n-700);margin-bottom:5px;line-height:1.45;">
-              <?= e(substr($ind['indicator_text'], 0, 100)) ?>”¦
-            </div>
-            <div class="an-weak-prog"><div class="an-weak-fill" style="width:<?= $pct ?>%;background:<?= $color ?>;"></div></div>
-            <div style="font-size:11px;color:var(--n-400);margin-top:4px;"><?= $ind['response_count'] ?> response(s)</div>
+      <span class="chart-card-title">Dimension Score Comparison</span>
+      <div class="chart-legend" style="margin-bottom:0;">
+        <?php foreach ($anDimAvgs as $d): ?>
+          <div class="chart-legend-item">
+            <div class="chart-legend-swatch" style="background:<?= e($d['color_hex']) ?>;"></div>
+            D<?= $d['dimension_no'] ?>
           </div>
         <?php endforeach; ?>
       </div>
-    <?php else: ?>
-      <div class="empty-state">
-        <div class="empty-title">No indicator data yet</div>
-      </div>
-    <?php endif; ?>
-  </div>
-</div>
-
-<!-- TAB: Consistently Weak -->
-<div class="an-tab-panel" id="anTabConsistent">
-  <div class="card" style="margin-bottom:18px;">
-    <div class="card-head">
-      <span class="card-title">Consistently Weak Indicators</span>
-      <span style="font-size:12px;color:var(--n-400);">Average â‰¤ 2.5 across all assessed cycles</span>
     </div>
-    <?php if ($consistentlyWeak): ?>
-      <div class="card-body" style="padding:0;">
-        <?php foreach ($consistentlyWeak as $cw):
-          $avgR = floatval($cw['avg_rating']);
-          $color = $avgR >= 2 ? 'var(--amber)' : 'var(--red)';
-          $pct = ($avgR / 4) * 100;
-          ?>
-          <div class="an-cw-row">
-            <div class="an-cw-badge" style="background:<?= $avgR < 2 ? 'var(--red-bg)' : 'var(--amber-bg)' ?>;color:<?= $color ?>;">
-              <?= e($cw['indicator_code']) ?>
-            </div>
-            <div class="an-cw-info">
-              <div class="an-cw-title"><?= e(substr($cw['indicator_text'], 0, 95)) ?>”¦</div>
-              <div class="an-cw-meta">
-                <?= e($cw['dimension_name']) ?> ·
-                Avg: <strong style="color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</strong> ·
-                Worst: <?= number_format($cw['worst_cycle_avg'], 2) ?> ·
-                Best: <?= number_format($cw['best_cycle_avg'], 2) ?>
-              </div>
-              <div class="an-cw-bar-track"><div class="an-cw-bar-fill" style="width:<?= $pct ?>%;background:<?= $color ?>;"></div></div>
-            </div>
-            <div style="font-size:11px;font-weight:700;color:var(--red);text-align:center;min-width:48px;">Priority<br>Action</div>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    <?php else: ?>
-      <div class="empty-state">
-        <div class="empty-title">No consistently weak indicators</div>
-        <div class="empty-sub">All indicators are averaging above 2.5 across cycles.</div>
-      </div>
+    <div class="chart-card-body"><canvas id="anDimBarChart" height="80"></canvas></div>
+  </div>
+
+  <!-- Tabbed bottom section -->
+  <div class="an-tab-btns">
+    <button class="an-tab-btn active" onclick="anSwitchTab(this,'anTabHistory')">Cycle History</button>
+    <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabWeak')">Weak This Cycle</button>
+    <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabConsistent')">Consistently Weak</button>
+    <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
+      <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabCompare')">Side-by-Side</button>
     <?php endif; ?>
   </div>
-</div>
 
-<!-- TAB: Side-by-Side Comparison -->
-<?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
-  <div class="an-tab-panel" id="anTabCompare">
+  <!-- TAB: Cycle History -->
+  <div class="an-tab-panel active" id="anTabHistory">
     <div class="card" style="margin-bottom:18px;">
       <div class="card-head">
-        <span class="card-title">Side-by-Side Dimension Comparison</span>
-        <span style="font-size:12px;color:var(--n-400);">SY <?= e($selectedSYLabel) ?> vs SY <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></span>
+        <span class="card-title">Assessment History</span>
+        <span style="font-size:12px;color:var(--n-400);"><?= count($cycleHistory) ?> cycle(s)</span>
       </div>
-      <div class="tbl-wrap">
-        <table class="tbl-enhanced">
-          <thead><tr><th>Dimension</th><th>SY <?= e($selectedSYLabel) ?></th><th>SY <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></th><th>Change</th></tr></thead>
-          <tbody>
-            <?php
-            $cmpByDim = array_column($anDimAvgsCompare, null, 'dimension_no');
-            foreach ($anDimAvgs as $d):
-              $curr = floatval($d['avg_pct'] ?? 0);
-              $prev = floatval($cmpByDim[$d['dimension_no']]['avg_pct'] ?? 0);
-              $chg = round($curr - $prev, 1);
-              $chgC = $chg > 0 ? '#16A34A' : ($chg < 0 ? '#DC2626' : '#9CA3AF');
-              ?>
+      <?php if ($cycleHistory): ?>
+        <div class="tbl-wrap">
+          <table class="tbl-enhanced">
+            <thead>
               <tr>
-                <td>
-                  <div style="display:flex;align-items:center;gap:7px;">
-                    <span style="width:10px;height:10px;border-radius:2px;background:<?= e($d['color_hex']) ?>;flex-shrink:0;display:inline-block;"></span>
-                    <span style="font-size:12.5px;font-weight:600;">D<?= $d['dimension_no'] ?>: <?= e(substr($d['dimension_name'], 0, 30)) ?></span>
-                  </div>
-                </td>
-                <td>
-                  <div style="display:flex;align-items:center;gap:6px;">
-                    <div style="width:60px;height:5px;background:var(--n-100);border-radius:999px;overflow:hidden;"><div style="width:<?= $curr ?>%;height:100%;background:<?= e($d['color_hex']) ?>;border-radius:999px;"></div></div>
-                    <strong style="font-size:13px;color:<?= e($d['color_hex']) ?>;"><?= $curr ?>%</strong>
-                  </div>
-                </td>
-                <td>
-                  <?php if ($prev > 0): ?>
-                    <div style="display:flex;align-items:center;gap:6px;">
-                      <div style="width:60px;height:5px;background:var(--n-100);border-radius:999px;overflow:hidden;"><div style="width:<?= $prev ?>%;height:100%;background:#9CA3AF;border-radius:999px;"></div></div>
-                      <span style="font-size:13px;color:var(--n-500);"><?= $prev ?>%</span>
-                    </div>
-                  <?php else: ?><span style="font-size:12px;color:var(--n-400);">No data</span><?php endif; ?>
-                </td>
-                <td>
-                  <span style="font-size:13px;font-weight:700;color:<?= $chgC ?>;">
-                    <?= $chg > 0 ? '▲ +' : ($chg < 0 ? '▼ ' : '') ?><?= abs($chg) ?>%
-                  </span>
-                </td>
+                <th>#</th>
+                <th>School Year</th>
+                <th>Overall Score</th>
+                <th>Maturity</th>
+                <th>vs Prev</th>
+                <th>Status</th>
+                <th>Validated</th>
               </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              <?php
+              $prevScore = null;
+              foreach ($cycleHistory as $i => $sc):
+                $mat = sbmMaturityLevel(floatval($sc['overall_score']));
+                $delta = $prevScore !== null ? round(floatval($sc['overall_score']) - $prevScore, 2) : null;
+                $prevScore = floatval($sc['overall_score']);
+                ?>
+                <tr>
+                  <td style="width:32px;"><span
+                      style="width:22px;height:22px;border-radius:6px;background:var(--n-100);color:var(--n-600);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;"><?= $i + 1 ?></span>
+                  </td>
+                  <td><strong style="font-size:13px;">SY <?= e($sc['sy_label']) ?></strong></td>
+                  <td>
+                    <div class="score-bar-cell">
+                      <div class="score-bar-track">
+                        <div class="score-bar-fill"
+                          style="width:<?= $sc['overall_score'] ?>%;background:<?= $mat['color'] ?>;"></div>
+                      </div>
+                      <span class="score-val" style="color:<?= $mat['color'] ?>;"><?= $sc['overall_score'] ?>%</span>
+                    </div>
+                  </td>
+                  <td><span class="pill pill-<?= e($sc['maturity_level']) ?>"><?= e($sc['maturity_level']) ?></span></td>
+                  <td>
+                    <?php if ($delta !== null): ?>
+                      <span
+                        style="font-size:12.5px;font-weight:700;color:<?= $delta > 0 ? '#16A34A' : ($delta < 0 ? '#DC2626' : '#9CA3AF') ?>;">
+                        <?= $delta > 0 ? '▲ +' : '▼ ' ?>       <?= abs($delta) ?>%
+                      </span>
+                    <?php else: ?><span style="color:var(--n-400);font-size:12px;">First</span><?php endif; ?>
+                  </td>
+                  <td><span class="pill pill-<?= e($sc['status']) ?>"
+                      style="font-size:10px;"><?= ucfirst($sc['status']) ?></span></td>
+                  <td style="font-size:12px;color:var(--n-400);">
+                    <?= $sc['validated_at'] ? date('M d, Y', strtotime($sc['validated_at'])) : '—' ?>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php else: ?>
+        <div class="empty-state">
+          <div class="empty-title">No cycle history yet</div>
+        </div>
+      <?php endif; ?>
     </div>
   </div>
-<?php endif; ?>
+
+  <!-- TAB: Weak This Cycle -->
+  <div class="an-tab-panel" id="anTabWeak">
+    <div class="card" style="margin-bottom:18px;">
+      <div class="card-head">
+        <span class="card-title">Indicators Needing Attention — Current SY</span>
+        <span style="font-size:12px;color:var(--n-400);">Lowest average ratings this cycle</span>
+      </div>
+      <?php if ($weakIndicatorRows): ?>
+        <div class="card-body" style="padding:0;">
+          <?php foreach ($weakIndicatorRows as $ind):
+            $avgR = floatval($ind['avg_rating']);
+            $pct = ($avgR / 4) * 100;
+            $color = $avgR >= 3 ? 'var(--n-800)' : ($avgR >= 2 ? 'var(--amber)' : 'var(--red)');
+            ?>
+            <div style="padding:12px 20px;border-bottom:1px solid var(--n-100);">
+              <div class="flex-cb" style="margin-bottom:4px;">
+                <div>
+                  <span
+                    style="font-size:10.5px;font-weight:700;color:var(--n-400);text-transform:uppercase;letter-spacing:.05em;"><?= e($ind['indicator_code']) ?></span>
+                  <span
+                    style="font-size:10.5px;color:var(--n-400);margin-left:6px;padding:1px 7px;background:var(--n-100);border-radius:4px;"><?= e($ind['dimension_name']) ?></span>
+                </div>
+                <span style="font-size:13px;font-weight:700;color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</span>
+              </div>
+              <div style="font-size:12.5px;color:var(--n-700);margin-bottom:5px;line-height:1.45;">
+                <?= e(substr($ind['indicator_text'], 0, 100)) ?>”¦
+              </div>
+              <div class="an-weak-prog">
+                <div class="an-weak-fill" style="width:<?= $pct ?>%;background:<?= $color ?>;"></div>
+              </div>
+              <div style="font-size:11px;color:var(--n-400);margin-top:4px;"><?= $ind['response_count'] ?> response(s)</div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php else: ?>
+        <div class="empty-state">
+          <div class="empty-title">No indicator data yet</div>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- TAB: Consistently Weak -->
+  <div class="an-tab-panel" id="anTabConsistent">
+    <div class="card" style="margin-bottom:18px;">
+      <div class="card-head">
+        <span class="card-title">Consistently Weak Indicators</span>
+        <span style="font-size:12px;color:var(--n-400);">Average &le; 2.5 across all assessed cycles</span>
+      </div>
+      <?php if ($consistentlyWeak): ?>
+        <div class="card-body" style="padding:0;">
+          <?php foreach ($consistentlyWeak as $cw):
+            $avgR = floatval($cw['avg_rating']);
+            $color = $avgR >= 2 ? 'var(--amber)' : 'var(--red)';
+            $pct = ($avgR / 4) * 100;
+            ?>
+            <div class="an-cw-row">
+              <div class="an-cw-badge"
+                style="background:<?= $avgR < 2 ? 'var(--red-bg)' : 'var(--amber-bg)' ?>;color:<?= $color ?>;">
+                <?= e($cw['indicator_code']) ?>
+              </div>
+              <div class="an-cw-info">
+                <div class="an-cw-title"><?= e(substr($cw['indicator_text'], 0, 95)) ?>...</div>
+                <div class="an-cw-meta">
+                  <?= e($cw['dimension_name']) ?> ·
+                  Avg: <strong style="color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</strong> ·
+                  Worst: <?= number_format($cw['worst_cycle_avg'], 2) ?> ·
+                  Best: <?= number_format($cw['best_cycle_avg'], 2) ?>
+                </div>
+                <div class="an-cw-bar-track">
+                  <div class="an-cw-bar-fill" style="width:<?= $pct ?>%;background:<?= $color ?>;"></div>
+                </div>
+              </div>
+              <div style="font-size:11px;font-weight:700;color:var(--red);text-align:center;min-width:48px;">
+                Priority<br>Action</div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php else: ?>
+        <div class="empty-state">
+          <div class="empty-title">No consistently weak indicators</div>
+          <div class="empty-sub">All indicators are averaging above 2.5 across cycles.</div>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- TAB: Side-by-Side Comparison -->
+  <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
+    <div class="an-tab-panel" id="anTabCompare">
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-head">
+          <span class="card-title">Side-by-Side Dimension Comparison</span>
+          <span style="font-size:12px;color:var(--n-400);">SY <?= e($selectedSYLabel) ?> vs SY
+            <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl-enhanced">
+            <thead>
+              <tr>
+                <th>Dimension</th>
+                <th>SY <?= e($selectedSYLabel) ?></th>
+                <th>SY <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></th>
+                <th>Change</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php
+              $cmpByDim = array_column($anDimAvgsCompare, null, 'dimension_no');
+              foreach ($anDimAvgs as $d):
+                $curr = floatval($d['avg_pct'] ?? 0);
+                $prev = floatval($cmpByDim[$d['dimension_no']]['avg_pct'] ?? 0);
+                $chg = round($curr - $prev, 1);
+                $chgC = $chg > 0 ? '#16A34A' : ($chg < 0 ? '#DC2626' : '#9CA3AF');
+                ?>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:7px;">
+                      <span
+                        style="width:10px;height:10px;border-radius:2px;background:<?= e($d['color_hex']) ?>;flex-shrink:0;display:inline-block;"></span>
+                      <span style="font-size:12.5px;font-weight:600;">D<?= $d['dimension_no'] ?>:
+                        <?= e(substr($d['dimension_name'], 0, 30)) ?></span>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <div style="width:60px;height:5px;background:var(--n-100);border-radius:999px;overflow:hidden;">
+                        <div
+                          style="width:<?= $curr ?>%;height:100%;background:<?= e($d['color_hex']) ?>;border-radius:999px;">
+                        </div>
+                      </div>
+                      <strong style="font-size:13px;color:<?= e($d['color_hex']) ?>;"><?= $curr ?>%</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <?php if ($prev > 0): ?>
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <div style="width:60px;height:5px;background:var(--n-100);border-radius:999px;overflow:hidden;">
+                          <div style="width:<?= $prev ?>%;height:100%;background:#9CA3AF;border-radius:999px;"></div>
+                        </div>
+                        <span style="font-size:13px;color:var(--n-500);"><?= $prev ?>%</span>
+                      </div>
+                    <?php else: ?><span style="font-size:12px;color:var(--n-400);">No data</span><?php endif; ?>
+                  </td>
+                  <td>
+                    <span style="font-size:13px;font-weight:700;color:<?= $chgC ?>;">
+                      <?= $chg > 0 ? '▲ +' : ($chg < 0 ? '▼ ' : '') ?>     <?= abs($chg) ?>%
+                    </span>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <?php endif; ?>
 
 </div><!-- /viewAnalytics -->
 
@@ -2631,7 +3279,7 @@ include __DIR__ . '/../includes/header.php';
   }
 
   // -- Auto-switch to analytics if ?view=analytics is in URL --
-  (function() {
+  (function () {
     const params = new URLSearchParams(window.location.search);
     if (params.get('view') === 'analytics') {
       const btn = document.querySelectorAll('.vt-btn')[1];
@@ -2644,14 +3292,12 @@ include __DIR__ . '/../includes/header.php';
 <!-- ── AI ASSISTANT PANEL ── -->
 <div id="aiAssistant" class="ai-panel">
   <div class="ai-panel-fab" onclick="checkToggleMinimize(event)" title="Open AI Assistant">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 20h9"></path>
-      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-    </svg>
+    <img src="<?= e(baseUrl()) ?>/assets/seal.png" alt="School Seal"
+      style="width:54px;height:54px;border-radius:50%;object-fit:cover;display:block;">
   </div>
   <div class="ai-panel-header" onclick="checkToggleMinimize(event)">
     <div>
-      <div class="ai-panel-title">AI Assistant</div>
+      <div class="ai-panel-title">AI Suggestion Improvement Plan</div>
       <div style="font-size:11px;opacity:0.8;">Actionable Suggestions</div>
     </div>
     <div class="ai-panel-actions">
@@ -2662,197 +3308,572 @@ include __DIR__ . '/../includes/header.php';
   <div id="aiChatBody" class="ai-chat-body"></div>
 </div>
 
+<!-- ── IMPROVEMENT PLAN MODAL ── -->
+<div id="improvementPlanModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-form-side">
+      <div class="modal-header">
+        <div class="modal-title">Manually Add Improvement Plan</div>
+        <button class="btn btn-ghost" style="padding:4px;" onclick="closeImprovementPlanModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="improvementPlanForm">
+          <div class="form-group">
+            <label>Dimension(s)</label>
+            <div class="tag-select-container" id="dimTagContainer">
+              <input type="text" class="tag-input-ghost" id="dimTagInput" placeholder="Select Dimensions...">
+              <div class="tag-dropdown" id="dimTagDropdown">
+                <?php foreach ($dimScores as $d):
+                ?>
+                  <div class="tag-option" data-id="<?= $d['dimension_id'] ?>" data-name="D<?= $d['dimension_no'] ?>">
+                    D<?= $d['dimension_no'] ?> - <?= e($d['dimension_name']) ?> (<?= $d['avg_pct'] ?>%) <?= ($d['avg_pct'] < 50) ? '⚠️' : '' ?>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            </div>
+            <input type="hidden" name="dimension_ids" id="dimIdsInput" required>
+          </div>
+
+          <div class="form-group">
+            <label>Indicator(s) <small style="color:var(--n-500);">(Only indicators with rating &le; 2.5 available)</small></label>
+            <div class="tag-select-container" id="indTagContainer">
+              <input type="text" class="tag-input-ghost" id="indTagInput" placeholder="Select Indicators...">
+              <div class="tag-dropdown" id="indTagDropdown">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+            <input type="hidden" name="indicator_ids" id="indIdsInput" required>
+          </div>
+          <div class="grid2">
+            <div class="form-group">
+              <label>Priority</label>
+              <select name="priority_level" class="form-control">
+                <option value="High">High</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Target Date</label>
+              <input type="date" name="target_date" class="form-control">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Objective</label>
+            <textarea name="objective" class="form-control" rows="2" placeholder="What do you want to achieve?"
+              required></textarea>
+          </div>
+          <div class="form-group">
+            <label>Strategy</label>
+            <textarea name="strategy" class="form-control" rows="2" placeholder="How will you achieve it?"
+              required></textarea>
+          </div>
+          <div class="form-group">
+            <label>Person Responsible</label>
+            <input type="text" name="person_responsible" class="form-control" placeholder="E.g. Principal, Grade Level Head">
+          </div>
+          <div class="grid2">
+            <div class="form-group">
+              <label>Resources Needed</label>
+              <textarea name="resources_needed" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Expected Output</label>
+              <textarea name="expected_output" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="toggleAISuggestionSplit()" id="toggleAiModalBtn">View AI Suggestion</button>
+        <div style="flex:1"></div>
+        <button class="btn-secondary" onclick="closeImprovementPlanModal()">Cancel</button>
+        <button class="btn-primary" onclick="saveImprovementPlan(event)">Save Improvement Plan</button>
+      </div>
+    </div>
+
+    <!-- AI Side Panel -->
+    <div class="modal-ai-side-panel" id="modalAiPanel">
+      <div class="ai-side-header">
+        <img src="assets/seal.png" style="width:24px;height:24px;object-fit:contain;">
+        <div class="ai-side-header-title">AI Assessment & Recommendations</div>
+      </div>
+      <div class="ai-side-body" id="modalAiBody">
+        <div class="typing" style="padding:24px;">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <p style="margin-top:12px; font-size:12px; color:var(--n-500);">Generating recommendations...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-// Data for AI Assistant
-const weakIndicatorsBase = <?= json_encode($weakIndicatorRows) ?>;
+  // Data for AI Assistant
+  const weakIndicatorsBase = <?= json_encode($weakIndicatorRows) ?>;
 
-// -- AI Panel State Management --
-function setAIPanelState(state) {
-  const panel = document.getElementById('aiAssistant');
-  if (!panel) return;
-
-  panel.classList.toggle('open', state === 'open' || state === 'minimized');
-  panel.classList.toggle('minimized', state === 'minimized');
-  
-  localStorage.setItem('ai_panel_state', state);
-}
-
-function openAIAssistant() {
-  setAIPanelState('open');
-  const body = document.getElementById('aiChatBody');
-  if (body.children.length === 0) {
-    startAISession();
-  }
-}
-
-function closeAIAssistant(e) {
-  if (e) e.stopPropagation();
-  setAIPanelState('closed');
-}
-
-function toggleMinimizeAIAssistant(e) {
-  if (e) e.stopPropagation();
-  const panel = document.getElementById('aiAssistant');
-  const newState = panel.classList.contains('minimized') ? 'open' : 'minimized';
-  setAIPanelState(newState);
-}
-
-function checkToggleMinimize(e) {
-  const panel = document.getElementById('aiAssistant');
-  if (panel.classList.contains('minimized')) {
-    setAIPanelState('open');
-  }
-}
-
-// Restore state on load
-document.addEventListener('DOMContentLoaded', () => {
-  const savedState = localStorage.getItem('ai_panel_state') || 'closed';
-  
-  if (savedState !== 'closed') {
+  // -- AI Panel State Management --
+  function setAIPanelState(state) {
     const panel = document.getElementById('aiAssistant');
-    const body = document.getElementById('aiChatBody');
+    if (!panel) return;
+
+    panel.classList.toggle('open', state === 'open' || state === 'minimized');
+    panel.classList.toggle('minimized', state === 'minimized');
+
+    localStorage.setItem('ai_panel_state', state);
+  }
+
+// ── TAG MULTI-SELECT COMPONENT (Refined) ────────────────────────
+  function initTagSelect(prefix, options, onUpdate) {
+    const container = document.getElementById(prefix + 'TagContainer');
+    const input = document.getElementById(prefix + 'TagInput');
+    const dropdown = document.getElementById(prefix + 'TagDropdown');
+    const hidden = document.getElementById(prefix + 'IdsInput');
+
+    let selected = [];
     
-    // Explicitly set classes based on saved state
-    panel.classList.add('open');
-    if (savedState === 'minimized') {
-      panel.classList.add('minimized');
+    // Add Clear/Dropdown actions visually
+    const actions = document.createElement('div');
+    actions.className = 'tag-select-actions';
+    actions.innerHTML = `
+      <i class="fas fa-times clear-btn" title="Clear All" style="display:none;"></i>
+      <i class="fas fa-chevron-down chevron-btn"></i>
+    `;
+    container.appendChild(actions);
+
+    const clearBtn = actions.querySelector('.clear-btn');
+    const chevronBtn = actions.querySelector('.chevron-btn');
+
+    const render = () => {
+      // Clear existing tags
+      container.querySelectorAll('.tag-pill').forEach(tp => tp.remove());
+      // Add tags
+      selected.forEach(id => {
+        const item = options.find(o => o.id == id);
+        if (!item) return;
+
+        const tag = document.createElement('div');
+        tag.className = 'tag-pill';
+        tag.innerHTML = `${item.name || item.label} <i onclick="window['removeTag${prefix}']('${id}', event)">&times;</i>`;
+        container.insertBefore(tag, input);
+      });
+      hidden.value = selected.join(',');
+      
+      // Update dropdown options visibility
+      const opts = dropdown.querySelectorAll('.tag-option');
+      let visibleCount = 0;
+      opts.forEach(opt => {
+        const id = opt.getAttribute('data-id');
+        const isSel = selected.includes(id);
+        opt.classList.toggle('selected', isSel);
+        if(!isSel && !opt.classList.contains('hidden')) visibleCount++;
+      });
+
+      // Handle "No options" message
+      let emptyMsg = dropdown.querySelector('.tag-no-options');
+      if (visibleCount === 0) {
+        if (!emptyMsg) {
+          emptyMsg = document.createElement('div');
+          emptyMsg.className = 'tag-no-options';
+          emptyMsg.textContent = 'No available options';
+          dropdown.appendChild(emptyMsg);
+        }
+      } else if (emptyMsg) {
+        emptyMsg.remove();
+      }
+
+      clearBtn.style.display = selected.length > 0 ? 'inline-block' : 'none';
+      if (onUpdate) onUpdate(selected);
+    };
+
+    // Toggle dropdown
+    const toggleDropdown = (show) => {
+      const isCurrentlyOpen = dropdown.style.display === 'block';
+      const open = (show === undefined) ? !isCurrentlyOpen : show;
+      dropdown.style.display = open ? 'block' : 'none';
+      chevronBtn.style.transform = open ? 'rotate(180deg)' : 'rotate(0)';
+    };
+
+    // Close modal on backdrop click
+    const modal = document.getElementById('improvementPlanModal');
+    if (modal) {
+      modal.onclick = (e) => {
+        if (e.target === modal) closeImprovementPlanModal();
+      };
     }
 
-    // Trigger data fetching if panel was active
+
+    container.onclick = (e) => {
+      e.stopPropagation();
+      input.focus();
+      toggleDropdown(true);
+    };
+
+    input.oninput = (e) => {
+      const q = e.target.value.toLowerCase();
+      dropdown.querySelectorAll('.tag-option').forEach(opt => {
+        const text = opt.textContent.toLowerCase();
+        opt.classList.toggle('hidden', !text.includes(q));
+      });
+      toggleDropdown(true);
+    };
+
+    input.onclick = (e) => {
+      e.stopPropagation();
+      toggleDropdown(true);
+    };
+
+    clearBtn.onclick = (e) => {
+      e.stopPropagation();
+      selected = [];
+      render();
+      toggleDropdown(false);
+    };
+
+    chevronBtn.onclick = (e) => {
+      e.stopPropagation();
+      toggleDropdown();
+    };
+
+    document.addEventListener('click', () => toggleDropdown(false));
+
+    // Initial item selection
+    const wireOptions = (div) => {
+      div.onclick = (e) => {
+        e.stopPropagation();
+        const id = div.getAttribute('data-id');
+        if (!selected.includes(id)) {
+          selected.push(id);
+          input.value = ''; // clear search
+          dropdown.querySelectorAll('.tag-option').forEach(o => o.classList.remove('hidden'));
+          render();
+        }
+      };
+    }
+
+    dropdown.querySelectorAll('.tag-option').forEach(wireOptions);
+
+    window['removeTag' + prefix] = (id, event) => {
+      if(event) event.stopPropagation();
+      selected = selected.filter(s => s != id);
+      render();
+    };
+
+    return { 
+      setOptions: (newOpts) => {
+        options = newOpts;
+        dropdown.innerHTML = '';
+        selected = [];
+        newOpts.forEach(o => {
+          const div = document.createElement('div');
+          div.className = 'tag-option';
+          div.setAttribute('data-id', o.id);
+          div.textContent = o.name || o.label;
+          wireOptions(div);
+          dropdown.appendChild(div);
+        });
+        render();
+      },
+      reset: () => {
+        selected = [];
+        input.value = '';
+        render();
+      }
+    };
+  }
+
+  let dimTagControl, indTagControl;
+  document.addEventListener('DOMContentLoaded', () => {
+    const dimOptions = Array.from(document.querySelectorAll('#dimTagDropdown .tag-option')).map(opt => ({
+      id: opt.getAttribute('data-id'),
+      name: opt.getAttribute('data-name')
+    }));
+
+    dimTagControl = initTagSelect('dim', dimOptions, (selectedDimIds) => {
+      const filteredIndicators = weakIndicatorsBase
+        .filter(wi => selectedDimIds.includes(wi.dimension_id.toString()))
+        .map(wi => ({
+          id: wi.indicator_id,
+          name: wi.indicator_code + ': ' + (wi.indicator_text.length > 60 ? wi.indicator_text.substring(0, 60) + "..." : wi.indicator_text),
+          label: wi.indicator_code
+        }));
+      if(indTagControl) indTagControl.setOptions(filteredIndicators);
+    });
+
+    indTagControl = initTagSelect('ind', []);
+  });
+
+  function removeTag(prefix, id, e) {
+    if(e) e.stopPropagation();
+    window['removeTag' + prefix](id);
+  }
+
+  function manuallyAddImprovementPlan() {
+    document.getElementById('improvementPlanModal').style.display = 'flex';
+  }
+
+  function toggleAISuggestionSplit() {
+    const modal = document.querySelector('#improvementPlanModal .modal-content');
+    const btn = document.getElementById('toggleAiModalBtn');
+    modal.classList.toggle('split-view');
+
+    if (modal.classList.contains('split-view')) {
+      btn.textContent = 'Hide AI Suggestion';
+      loadModalAISuggestions();
+    } else {
+      btn.textContent = 'View AI Suggestion';
+    }
+  }
+
+  let cachedAIPlanResponse = "";
+
+  async function loadModalAISuggestions() {
+    const body = document.getElementById('modalAiBody');
+    if (!body) return;
+
+    if (cachedAIPlanResponse) {
+      body.innerHTML = parseAILogicToHtml(cachedAIPlanResponse);
+      return;
+    }
+
+    // Attempt to get data from current session if available
+    const existingMsg = document.querySelector('#aiChatBody .chat-msg.ai:last-child');
+    if (existingMsg) {
+      cachedAIPlanResponse = existingMsg.innerHTML; // Note: this is already HTML, but parseAILogicToHtml expects text. 
+      // Better to check for data-raw if we add it. 
+      body.innerHTML = cachedAIPlanResponse;
+      return;
+    }
+
+    // Otherwise, show a notice or trigger a fetch
+    body.innerHTML = '<div style="padding:20px; text-align:center;"><p style="color:var(--n-500); font-size:13px;">Use the floating AI Assistant at the bottom right to generate a full school evaluation, then view it here alongside your plan.</p></div>';
+  }
+
+  function closeImprovementPlanModal() {
+    document.getElementById('improvementPlanModal').style.display = 'none';
+    document.querySelector('#improvementPlanModal .modal-content').classList.remove('split-view');
+    document.getElementById('toggleAiModalBtn').textContent = 'View AI Suggestion';
+    
+    // Reset tag controls and form
+    if(dimTagControl) dimTagControl.reset();
+    if(indTagControl) indTagControl.reset();
+    document.getElementById('improvementPlanForm').reset();
+  }
+
+  async function saveImprovementPlan(e) {
+    if (e) e.preventDefault();
+    const form = document.getElementById('improvementPlanForm');
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    const formData = new FormData(form);
+    formData.append('action', 'save_improvement_plan');
+    formData.append('sy_id', '<?= $selectedSyId ?>');
+
+    const btn = e.target;
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    try {
+      const res = await fetch(window.location.href, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Improvement Plan saved successfully!');
+        closeImprovementPlanModal();
+        location.reload();
+      } else {
+        alert('Error: ' + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error. Failed to save.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Improvement Plan';
+    }
+  }
+
+  function openAIAssistant() {
+    setAIPanelState('open');
+    const body = document.getElementById('aiChatBody');
     if (body.children.length === 0) {
       startAISession();
     }
   }
-});
 
-function addMessage(text, type = 'ai', delay = 0) {
-  const body = document.getElementById('aiChatBody');
-  
-  if (delay > 0) {
-    const typing = document.createElement('div');
-    typing.className = 'typing';
-    typing.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
-    body.appendChild(typing);
-    body.scrollTop = body.scrollHeight;
-    
-    return new Promise(resolve => {
-      setTimeout(() => {
-        typing.remove();
-        renderMessage(text, type);
-        resolve();
-      }, delay);
-    });
-  } else {
-    renderMessage(text, type);
-    return Promise.resolve();
+  function closeAIAssistant(e) {
+    if (e) e.stopPropagation();
+    setAIPanelState('closed');
   }
-}
 
-function renderMessage(content, type) {
-  const body = document.getElementById('aiChatBody');
-  const msg = document.createElement('div');
-  msg.className = `chat-msg ${type}`;
-  
-  if (type === 'ai') {
-    msg.innerHTML = parseAILogicToHtml(content);
-  } else {
-    msg.textContent = content;
+  function toggleMinimizeAIAssistant(e) {
+    if (e) e.stopPropagation();
+    const panel = document.getElementById('aiAssistant');
+    const newState = panel.classList.contains('minimized') ? 'open' : 'minimized';
+    setAIPanelState(newState);
   }
-  
-  body.appendChild(msg);
-  body.scrollTop = body.scrollHeight;
-}
 
-/** Simple parser for AI markdown-like response */
-function parseAILogicToHtml(text) {
-  // Bold: **text** -> <strong>text</strong>
-  let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  
-  // Bullets: - item -> <li>item</li>
-  const lines = html.split('\n');
-  let finalHtml = '';
-  let inList = false;
+  function checkToggleMinimize(e) {
+    const panel = document.getElementById('aiAssistant');
+    if (panel.classList.contains('minimized')) {
+      setAIPanelState('open');
+    }
+  }
 
-  lines.forEach(line => {
-    const trimmed = line.trim();
-    if (trimmed.startsWith('- ')) {
-      if (!inList) {
-        finalHtml += '<ul>';
-        inList = true;
+  // Restore state on load
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedState = localStorage.getItem('ai_panel_state') || 'closed';
+
+    if (savedState !== 'closed') {
+      const panel = document.getElementById('aiAssistant');
+      const body = document.getElementById('aiChatBody');
+
+      // Explicitly set classes based on saved state
+      panel.classList.add('open');
+      if (savedState === 'minimized') {
+        panel.classList.add('minimized');
       }
-      finalHtml += '<li>' + trimmed.substring(2) + '</li>';
-    } else if (trimmed === '---') {
-       if (inList) { finalHtml += '</ul>'; inList = false; }
-       finalHtml += '<hr>';
-    } else {
-      if (inList) {
-        finalHtml += '</ul>';
-        inList = false;
-      }
-      if (trimmed) {
-        finalHtml += '<p>' + trimmed + '</p>';
+
+      // Trigger data fetching if panel was active
+      if (body.children.length === 0) {
+        startAISession();
       }
     }
   });
 
-  if (inList) finalHtml += '</ul>';
-  return finalHtml;
-}
+  function addMessage(text, type = 'ai', delay = 0) {
+    const body = document.getElementById('aiChatBody');
 
-async function startAISession() {
-  const body = document.getElementById('aiChatBody');
+    if (delay > 0) {
+      const typing = document.createElement('div');
+      typing.className = 'typing';
+      typing.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+      body.appendChild(typing);
+      body.scrollTop = body.scrollHeight;
 
-  // Show a subtle status message instead of a full chat bubble
-  const status = document.createElement('div');
-  status.className = 'chat-msg status';
-  status.textContent = 'Analyzing your SBM data...';
-  body.appendChild(status);
-
-  // Show thinking dots
-  const thinking = document.createElement('div');
-  thinking.className = 'typing';
-  thinking.id = 'groqThinking';
-  thinking.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
-  body.appendChild(thinking);
-  body.scrollTop = body.scrollHeight;
-
-  const formData = new FormData();
-  formData.append('action', 'get_ai_suggestions');
-  formData.append('sy_id', '<?= $selectedSyId ?>');
-
-  try {
-    const res = await fetch(window.location.href, { method: 'POST', body: formData });
-    const data = await res.json();
-    
-    status.remove();
-    if (thinking) thinking.remove();
-
-    if (data.error) {
-      addMessage("I couldn't reach the analysis service right now. Please check if the ML service is running.", 'ai', 0);
-      renderFallbackSuggestions();
-      return;
-    }
-
-    const recs = data.recommendations || '';
-    if (recs) {
-      addMessage(recs, 'ai', 0);
+      return new Promise(resolve => {
+        setTimeout(() => {
+          typing.remove();
+          renderMessage(text, type);
+          resolve();
+        }, delay);
+      });
     } else {
-      addMessage("I've reviewed your data. Your performance is currently optimal with no critical gaps detected. Keep up the great work!", 'ai', 0);
+      renderMessage(text, type);
+      return Promise.resolve();
     }
-  } catch (err) {
-    console.error(err);
-    status.remove();
-    if (thinking) thinking.remove();
-    addMessage("Connection failed. Please ensure the ML microservice is active.", 'ai', 0);
-    renderFallbackSuggestions();
   }
-}
 
-function renderFallbackSuggestions() {
-  if (weakIndicatorsBase && weakIndicatorsBase.length > 0) {
-    addMessage(`I identified ${weakIndicatorsBase.length} weak indicators. Focusing on ${weakIndicatorsBase[0].dimension_name}...`, 'ai', 1000);
+  function renderMessage(content, type) {
+    const body = document.getElementById('aiChatBody');
+    const msg = document.createElement('div');
+    msg.className = `chat-msg ${type}`;
+
+    if (type === 'ai') {
+      msg.innerHTML = parseAILogicToHtml(content);
+    } else {
+      msg.textContent = content;
+    }
+
+    body.appendChild(msg);
+    body.scrollTop = body.scrollHeight;
   }
-}
+
+  /** Simple parser for AI markdown-like response */
+  function parseAILogicToHtml(text) {
+    // Bold: **text** -> <strong>text</strong>
+    let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    // Bullets: - item -> <li>item</li>
+    const lines = html.split('\n');
+    let finalHtml = '';
+    let inList = false;
+
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('- ')) {
+        if (!inList) {
+          finalHtml += '<ul>';
+          inList = true;
+        }
+        finalHtml += '<li>' + trimmed.substring(2) + '</li>';
+      } else if (trimmed === '---') {
+        if (inList) { finalHtml += '</ul>'; inList = false; }
+        finalHtml += '<hr>';
+      } else {
+        if (inList) {
+          finalHtml += '</ul>';
+          inList = false;
+        }
+        if (trimmed) {
+          finalHtml += '<p>' + trimmed + '</p>';
+        }
+      }
+    });
+
+    if (inList) finalHtml += '</ul>';
+    return finalHtml;
+  }
+
+  async function startAISession() {
+    const body = document.getElementById('aiChatBody');
+
+    // Show a subtle status message instead of a full chat bubble
+    const status = document.createElement('div');
+    status.className = 'chat-msg status';
+    status.textContent = 'Analyzing your SBM data...';
+    body.appendChild(status);
+
+    // Show thinking dots
+    const thinking = document.createElement('div');
+    thinking.className = 'typing';
+    thinking.id = 'groqThinking';
+    thinking.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+    body.appendChild(thinking);
+    body.scrollTop = body.scrollHeight;
+
+    const formData = new FormData();
+    formData.append('action', 'get_ai_suggestions');
+    formData.append('sy_id', '<?= $selectedSyId ?>');
+
+    try {
+      const res = await fetch(window.location.href, { method: 'POST', body: formData });
+      const data = await res.json();
+
+      status.remove();
+      if (thinking) thinking.remove();
+
+      if (data.error) {
+        addMessage("I couldn't reach the analysis service right now. Please check if the ML service is running.", 'ai', 0);
+        renderFallbackSuggestions();
+        return;
+      }
+
+      const recs = data.recommendations || '';
+      if (recs) {
+        addMessage(recs, 'ai', 0);
+      } else {
+        addMessage("I've reviewed your data. Your performance is currently optimal with no critical gaps detected. Keep up the great work!", 'ai', 0);
+      }
+    } catch (err) {
+      console.error(err);
+      status.remove();
+      if (thinking) thinking.remove();
+      addMessage("Connection failed. Please ensure the ML microservice is active.", 'ai', 0);
+      renderFallbackSuggestions();
+    }
+  }
+
+  function renderFallbackSuggestions() {
+    if (weakIndicatorsBase && weakIndicatorsBase.length > 0) {
+      addMessage(`I identified ${weakIndicatorsBase.length} weak indicators. Focusing on ${weakIndicatorsBase[0].dimension_name}...`, 'ai', 1000);
+    }
+  }
 </script>
 <?= deadlineChipCss() ?>
 <?= deadlineChipJs() ?>

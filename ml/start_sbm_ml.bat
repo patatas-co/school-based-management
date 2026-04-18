@@ -10,26 +10,37 @@ echo.
 :: Change to the ml directory
 cd /d "C:\xampp\htdocs\sbm\ml"
 
-:: Check if venv exists
-if not exist "venv\Scripts\activate.bat" (
-    echo [ERROR] Virtual environment not found!
-    echo Please run setup first.
+:: Check if 64-bit venv exists (required for scikit-learn)
+if not exist "venv64\Scripts\activate.bat" (
+    echo [ERROR] 64-bit virtual environment not found!
+    echo Run this to create it:
+    echo   C:\Users\Pat\AppData\Local\Programs\Python\Python311\python.exe -m venv venv64
+    echo   venv64\Scripts\pip install -r requirements.txt --prefer-binary
     pause
     exit /b 1
 )
 
-:: Activate venv
-call venv\Scripts\activate.bat
+:: Activate 64-bit venv (supports scikit-learn Decision Tree models)
+call venv64\Scripts\activate.bat
 
 :: Check if Flask is installed
 python -c "import flask" 2>nul
 if errorlevel 1 (
-    echo [INFO] Installing dependencies...
-    pip install flask==3.0.3 vaderSentiment==3.3.2 scikit-learn==1.5.1 numpy==1.26.4 pandas==2.2.2 requests==2.32.3 python-dotenv==1.0.1 openai==1.40.0 joblib==1.4.2
+    echo [INFO] Installing dependencies into venv64...
+    pip install -r requirements.txt --prefer-binary -q
+)
+
+:: Verify sklearn is available (needed for Decision Tree classifiers)
+python -c "import sklearn" 2>nul
+if errorlevel 1 (
+    echo [ERROR] scikit-learn not found in venv64!
+    echo Run: venv64\Scripts\pip install scikit-learn --prefer-binary
+    pause
+    exit /b 1
 )
 
 echo.
-echo [OK] Starting ML Server on http://127.0.0.1:5000
+echo [OK] Starting ML Server on http://127.0.0.1:5001 (64-bit Python + Decision Tree ML)
 echo [OK] Keep this window open while using the system.
 echo.
 

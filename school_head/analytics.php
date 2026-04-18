@@ -291,19 +291,25 @@ include __DIR__ . '/../includes/header.php';
   .insight-delta {
     font-size: 12px;
     font-weight: 700;
-    margin-top: 5px;
+    margin-top: 8px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-block;
   }
 
   .insight-delta.up {
-    color: var(--brand-600);
+    color: var(--brand-700, #15803d);
+    background: rgba(22, 163, 74, 0.1);
   }
 
   .insight-delta.down {
     color: var(--red);
+    background: rgba(220, 38, 38, 0.1);
   }
 
   .insight-delta.flat {
-    color: var(--n-400);
+    color: var(--n-600);
+    background: var(--n-100);
   }
 
   .filter-bar {
@@ -533,7 +539,7 @@ include __DIR__ . '/../includes/header.php';
       <div class="insight-val" style="font-size:20px;color:<?= e($topDim['color_hex']) ?>;">
         D<?= $topDim['dimension_no'] ?>
       </div>
-      <div class="insight-lbl">Strongest — <?= e(substr($topDim['dimension_name'], 0, 28)) ?></div>
+      <div class="insight-lbl">Strongest — <?= e($topDim['dimension_name']) ?></div>
       <div class="insight-delta up"><?= $topDim['avg_pct'] ?>% average</div>
     <?php else: ?>
       <div class="insight-val">—</div>
@@ -545,7 +551,7 @@ include __DIR__ . '/../includes/header.php';
   <div class="insight-card">
     <?php if ($weakDim): ?>
       <div class="insight-val" style="font-size:20px;color:var(--red);">D<?= $weakDim['dimension_no'] ?></div>
-      <div class="insight-lbl">Needs Work — <?= e(substr($weakDim['dimension_name'], 0, 28)) ?></div>
+      <div class="insight-lbl">Needs Work — <?= e($weakDim['dimension_name']) ?></div>
       <div class="insight-delta down"><?= $weakDim['avg_pct'] ?>% average</div>
     <?php else: ?>
       <div class="insight-val">—</div>
