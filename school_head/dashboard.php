@@ -42,7 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     $ins = $db->prepare("INSERT INTO improvement_plans (school_id, cycle_id, dimension_id, indicator_id, priority_level, objective, strategy, person_responsible, target_date, resources_needed, expected_output, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
     foreach ($indIds as $indId) {
-      if (!$indId) continue;
+      if (!$indId)
+        continue;
       // Get the dimension for this indicator
       $dimQ = $db->prepare("SELECT dimension_id FROM sbm_indicators WHERE indicator_id = ?");
       $dimQ->execute([$indId]);
@@ -252,6 +253,22 @@ $recentActivity = $db->query("
 $validationRate = $submitted > 0 ? round(($validated / $submitted) * 100) : 0;
 $hasData = ($totalCycles > 0);
 
+// -- Teacher submission stats (for the KPI card) ---------------
+$stTotalTeachers = $db->prepare("SELECT COUNT(*) FROM users WHERE school_id = ? AND role = 'teacher' AND status = 'active'");
+$stTotalTeachers->execute([$mySchoolId]);
+$totalTeachers = (int) $stTotalTeachers->fetchColumn();
+
+$stSubmittedTeachers = $db->prepare("
+  SELECT COUNT(DISTINCT ts.teacher_id)
+  FROM teacher_submissions ts
+  JOIN sbm_cycles c ON ts.cycle_id = c.cycle_id
+  WHERE c.sy_id = ? AND c.school_id = ? AND ts.status = 'submitted'
+");
+$stSubmittedTeachers->execute([$selectedSyId, $mySchoolId]);
+$submittedTeachers = (int) $stSubmittedTeachers->fetchColumn();
+
+$teacherSubmitRate = $totalTeachers > 0 ? round(($submittedTeachers / $totalTeachers) * 100) : 0;
+
 // -- Deadline awareness ----------------------------------------
 $deadlineInfo = $selectedSyId ? getDeadlineInfo($db, $selectedSyId) : null;
 
@@ -277,14 +294,16 @@ $anDimAvgs = $anDimAvgQ->fetchAll();
 
 // -- Identify the lowest dimension(s) --
 $minDimVal = 1000;
-foreach($anDimAvgs as $da) {
-    if($da['avg_pct'] !== null && $da['avg_pct'] < $minDimVal) $minDimVal = $da['avg_pct'];
+foreach ($anDimAvgs as $da) {
+  if ($da['avg_pct'] !== null && $da['avg_pct'] < $minDimVal)
+    $minDimVal = $da['avg_pct'];
 }
 $lowestDimIds = [];
-if($minDimVal < 1000) {
-    foreach($anDimAvgs as $da) {
-        if($da['avg_pct'] == $minDimVal) $lowestDimIds[] = (int)$da['dimension_id'];
-    }
+if ($minDimVal < 1000) {
+  foreach ($anDimAvgs as $da) {
+    if ($da['avg_pct'] == $minDimVal)
+      $lowestDimIds[] = (int) $da['dimension_id'];
+  }
 }
 
 // -- Comparison SY dimension averages --------------------------
@@ -930,7 +949,7 @@ include __DIR__ . '/../includes/header.php';
     }
 
     .stats-v2 {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
     }
   }
 
@@ -2079,8 +2098,15 @@ include __DIR__ . '/../includes/header.php';
   }
 
   @keyframes tagIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
   .tag-pill i {
@@ -2365,9 +2391,25 @@ include __DIR__ . '/../includes/header.php';
         <div class="kpi-bar-fill" style="width:<?= $validationRate ?>%;background:#16A34A;"></div>
       </div>
     </div>
+    <div class="stat-v2">
+      <div class="stat-v2-accent" style="background:#D97706;"></div>
+      <div class="stat-v2-label">Teachers Submitted</div>
+      <div class="stat-v2-value"
+        style="color:<?= $teacherSubmitRate >= 100 ? '#D97706' : ($teacherSubmitRate >= 50 ? '#D97706' : 'var(--n-900)') ?>;">
+        <?= $submittedTeachers ?>/<?= $totalTeachers ?>
+      </div>
+      <div class="stat-v2-meta">
+        <span class="stat-v2-badge <?= $teacherSubmitRate >= 100 ? 'badge-green' : 'badge-amber' ?>">
+          <?= $teacherSubmitRate ?>% submitted
+        </span>
+      </div>
+      <div class="kpi-bar">
+        <div class="kpi-bar-fill" style="width:<?= $teacherSubmitRate ?>%;background:#D97706;"></div>
+      </div>
+    </div>
   </div>
 
-  <!-- ━━━━━━━━━━━ PIPELINE ━━━━━━━━━━━ -->
+  <!-- ━━━━━━━━━━━ PIPELINE ━━━━━━━━━━━ -->
   <div class="card" style="margin-bottom:20px;">
     <div class="card-head">
       <span class="card-title">Assessment Pipeline</span>
@@ -2638,7 +2680,9 @@ include __DIR__ . '/../includes/header.php';
     <div style="margin-left:auto; display:flex; gap:8px;">
       <button class="ai-assistant-btn" onclick="manuallyAddImprovementPlan()">
         <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="16" />
+          <line x1="8" y1="12" x2="16" y2="12" />
         </svg>
         Manually Add Improvement Plan
       </button>
@@ -2762,6 +2806,18 @@ include __DIR__ . '/../includes/header.php';
     </div>
   </div>
 
+  <!-- ML Prediction Insight (populated by JS when 3+ cycles) -->
+  <?php if (count($cycleHistory) >= 3): ?>
+    <div id="anPredictionInsight" class="chart-card" style="margin-bottom:18px;display:none;">
+      <div class="chart-card-head">
+        <span class="chart-card-title">Trend Forecast</span>
+        <span style="font-size:11px;color:var(--n-400);font-weight:500;">Linear regression · <?= count($cycleHistory) ?> cycles</span>
+      </div>
+      <div class="chart-card-body" style="padding:14px 16px;">
+        <!-- Content populated by JavaScript -->
+      </div>
+    </div>
+  <?php endif; ?>
   <!-- Dimension trend over time -->
   <?php if (count($trendSYLabels) >= 2): ?>
     <div class="chart-card" style="margin-bottom:18px;">
@@ -3190,32 +3246,148 @@ include __DIR__ . '/../includes/header.php';
       if (rc) rc.closest('.chart-card-body').innerHTML = '<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No dimension data for this school year.</p>';
     }
 
-    // -- Overall score trend line ----------------------------â”€
+    // -- Overall score trend line with Linear Regression ------
     const trendEl = document.getElementById('anTrendLineChart');
     if (anCycleScores.length >= 1 && trendEl) {
+      let finalLabels = [...anCycleLabels];
+      let historicalData = [...anCycleScores];
+      let predictedData = new Array(anCycleScores.length).fill(null);
+      let regressionLine = new Array(anCycleScores.length).fill(null);
+      let showPrediction = false;
+      let predictionValue = null;
+      let slope = 0, intercept = 0, rSquared = 0;
+
+      // ── Simple Linear Regression (OLS) when >= 3 data points ──
+      if (anCycleScores.length >= 3) {
+        showPrediction = true;
+        const n = anCycleScores.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+        for (let i = 0; i < n; i++) {
+          sumX += i; sumY += anCycleScores[i];
+          sumXY += i * anCycleScores[i]; sumXX += i * i;
+        }
+        slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+        intercept = (sumY - slope * sumX) / n;
+
+        // R² (coefficient of determination)
+        const meanY = sumY / n;
+        let ssTot = 0, ssRes = 0;
+        for (let i = 0; i < n; i++) {
+          const predicted = slope * i + intercept;
+          ssTot += (anCycleScores[i] - meanY) ** 2;
+          ssRes += (anCycleScores[i] - predicted) ** 2;
+        }
+        rSquared = ssTot > 0 ? 1 - (ssRes / ssTot) : 0;
+
+        // Regression fitted line (through existing points)
+        regressionLine = [];
+        for (let i = 0; i < n; i++) {
+          regressionLine.push(parseFloat(Math.max(0, Math.min(100, slope * i + intercept)).toFixed(2)));
+        }
+
+        // Predict next SY
+        predictionValue = parseFloat(Math.max(0, Math.min(100, slope * n + intercept)).toFixed(2));
+        finalLabels.push('Next SY (Predicted)');
+        historicalData.push(null);
+        regressionLine.push(predictionValue);
+
+        // Dashed prediction connector: last actual → predicted
+        predictedData = new Array(n + 1).fill(null);
+        predictedData[n - 1] = anCycleScores[n - 1];
+        predictedData[n] = predictionValue;
+      }
+
+      // Point colors based on maturity thresholds
+      const ptColors = anCycleScores.map(s =>
+        s >= 76 ? '#16A34A' : (s >= 51 ? '#2563EB' : (s >= 26 ? '#D97706' : '#DC2626'))
+      );
+
+      const datasets = [{
+        label: 'Overall Score',
+        data: historicalData,
+        borderColor: '#16A34A',
+        backgroundColor: 'rgba(22,163,74,.08)',
+        pointBackgroundColor: ptColors.concat(showPrediction ? ['transparent'] : []),
+        pointRadius: ctx => ctx.raw === null ? 0 : 6,
+        pointHoverRadius: ctx => ctx.raw === null ? 0 : 8,
+        borderWidth: 2.5, tension: 0.3, fill: true,
+        order: 2,
+      }];
+
+      if (showPrediction) {
+        // Fitted regression line — subtle, understated
+        datasets.push({
+          label: 'Forecast',
+          data: regressionLine,
+          borderColor: 'rgba(148,163,184,0.5)',
+          backgroundColor: 'transparent',
+          borderDash: [4, 4],
+          pointRadius: ctx => ctx.dataIndex === regressionLine.length - 1 ? 5 : 0,
+          pointHoverRadius: ctx => ctx.dataIndex === regressionLine.length - 1 ? 7 : 0,
+          pointBackgroundColor: '#94a3b8',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1.5,
+          borderWidth: 1.5, tension: 0, fill: false,
+          order: 1,
+        });
+      }
+
       new Chart(trendEl, {
         type: 'line',
-        data: {
-          labels: anCycleLabels,
-          datasets: [{
-            label: 'Overall Score (%)',
-            data: anCycleScores,
-            borderColor: '#16A34A',
-            backgroundColor: 'rgba(22,163,74,.08)',
-            pointBackgroundColor: anCycleScores.map(s => s >= 76 ? '#16A34A' : (s >= 51 ? '#2563EB' : (s >= 26 ? '#D97706' : '#DC2626'))),
-            pointRadius: 6, pointHoverRadius: 8,
-            borderWidth: 2.5, tension: 0.3, fill: true,
-          }]
-        },
+        data: { labels: finalLabels, datasets },
         options: {
           scales: {
             y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
-            x: { ticks: { font: { size: 11, weight: '600' } }, grid: { display: false } }
+            x: { ticks: { font: { size: 11, weight: '600' }, color: (ctx) => ctx.index === finalLabels.length - 1 && showPrediction ? '#9CA3AF' : '#6B7280' }, grid: { display: false } }
           },
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' Score: ' + ctx.raw + '%' } } },
+          plugins: {
+            legend: {
+              display: showPrediction,
+              position: 'top',
+              labels: { usePointStyle: true, boxWidth: 8, font: { size: 11 }, padding: 12 }
+            },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const suffix = ctx.dataIndex === finalLabels.length - 1 && showPrediction ? ' (estimated)' : '';
+                  return ' ' + ctx.dataset.label + ': ' + ctx.raw + '%' + suffix;
+                }
+              }
+            }
+          },
           responsive: true, maintainAspectRatio: true, aspectRatio: 1.5,
         }
       });
+
+      // ── Populate the prediction insight card below the chart ──
+      const insightEl = document.getElementById('anPredictionInsight');
+      if (insightEl && showPrediction) {
+        const insightBody = insightEl.querySelector('.chart-card-body');
+        const trendDir = slope > 0.5 ? 'upward' : (slope < -0.5 ? 'downward' : 'stable');
+        const trendLabel = slope > 0.5 ? 'Scores are improving' : (slope < -0.5 ? 'Scores are declining' : 'Scores are steady');
+        const matLevel = predictionValue >= 76 ? 'Advanced' : (predictionValue >= 51 ? 'Maturing' : (predictionValue >= 26 ? 'Developing' : 'Beginning'));
+        const confidenceLabel = rSquared >= 0.7 ? 'High confidence' : (rSquared >= 0.4 ? 'Moderate confidence' : 'Low confidence');
+        const changePerCycle = Math.abs(slope).toFixed(1);
+        const changeDir = slope > 0 ? 'up' : (slope < 0 ? 'down' : 'unchanged');
+
+        insightBody.innerHTML = `
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+            <div style="display:flex;align-items:baseline;gap:6px;">
+              <span style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--n-800);letter-spacing:-.5px;">${predictionValue}%</span>
+              <span style="font-size:11px;color:var(--n-400);font-weight:500;">estimated next SY</span>
+            </div>
+            <span style="width:1px;height:20px;background:var(--n-200);flex-shrink:0;"></span>
+            <span style="font-size:11.5px;font-weight:600;color:var(--n-500);">${trendLabel}</span>
+            <span style="width:1px;height:20px;background:var(--n-200);flex-shrink:0;"></span>
+            <span style="font-size:11.5px;color:var(--n-400);">~${changePerCycle}% ${changeDir} per cycle</span>
+            <span style="width:1px;height:20px;background:var(--n-200);flex-shrink:0;"></span>
+            <span style="font-size:11.5px;color:var(--n-400);">${confidenceLabel}</span>
+            <span style="width:1px;height:20px;background:var(--n-200);flex-shrink:0;"></span>
+            <span style="font-size:11.5px;color:var(--n-400);">Projected level: <strong style="font-weight:600;color:var(--n-600);">${matLevel}</strong></span>
+          </div>
+        `;
+        insightEl.style.display = 'block';
+      }
     }
 
     // -- Dimension trend lines --------------------------------
@@ -3324,9 +3496,10 @@ include __DIR__ . '/../includes/header.php';
               <input type="text" class="tag-input-ghost" id="dimTagInput" placeholder="Select Dimensions...">
               <div class="tag-dropdown" id="dimTagDropdown">
                 <?php foreach ($dimScores as $d):
-                ?>
+                  ?>
                   <div class="tag-option" data-id="<?= $d['dimension_id'] ?>" data-name="D<?= $d['dimension_no'] ?>">
-                    D<?= $d['dimension_no'] ?> - <?= e($d['dimension_name']) ?> (<?= $d['avg_pct'] ?>%) <?= ($d['avg_pct'] < 50) ? '⚠️' : '' ?>
+                    D<?= $d['dimension_no'] ?> - <?= e($d['dimension_name']) ?> (<?= $d['avg_pct'] ?>%)
+                    <?= ($d['avg_pct'] < 50) ? '⚠️' : '' ?>
                   </div>
                 <?php endforeach; ?>
               </div>
@@ -3335,7 +3508,8 @@ include __DIR__ . '/../includes/header.php';
           </div>
 
           <div class="form-group">
-            <label>Indicator(s) <small style="color:var(--n-500);">(Only indicators with rating &le; 2.5 available)</small></label>
+            <label>Indicator(s) <small style="color:var(--n-500);">(Only indicators with rating &le; 2.5
+                available)</small></label>
             <div class="tag-select-container" id="indTagContainer">
               <input type="text" class="tag-input-ghost" id="indTagInput" placeholder="Select Indicators...">
               <div class="tag-dropdown" id="indTagDropdown">
@@ -3370,7 +3544,8 @@ include __DIR__ . '/../includes/header.php';
           </div>
           <div class="form-group">
             <label>Person Responsible</label>
-            <input type="text" name="person_responsible" class="form-control" placeholder="E.g. Principal, Grade Level Head">
+            <input type="text" name="person_responsible" class="form-control"
+              placeholder="E.g. Principal, Grade Level Head">
           </div>
           <div class="grid2">
             <div class="form-group">
@@ -3385,7 +3560,8 @@ include __DIR__ . '/../includes/header.php';
         </form>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="toggleAISuggestionSplit()" id="toggleAiModalBtn">View AI Suggestion</button>
+        <button class="btn-secondary" onclick="toggleAISuggestionSplit()" id="toggleAiModalBtn">View AI
+          Suggestion</button>
         <div style="flex:1"></div>
         <button class="btn-secondary" onclick="closeImprovementPlanModal()">Cancel</button>
         <button class="btn-primary" onclick="saveImprovementPlan(event)">Save Improvement Plan</button>
@@ -3400,7 +3576,9 @@ include __DIR__ . '/../includes/header.php';
       </div>
       <div class="ai-side-body" id="modalAiBody">
         <div class="typing" style="padding:24px;">
-          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
           <p style="margin-top:12px; font-size:12px; color:var(--n-500);">Generating recommendations...</p>
         </div>
       </div>
@@ -3423,7 +3601,7 @@ include __DIR__ . '/../includes/header.php';
     localStorage.setItem('ai_panel_state', state);
   }
 
-// ── TAG MULTI-SELECT COMPONENT (Refined) ────────────────────────
+  // ── TAG MULTI-SELECT COMPONENT (Refined) ────────────────────────
   function initTagSelect(prefix, options, onUpdate) {
     const container = document.getElementById(prefix + 'TagContainer');
     const input = document.getElementById(prefix + 'TagInput');
@@ -3431,7 +3609,7 @@ include __DIR__ . '/../includes/header.php';
     const hidden = document.getElementById(prefix + 'IdsInput');
 
     let selected = [];
-    
+
     // Add Clear/Dropdown actions visually
     const actions = document.createElement('div');
     actions.className = 'tag-select-actions';
@@ -3458,7 +3636,7 @@ include __DIR__ . '/../includes/header.php';
         container.insertBefore(tag, input);
       });
       hidden.value = selected.join(',');
-      
+
       // Update dropdown options visibility
       const opts = dropdown.querySelectorAll('.tag-option');
       let visibleCount = 0;
@@ -3466,7 +3644,7 @@ include __DIR__ . '/../includes/header.php';
         const id = opt.getAttribute('data-id');
         const isSel = selected.includes(id);
         opt.classList.toggle('selected', isSel);
-        if(!isSel && !opt.classList.contains('hidden')) visibleCount++;
+        if (!isSel && !opt.classList.contains('hidden')) visibleCount++;
       });
 
       // Handle "No options" message
@@ -3554,12 +3732,12 @@ include __DIR__ . '/../includes/header.php';
     dropdown.querySelectorAll('.tag-option').forEach(wireOptions);
 
     window['removeTag' + prefix] = (id, event) => {
-      if(event) event.stopPropagation();
+      if (event) event.stopPropagation();
       selected = selected.filter(s => s != id);
       render();
     };
 
-    return { 
+    return {
       setOptions: (newOpts) => {
         options = newOpts;
         dropdown.innerHTML = '';
@@ -3597,14 +3775,14 @@ include __DIR__ . '/../includes/header.php';
           name: wi.indicator_code + ': ' + (wi.indicator_text.length > 60 ? wi.indicator_text.substring(0, 60) + "..." : wi.indicator_text),
           label: wi.indicator_code
         }));
-      if(indTagControl) indTagControl.setOptions(filteredIndicators);
+      if (indTagControl) indTagControl.setOptions(filteredIndicators);
     });
 
     indTagControl = initTagSelect('ind', []);
   });
 
   function removeTag(prefix, id, e) {
-    if(e) e.stopPropagation();
+    if (e) e.stopPropagation();
     window['removeTag' + prefix](id);
   }
 
@@ -3653,10 +3831,10 @@ include __DIR__ . '/../includes/header.php';
     document.getElementById('improvementPlanModal').style.display = 'none';
     document.querySelector('#improvementPlanModal .modal-content').classList.remove('split-view');
     document.getElementById('toggleAiModalBtn').textContent = 'View AI Suggestion';
-    
+
     // Reset tag controls and form
-    if(dimTagControl) dimTagControl.reset();
-    if(indTagControl) indTagControl.reset();
+    if (dimTagControl) dimTagControl.reset();
+    if (indTagControl) indTagControl.reset();
     document.getElementById('improvementPlanForm').reset();
   }
 

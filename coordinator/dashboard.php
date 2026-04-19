@@ -12,12 +12,12 @@ $db = getDB();
 // ── AJAX HANDLER ──────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_sh_improvement_plans') {
   header('Content-Type: application/json');
-  $cycleId = (int)($_POST['cycle_id'] ?? 0);
+  $cycleId = (int) ($_POST['cycle_id'] ?? 0);
   if (!$cycleId) {
     echo json_encode(['ok' => false, 'msg' => 'Invalid cycle ID']);
     exit;
   }
-  
+
   $st = $db->prepare("
     SELECT ip.*, d.dimension_name, d.dimension_no, d.color_hex, i.indicator_code, i.indicator_text
     FROM improvement_plans ip
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_s
   ");
   $st->execute([$cycleId]);
   $plans = $st->fetchAll(PDO::FETCH_ASSOC);
-  
+
   echo json_encode(['ok' => true, 'plans' => $plans]);
   exit;
 }
@@ -115,12 +115,12 @@ if ($cycle) {
     $recommendations = $recStmt->fetchAll();
   } catch (Exception $e) {
   }
-  
+
   // Check if SH has made an improvement plan
   try {
     $planSt = $db->prepare("SELECT COUNT(*) FROM improvement_plans WHERE cycle_id=? AND target_date IS NOT NULL AND target_date != '' AND person_responsible IS NOT NULL AND person_responsible != ''");
     $planSt->execute([$cycle['cycle_id']]);
-    $shPlanCount = (int)$planSt->fetchColumn();
+    $shPlanCount = (int) $planSt->fetchColumn();
   } catch (Exception $e) {
   }
 }
@@ -1329,7 +1329,7 @@ include __DIR__ . '/../includes/header.php';
     background: #fff;
     border: none;
     cursor: pointer;
-    box-shadow: 0 12px 30px -8px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
+    box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1340,7 +1340,7 @@ include __DIR__ . '/../includes/header.php';
 
   .ai-assistant-fab:hover {
     transform: translateY(-4px) scale(1.05);
-    box-shadow: 0 20px 40px -12px rgba(22,163,74,0.25), 0 0 0 1px rgba(22,163,74,0.1);
+    box-shadow: 0 20px 40px -12px rgba(22, 163, 74, 0.25), 0 0 0 1px rgba(22, 163, 74, 0.1);
   }
 
   .ai-assistant-fab img {
@@ -1366,21 +1366,30 @@ include __DIR__ . '/../includes/header.php';
     height: 600px;
     background: #fff;
     border-radius: 24px;
-    box-shadow: 0 20px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.04);
+    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04);
     display: none;
     flex-direction: column;
     z-index: 1001;
     overflow: hidden;
     animation: aiPanelSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    border: 1px solid rgba(0,0,0,0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
   }
 
   @keyframes aiPanelSlideUp {
-    from { opacity: 0; transform: translateY(20px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
 
-  .ai-assistant-panel.open { display: flex; }
+  .ai-assistant-panel.open {
+    display: flex;
+  }
 
   .ai-assistant-panel.minimized {
     height: 60px;
@@ -1398,9 +1407,24 @@ include __DIR__ . '/../includes/header.php';
     flex-shrink: 0;
   }
 
-  .ai-header-left { display: flex; align-items: center; gap: 12px; }
-  .ai-header-seal { width: 32px; height: 32px; object-fit: contain; }
-  .ai-header-title { font-size: 15px; font-weight: 800; color: #1e293b; letter-spacing: -0.01em; }
+  .ai-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .ai-header-seal {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+  }
+
+  .ai-header-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #1e293b;
+    letter-spacing: -0.01em;
+  }
 
   .chat-body {
     flex: 1;
@@ -1438,7 +1462,7 @@ include __DIR__ . '/../includes/header.php';
     color: #334155;
     border: 1px solid #eef2f6;
     border-bottom-left-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
   }
 
   .chat-msg.user {
@@ -1448,12 +1472,15 @@ include __DIR__ . '/../includes/header.php';
     border-bottom-right-radius: 4px;
   }
 
-  /* Improvement Plan View Modal Styles */
+  /* ── IMPROVEMENT PLAN MODAL — Minimalist White/Gray Design ── */
   .ip-view-modal {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(15,23,42,0.6);
-    backdrop-filter: blur(6px);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(4px);
     z-index: 2000;
     display: none;
     align-items: center;
@@ -1464,62 +1491,347 @@ include __DIR__ . '/../includes/header.php';
   .ip-view-content {
     background: #fff;
     width: 100%;
-    max-width: 1100px;
-    height: 85vh;
-    border-radius: 20px;
+    max-width: 1160px;
+    height: 88vh;
+    border-radius: 16px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3);
+    box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.04);
+    animation: ipModalIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
+  @keyframes ipModalIn {
+    from {
+      opacity: 0;
+      transform: scale(0.97) translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  /* Header — plain white with bottom border */
   .ip-view-header {
-    padding: 20px 24px;
-    background: var(--brand-700);
-    color: #fff;
+    padding: 22px 28px 18px;
+    background: #fff;
+    border-bottom: 1px solid #e8ecf0;
+    flex-shrink: 0;
+  }
+
+  .ip-view-header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .ip-view-title-block {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
   }
 
+  .ip-view-title-icon {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .ip-view-title-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke: #64748b;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .ip-view-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+  }
+
+  .ip-view-subtitle {
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  .ip-view-close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 140ms;
+    flex-shrink: 0;
+  }
+
+  .ip-view-close-btn:hover {
+    background: #e2e8f0;
+  }
+
+  .ip-view-close-btn svg {
+    width: 15px;
+    height: 15px;
+    stroke: #64748b;
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+  }
+
+  /* Toolbar — search + filters */
+  .ip-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .ip-search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 180px;
+    max-width: 280px;
+  }
+
+  .ip-search-wrap svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    stroke: #94a3b8;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    pointer-events: none;
+  }
+
+  .ip-search-input {
+    width: 100%;
+    padding: 7px 10px 7px 32px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: #334155;
+    background: #f8fafc;
+    outline: none;
+    transition: border-color 140ms, background 140ms;
+    box-sizing: border-box;
+  }
+
+  .ip-search-input:focus {
+    border-color: #94a3b8;
+    background: #fff;
+  }
+
+  .ip-filter-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+  }
+
+  .ip-filter-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .ip-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1.5px solid #e2e8f0;
+    background: #f8fafc;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 140ms;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .ip-chip:hover {
+    border-color: #94a3b8;
+    color: #334155;
+    background: #fff;
+  }
+
+  .ip-chip.active {
+    background: #1e293b;
+    color: #fff;
+    border-color: #1e293b;
+  }
+
+  .ip-chip-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+
+  /* Body */
   .ip-view-body {
     flex: 1;
     overflow-y: auto;
-    padding: 24px;
+    background: #f8fafc;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
   }
 
+  /* Table */
   .ip-table {
     width: 100%;
     border-spacing: 0;
-    border-collapse: separate;
+    border-collapse: collapse;
+    background: #f8fafc;
   }
 
-  .ip-table th {
-    background: #f8fafc;
-    padding: 12px 16px;
-    text-align: left;
-    font-size: 12px;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 2px solid #e2e8f0;
+  .ip-table thead {
     position: sticky;
     top: 0;
     z-index: 10;
   }
 
-  .ip-table td {
-    padding: 14px 16px;
+  .ip-table th {
+    background: #f8fafc;
+    padding: 11px 18px;
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid #e8ecf0;
+    white-space: nowrap;
+  }
+
+  .ip-table tbody tr {
+    background: #fff;
     border-bottom: 1px solid #f1f5f9;
+    transition: background 120ms;
+  }
+
+  .ip-table tbody tr:hover {
+    background: #fafbff;
+  }
+
+  .ip-table td {
+    padding: 16px 18px;
     font-size: 13px;
     vertical-align: top;
     color: #334155;
   }
 
-  .ip-priority-High { border-left: 4px solid #ef4444; background: #fef2f2; }
-  .ip-priority-Medium { border-left: 4px solid #f59e0b; background: #fffbeb; }
-  .ip-priority-Low { border-left: 4px solid #3b82f6; background: #eff6ff; }
+  /* Priority badge */
+  .ip-priority-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .ip-priority-badge.High {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+  }
+
+  .ip-priority-badge.Medium {
+    background: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+  }
+
+  .ip-priority-badge.Low {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+  }
+
+  /* Expected Output cell */
+  .ip-output-cell {
+    background: #f8fafc;
+    border: 1px solid #e8ecf0;
+    border-radius: 7px;
+    padding: 9px 11px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: #475569;
+  }
+
+  .ip-output-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    margin-bottom: 4px;
+  }
+
+  /* Footer */
+  .ip-view-footer {
+    padding: 14px 24px;
+    border-top: 1px solid #f1f5f9;
+    background: #fff;
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
+
+  .ip-print-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 140ms;
+  }
+
+  .ip-print-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1e293b;
+  }
+
+  .ip-print-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
 </style>
 
 <?php if ($cycle && $cycle['status'] === 'returned'): ?>
@@ -2009,7 +2321,8 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
     <div style="margin-left:auto;display:flex;gap:8px;">
       <?php if (($shPlanCount ?? 0) > 0): ?>
-        <button class="ai-assistant-btn" onclick="viewSHImprovementPlan()" style="border-color:var(--brand-300);background:var(--brand-50);color:var(--brand-700);">
+        <button class="ai-assistant-btn" onclick="viewSHImprovementPlan()"
+          style="border-color:var(--brand-300);background:var(--brand-50);color:var(--brand-700);">
           <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
@@ -2598,78 +2911,157 @@ include __DIR__ . '/../includes/header.php';
   }
 
   // ── SCHOOL HEAD IMPROVEMENT PLAN LOGIC ──────────────────────
+  let _shIpPlans = []; // store fetched plans for client-side filtering
+
   async function viewSHImprovementPlan() {
     const modal = document.getElementById('shImprovementPlanModal');
     const tableBody = document.getElementById('shIpTableBody');
     const syLabel = <?= json_encode($syLabel) ?>;
-    
+
     modal.style.display = 'flex';
-    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:100px;color:var(--n-400);">Loading plans...</td></tr>';
-    
+    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:80px 20px;color:#94a3b8;font-size:13px;">Loading plans…</td></tr>';
+
+    // Reset filters
+    document.querySelectorAll('.ip-chip').forEach(c => c.classList.remove('active'));
+    const searchEl = document.getElementById('shIpSearch');
+    if (searchEl) searchEl.value = '';
+
     try {
       const formData = new FormData();
       formData.append('action', 'get_sh_improvement_plans');
       formData.append('cycle_id', '<?= $cycle ? $cycle['cycle_id'] : '' ?>');
-      
+
       const res = await fetch(window.location.href, { method: 'POST', body: formData });
       const data = await res.json();
-      
+
       if (!data.ok) {
-        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:100px;color:var(--n-400);">${data.msg}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:80px 20px;color:#94a3b8;font-size:13px;">${data.msg}</td></tr>`;
         return;
       }
-      
+
       if (data.plans.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:100px;color:var(--n-400);">No improvement plans have been submitted by the School Head for SY ${syLabel} yet.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:80px 20px;color:#94a3b8;font-size:13px;">No improvement plans have been submitted by the School Head for SY ${syLabel} yet.</td></tr>`;
         return;
       }
-      
-      let html = '';
-      data.plans.forEach(p => {
-        html += `
-          <tr class="ip-priority-${p.priority_level}">
-            <td>
-              <div style="font-weight:800;margin-bottom:4px;">${p.priority_level}</div>
-              <div style="font-size:11px;color:#64748b;font-weight:600;">Priority</div>
-            </td>
-            <td style="width:220px;">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-                <span style="width:10px;height:10px;border-radius:2px;background:${p.color_hex};"></span>
-                <span style="font-weight:700;">Dimension ${p.dimension_no}</span>
-              </div>
-              <div style="font-size:12px;color:#64748b;line-height:1.4;">${p.dimension_name}</div>
-            </td>
-            <td>
-              <div style="font-weight:600;color:var(--brand-700);margin-bottom:4px;">${p.indicator_code || 'General'}</div>
-              <div style="font-size:11.5px;color:#64748b;line-height:1.4;">${p.indicator_text || '—'}</div>
-            </td>
-            <td>
-              <div style="font-weight:700;margin-bottom:6px;color:#1e293b;">Objective:</div>
-              <div style="margin-bottom:12px;line-height:1.5;">${p.objective}</div>
-              <div style="font-weight:700;margin-bottom:6px;color:#1e293b;">Strategy:</div>
-              <div style="line-height:1.5;">${p.strategy}</div>
-            </td>
-            <td>
-              <div style="font-weight:700;color:#1e293b;margin-bottom:2px;">Target:</div>
-              <div style="margin-bottom:8px;">${p.target_date || '—'}</div>
-              <div style="font-weight:700;color:#1e293b;margin-bottom:2px;">Owner:</div>
-              <div>${p.person_responsible || '—'}</div>
-            </td>
-            <td>
-              <div style="background:#fff;padding:8px;border-radius:6px;border:1px solid #e2e8f0;">
-                <div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px;">EXPECTED OUTPUT</div>
-                <div style="line-height:1.4;">${p.expected_output || '—'}</div>
-              </div>
-            </td>
-          </tr>
-        `;
-      });
-      tableBody.innerHTML = html;
-      
-    } catch(err) {
+
+      _shIpPlans = data.plans;
+
+      // Build dimension filter chips dynamically
+      const dims = [...new Map(data.plans.map(p => [p.dimension_no, p])).values()];
+      const dimChipsEl = document.getElementById('shIpDimChips');
+      if (dimChipsEl) {
+        dimChipsEl.innerHTML = dims.map(p => `
+          <span class="ip-chip" data-dim="${p.dimension_no}" onclick="toggleIpChip(this)">
+            <span class="ip-chip-dot" style="background:${p.color_hex || '#64748b'};"></span>
+            Dim ${p.dimension_no}
+          </span>`).join('');
+      }
+
+      renderSHIpRows(_shIpPlans);
+
+    } catch (err) {
       console.error(err);
-      tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:100px;color:var(--n-400);">Failed to load data.</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:80px 20px;color:#94a3b8;font-size:13px;">Failed to load data.</td></tr>';
     }
+  }
+
+  function renderSHIpRows(plans) {
+    const tableBody = document.getElementById('shIpTableBody');
+    if (!plans.length) {
+      tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:80px 20px;color:#94a3b8;font-size:13px;">No plans match your filters.</td></tr>';
+      return;
+    }
+    window._shIpVisible = plans;
+    let html = '';
+    plans.forEach((p, idx) => {
+      html += `
+        <tr data-idx="${idx}" style="cursor:pointer;">
+          <td>
+            <span class="ip-priority-badge ${p.priority_level}">${p.priority_level}</span>
+            <div style="font-size:11px;color:#94a3b8;font-weight:500;margin-top:4px;">Priority</div>
+          </td>
+          <td>
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
+              <span style="width:9px;height:9px;border-radius:3px;flex-shrink:0;display:inline-block;background:${p.color_hex || '#64748b'};"></span>
+              <span style="font-size:13px;font-weight:700;color:#0f172a;">Dimension ${p.dimension_no}</span>
+            </div>
+            <div style="font-size:11.5px;color:#64748b;line-height:1.45;">${p.dimension_name}</div>
+          </td>
+          <td>
+            <div style="font-size:13px;font-weight:700;color:var(--brand-600,#16a34a);margin-bottom:4px;">${p.indicator_code || 'General'}</div>
+            <div style="font-size:11.5px;color:#64748b;line-height:1.45;">${p.indicator_text || '—'}</div>
+          </td>
+          <td>
+            <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:4px;">Objective:</div>
+            <div style="margin-bottom:12px;line-height:1.55;font-size:13px;">${p.objective || '—'}</div>
+            <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:4px;">Strategy:</div>
+            <div style="line-height:1.55;font-size:13px;">${p.strategy || '—'}</div>
+          </td>
+          <td>
+            <div style="font-size:11.5px;font-weight:700;color:#0f172a;margin-bottom:2px;">Target:</div>
+            <div style="margin-bottom:9px;font-size:13px;">${p.target_date || '—'}</div>
+            <div style="font-size:11.5px;font-weight:700;color:#0f172a;margin-bottom:2px;">Owner:</div>
+            <div style="font-size:13px;">${p.person_responsible || '—'}</div>
+          </td>
+          <td>
+            <div class="ip-output-label">Expected Output</div>
+            <div style="line-height:1.55;font-size:13px;">${p.expected_output || '—'}</div>
+          </td>
+        </tr>
+      `;
+    });
+    tableBody.innerHTML = html;
+
+    // Attach click listeners safely via JS (avoids any HTML attribute escaping issues)
+    tableBody.querySelectorAll('tr[data-idx]').forEach(row => {
+      row.addEventListener('click', function () {
+        openPlanDetail(window._shIpVisible[parseInt(this.dataset.idx)]);
+      });
+    });
+  }
+
+  // ── PLAN DETAIL MODAL ───────────────────────────────────────
+  function openPlanDetail(p) {
+    if (!p) { console.error('openPlanDetail: plan data missing'); return; }
+    const modal = document.getElementById('planDetailModal');
+    if (!modal) { console.error('openPlanDetail: #planDetailModal not found'); return; }
+    document.getElementById('pdTitle').textContent = `Dimension ${p.dimension_no}: ${p.dimension_name} - School Head Improvement Plan`;
+    document.getElementById('pdObjective').textContent = p.objective || '—';
+    document.getElementById('pdStrategy').textContent = p.strategy || '—';
+    document.getElementById('pdTarget').textContent = p.target_date || '—';
+    document.getElementById('pdOwner').textContent = p.person_responsible || '—';
+    document.getElementById('pdOutput').textContent = p.expected_output || '—';
+    document.getElementById('pdIndicator').textContent = p.indicator_code || '—';
+    document.getElementById('pdDimName').textContent = `Dimension ${p.dimension_no}: ${p.dimension_name}`;
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  }
+
+  function closePlanDetail() {
+    const modal = document.getElementById('planDetailModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function toggleIpChip(chip) {
+    chip.classList.toggle('active');
+    filterSHIpTable();
+  }
+
+  function filterSHIpTable() {
+    const search = (document.getElementById('shIpSearch')?.value || '').toLowerCase().trim();
+    const activePriorities = [...document.querySelectorAll('#shIpPriorityChips .ip-chip.active')].map(c => c.dataset.priority);
+    const activeDims = [...document.querySelectorAll('#shIpDimChips .ip-chip.active')].map(c => c.dataset.dim);
+
+    const filtered = _shIpPlans.filter(p => {
+      const matchPriority = !activePriorities.length || activePriorities.includes(p.priority_level);
+      const matchDim = !activeDims.length || activeDims.includes(String(p.dimension_no));
+      const matchSearch = !search || [
+        p.priority_level, p.dimension_name, p.indicator_code, p.indicator_text,
+        p.objective, p.strategy, p.person_responsible, p.expected_output
+      ].join(' ').toLowerCase().includes(search);
+      return matchPriority && matchDim && matchSearch;
+    });
+
+    renderSHIpRows(filtered);
   }
 
   function closeSHIpModal() {
@@ -2680,10 +3072,10 @@ include __DIR__ . '/../includes/header.php';
   function setAIPanelState(state) {
     const panel = document.getElementById('aiAssistant');
     const fab = document.getElementById('aiAssistantFab');
-    
+
     panel.classList.remove('open', 'minimized');
     fab.classList.remove('minimized');
-    
+
     if (state === 'open') {
       panel.classList.add('open');
     } else if (state === 'minimized') {
@@ -2699,9 +3091,9 @@ include __DIR__ . '/../includes/header.php';
     if (body.children.length === 0) startAISession();
   }
 
-  function closeAIAssistant(e) { if(e) e.stopPropagation(); setAIPanelState('closed'); }
+  function closeAIAssistant(e) { if (e) e.stopPropagation(); setAIPanelState('closed'); }
   function toggleMinimizeAIAssistant(e) {
-    if(e) e.stopPropagation();
+    if (e) e.stopPropagation();
     const panel = document.getElementById('aiAssistant');
     const newState = panel.classList.contains('minimized') ? 'open' : 'minimized';
     setAIPanelState(newState);
@@ -2714,7 +3106,7 @@ include __DIR__ . '/../includes/header.php';
   async function startAISession() {
     const body = document.getElementById('aiChatBody');
     body.innerHTML = '<div class="chat-msg ai">Analyzing SBM cycle data for SY ' + <?= json_encode($syLabel) ?> + '...</div>';
-    
+
     const formData = new FormData();
     formData.append('action', 'get_ai_suggestions');
     formData.append('sy_id', '<?= $syId ?>');
@@ -2722,7 +3114,7 @@ include __DIR__ . '/../includes/header.php';
     try {
       const res = await fetch('../school_head/dashboard.php', { method: 'POST', body: formData });
       const data = await res.json();
-      
+
       body.innerHTML = '';
       if (data.recommendations) {
         addMessage(data.recommendations, 'ai');
@@ -2771,42 +3163,202 @@ include __DIR__ . '/../includes/header.php';
 
 <!-- ── MODAL HTML ── -->
 
-<!-- View SH Improvement Plan Modal -->
-<div id="shImprovementPlanModal" class="ip-view-modal">
-  <div class="ip-view-content">
-    <div class="ip-view-header">
-      <div style="display:flex;align-items:center;gap:15px;">
-        <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;">
-          <svg style="width:24px;height:24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-            <polyline points="10 9 9 9 8 9" />
-          </svg>
-        </div>
-        <div>
-          <h2 style="font-size:18px;font-weight:800;margin:0;">School Head Improvement Plan</h2>
-          <p style="font-size:12px;opacity:0.8;margin:0;">Registered Action Plans for SY <?= e($syLabel) ?></p>
-        </div>
-      </div>
-      <button onclick="closeSHIpModal()" style="background:none;border:none;color:#fff;cursor:pointer;padding:8px;border-radius:8px;">
-        <svg style="width:24px;height:24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+<!-- Plan Detail Modal -->
+<div id="planDetailModal"
+  style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px;"
+  onclick="if(event.target===this)closePlanDetail()">
+  <div
+    style="background:#fff;width:100%;max-width:1080px;max-height:88vh;border-radius:14px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 32px 64px -12px rgba(0,0,0,0.25);animation:ipModalIn 0.2s cubic-bezier(0.16,1,0.3,1) both;">
+
+    <!-- Header -->
+    <div
+      style="padding:20px 28px;border-bottom:1px solid #e8ecf0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div style="font-size:16px;font-weight:800;color:#0f172a;letter-spacing:-0.3px;" id="pdTitle"></div>
+      <button onclick="closePlanDetail()"
+        style="width:30px;height:30px;border-radius:7px;background:#f1f5f9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24"
+          style="width:14px;height:14px;stroke:#64748b;fill:none;stroke-width:2.5;stroke-linecap:round;">
           <line x1="18" y1="6" x2="6" y2="18" />
           <line x1="6" y1="6" x2="18" y2="18" />
         </svg>
       </button>
     </div>
+
+    <!-- Body -->
+    <div
+      style="flex:1;overflow-y:auto;padding:24px 28px;display:grid;grid-template-columns:1fr 340px;gap:20px;background:#f8fafc;">
+
+      <!-- Left column -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Objectives & Strategies -->
+        <div style="background:#fff;border:1px solid #e8ecf0;border-radius:10px;overflow:hidden;">
+          <div
+            style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:14px;font-weight:700;color:#0f172a;">
+            Objectives &amp; Strategies</div>
+          <div style="padding:16px 18px;font-size:13.5px;line-height:1.7;color:#334155;">
+            <span style="font-weight:700;">Objective:</span> <span id="pdObjective"></span>
+            <span style="font-weight:700;"> Strategy:</span> <span id="pdStrategy"></span>.<br><br>
+            <span style="font-weight:700;">Target:</span> <span id="pdTarget"></span><br>
+            <span style="font-weight:700;">Owner:</span> <span id="pdOwner"></span>.
+          </div>
+        </div>
+
+        <!-- Expected Outputs & Evidence -->
+        <div style="background:#fff;border:1px solid #e8ecf0;border-radius:10px;overflow:hidden;">
+          <div
+            style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:14px;font-weight:700;color:#0f172a;">
+            Expected Outputs &amp; Evidence</div>
+          <div style="padding:16px 18px;font-size:13.5px;line-height:1.9;color:#334155;">
+            <span style="font-weight:700;">EXPECTED OUTPUT:</span> <span id="pdOutput"></span><br><br>
+            <span style="font-weight:700;">Evidence:</span> <span style="color:#64748b;">Meeting Minutes, Attendance
+              Sheets, Feedback Forms (Placeholder).</span>
+          </div>
+        </div>
+
+        <!-- Resource Allocation -->
+        <div style="background:#fff;border:1px solid #e8ecf0;border-radius:10px;overflow:hidden;">
+          <div
+            style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:14px;font-weight:700;color:#0f172a;">
+            Resource Allocation</div>
+          <div style="padding:16px 18px;font-size:13.5px;line-height:1.9;color:#334155;">
+            <span style="font-weight:700;">Budget:</span> <span style="color:#64748b;">—</span><br>
+            <span style="font-weight:700;">Staff:</span> <span style="color:#64748b;">—</span><br>
+            <span style="font-weight:700;">Materials:</span> <span style="color:#64748b;">—</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right column -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Activity Log -->
+        <div style="background:#fff;border:1px solid #e8ecf0;border-radius:10px;overflow:hidden;">
+          <div
+            style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:14px;font-weight:700;color:#0f172a;">
+            Activity Log &amp; Team Comments</div>
+          <div style="padding:0;">
+            <div
+              style="padding:14px 18px;border-bottom:1px solid #f1f5f9;font-size:12.5px;line-height:1.55;color:#334155;">
+              <strong id="pdDimName" style="color:#0f172a;display:block;margin-bottom:2px;"></strong>
+              <span style="color:#64748b;">Plan created.</span>
+            </div>
+            <div style="padding:14px 18px;font-size:12.5px;line-height:1.55;color:#334155;">
+              <strong style="color:#0f172a;display:block;margin-bottom:2px;">System</strong>
+              <span style="color:#64748b;">Plan reviewed.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historical Data -->
+        <div style="background:#fff;border:1px solid #e8ecf0;border-radius:10px;overflow:hidden;">
+          <div
+            style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:14px;font-weight:700;color:#0f172a;">
+            Historical Data</div>
+          <?php
+          $prevCycles = $db->prepare("SELECT sy.label FROM sbm_cycles c JOIN school_years sy ON c.sy_id=sy.sy_id WHERE c.school_id=? AND c.status IN('submitted','validated') ORDER BY sy.date_start DESC LIMIT 5");
+          $prevCycles->execute([$schoolId]);
+          $prevCycleRows = $prevCycles->fetchAll();
+          if ($prevCycleRows):
+            foreach ($prevCycleRows as $pc): ?>
+              <div
+                style="padding:13px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;font-size:13px;color:#334155;">
+                <span><strong>SY <?= e($pc['label']) ?></strong> <span style="color:#64748b;">(Completed)</span></span>
+                <svg viewBox="0 0 24 24"
+                  style="width:14px;height:14px;stroke:#94a3b8;fill:none;stroke-width:2;stroke-linecap:round;">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+            <?php endforeach; else: ?>
+            <div style="padding:16px 18px;font-size:13px;color:#94a3b8;">No historical data available.</div>
+          <?php endif; ?>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div
+      style="padding:14px 28px;border-top:1px solid #e8ecf0;background:#fff;display:flex;justify-content:flex-end;gap:10px;flex-shrink:0;">
+      <button onclick="closePlanDetail()"
+        style="padding:8px 20px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:13px;font-weight:600;color:#475569;cursor:pointer;">Save
+        Changes</button>
+      <a href="<?= baseUrl() ?>/export_pdf.php?cycle_id=<?= $cycle ? $cycle['cycle_id'] : '' ?>&type=improvement"
+        target="_blank"
+        style="padding:8px 20px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:13px;font-weight:600;color:#475569;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:7px;">
+        <svg viewBox="0 0 24 24"
+          style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;">
+          <path
+            d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" />
+        </svg>
+        Print Report
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<!-- View SH Improvement Plan Modal -->
+<div id="shImprovementPlanModal" class="ip-view-modal" onclick="if(event.target===this)closeSHIpModal()">
+  <div class="ip-view-content">
+
+    <!-- Header -->
+    <div class="ip-view-header">
+      <div class="ip-view-header-top">
+        <div class="ip-view-title-block">
+          <div class="ip-view-title-icon">
+            <img src="<?= e(baseUrl()) ?>/assets/seal.png" alt="DASMARINAS INTEGRATED HIGH SCHOOL" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.12));">
+          </div>
+          <div>
+            <div class="ip-view-title">School Head Improvement Plan</div>
+            <div class="ip-view-subtitle">SY <?= e($syLabel) ?></div>
+          </div>
+        </div>
+        <button class="ip-view-close-btn" onclick="closeSHIpModal()">
+          <svg viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Toolbar: search + filter chips -->
+      <div class="ip-toolbar">
+        <div class="ip-search-wrap">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" class="ip-search-input" id="shIpSearch" placeholder="Search plans…"
+            oninput="filterSHIpTable()">
+        </div>
+        <span class="ip-filter-label">Filter:</span>
+        <div class="ip-filter-chips" id="shIpPriorityChips">
+          <span class="ip-chip" data-priority="High" onclick="toggleIpChip(this)"><span class="ip-chip-dot"
+              style="background:#ef4444;"></span>High Priority</span>
+          <span class="ip-chip" data-priority="Medium" onclick="toggleIpChip(this)"><span class="ip-chip-dot"
+              style="background:#f59e0b;"></span>Medium</span>
+          <span class="ip-chip" data-priority="Low" onclick="toggleIpChip(this)"><span class="ip-chip-dot"
+              style="background:#3b82f6;"></span>Low</span>
+        </div>
+        <div class="ip-filter-chips" id="shIpDimChips">
+          <!-- Populated by JS when data loads -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Body / Table -->
     <div class="ip-view-body">
       <table class="ip-table">
         <thead>
           <tr>
-            <th>Priority</th>
-            <th>Dimension</th>
-            <th>Indicator</th>
-            <th>Objective & Strategy</th>
-            <th>Target & Owner</th>
-            <th>Output</th>
+            <th style="width:110px;">Status</th>
+            <th style="width:190px;">Dimension</th>
+            <th style="width:200px;">Indicator</th>
+            <th>Objective &amp; Strategy</th>
+            <th style="width:175px;">Target &amp; Owner</th>
+            <th style="width:200px;">Expected Output</th>
           </tr>
         </thead>
         <tbody id="shIpTableBody">
@@ -2814,14 +3366,19 @@ include __DIR__ . '/../includes/header.php';
         </tbody>
       </table>
     </div>
-    <div style="padding:16px 24px;border-top:1px solid #f1f5f9;background:#f8fafc;display:flex;justify-content:flex-end;">
-      <a href="<?= baseUrl() ?>/export_pdf.php?cycle_id=<?= $cycle ? $cycle['cycle_id'] : '' ?>&type=improvement" target="_blank" class="btn btn-secondary btn-sm" style="background:#fff;">
-        <svg style="width:14px;height:14px;margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" />
+
+    <!-- Footer -->
+    <div class="ip-view-footer">
+      <a href="<?= baseUrl() ?>/export_pdf.php?cycle_id=<?= $cycle ? $cycle['cycle_id'] : '' ?>&type=improvement"
+        target="_blank" class="ip-print-btn">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" />
         </svg>
         Print Report
       </a>
     </div>
+
   </div>
 </div>
 
@@ -2838,10 +3395,15 @@ include __DIR__ . '/../includes/header.php';
     </div>
     <div style="display:flex;gap:4px;">
       <button class="btn-icon" onclick="toggleMinimizeAIAssistant(event)">
-         <svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5">
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
       </button>
       <button class="btn-icon" onclick="closeAIAssistant(event)">
-         <svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
       </button>
     </div>
   </div>

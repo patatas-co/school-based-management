@@ -375,7 +375,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $avgStmt = $db->prepare("SELECT ROUND(AVG(rating), 2) FROM teacher_responses WHERE cycle_id=? AND indicator_id=?");
       $avgStmt->execute([$cycleId, $indicatorId]);
       $originalAvg = $avgStmt->fetchColumn();
-      
+
       $prevStmt = $db->prepare("SELECT override_rating FROM sh_indicator_overrides WHERE cycle_id=? AND indicator_id=?");
       $prevStmt->execute([$cycleId, $indicatorId]);
       $prevOverride = $prevStmt->fetchColumn();
@@ -395,7 +395,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 overridden_by    = VALUES(overridden_by),
                 overridden_at    = NOW()
         ")->execute([$cycleId, $indicatorId, $schoolId, $originalAvg, $overrideRating, $reason, $_SESSION['user_id']]);
-        
+
       $db->prepare("
           INSERT INTO sh_indicator_override_history
           (cycle_id, indicator_id, school_id, action_type, previous_rating, new_rating, override_reason, changed_by)
@@ -430,13 +430,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         echo json_encode(['ok' => false, 'msg' => 'No active cycle.']);
         exit;
       }
-      
+
       $prevStmt = $db->prepare("SELECT override_rating FROM sh_indicator_overrides WHERE cycle_id=? AND indicator_id=?");
       $prevStmt->execute([$cycleId, $indicatorId]);
       $prevOverride = $prevStmt->fetchColumn();
 
       if ($prevOverride !== false) {
-          $db->prepare("
+        $db->prepare("
               INSERT INTO sh_indicator_override_history
               (cycle_id, indicator_id, school_id, action_type, previous_rating, new_rating, override_reason, changed_by)
               VALUES (?, ?, ?, 'clear', ?, NULL, ?, ?)
@@ -1371,9 +1371,7 @@ include __DIR__ . '/../includes/header.php';
           $isTeacher = in_array($ind['indicator_code'], TEACHER_INDICATOR_CODES);
           ?>
           <div class="indicator-row <?= $rated ? 'rated' : '' ?> <?= $isTeacherCard ? 'teacher-only' : '' ?>"
-            id="row<?= $ind['indicator_id'] ?>" 
-            data-sh="<?= $isSH ? 1 : 0 ?>" 
-            data-teacher="<?= $isTeacher ? 1 : 0 ?>" 
+            id="row<?= $ind['indicator_id'] ?>" data-sh="<?= $isSH ? 1 : 0 ?>" data-teacher="<?= $isTeacher ? 1 : 0 ?>"
             data-code="<?= e($ind['indicator_code']) ?>">
 
             <!-- Top row: code + role tag + saved badge -->
@@ -1464,8 +1462,8 @@ include __DIR__ . '/../includes/header.php';
 
             <?php
             $isCoordinatorView = ($_COORDINATOR_VIEW ?? false);
-            if ($isTeacherCard || $showTeacherInfoAlso || $isCoordinatorView): 
-            ?>
+            if ($isTeacherCard || $showTeacherInfoAlso || $isCoordinatorView):
+              ?>
               <?php
               $hasOverride = isset($overrides[$ind['indicator_id']]);
               $ovData = $hasOverride
@@ -1524,14 +1522,14 @@ include __DIR__ . '/../includes/header.php';
                     </div>
                     <div class="teacher-info-body">
                       <?php if (!$hasOverride): ?>
-                        <?= $isTeacherCard ? 'No teacher input yet. Teachers rate this in their portal.' : 'Coordinator can override SH/Teacher values if necessary.' ?>
+                        <?= $isTeacherCard ? 'No teacher input yet. Teachers rate this in their portal.' : 'School Head can override values if necessary.' ?>
                       <?php else: ?>
                         This score will be used instead of any manual ratings.
                       <?php endif; ?>
                     </div>
                   <?php endif; ?>
 
-                  <?php 
+                  <?php
                   $showOverrideBtn = $canEdit && (
                     ($trData && (int) $trData['teacher_count'] > 0 && $isTeacherCard) ||
                     $isCoordinatorView
@@ -1540,7 +1538,7 @@ include __DIR__ . '/../includes/header.php';
                     <!-- Override controls -->
                     <div style="margin-top:10px;padding-top:10px;
                     border-top:1px solid rgba(0,0,0,.08);">
-                      <?php 
+                      <?php
                       $currentAvg = $trData['avg_rating'] ?? 0;
                       if (!$hasOverride): ?>
                         <button class="btn btn-secondary btn-sm" onclick="openOverride(
@@ -1550,7 +1548,8 @@ include __DIR__ . '/../includes/header.php';
                     )">
                           Override Rating
                         </button>
-                        <button class="btn btn-secondary btn-sm" style="margin-left:6px;" onclick="viewOverrideHistory(<?= $ind['indicator_id'] ?>, '<?= e($ind['indicator_code']) ?>')">
+                        <button class="btn btn-secondary btn-sm" style="margin-left:6px;"
+                          onclick="viewOverrideHistory(<?= $ind['indicator_id'] ?>, '<?= e($ind['indicator_code']) ?>')">
                           <i class="feather-clock"></i> History
                         </button>
                         <span style="font-size:11px;color:var(--n400);
@@ -1573,7 +1572,8 @@ include __DIR__ . '/../includes/header.php';
                           onclick="clearOverride(<?= $ind['indicator_id'] ?>)">
                           Clear Override
                         </button>
-                        <button class="btn btn-secondary btn-sm" style="margin-left:6px;" onclick="viewOverrideHistory(<?= $ind['indicator_id'] ?>, '<?= e($ind['indicator_code']) ?>')">
+                        <button class="btn btn-secondary btn-sm" style="margin-left:6px;"
+                          onclick="viewOverrideHistory(<?= $ind['indicator_id'] ?>, '<?= e($ind['indicator_code']) ?>')">
                           <i class="feather-clock"></i> History
                         </button>
                         <?php if ($ovData['override_reason']): ?>
@@ -1599,7 +1599,8 @@ include __DIR__ . '/../includes/header.php';
   <!-- ── SUBMIT BUTTON / VIEW-ONLY NOTICE ─────────────────── -->
   <div style="text-align:center;padding:20px 0;margin-top:8px;">
     <?php if ($isCoordinator): ?>
-      <div style="display:inline-flex;align-items:center;gap:10px;padding:12px 24px;background:var(--brand-50);border:1.5px solid var(--brand-200);border-radius:10px;font-size:13.5px;font-weight:600;color:var(--brand-700);">
+      <div
+        style="display:inline-flex;align-items:center;gap:10px;padding:12px 24px;background:var(--brand-50);border:1.5px solid var(--brand-200);border-radius:10px;font-size:13.5px;font-weight:600;color:var(--brand-700);">
         <?= svgIcon('eye') ?> View-Only Mode — Coordinators can review but not modify the assessment.
       </div>
     <?php elseif (!$isLocked): ?>
@@ -1961,7 +1962,7 @@ include __DIR__ . '/../includes/header.php';
     if (!rating) return;
 
     const row = document.getElementById(`row${indId}`);
-      const isTeacher = row.dataset.teacher === '1' && row.dataset.sh === '0';
+    const isTeacher = row.dataset.teacher === '1' && row.dataset.sh === '0';
     const wasRated = row?.classList.contains('rated') ?? false;
 
     const evidence = document.getElementById(`evidence${indId}`)?.value || '';
@@ -2038,7 +2039,7 @@ include __DIR__ . '/../includes/header.php';
       fd.append('action', 'get_attachments');
       fd.append('csrf_token', csrf);
       fd.append('cycle_id', cycleId);
-      fd.append('uploader_only', '0'); // SH sees all attachments
+      fd.append('uploader_only', '1'); // SH ONLY sees their own attachments here so they don't accidentally remove teacher files
       const res = await fetch('../includes/upload_handler.php', { method: 'POST', body: fd });
       const data = await res.json();
       const byInd = {};
@@ -2168,9 +2169,9 @@ include __DIR__ . '/../includes/header.php';
 
         let changes = '';
         if (item.action_type === 'clear') {
-            changes = `Cleared override (Reverted to teacher average: ${item.previous_rating})`;
+          changes = `Cleared override (Reverted to teacher average: ${item.previous_rating})`;
         } else {
-            changes = `Changed from <strong>${item.previous_rating || 'N/A'}</strong> to <strong>${item.new_rating}</strong>`;
+          changes = `Changed from <strong>${item.previous_rating || 'N/A'}</strong> to <strong>${item.new_rating}</strong>`;
         }
 
         html += `
