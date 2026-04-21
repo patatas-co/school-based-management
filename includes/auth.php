@@ -329,6 +329,10 @@ function renderDeadlineChip(?array $dl, string $context = 'dark'): string
     if (!$dl)
         return '';
 
+    // Period just ended (0 days overdue) or is overdue — hide the chip
+    if ($dl['overdue'])
+        return '';
+
     // Determine visual state
     if ($dl['overdue']) {
         $dot = '#EF4444';
