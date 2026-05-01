@@ -10,7 +10,7 @@ if ($_SESSION['role'] === 'school_head') {
   exit;
 }
 
-requireRole(['school_head', 'sbm_coordinator']);
+requireRole('school_head', 'sbm_coordinator');
 $db = getDB();
 
 $syears = $db->query("SELECT * FROM school_years ORDER BY sy_id DESC")->fetchAll();
