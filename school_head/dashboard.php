@@ -3217,8 +3217,8 @@ include __DIR__ . '/../includes/header.php';
       const radarDatasets = [{
         label: 'SY ' + anCurrSyLabel,
         data: anDimValues,
-        backgroundColor: 'rgba(22,163,74,.13)',
-        borderColor: '#16A34A',
+        backgroundColor: 'rgba(37,99,235,.13)',
+        borderColor: '#2563EB',
         pointBackgroundColor: anDimColors,
         pointRadius: 5, borderWidth: 2,
       }];
@@ -3305,8 +3305,8 @@ include __DIR__ . '/../includes/header.php';
       const datasets = [{
         label: 'Overall Score',
         data: historicalData,
-        borderColor: '#16A34A',
-        backgroundColor: 'rgba(22,163,74,.08)',
+        borderColor: '#2563EB',
+        backgroundColor: 'rgba(37,99,235,.08)',
         pointBackgroundColor: ptColors.concat(showPrediction ? ['transparent'] : []),
         pointRadius: ctx => ctx.raw === null ? 0 : 6,
         pointHoverRadius: ctx => ctx.raw === null ? 0 : 8,

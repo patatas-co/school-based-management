@@ -6,8 +6,8 @@ require_once __DIR__ . '/../includes/auth.php';
 
 // If School Head, redirect to the new integrated view on Dashboard
 if ($_SESSION['role'] === 'school_head') {
-    header("Location: dashboard.php?view=analytics");
-    exit;
+  header("Location: dashboard.php?view=analytics");
+  exit;
 }
 
 requireRole(['school_head', 'sbm_coordinator']);
@@ -445,8 +445,8 @@ include __DIR__ . '/../includes/header.php';
       </div>
       <div class="p-select-menu">
         <?php foreach ($syears as $sy): ?>
-          <div class="p-select-item <?= $sy['sy_id'] == $syId ? 'selected' : '' ?>" 
-               onclick="location.href='analytics.php?sy=<?= $sy['sy_id'] ?>&compare_sy=<?= $compareSyId ?>'">
+          <div class="p-select-item <?= $sy['sy_id'] == $syId ? 'selected' : '' ?>"
+            onclick="location.href='analytics.php?sy=<?= $sy['sy_id'] ?>&compare_sy=<?= $compareSyId ?>'">
             SY <?= e($sy['label']) ?>
             <?php if ($sy['sy_id'] == $syId): ?>
               <span class="p-select-check"></span>
@@ -468,20 +468,22 @@ include __DIR__ . '/../includes/header.php';
   <label>Compare with:</label>
   <div class="p-select" id="compareSelect" style="width:160px;">
     <input type="hidden" name="compare_sy_id" value="<?= $compareSyId ?>">
-    <div class="p-select-trigger" onclick="togglePSelect(event, 'compareSelect')" style="padding: 5px 12px; font-size: 12.5px; min-height: 32px;">
+    <div class="p-select-trigger" onclick="togglePSelect(event, 'compareSelect')"
+      style="padding: 5px 12px; font-size: 12.5px; min-height: 32px;">
       <span class="p-select-val">
         <?= $compareSyId ? 'SY ' . e(array_column($syears, 'label', 'sy_id')[$compareSyId]) : 'None' ?>
       </span>
     </div>
     <div class="p-select-menu">
-      <div class="p-select-item <?= !$compareSyId ? 'selected' : '' ?>" 
-           onclick="location.href='analytics.php?sy=<?= $syId ?>&compare_sy=0'">
+      <div class="p-select-item <?= !$compareSyId ? 'selected' : '' ?>"
+        onclick="location.href='analytics.php?sy=<?= $syId ?>&compare_sy=0'">
         None
       </div>
       <?php foreach ($syears as $sy):
-        if ($sy['sy_id'] == $syId) continue; ?>
-        <div class="p-select-item <?= $sy['sy_id'] == $compareSyId ? 'selected' : '' ?>" 
-             onclick="location.href='analytics.php?sy=<?= $syId ?>&compare_sy=<?= $sy['sy_id'] ?>'">
+        if ($sy['sy_id'] == $syId)
+          continue; ?>
+        <div class="p-select-item <?= $sy['sy_id'] == $compareSyId ? 'selected' : '' ?>"
+          onclick="location.href='analytics.php?sy=<?= $syId ?>&compare_sy=<?= $sy['sy_id'] ?>'">
           SY <?= e($sy['label']) ?>
           <?php if ($sy['sy_id'] == $compareSyId): ?>
             <span class="p-select-check"></span>
@@ -922,8 +924,8 @@ include __DIR__ . '/../includes/header.php';
     const radarDatasets = [{
       label: 'SY ' + currSyLabel,
       data: dimValues,
-      backgroundColor: 'rgba(22,163,74,.13)',
-      borderColor: '#16A34A',
+      backgroundColor: 'rgba(37,99,235,.13)',
+      borderColor: '#2563EB',
       pointBackgroundColor: dimColors,
       pointRadius: 5, borderWidth: 2,
     }];
@@ -960,8 +962,8 @@ include __DIR__ . '/../includes/header.php';
         datasets: [{
           label: 'Overall Score (%)',
           data: cycleScores,
-          borderColor: '#16A34A',
-          backgroundColor: 'rgba(22,163,74,.08)',
+          borderColor: '#2563EB',
+          backgroundColor: 'rgba(37,99,235,.08)',
           pointBackgroundColor: cycleScores.map(s => s >= 76 ? '#16A34A' : (s >= 51 ? '#2563EB' : (s >= 26 ? '#D97706' : '#DC2626'))),
           pointRadius: 6, pointHoverRadius: 8,
           borderWidth: 2.5, tension: 0.3, fill: true,
