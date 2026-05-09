@@ -2089,7 +2089,7 @@ include __DIR__ . '/../includes/header.php';
     style="margin-bottom:20px;box-shadow:0 2px 4px rgba(0,0,0,0.06),0 8px 20px rgba(0,0,0,0.05),inset 0 1px 0 rgba(255,255,255,0.90);">
     <div class="card-head">
       <span class="card-title">Assessment Progress Pipeline</span>
-      <a href="self_assessment.php" class="btn btn-ghost btn-sm">View assessment →</a>
+      <a href="self_assessment.php" class="btn btn-ghost btn-sm">View assessment</a>
     </div>
     <div class="card-body" style="padding:8px 0;">
       <div class="pipeline">
@@ -2321,7 +2321,7 @@ include __DIR__ . '/../includes/header.php';
       <div class="card">
         <div class="card-head">
           <span class="card-title">Announcements</span>
-          <a href="announcements.php" class="btn btn-ghost btn-sm">All →</a>
+          <a href="announcements.php" class="btn btn-ghost btn-sm">All</a>
         </div>
         <div class="card-body" style="padding:10px 16px;">
           <?php if ($anns):

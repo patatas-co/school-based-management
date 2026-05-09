@@ -2568,8 +2568,8 @@ include __DIR__ . '/../includes/header.php';
               <?php $greenGradient = ['#4ADE80', '#22C55E', '#16A34A', '#15803D', '#166534', '#14532D'];
               $gi = array_search($d, $dimScores); ?>
               <div class="dim-row">
-              <div class="dim-num">
-                  <?= svgIcon(getDimensionIcon((int)$d['dimension_no'])) ?>
+                <div class="dim-num">
+                  <?= svgIcon(getDimensionIcon((int) $d['dimension_no'])) ?>
                 </div>
                 <div class="dim-info">
                   <div class="dim-name"><?= e($d['dimension_name']) ?></div>
@@ -2847,7 +2847,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="an-insight-card">
       <?php if ($anWeakDim): ?>
         <div class="an-insight-val" style="color:var(--n-900);">
-          <?= svgIcon(getDimensionIcon((int)$anWeakDim['dimension_no']), '', 'width:20px;height:20px;') ?>
+          <?= svgIcon(getDimensionIcon((int) $anWeakDim['dimension_no']), '', 'width:20px;height:20px;') ?>
           <?= e($anWeakDim['dimension_name']) ?>
         </div>
         <div class="an-insight-lbl">Needs Work (Weakest)</div>
@@ -2864,7 +2864,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="an-insight-card">
       <?php if ($anTopDim): ?>
         <div class="an-insight-val" style="color:var(--n-900);">
-          <?= svgIcon(getDimensionIcon((int)$anTopDim['dimension_no']), '', 'width:20px;height:20px;') ?>
+          <?= svgIcon(getDimensionIcon((int) $anTopDim['dimension_no']), '', 'width:20px;height:20px;') ?>
           <?= e($anTopDim['dimension_name']) ?>
         </div>
         <div class="an-insight-lbl">Strongest Dimension</div>

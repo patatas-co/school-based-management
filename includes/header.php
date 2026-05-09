@@ -341,7 +341,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 12px 8px;
+      padding: 8px 8px 12px;
       scrollbar-width: thin;
       scrollbar-color: #E5E7EB transparent;
     }
@@ -360,36 +360,41 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     }
 
     .sb-section-label {
-      font-size: 9.5px;
-      font-weight: 800;
-      letter-spacing: .12em;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .11em;
       text-transform: uppercase;
       color: #94A3B8;
-      padding: 14px 10px 4px;
+      padding: 18px 14px 4px;
       white-space: nowrap;
       overflow: hidden;
+      opacity: 0.85;
+    }
+
+    .sb-section-label:first-child {
+      padding-top: 8px;
     }
 
     .sb.collapsed .sb-section-label {
-      visibility: hidden;
+      display: none;
     }
 
     .sb-item {
       display: flex;
       align-items: center;
-      gap: 9px;
-      padding: 9px 10px;
-      border-radius: 7px;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
       color: var(--sb-text);
-      font-size: 13px;
+      font-size: 13.5px;
       font-weight: 500;
       text-decoration: none;
       cursor: pointer;
-      transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+      transition: all var(--dur) var(--ease);
       white-space: nowrap;
       overflow: hidden;
       position: relative;
-      margin-bottom: 1px;
+      margin-bottom: 2px;
       border: none;
       background: transparent;
       width: 100%;
@@ -405,12 +410,12 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     .sb-item.active {
       color: #166534;
       background: var(--sb-active-bg);
-      border-left: 3px solid #16A34A;
-      padding-left: 7px;
+      font-weight: 600;
     }
 
     .sb-item.active .sb-icon svg {
       stroke: #16A34A;
+      stroke-width: 2.2;
     }
 
     .sb-item .sb-label {
@@ -443,123 +448,11 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       stroke: var(--sb-text-hover);
     }
 
-    .sb-chevron {
-      width: 14px;
-      height: 14px;
-      stroke: var(--sb-text);
-      stroke-width: 2;
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      transition: transform 220ms var(--ease);
-      flex-shrink: 0;
-    }
-
-    .sb-group.open .sb-chevron {
-      transform: rotate(180deg);
-    }
-
-    .sb-children {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 240ms var(--ease), opacity 200ms var(--ease);
-      opacity: 0;
-      padding-left: 6px;
-    }
-
-    .sb-group.open .sb-children {
-      max-height: 400px;
-      opacity: 1;
-    }
-
-    .sb-child {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px 6px 14px;
-      border-radius: 6px;
-      color: var(--sb-text);
-      font-size: 12.5px;
-      font-weight: 400;
-      text-decoration: none;
-      transition: color var(--dur), background var(--dur);
-      position: relative;
-      margin-bottom: 1px;
-    }
-
-    .sb-child::before {
-      content: '';
-      position: absolute;
-      left: 4px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 1px;
-      height: 14px;
-      background: #E5E7EB;
-      border-radius: 1px;
-    }
-
-    .sb-child:hover {
-      color: var(--sb-text-hover);
-      background: #F1F5F9;
-    }
-
-    .sb-child.active {
-      color: #166534;
-      background: var(--sb-active-bg);
-      font-weight: 600;
-    }
-
-    .sb-child.active::before {
-      background: #16A34A;
-    }
 
     /* Collapsed overrides */
     .sb.collapsed .sb-nav {
       padding: 12px 0;
       overflow-x: hidden;
-    }
-
-    .sb.collapsed .sb-group {
-      position: relative;
-      margin-bottom: 2px;
-    }
-
-    .sb.collapsed .sb-children {
-      position: fixed;
-      left: var(--sidebar-mini);
-      top: var(--popover-top, auto);
-      width: 200px;
-      background: #FFFFFF;
-      border: 1px solid #E5E7EB;
-      border-radius: 0 10px 10px 0;
-      display: none !important;
-      max-height: none !important;
-      opacity: 1 !important;
-      padding: 8px;
-      box-shadow: 4px 4px 16px rgba(0, 0, 0, .12);
-      z-index: 1000;
-    }
-
-    .sb.collapsed .sb-group:hover .sb-children {
-      display: block !important;
-    }
-
-    .sb.collapsed .sb-child {
-      display: flex !important;
-      align-items: center !important;
-      gap: 12px !important;
-      padding: 8px 12px 8px 16px !important;
-    }
-
-    .sb.collapsed .sb-child span:not(.sb-icon) {
-      display: inline !important;
-    }
-
-    .sb.collapsed .sb-section-label,
-    .sb.collapsed .sb-chevron,
-    .sb.collapsed .sb-label {
-      display: none !important;
     }
 
     .sb.collapsed .sb-item {
@@ -2464,32 +2357,17 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
       foreach ($__navGroups as $group):
         [$groupLabel, $groupIcon, $groupItems] = $group;
-        $groupActive = false;
-        foreach ($groupItems as $item) {
-          if (basename($item[1]) === basename($_SERVER['PHP_SELF']))
-            $groupActive = true;
-        }
         ?>
-        <div class="sb-group <?= $groupActive ? 'open' : '' ?>">
-          <div class="sb-item" onclick="toggleGroup(this.parentElement)" data-label="<?= e($groupLabel) ?>">
-            <span class="sb-icon"><?= $__icon($groupIcon) ?></span>
-            <span class="sb-label"><?= e($groupLabel) ?></span>
-            <svg class="sb-chevron" viewBox="0 0 24 24">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </div>
-          <div class="sb-children">
-            <?php foreach ($groupItems as $item):
-              $isActive = basename($item[1]) === basename($_SERVER['PHP_SELF']);
-              ?>
-              <a href="<?= $__base ?>/<?= e($item[1]) ?>" class="sb-child <?= $isActive ? 'active' : '' ?>"
-                data-label="<?= e($item[0]) ?>">
-                <span class="sb-icon"><?= $__icon($item[2]) ?></span>
-                <span><?= e($item[0]) ?></span>
-              </a>
-            <?php endforeach; ?>
-          </div>
-        </div>
+        <div class="sb-section-label"><?= e($groupLabel) ?></div>
+        <?php foreach ($groupItems as $item):
+          $isActive = basename($item[1]) === basename($_SERVER['PHP_SELF']);
+          ?>
+          <a href="<?= $__base ?>/<?= e($item[1]) ?>" class="sb-item <?= $isActive ? 'active' : '' ?>"
+            data-label="<?= e($item[0]) ?>">
+            <span class="sb-icon"><?= $__icon($item[2]) ?></span>
+            <span class="sb-label"><?= e($item[0]) ?></span>
+          </a>
+        <?php endforeach; ?>
       <?php endforeach; ?>
     </nav>
 
@@ -2622,22 +2500,6 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
         // ── Sidebar collapse ──
         (function () {
-          document.addEventListener('mouseover', function (e) {
-            const sb = document.getElementById('sidebar');
-            if (!sb.classList.contains('collapsed')) return;
-            const group = e.target.closest('.sb-group');
-            if (group) {
-              const rect = group.getBoundingClientRect();
-              const children = group.querySelector('.sb-children');
-              if (children) children.style.setProperty('--popover-top', rect.top + 'px');
-            }
-          });
-
-          window.toggleGroup = function (groupEl) {
-            const sb = document.getElementById('sidebar');
-            if (sb.classList.contains('collapsed')) { document.getElementById('menuBtn').click(); return; }
-            groupEl.classList.toggle('open');
-          };
 
           const sb = document.getElementById('sidebar');
           const mw = document.getElementById('mainWrap');
