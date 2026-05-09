@@ -758,24 +758,6 @@ include __DIR__ . '/../includes/header.php';
   </div>
 <?php endif; ?>
 
-<!-- Dimension Score Bar — with optional compare bars -->
-<div class="chart-card" style="margin-bottom:18px;">
-  <div class="chart-card-head">
-    <span class="chart-card-title">Dimension Score Comparison</span>
-    <div class="chart-legend" style="margin-bottom:0;">
-      <?php foreach ($dimAvgs as $d):
-        if (!$d['avg_pct'])
-          continue; ?>
-        <div class="chart-legend-item">
-          <div class="chart-legend-swatch" style="background:<?= e($d['color_hex']) ?>;"></div>
-          D<?= $d['dimension_no'] ?>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  </div>
-  <div class="chart-card-body"><canvas id="dimBarChart" height="80"></canvas></div>
-</div>
-
 <!-- Tabbed bottom section -->
 <div class="tab-btns">
   <button class="tab-btn active" onclick="switchTab(this,'tabHistory')">Cycle History</button>
@@ -1138,40 +1120,5 @@ include __DIR__ . '/../includes/header.php';
     });
   }
 
-  // ── Dimension bar chart — with optional compare bars ─────────
-  if (dimValues.some(v => v !== null && v > 0)) {
-    const barDatasets = [{
-      label: 'SY ' + currSyLabel,
-      data: dimValues,
-      backgroundColor: dimColors.map(c => c + '30'),
-      borderColor: dimColors,
-      borderWidth: 2, borderRadius: 8, borderSkipped: false,
-    }];
-    if (dimValCmp.length && dimValCmp.some(v => v > 0)) {
-      barDatasets.push({
-        label: 'SY ' + compareSyLabel,
-        data: dimValCmp,
-        backgroundColor: '#9CA3AF30',
-        borderColor: '#9CA3AF',
-        borderWidth: 2, borderRadius: 8, borderSkipped: false,
-      });
-    }
-    new Chart(document.getElementById('dimBarChart'), {
-      type: 'bar',
-      data: { labels: dimLabels, datasets: barDatasets },
-      options: {
-        scales: {
-          y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
-          x: { ticks: { font: { size: 12, weight: '600' } }, grid: { display: false } }
-        },
-        plugins: {
-          legend: { display: barDatasets.length > 1, position: 'bottom', labels: { font: { size: 11 }, padding: 10 } }
-        },
-        responsive: true, maintainAspectRatio: true,
-      }
-    });
-  } else {
-    document.getElementById('dimBarChart').closest('.chart-card-body').innerHTML = '<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No dimension score data for this school year.</p>';
-  }
 </script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

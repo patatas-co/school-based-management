@@ -760,7 +760,8 @@ include __DIR__ . '/../includes/header.php';
     font-size: 11px;
     font-weight: 800;
     flex-shrink: 0;
-    color: #fff;
+    color: #000;
+    background: none !important;
   }
 
   .dim-info {
@@ -798,6 +799,27 @@ include __DIR__ . '/../includes/header.php';
     flex-shrink: 0;
     min-width: 42px;
     letter-spacing: -0.3px;
+    position: relative;
+    cursor: help;
+  }
+
+  .dim-pct[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    background: #0f172a;
+    color: #fff;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0;
+    white-space: nowrap;
+    padding: 5px 8px;
+    border-radius: 6px;
+    z-index: 20;
+    box-shadow: 0 8px 20px rgba(2, 6, 23, 0.25);
+    pointer-events: none;
   }
 
   /* -- ACTIVITY -- */
@@ -2546,13 +2568,15 @@ include __DIR__ . '/../includes/header.php';
               <?php $greenGradient = ['#4ADE80', '#22C55E', '#16A34A', '#15803D', '#166534', '#14532D'];
               $gi = array_search($d, $dimScores); ?>
               <div class="dim-row">
-                <div class="dim-num" style="background:<?= $greenGradient[$gi % 6] ?>;">
+              <div class="dim-num">
                   <?= svgIcon(getDimensionIcon((int)$d['dimension_no'])) ?>
                 </div>
                 <div class="dim-info">
                   <div class="dim-name"><?= e($d['dimension_name']) ?></div>
                 </div>
                 <div class="dim-pct"
+                  data-tooltip="<?= $pct > 0 ? e(rtrim(rtrim(number_format($pct, 1), '0'), '.') . '%') : 'No score yet' ?>"
+                  title="<?= $pct > 0 ? e(rtrim(rtrim(number_format($pct, 1), '0'), '.') . '%') : 'No score yet' ?>"
                   style="color:<?= $pct > 0 ? $matColor : 'var(--n-400)' ?>; font-weight: 700; font-size: 13.5px;">
                   <?php
                   if ($pct > 0) {
@@ -2941,25 +2965,6 @@ include __DIR__ . '/../includes/header.php';
     </div>
   <?php endif; ?>
 
-  <!-- Dimension Score Bar -->
-  <div class="chart-card" style="margin-bottom:18px;">
-    <div class="chart-card-head">
-      <span class="chart-card-title">Dimension Score Comparison</span>
-      <div class="chart-legend" style="margin-bottom:0;">
-        <?php foreach ($anDimAvgs as $d): ?>
-          <div class="chart-legend-item">
-            <div class="chart-legend-swatch" style="background:<?= e($d['color_hex']) ?>;"></div>
-            <span style="display:flex;align-items:center;gap:4px;">
-              <?= svgIcon(getDimensionIcon((int)$d['dimension_no']), '', 'width:12px;height:12px;opacity:0.7;') ?>
-              D<?= $d['dimension_no'] ?>
-            </span>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    </div>
-    <div class="chart-card-body"><canvas id="anDimBarChart" height="80"></canvas></div>
-  </div>
-
   <!-- Tabbed bottom section -->
   <div class="an-tab-btns">
     <button class="an-tab-btn active" onclick="anSwitchTab(this,'anTabHistory')">Cycle History</button>
@@ -3205,31 +3210,33 @@ include __DIR__ . '/../includes/header.php';
   const dimLabels = <?= json_encode(array_map(fn($d) => 'D' . $d['dimension_no'], $dimScores)) ?>;
   const dimValues = <?= json_encode(array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $dimScores)) ?>;
   const dimColors = <?= json_encode(['#4ADE80', '#22C55E', '#16A34A', '#15803D', '#166534', '#14532D']) ?>;
-
-  new Chart(document.getElementById('dimBarChart'), {
-    type: 'bar',
-    data: {
-      labels: dimLabels,
-      datasets: [{
-        label: 'Average Score (%)',
-        data: dimValues,
-        backgroundColor: dimColors.map(c => c + '33'),
-        borderColor: dimColors,
-        borderWidth: 2,
-        borderRadius: 7,
-        borderSkipped: false
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
-        x: { ticks: { font: { size: 12, weight: '600' } }, grid: { display: false } }
+  const dimBarEl = document.getElementById('dimBarChart');
+  if (dimBarEl) {
+    new Chart(dimBarEl, {
+      type: 'bar',
+      data: {
+        labels: dimLabels,
+        datasets: [{
+          label: 'Average Score (%)',
+          data: dimValues,
+          backgroundColor: dimColors.map(c => c + '33'),
+          borderColor: dimColors,
+          borderWidth: 2,
+          borderRadius: 7,
+          borderSkipped: false
+        }]
       },
-      plugins: { legend: { display: false } }
-    }
-  });
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
+          x: { ticks: { font: { size: 12, weight: '600' } }, grid: { display: false } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
 
   <?php if ($matTotal > 0): ?>
     new Chart(document.getElementById('maturityChart'), {
@@ -3538,39 +3545,6 @@ include __DIR__ . '/../includes/header.php';
       });
     }
 
-    // -- Dimension bar chart ----------------------------------
-    if (anDimValues.some(v => v !== null && v > 0)) {
-      const barDatasets = [{
-        label: 'SY ' + anCurrSyLabel,
-        data: anDimValues,
-        backgroundColor: anDimColors.map(c => c + '30'),
-        borderColor: anDimColors,
-        borderWidth: 2, borderRadius: 8, borderSkipped: false,
-      }];
-      if (anDimValCmp.length && anDimValCmp.some(v => v > 0)) {
-        barDatasets.push({
-          label: 'SY ' + anCompareSyLabel,
-          data: anDimValCmp,
-          backgroundColor: '#9CA3AF30', borderColor: '#9CA3AF',
-          borderWidth: 2, borderRadius: 8, borderSkipped: false,
-        });
-      }
-      new Chart(document.getElementById('anDimBarChart'), {
-        type: 'bar',
-        data: { labels: anDimLabels, datasets: barDatasets },
-        options: {
-          scales: {
-            y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
-            x: { ticks: { font: { size: 12, weight: '600' } }, grid: { display: false } }
-          },
-          plugins: { legend: { display: barDatasets.length > 1, position: 'bottom', labels: { font: { size: 11 }, padding: 10 } } },
-          responsive: true, maintainAspectRatio: true,
-        }
-      });
-    } else {
-      const bc = document.getElementById('anDimBarChart');
-      if (bc) bc.closest('.chart-card-body').innerHTML = '<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No dimension score data for this school year.</p>';
-    }
   }
 
   // -- Auto-switch to analytics if ?view=analytics is in URL --
