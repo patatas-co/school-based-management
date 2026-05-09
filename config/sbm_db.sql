@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 19, 2026 at 06:44 AM
+-- Generation Time: May 09, 2026 at 06:48 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -789,7 +789,86 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (809, 37, 'submit_assessment', 'self_assessment', 'Submitted SBM assessment cycle 12', '::1', '2026-04-19 04:42:37'),
 (810, 37, 'validate_assessment', 'assessment', 'Validated cycle ID:12', '::1', '2026-04-19 04:42:45'),
 (811, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-19 04:42:51'),
-(812, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 04:43:02');
+(812, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 04:43:02'),
+(813, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 04:57:12'),
+(814, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:25:16'),
+(815, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:27:15'),
+(816, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:31:24'),
+(817, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:37:08'),
+(818, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:37:21'),
+(819, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:38:30'),
+(820, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:38:53'),
+(821, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:39:03'),
+(822, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:44:01'),
+(823, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:46:59'),
+(824, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 14', '::1', '2026-04-19 11:03:00'),
+(825, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 12:23:25'),
+(826, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:01:53'),
+(827, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:02:08'),
+(828, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:02:24'),
+(829, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:15:17'),
+(830, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:26:50'),
+(831, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:27:05'),
+(832, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:27:19'),
+(833, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:28:30'),
+(834, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:30:17'),
+(835, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:31:55'),
+(836, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-21 03:35:57'),
+(837, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-24 04:33:00'),
+(838, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-24 11:18:44'),
+(839, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-24 11:22:15'),
+(840, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-24 11:22:26'),
+(841, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-24 11:22:42'),
+(842, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-25 11:05:20'),
+(843, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-25 11:11:27'),
+(844, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-25 11:11:41'),
+(845, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-25 11:13:30'),
+(846, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-25 11:15:30'),
+(847, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-26 02:38:55'),
+(848, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-26 03:39:23'),
+(849, 12, 'login', 'auth', 'User logged in', '::1', '2026-04-26 03:40:56'),
+(850, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-26 03:44:27'),
+(851, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-26 03:46:48'),
+(852, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-26 03:49:00'),
+(853, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-26 12:16:25'),
+(854, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-26 12:16:58'),
+(855, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-26 12:18:37'),
+(856, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-26 12:21:48'),
+(857, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-26 12:24:21'),
+(858, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-01 04:24:54'),
+(859, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-01 04:34:14'),
+(860, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-02 13:51:30'),
+(861, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-02 14:41:43'),
+(862, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-02 15:21:37'),
+(863, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 08:57:00'),
+(864, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 09:57:30'),
+(865, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 11:26:19'),
+(866, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 11:28:08'),
+(867, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 11:39:43'),
+(868, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 11:43:38'),
+(869, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 11:44:44'),
+(870, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 11:56:29'),
+(871, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 11:57:30'),
+(872, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 11:59:50'),
+(873, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 11:59:59'),
+(874, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:02:55'),
+(875, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:03:25'),
+(876, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:03:38'),
+(877, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:07:54'),
+(878, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:28:11'),
+(879, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:28:22'),
+(880, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:32:56'),
+(881, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:33:07'),
+(882, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:36:24'),
+(883, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:37:39'),
+(884, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:38:15'),
+(885, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:39:08'),
+(886, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:39:19'),
+(887, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 12:39:59'),
+(888, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 14:44:42'),
+(889, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 14:52:33'),
+(890, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 16:23:52'),
+(891, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 16:26:00');
 
 -- --------------------------------------------------------
 
@@ -1517,8 +1596,8 @@ CREATE TABLE `sbm_workflow_phases` (
 
 INSERT INTO `sbm_workflow_phases` (`phase_id`, `sy_id`, `phase_no`, `phase_name`, `description`, `date_start`, `date_end`, `is_active`) VALUES
 (7, 14, 1, 'Self-Assessment', '', '2026-04-15', '2026-04-20', 1),
-(8, 14, 2, 'Validation', '', '2026-04-20', '2026-04-20', 1),
-(9, 14, 3, 'Improvement Planning', '', '2026-04-21', '2026-04-21', 1),
+(8, 14, 2, 'Validation', '', '2026-04-21', '2026-04-21', 1),
+(9, 14, 3, 'Improvement Planning', '', '2026-04-22', '2026-04-22', 1),
 (10, 16, 1, 'Self-Assessment', '', '2028-06-25', '2028-06-28', 1);
 
 -- --------------------------------------------------------
@@ -2165,14 +2244,14 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`, `contact_number`, `profile_picture`) VALUES
-(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, '2026-04-19 12:38:49', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, '2026-04-19 12:39:31', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, '2026-04-26 20:16:58', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, '2026-04-26 11:40:56', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL),
 (13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, '2026-04-19 12:40:42', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL),
 (14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, '2026-04-19 12:40:06', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, '2026-04-19 12:38:05', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza M. Evangelio', 'school_head', 'active', 1, '2026-04-19 12:43:02', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1776163511.jpg'),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, '2026-04-19 12:42:51', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
-(72, 'Patty', '$2y$10$V5F8wLfNzHXU1XPrYScCBuTOd.le0o88IVEUGx52m4dDIg256otOC', 'ariascharles00@gmail.com', 'Charles Mendoza', 'system_admin', 'active', 1, '2026-04-19 12:35:41', '2026-04-09 09:53:37', 0, NULL, NULL, '2026-04-09 17:53:42', 0, NULL, NULL);
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, '2026-04-25 19:15:30', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza M. Evangelio', 'school_head', 'active', 1, '2026-05-10 00:26:00', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1776163511.jpg'),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, '2026-05-10 00:23:52', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
+(72, 'Patty', '$2y$10$V5F8wLfNzHXU1XPrYScCBuTOd.le0o88IVEUGx52m4dDIg256otOC', 'ariascharles00@gmail.com', 'Charles Mendoza', 'system_admin', 'active', 1, '2026-04-26 20:18:37', '2026-04-09 09:53:37', 0, NULL, NULL, '2026-04-09 17:53:42', 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -2591,7 +2670,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=813;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=892;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`
