@@ -377,7 +377,7 @@ function roleLabel(string $role): string
           ?>
           <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;">
             <span
-              style="width:10px;height:10px;border-radius:50%;background:<?= e($d['color_hex']) ?>;flex-shrink:0;"></span>
+              style="width:11px;height:11px;border-radius:50%;background:<?= e($d['color_hex']) ?>;flex-shrink:0;display:block;"></span>
             <span>D<?= $d['dimension_no'] ?></span>
             <strong style="color:<?= e($d['color_hex']) ?>;"><?= $cnt ?></strong>
           </div>

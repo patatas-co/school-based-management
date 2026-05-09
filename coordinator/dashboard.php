@@ -266,8 +266,27 @@ $anAllPcts = array_filter(array_column($anDimAvgs, 'avg_pct'), fn($v) => $v !== 
 $anAvgOverall = count($anAllPcts) > 0 ? round(array_sum($anAllPcts) / count($anAllPcts), 1) : null;
 $anTopDim = !empty($anAllPcts) ? $anDimAvgs[array_search(max($anAllPcts), array_column($anDimAvgs, 'avg_pct'))] : null;
 $anWeakDim = !empty($anAllPcts) ? $anDimAvgs[array_search(min($anAllPcts), array_column($anDimAvgs, 'avg_pct'))] : null;
-$prevCycle = count($cycleHistory) >= 2 ? $cycleHistory[count($cycleHistory) - 2] : null;
-$currCycle = count($cycleHistory) >= 1 ? $cycleHistory[count($cycleHistory) - 1] : null;
+// Correctly identify current and previous cycles relative to selection
+$currCycle = null;
+$prevCycle = null;
+foreach ($cycleHistory as $idx => $ch) {
+  if ($ch['sy_id'] == $syId) { // Note: coordinator dashboard uses $syId
+    $currCycle = $ch;
+    if ($idx > 0) {
+      $prevCycle = $cycleHistory[$idx - 1];
+    }
+    break;
+  }
+}
+
+// Fallback to latest cycle if no match for selected SY (original behavior)
+if (!$currCycle && count($cycleHistory) >= 1) {
+  $currCycle = $cycleHistory[count($cycleHistory) - 1];
+  if (count($cycleHistory) >= 2) {
+    $prevCycle = $cycleHistory[count($cycleHistory) - 2];
+  }
+}
+
 $scoreDelta = ($currCycle && $prevCycle)
   ? round(floatval($currCycle['overall_score']) - floatval($prevCycle['overall_score']), 2) : null;
 
@@ -531,6 +550,8 @@ include __DIR__ . '/../includes/header.php';
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08), 0 12px 24px rgba(0, 0, 0, 0.06);
   }
 
+
+
   .stat-v2-accent {
     position: absolute;
     top: -1px;
@@ -548,6 +569,9 @@ include __DIR__ . '/../includes/header.php';
     text-transform: uppercase;
     letter-spacing: .11em;
     margin-bottom: 12px;
+    min-height: 28px;
+    display: flex;
+    align-items: flex-end;
   }
 
   .stat-v2-value {
@@ -1004,9 +1028,70 @@ include __DIR__ . '/../includes/header.php';
 
   .an-insight-strip {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
+    margin-bottom: 0;
+  }
+
+  .an-insight-extra {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .35s cubic-bezier(.4,0,.2,1), opacity .25s ease, margin .25s ease;
+    opacity: 0;
+    margin-top: 0;
+  }
+
+  .an-insight-extra.open {
+    max-height: 200px;
+    opacity: 1;
+    margin-top: 12px;
+  }
+
+  .an-insight-toggle-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
     margin-bottom: 18px;
+  }
+
+  .an-insight-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 16px;
+    border: 1px solid var(--n-200);
+    border-radius: 999px;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--n-500);
+    cursor: pointer;
+    transition: all .18s;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .an-insight-toggle-btn:hover {
+    color: var(--n-700);
+    border-color: var(--n-300);
+    background: var(--n-50);
+  }
+
+  .an-insight-toggle-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform .25s ease;
+  }
+
+  .an-insight-toggle-btn.open svg {
+    transform: rotate(180deg);
   }
 
   .an-insight-card {
@@ -1019,12 +1104,14 @@ include __DIR__ . '/../includes/header.php';
 
   .an-insight-val {
     font-family: var(--font-display);
-    font-size: 26px;
+    font-size: 18px;
     font-weight: 800;
     color: var(--n-900);
-    line-height: 1;
-    letter-spacing: -.5px;
+    line-height: 1.2;
     margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .an-insight-lbl {
@@ -1279,8 +1366,12 @@ include __DIR__ . '/../includes/header.php';
       font-size: 26px;
     }
 
-    .an-insight-strip {
+    .an-insight-strip,
+    .an-insight-extra {
       grid-template-columns: repeat(2, 1fr);
+    }
+    .an-insight-extra.open {
+      max-height: 400px;
     }
   }
 
@@ -1950,10 +2041,6 @@ include __DIR__ . '/../includes/header.php';
       <div class="stat-v2-label">Indicators Rated</div>
       <div class="stat-v2-value"><?= $totalResponded ?></div>
       <div class="stat-v2-meta"><span class="stat-v2-badge badge-green"><?= $progress ?>% complete</span></div>
-      <div class="kpi-bar">
-        <div class="kpi-bar-fill" style="width:<?= $progress ?>%;background:linear-gradient(90deg,#16A34A,#4ADE80);">
-        </div>
-      </div>
     </div>
     <div class="stat-v2">
       <div class="stat-v2-accent" style="background:<?= $hasScore ? $mat['color'] : '#6B7280' ?>;"></div>
@@ -1964,13 +2051,6 @@ include __DIR__ . '/../includes/header.php';
       <div class="stat-v2-meta" style="color:var(--n-400);">
         <?= $hasScore ? e($cycle['maturity_level']) : 'Awaiting data' ?>
       </div>
-      <?php if ($hasScore): ?>
-        <div class="kpi-bar">
-          <div class="kpi-bar-fill"
-            style="width:<?= $cycle['overall_score'] ?>%;background:linear-gradient(90deg,<?= $mat['color'] ?>,<?= $mat['color'] ?>cc);filter:saturate(1.2);">
-          </div>
-        </div>
-      <?php endif; ?>
     </div>
     <div class="stat-v2">
       <div class="stat-v2-accent"
@@ -1998,11 +2078,6 @@ include __DIR__ . '/../includes/header.php';
       <div class="stat-v2-label">Dimensions Scored</div>
       <div class="stat-v2-value"><?= count($dimScores) ?></div>
       <div class="stat-v2-meta"><span class="stat-v2-badge badge-blue">of 6 total</span></div>
-      <div class="kpi-bar">
-        <div class="kpi-bar-fill"
-          style="width:<?= round((count($dimScores) / 6) * 100) ?>%;background:linear-gradient(90deg,#2563EB,#60A5FA);">
-        </div>
-      </div>
     </div>
     <?php if ($totalIndicators > 0): ?>
       <div class="stat-v2">
@@ -2010,10 +2085,6 @@ include __DIR__ . '/../includes/header.php';
         <div class="stat-v2-label">Remaining</div>
         <div class="stat-v2-value" style="color:var(--n-700);"><?= $totalIndicators - $totalResponded ?></div>
         <div class="stat-v2-meta" style="color:var(--n-400);">indicators left</div>
-        <div class="kpi-bar">
-          <div class="kpi-bar-fill"
-            style="width:<?= 100 - $progress ?>%;background:linear-gradient(90deg,#7C3AED,#A78BFA);"></div>
-        </div>
       </div>
     <?php endif; ?>
   </div>
@@ -2098,7 +2169,9 @@ include __DIR__ . '/../includes/header.php';
                 $chartColors[] = $ds['color_hex'];
                 ?>
                 <div class="dim-row">
-                  <div class="dim-num" style="background:<?= e($ds['color_hex']) ?>;"><?= $ds['dimension_no'] ?></div>
+                  <div class="dim-num" style="background:<?= e($ds['color_hex']) ?>;">
+                    <?= svgIcon(getDimensionIcon((int)$ds['dimension_no'])) ?>
+                  </div>
                   <div class="dim-info">
                     <div class="dim-name"><?= e($ds['dimension_name']) ?></div>
                     <div class="dim-prog">
@@ -2339,7 +2412,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
   </div>
 
-  <!-- KPI insight strip -->
+  <!-- KPI insight strip — Primary -->
   <div class="an-insight-strip">
     <div class="an-insight-card">
       <div class="an-insight-val"
@@ -2355,11 +2428,12 @@ include __DIR__ . '/../includes/header.php';
     </div>
     <div class="an-insight-card">
       <?php
-      $curMaturity = $currCycle['maturity_level'] ?? null;
+      // Use dynamic maturity based on the calculated overall score to ensure consistency
+      $curMaturity = $anAvgOverall !== null ? computeMaturity($anAvgOverall) : ($currCycle['maturity_level'] ?? null);
       $anMatColors = ['Beginning' => '#DC2626', 'Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
       ?>
       <div class="an-insight-val"
-        style="font-size:18px;color:<?= $anMatColors[$curMaturity ?? ''] ?? 'var(--n-400)' ?>;">
+        style="font-size:18px;color:<?= $curMaturity ? 'var(--n-900)' : 'var(--n-400)' ?>;">
         <?= $curMaturity ?? '—' ?>
       </div>
       <div class="an-insight-lbl">Maturity Level</div>
@@ -2368,10 +2442,29 @@ include __DIR__ . '/../includes/header.php';
       <?php endif; ?>
     </div>
     <div class="an-insight-card">
+      <?php if ($anWeakDim): ?>
+        <div class="an-insight-val" style="color:var(--n-900);">
+          <?= svgIcon(getDimensionIcon((int)$anWeakDim['dimension_no']), '', 'width:20px;height:20px;') ?>
+          <?= e($anWeakDim['dimension_name']) ?>
+        </div>
+        <div class="an-insight-lbl">Needs Work (Weakest)</div>
+        <div class="an-insight-delta down"><?= $anWeakDim['avg_pct'] ?>% average</div>
+      <?php else: ?>
+        <div class="an-insight-val">—</div>
+        <div class="an-insight-lbl">Weakest Dimension</div>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- Secondary KPIs — collapsed by default -->
+  <div class="an-insight-extra" id="coordInsightExtra">
+    <div class="an-insight-card">
       <?php if ($anTopDim): ?>
-        <div class="an-insight-val" style="font-size:20px;color:<?= e($anTopDim['color_hex']) ?>;">
-          D<?= $anTopDim['dimension_no'] ?></div>
-        <div class="an-insight-lbl">Strongest — <?= e($anTopDim['dimension_name']) ?></div>
+        <div class="an-insight-val" style="color:var(--n-900);">
+          <?= svgIcon(getDimensionIcon((int)$anTopDim['dimension_no']), '', 'width:20px;height:20px;') ?>
+          <?= e($anTopDim['dimension_name']) ?>
+        </div>
+        <div class="an-insight-lbl">Strongest Dimension</div>
         <div class="an-insight-delta up"><?= $anTopDim['avg_pct'] ?>% average</div>
       <?php else: ?>
         <div class="an-insight-val">—</div>
@@ -2379,17 +2472,7 @@ include __DIR__ . '/../includes/header.php';
       <?php endif; ?>
     </div>
     <div class="an-insight-card">
-      <?php if ($anWeakDim): ?>
-        <div class="an-insight-val" style="font-size:20px;color:var(--red);">D<?= $anWeakDim['dimension_no'] ?></div>
-        <div class="an-insight-lbl">Needs Work — <?= e($anWeakDim['dimension_name']) ?></div>
-        <div class="an-insight-delta down"><?= $anWeakDim['avg_pct'] ?>% average</div>
-      <?php else: ?>
-        <div class="an-insight-val">—</div>
-        <div class="an-insight-lbl">Weakest Dimension</div>
-      <?php endif; ?>
-    </div>
-    <div class="an-insight-card">
-      <div class="an-insight-val" style="color:<?= count($consistentlyWeak) > 0 ? 'var(--red)' : 'var(--n-800)' ?>;">
+      <div class="an-insight-val" style="color:var(--n-900);">
         <?= count($consistentlyWeak) ?>
       </div>
       <div class="an-insight-lbl">Indicators Below 2.5 Avg</div>
@@ -2406,6 +2489,13 @@ include __DIR__ . '/../includes/header.php';
         <div class="an-insight-delta flat">Since SY <?= e($cycleHistory[0]['sy_label']) ?></div>
       <?php endif; ?>
     </div>
+  </div>
+
+  <div class="an-insight-toggle-wrap">
+    <button class="an-insight-toggle-btn" id="coordInsightToggleBtn" onclick="toggleCoordInsightExtras()">
+      <span id="coordInsightToggleText">See more</span>
+      <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
   </div>
 
   <!-- Charts row -->
@@ -2451,7 +2541,10 @@ include __DIR__ . '/../includes/header.php';
         <?php foreach ($anDimAvgs as $d): ?>
           <div class="chart-legend-item">
             <div class="chart-legend-swatch" style="background:<?= e($d['color_hex']) ?>;"></div>
-            D<?= $d['dimension_no'] ?>
+            <span style="display:flex;align-items:center;gap:4px;">
+              <?= svgIcon(getDimensionIcon((int)$d['dimension_no']), '', 'width:12px;height:12px;opacity:0.7;') ?>
+              D<?= $d['dimension_no'] ?>
+            </span>
           </div>
         <?php endforeach; ?>
       </div>
@@ -2724,6 +2817,15 @@ include __DIR__ . '/../includes/header.php';
 <?php endif; ?>
 
 <script>
+  // -- KPI toggle
+  function toggleCoordInsightExtras() {
+    const extra = document.getElementById('coordInsightExtra');
+    const btn = document.getElementById('coordInsightToggleBtn');
+    const txt = document.getElementById('coordInsightToggleText');
+    const isOpen = extra.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+    txt.textContent = isOpen ? 'See less' : 'See more';
+  }
   // -- View switcher
   function switchView(view, btn) {
     document.querySelectorAll('.vt-btn').forEach(b => b.classList.remove('active'));

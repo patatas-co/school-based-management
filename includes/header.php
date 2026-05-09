@@ -2454,6 +2454,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         'percent' => '<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
         'minus-circle' => '<circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/>',
         'check-square' => '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+        'book-open' => '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
       ];
 
       $__icon = function (string $n) use ($__svgPaths): string {
@@ -2590,8 +2591,25 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         $styleAttr = $style ? " style=\"$style\"" : '';
         return "<span class=\"sb-icon $cls\"$styleAttr><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">$d</svg></span>";
       }
-      ?>
 
+      function getDimensionIcon(int $no): string
+      {
+        $map = [
+          1 => 'book-open',
+          2 => 'home',
+          3 => 'star',
+          4 => 'shield',
+          5 => 'users',
+        6 => 'bar-chart-2'
+        ];
+        return $map[$no] ?? 'layers';
+      }
+      ?>
+      <style>
+        .sb-icon { display: inline-flex; align-items: center; justify-content: center; width: 1.2em; height: 1.2em; }
+        .sb-icon svg { width: 100%; height: 100%; stroke: currentColor; }
+        .dim-num .sb-icon { width: 14px; height: 14px; }
+      </style>
       <script>
         const SVG_PATHS = <?= $__svgJs ?>;
         function svgI(n) {

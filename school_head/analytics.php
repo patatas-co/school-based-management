@@ -160,9 +160,27 @@ $avgOverall = count($allPcts) > 0 ? round(array_sum($allPcts) / count($allPcts),
 $topDim = !empty($allPcts) ? $dimAvgs[array_search(max($allPcts), array_column($dimAvgs, 'avg_pct'))] : null;
 $weakDim = !empty($allPcts) ? $dimAvgs[array_search(min($allPcts), array_column($dimAvgs, 'avg_pct'))] : null;
 
-// Trend direction vs previous cycle
-$prevCycle = count($cycleHistory) >= 2 ? $cycleHistory[count($cycleHistory) - 2] : null;
-$currCycle = count($cycleHistory) >= 1 ? $cycleHistory[count($cycleHistory) - 1] : null;
+// Correctly identify current and previous cycles relative to selection
+$currCycle = null;
+$prevCycle = null;
+foreach ($cycleHistory as $idx => $ch) {
+  if ($ch['sy_id'] == $syId) { // Note: analytics uses $syId instead of $selectedSyId
+    $currCycle = $ch;
+    if ($idx > 0) {
+      $prevCycle = $cycleHistory[$idx - 1];
+    }
+    break;
+  }
+}
+
+// Fallback to latest cycle if no match for selected SY (original behavior)
+if (!$currCycle && count($cycleHistory) >= 1) {
+  $currCycle = $cycleHistory[count($cycleHistory) - 1];
+  if (count($cycleHistory) >= 2) {
+    $prevCycle = $cycleHistory[count($cycleHistory) - 2];
+  }
+}
+
 $scoreDelta = ($currCycle && $prevCycle)
   ? round(floatval($currCycle['overall_score']) - floatval($prevCycle['overall_score']), 2)
   : null;
@@ -238,10 +256,13 @@ include __DIR__ . '/../includes/header.php';
   }
 
   .chart-legend-swatch {
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
+    width: 11px;
+    height: 11px;
+    min-width: 11px;
+    min-height: 11px;
+    border-radius: 50%;
     flex-shrink: 0;
+    display: block;
   }
 
   .weak-prog {
@@ -260,9 +281,82 @@ include __DIR__ . '/../includes/header.php';
   /* ── Trend / comparison additions ── */
   .insight-strip {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
+    margin-bottom: 0;
+  }
+
+  .insight-extra {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .35s cubic-bezier(.4, 0, .2, 1), opacity .25s ease, margin .25s ease;
+    opacity: 0;
+    margin-top: 0;
+  }
+
+  .insight-extra.open {
+    max-height: 200px;
+    opacity: 1;
+    margin-top: 12px;
+  }
+
+  .insight-toggle-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
     margin-bottom: 20px;
+  }
+
+  .insight-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 16px;
+    border: 1px solid var(--n-200);
+    border-radius: 999px;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--n-500);
+    cursor: pointer;
+    transition: all .18s;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .insight-toggle-btn:hover {
+    color: var(--n-700);
+    border-color: var(--n-300);
+    background: var(--n-50);
+  }
+
+  .insight-toggle-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform .25s ease;
+  }
+
+  .insight-toggle-btn.open svg {
+    transform: rotate(180deg);
+  }
+
+  @media (max-width: 640px) {
+
+    .insight-strip,
+    .insight-extra {
+      grid-template-columns: 1fr;
+    }
+
+    .insight-extra.open {
+      max-height: 400px;
+    }
   }
 
   .insight-card {
@@ -275,11 +369,14 @@ include __DIR__ . '/../includes/header.php';
 
   .insight-val {
     font-family: var(--font-display);
-    font-size: 26px;
+    font-size: 18px;
     font-weight: 800;
     color: var(--n-900);
-    line-height: 1;
+    line-height: 1.2;
     margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .insight-lbl {
@@ -501,7 +598,7 @@ include __DIR__ . '/../includes/header.php';
   <?php endif; ?>
 </div>
 
-<!-- Enhanced insight strip -->
+<!-- Enhanced insight strip — Primary KPIs -->
 <div class="insight-strip">
   <!-- Overall score -->
   <div class="insight-card">
@@ -520,10 +617,11 @@ include __DIR__ . '/../includes/header.php';
   <!-- Maturity level -->
   <div class="insight-card">
     <?php
-    $curMaturity = $currCycle['maturity_level'] ?? null;
+    // Use dynamic maturity based on the calculated overall score to ensure consistency
+    $curMaturity = $avgOverall !== null ? computeMaturity($avgOverall) : ($currCycle['maturity_level'] ?? null);
     $matColors = ['Beginning' => '#DC2626', 'Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
     ?>
-    <div class="insight-val" style="font-size:18px;color:<?= $matColors[$curMaturity ?? ''] ?? 'var(--n-400)' ?>;">
+    <div class="insight-val" style="font-size:18px;color:<?= $curMaturity ? 'var(--n-900)' : 'var(--n-400)' ?>;">
       <?= $curMaturity ?? '—' ?>
     </div>
     <div class="insight-lbl">Maturity Level</div>
@@ -535,13 +633,32 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
   </div>
 
+  <!-- Weakest dimension -->
+  <div class="insight-card">
+    <?php if ($weakDim): ?>
+      <div class="insight-val" style="color:var(--n-900);">
+        <?= svgIcon(getDimensionIcon((int)$weakDim['dimension_no']), '', 'width:20px;height:20px;') ?>
+        <?= e($weakDim['dimension_name']) ?>
+      </div>
+      <div class="insight-lbl">Needs Work (Weakest)</div>
+      <div class="insight-delta down"><?= $weakDim['avg_pct'] ?>% average</div>
+    <?php else: ?>
+      <div class="insight-val">—</div>
+      <div class="insight-lbl">Weakest Dimension</div>
+    <?php endif; ?>
+  </div>
+</div>
+
+<!-- Secondary KPIs — collapsed by default -->
+<div class="insight-extra" id="insightExtra">
   <!-- Strongest dimension -->
   <div class="insight-card">
     <?php if ($topDim): ?>
-      <div class="insight-val" style="font-size:20px;color:<?= e($topDim['color_hex']) ?>;">
-        D<?= $topDim['dimension_no'] ?>
+      <div class="insight-val" style="color:var(--n-900);">
+        <?= svgIcon(getDimensionIcon((int)$topDim['dimension_no']), '', 'width:20px;height:20px;') ?>
+        <?= e($topDim['dimension_name']) ?>
       </div>
-      <div class="insight-lbl">Strongest — <?= e($topDim['dimension_name']) ?></div>
+      <div class="insight-lbl">Strongest Dimension</div>
       <div class="insight-delta up"><?= $topDim['avg_pct'] ?>% average</div>
     <?php else: ?>
       <div class="insight-val">—</div>
@@ -549,21 +666,9 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
   </div>
 
-  <!-- Weakest dimension -->
-  <div class="insight-card">
-    <?php if ($weakDim): ?>
-      <div class="insight-val" style="font-size:20px;color:var(--red);">D<?= $weakDim['dimension_no'] ?></div>
-      <div class="insight-lbl">Needs Work — <?= e($weakDim['dimension_name']) ?></div>
-      <div class="insight-delta down"><?= $weakDim['avg_pct'] ?>% average</div>
-    <?php else: ?>
-      <div class="insight-val">—</div>
-      <div class="insight-lbl">Weakest Dimension</div>
-    <?php endif; ?>
-  </div>
-
   <!-- Consistently weak count -->
   <div class="insight-card">
-    <div class="insight-val" style="color:<?= count($consistentlyWeak) > 0 ? 'var(--red)' : 'var(--brand-600)' ?>;">
+    <div class="insight-val" style="color:var(--n-900);">
       <?= count($consistentlyWeak) ?>
     </div>
     <div class="insight-lbl">Indicators Below 2.5 Avg</div>
@@ -584,6 +689,26 @@ include __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
+<div class="insight-toggle-wrap">
+  <button class="insight-toggle-btn" id="insightToggleBtn" onclick="toggleInsightExtras()">
+    <span id="insightToggleText">See more</span>
+    <svg viewBox="0 0 24 24">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  </button>
+</div>
+
+<script>
+  function toggleInsightExtras() {
+    const extra = document.getElementById('insightExtra');
+    const btn = document.getElementById('insightToggleBtn');
+    const txt = document.getElementById('insightToggleText');
+    const isOpen = extra.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+    txt.textContent = isOpen ? 'See less' : 'See more';
+  }
+</script>
+
 <!-- Charts row -->
 <div class="grid2" style="margin-bottom:18px;">
   <!-- Radar — with optional compare overlay -->
@@ -593,10 +718,10 @@ include __DIR__ . '/../includes/header.php';
       <?php if ($compareSyId && !empty($dimAvgsCompare)): ?>
         <div style="display:flex;align-items:center;gap:10px;font-size:11.5px;">
           <span style="display:flex;align-items:center;gap:4px;"><span
-              style="width:10px;height:10px;border-radius:50%;background:#16A34A;display:inline-block;"></span>SY
+              style="width:11px;height:11px;border-radius:50%;background:#16A34A;display:block;"></span>SY
             <?= e(array_column($syears, 'label', 'sy_id')[$syId] ?? '') ?></span>
           <span style="display:flex;align-items:center;gap:4px;"><span
-              style="width:10px;height:10px;border-radius:50%;background:#2563EB;display:inline-block;"></span>SY
+              style="width:11px;height:11px;border-radius:50%;background:#2563EB;display:block;"></span>SY
             <?= e(array_column($syears, 'label', 'sy_id')[$compareSyId] ?? '') ?></span>
         </div>
       <?php endif; ?>

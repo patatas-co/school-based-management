@@ -423,8 +423,27 @@ $anAvgOverall = count($anAllPcts) > 0 ? round(array_sum($anAllPcts) / count($anA
 $anTopDim = !empty($anAllPcts) ? $anDimAvgs[array_search(max($anAllPcts), array_column($anDimAvgs, 'avg_pct'))] : null;
 $anWeakDim = !empty($anAllPcts) ? $anDimAvgs[array_search(min($anAllPcts), array_column($anDimAvgs, 'avg_pct'))] : null;
 
-$prevCycle = count($cycleHistory) >= 2 ? $cycleHistory[count($cycleHistory) - 2] : null;
-$currCycle = count($cycleHistory) >= 1 ? $cycleHistory[count($cycleHistory) - 1] : null;
+// Correctly identify current and previous cycles relative to selection
+$currCycle = null;
+$prevCycle = null;
+foreach ($cycleHistory as $idx => $ch) {
+  if ($ch['sy_id'] == $selectedSyId) {
+    $currCycle = $ch;
+    if ($idx > 0) {
+      $prevCycle = $cycleHistory[$idx - 1];
+    }
+    break;
+  }
+}
+
+// Fallback to latest cycle if no match for selected SY (original behavior)
+if (!$currCycle && count($cycleHistory) >= 1) {
+  $currCycle = $cycleHistory[count($cycleHistory) - 1];
+  if (count($cycleHistory) >= 2) {
+    $prevCycle = $cycleHistory[count($cycleHistory) - 2];
+  }
+}
+
 $scoreDelta = ($currCycle && $prevCycle)
   ? round(floatval($currCycle['overall_score']) - floatval($prevCycle['overall_score']), 2)
   : null;
@@ -587,6 +606,9 @@ include __DIR__ . '/../includes/header.php';
     text-transform: uppercase;
     letter-spacing: .06em;
     margin-bottom: 10px;
+    min-height: 28px;
+    display: flex;
+    align-items: flex-end;
   }
 
   .stat-v2-value {
@@ -747,10 +769,10 @@ include __DIR__ . '/../includes/header.php';
   }
 
   .dim-name {
-    font-size: 12.5px;
-    font-weight: 500;
-    color: var(--n-600);
-    margin-bottom: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--n-700);
+    margin-bottom: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1341,16 +1363,92 @@ include __DIR__ . '/../includes/header.php';
   .chart-legend-swatch {
     width: 11px;
     height: 11px;
-    border-radius: 3px;
+    min-width: 11px;
+    min-height: 11px;
+    border-radius: 50%;
     flex-shrink: 0;
+    display: block;
   }
 
   /* -- ANALYTICS VIEW STYLES -- */
   .an-insight-strip {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
+    margin-bottom: 0;
+  }
+
+  .an-insight-extra {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .35s cubic-bezier(.4, 0, .2, 1), opacity .25s ease, margin .25s ease;
+    opacity: 0;
+    margin-top: 0;
+  }
+
+  .an-insight-extra.open {
+    max-height: 200px;
+    opacity: 1;
+    margin-top: 12px;
+  }
+
+  .an-insight-toggle-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
     margin-bottom: 20px;
+  }
+
+  .an-insight-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 16px;
+    border: 1px solid var(--n-200);
+    border-radius: 999px;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--n-500);
+    cursor: pointer;
+    transition: all .18s;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .an-insight-toggle-btn:hover {
+    color: var(--n-700);
+    border-color: var(--n-300);
+    background: var(--n-50);
+  }
+
+  .an-insight-toggle-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform .25s ease;
+  }
+
+  .an-insight-toggle-btn.open svg {
+    transform: rotate(180deg);
+  }
+
+  @media (max-width: 640px) {
+
+    .an-insight-strip,
+    .an-insight-extra {
+      grid-template-columns: 1fr;
+    }
+
+    .an-insight-extra.open {
+      max-height: 400px;
+    }
   }
 
   .an-insight-card {
@@ -1362,10 +1460,40 @@ include __DIR__ . '/../includes/header.php';
   }
 
   .an-insight-val {
-    font-size: 24px;
+    font-family: var(--font-display);
+    font-size: 18px;
     font-weight: 800;
-    line-height: 1;
-    margin-bottom: 2px;
+    color: var(--n-900);
+    line-height: 1.2;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .an-insight-lbl {
+    font-size: 11.5px;
+    color: var(--n-500);
+    font-weight: 500;
+  }
+
+  .an-insight-delta {
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 5px;
+  }
+
+  .an-insight-delta.up {
+    color: var(--n-800);
+  }
+
+  .an-insight-delta.down {
+    color: var(--n-900);
+    font-weight: 800;
+  }
+
+  .an-insight-delta.flat {
+    color: var(--n-400);
   }
 
   /* -- AI ASSISTANT PANEL -- */
@@ -1626,38 +1754,6 @@ include __DIR__ . '/../includes/header.php';
     }
   }
 
-  font-family: var(--font-display);
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--n-900);
-  line-height: 1;
-  margin-bottom: 4px;
-  }
-
-  .an-insight-lbl {
-    font-size: 11.5px;
-    color: var(--n-500);
-    font-weight: 500;
-  }
-
-  .an-insight-delta {
-    font-size: 12px;
-    font-weight: 700;
-    margin-top: 5px;
-  }
-
-  .an-insight-delta.up {
-    color: var(--n-800);
-  }
-
-  .an-insight-delta.down {
-    color: var(--n-900);
-    font-weight: 800;
-  }
-
-  .an-insight-delta.flat {
-    color: var(--n-400);
-  }
 
   .an-filter-bar {
     display: flex;
@@ -2362,24 +2458,18 @@ include __DIR__ . '/../includes/header.php';
   <!-- ━━━━━━━━━━━ KPI STATS ━━━━━━━━━━━ -->
   <div class="stats-v2">
     <div class="stat-v2">
-      <div class="stat-v2-accent" style="background:#2563EB;"></div>
+      <div class="stat-v2-accent" style="background:#16A34A;"></div>
       <div class="stat-v2-label">Assessment Cycles</div>
       <div class="stat-v2-value" data-live="total-cycles"><?= number_format($totalCycles) ?></div>
       <div class="stat-v2-meta"><span class="stat-v2-badge badge-blue"><?= $inProgress ?> in progress</span></div>
-      <div class="kpi-bar">
-        <div class="kpi-bar-fill" style="width:<?= min(100, $totalCycles * 10) ?>%;background:#2563EB;"></div>
-      </div>
     </div>
     <div class="stat-v2">
-      <div class="stat-v2-accent" style="background:#D97706;"></div>
+      <div class="stat-v2-accent" style="background:#16A34A;"></div>
       <div class="stat-v2-label">Awaiting Validation</div>
       <div class="stat-v2-value" style="color:<?= ($submitted - $validated) > 0 ? 'var(--amber)' : 'var(--n-900)' ?>;">
         <?= $submitted - $validated ?>
       </div>
       <div class="stat-v2-meta"><span class="stat-v2-badge badge-amber"><?= $submitted ?> total submitted</span></div>
-      <div class="kpi-bar">
-        <div class="kpi-bar-fill" style="width:<?= $validationRate ?>%;background:#D97706;"></div>
-      </div>
     </div>
     <div class="stat-v2">
       <div class="stat-v2-accent" style="background:#16A34A;"></div>
@@ -2387,15 +2477,12 @@ include __DIR__ . '/../includes/header.php';
       <div class="stat-v2-value" data-live="validated"><?= number_format($validated) ?></div>
       <div class="stat-v2-meta"><span class="stat-v2-badge badge-green"><?= $validationRate ?>% of submitted</span>
       </div>
-      <div class="kpi-bar">
-        <div class="kpi-bar-fill" style="width:<?= $validationRate ?>%;background:#16A34A;"></div>
-      </div>
     </div>
     <div class="stat-v2">
-      <div class="stat-v2-accent" style="background:#D97706;"></div>
+      <div class="stat-v2-accent" style="background:#16A34A;"></div>
       <div class="stat-v2-label">Teachers Submitted</div>
       <div class="stat-v2-value"
-        style="color:<?= $teacherSubmitRate >= 100 ? '#D97706' : ($teacherSubmitRate >= 50 ? '#D97706' : 'var(--n-900)') ?>;">
+        style="color:<?= $teacherSubmitRate >= 100 ? '#16A34A' : ($teacherSubmitRate >= 50 ? '#16A34A' : 'var(--n-900)') ?>;">
         <?= $submittedTeachers ?>/<?= $totalTeachers ?>
       </div>
       <div class="stat-v2-meta">
@@ -2404,7 +2491,7 @@ include __DIR__ . '/../includes/header.php';
         </span>
       </div>
       <div class="kpi-bar">
-        <div class="kpi-bar-fill" style="width:<?= $teacherSubmitRate ?>%;background:#D97706;"></div>
+        <div class="kpi-bar-fill" style="width:<?= $teacherSubmitRate ?>%;background:#16A34A;"></div>
       </div>
     </div>
   </div>
@@ -2439,7 +2526,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
   </div>
 
-  <!-- ━━━━━━━━━━━ MAIN GRID ━━━━━━━━━━━ -->
+  <!-- ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  MAIN GRID ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  -->
   <div class="db-layout-main">
 
     <!-- LEFT: Dimension Performance + Chart -->
@@ -2456,17 +2543,25 @@ include __DIR__ . '/../includes/header.php';
               $pct = floatval($d['avg_pct']);
               $matColor = $pct >= 76 ? '#16A34A' : ($pct >= 51 ? '#2563EB' : ($pct >= 26 ? '#D97706' : '#DC2626'));
               ?>
+              <?php $greenGradient = ['#4ADE80', '#22C55E', '#16A34A', '#15803D', '#166534', '#14532D'];
+              $gi = array_search($d, $dimScores); ?>
               <div class="dim-row">
-                <div class="dim-num" style="background:<?= e($d['color_hex']) ?>;"><?= $d['dimension_no'] ?></div>
+                <div class="dim-num" style="background:<?= $greenGradient[$gi % 6] ?>;">
+                  <?= svgIcon(getDimensionIcon((int)$d['dimension_no'])) ?>
+                </div>
                 <div class="dim-info">
                   <div class="dim-name"><?= e($d['dimension_name']) ?></div>
-                  <div class="dim-prog">
-                    <div class="dim-prog-fill" style="width:<?= min(100, $pct) ?>%;background:<?= e($d['color_hex']) ?>;">
-                    </div>
-                  </div>
                 </div>
-                <div class="dim-pct" style="color:<?= $pct > 0 ? $matColor : 'var(--n-400)' ?>;">
-                  <?= $pct > 0 ? $pct . '%' : '—' ?>
+                <div class="dim-pct"
+                  style="color:<?= $pct > 0 ? $matColor : 'var(--n-400)' ?>; font-weight: 700; font-size: 13.5px;">
+                  <?php
+                  if ($pct > 0) {
+                    $mat = sbmMaturityLevel($pct);
+                    echo e($mat['label']);
+                  } else {
+                    echo '—';
+                  }
+                  ?>
                 </div>
               </div>
             <?php endforeach; ?>
@@ -2695,7 +2790,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
   </div>
 
-  <!-- KPI insight strip -->
+  <!-- KPI insight strip — Primary -->
   <div class="an-insight-strip">
     <div class="an-insight-card">
       <div class="an-insight-val"
@@ -2712,11 +2807,11 @@ include __DIR__ . '/../includes/header.php';
 
     <div class="an-insight-card">
       <?php
-      $curMaturity = $currCycle['maturity_level'] ?? null;
+      // Use dynamic maturity based on the calculated overall score to ensure consistency
+      $curMaturity = $anAvgOverall !== null ? computeMaturity($anAvgOverall) : ($currCycle['maturity_level'] ?? null);
       $anMatColors = ['Beginning' => '#DC2626', 'Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
       ?>
-      <div class="an-insight-val"
-        style="font-size:18px;color:<?= $anMatColors[$curMaturity ?? ''] ?? 'var(--n-400)' ?>;">
+      <div class="an-insight-val" style="font-size:18px;color:<?= $curMaturity ? 'var(--n-900)' : 'var(--n-400)' ?>;">
         <?= $curMaturity ?? '—' ?>
       </div>
       <div class="an-insight-lbl">Maturity Level</div>
@@ -2726,11 +2821,29 @@ include __DIR__ . '/../includes/header.php';
     </div>
 
     <div class="an-insight-card">
-      <?php if ($anTopDim): ?>
-        <div class="an-insight-val" style="font-size:20px;color:<?= e($anTopDim['color_hex']) ?>;">
-          D<?= $anTopDim['dimension_no'] ?>
+      <?php if ($anWeakDim): ?>
+        <div class="an-insight-val" style="color:var(--n-900);">
+          <?= svgIcon(getDimensionIcon((int)$anWeakDim['dimension_no']), '', 'width:20px;height:20px;') ?>
+          <?= e($anWeakDim['dimension_name']) ?>
         </div>
-        <div class="an-insight-lbl">Strongest — <?= e($anTopDim['dimension_name']) ?></div>
+        <div class="an-insight-lbl">Needs Work (Weakest)</div>
+        <div class="an-insight-delta down"><?= $anWeakDim['avg_pct'] ?>% average</div>
+      <?php else: ?>
+        <div class="an-insight-val">—</div>
+        <div class="an-insight-lbl">Weakest Dimension</div>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- Secondary KPIs — collapsed by default -->
+  <div class="an-insight-extra" id="anInsightExtra">
+    <div class="an-insight-card">
+      <?php if ($anTopDim): ?>
+        <div class="an-insight-val" style="color:var(--n-900);">
+          <?= svgIcon(getDimensionIcon((int)$anTopDim['dimension_no']), '', 'width:20px;height:20px;') ?>
+          <?= e($anTopDim['dimension_name']) ?>
+        </div>
+        <div class="an-insight-lbl">Strongest Dimension</div>
         <div class="an-insight-delta up"><?= $anTopDim['avg_pct'] ?>% average</div>
       <?php else: ?>
         <div class="an-insight-val">—</div>
@@ -2739,18 +2852,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
 
     <div class="an-insight-card">
-      <?php if ($anWeakDim): ?>
-        <div class="an-insight-val" style="font-size:20px;color:var(--red);">D<?= $anWeakDim['dimension_no'] ?></div>
-        <div class="an-insight-lbl">Needs Work — <?= e($anWeakDim['dimension_name']) ?></div>
-        <div class="an-insight-delta down"><?= $anWeakDim['avg_pct'] ?>% average</div>
-      <?php else: ?>
-        <div class="an-insight-val">—</div>
-        <div class="an-insight-lbl">Weakest Dimension</div>
-      <?php endif; ?>
-    </div>
-
-    <div class="an-insight-card">
-      <div class="an-insight-val" style="color:<?= count($consistentlyWeak) > 0 ? 'var(--red)' : 'var(--n-800)' ?>;">
+      <div class="an-insight-val" style="color:var(--n-900);">
         <?= count($consistentlyWeak) ?>
       </div>
       <div class="an-insight-lbl">Indicators Below 2.5 Avg</div>
@@ -2768,6 +2870,15 @@ include __DIR__ . '/../includes/header.php';
         <div class="an-insight-delta flat">Since SY <?= e($cycleHistory[0]['sy_label']) ?></div>
       <?php endif; ?>
     </div>
+  </div>
+
+  <div class="an-insight-toggle-wrap">
+    <button class="an-insight-toggle-btn" id="anInsightToggleBtn" onclick="toggleAnInsightExtras()">
+      <span id="anInsightToggleText">See more</span>
+      <svg viewBox="0 0 24 24">
+        <polyline points="6 9 12 15 18 9" />
+      </svg>
+    </button>
   </div>
 
   <!-- Charts row -->
@@ -2811,7 +2922,8 @@ include __DIR__ . '/../includes/header.php';
     <div id="anPredictionInsight" class="chart-card" style="margin-bottom:18px;display:none;">
       <div class="chart-card-head">
         <span class="chart-card-title">Trend Forecast</span>
-        <span style="font-size:11px;color:var(--n-400);font-weight:500;">Linear regression · <?= count($cycleHistory) ?> cycles</span>
+        <span style="font-size:11px;color:var(--n-400);font-weight:500;">Linear regression · <?= count($cycleHistory) ?>
+          cycles</span>
       </div>
       <div class="chart-card-body" style="padding:14px 16px;">
         <!-- Content populated by JavaScript -->
@@ -2837,7 +2949,10 @@ include __DIR__ . '/../includes/header.php';
         <?php foreach ($anDimAvgs as $d): ?>
           <div class="chart-legend-item">
             <div class="chart-legend-swatch" style="background:<?= e($d['color_hex']) ?>;"></div>
-            D<?= $d['dimension_no'] ?>
+            <span style="display:flex;align-items:center;gap:4px;">
+              <?= svgIcon(getDimensionIcon((int)$d['dimension_no']), '', 'width:12px;height:12px;opacity:0.7;') ?>
+              D<?= $d['dimension_no'] ?>
+            </span>
           </div>
         <?php endforeach; ?>
       </div>
@@ -3044,7 +3159,7 @@ include __DIR__ . '/../includes/header.php';
                   <td>
                     <div style="display:flex;align-items:center;gap:7px;">
                       <span
-                        style="width:10px;height:10px;border-radius:2px;background:<?= e($d['color_hex']) ?>;flex-shrink:0;display:inline-block;"></span>
+                        style="width:11px;height:11px;border-radius:50%;background:<?= e($d['color_hex']) ?>;flex-shrink:0;display:block;"></span>
                       <span style="font-size:12.5px;font-weight:600;">D<?= $d['dimension_no'] ?>:
                         <?= e(substr($d['dimension_name'], 0, 30)) ?></span>
                     </div>
@@ -3089,7 +3204,7 @@ include __DIR__ . '/../includes/header.php';
 <script>
   const dimLabels = <?= json_encode(array_map(fn($d) => 'D' . $d['dimension_no'], $dimScores)) ?>;
   const dimValues = <?= json_encode(array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $dimScores)) ?>;
-  const dimColors = <?= json_encode(array_column($dimScores, 'color_hex')) ?>;
+  const dimColors = <?= json_encode(['#4ADE80', '#22C55E', '#16A34A', '#15803D', '#166534', '#14532D']) ?>;
 
   new Chart(document.getElementById('dimBarChart'), {
     type: 'bar',
@@ -3168,6 +3283,14 @@ include __DIR__ . '/../includes/header.php';
       }
     }
   });
+  function toggleAnInsightExtras() {
+    const extra = document.getElementById('anInsightExtra');
+    const btn = document.getElementById('anInsightToggleBtn');
+    const txt = document.getElementById('anInsightToggleText');
+    const isOpen = extra.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+    txt.textContent = isOpen ? 'See less' : 'See more';
+  }
   function switchView(view, btn) {
     document.querySelectorAll('.vt-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
@@ -4055,5 +4178,7 @@ include __DIR__ . '/../includes/header.php';
 </script>
 <?= deadlineChipCss() ?>
 <?= deadlineChipJs() ?>
+
+<?php include __DIR__ . '/../includes/footer.php'; ?>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
