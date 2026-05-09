@@ -104,24 +104,7 @@ include __DIR__.'/../includes/header.php';
 <?php endforeach; ?>
 </div>
 
-<div class="card">
-  <div class="card-head"><span class="card-title">Dimension Radar</span></div>
-  <div class="card-body" style="max-width:500px;margin:0 auto;">
-    <canvas id="radarChart"></canvas>
-  </div>
-</div>
 
-<script>
-new Chart(document.getElementById('radarChart'),{
-  type:'radar',
-  data:{
-    labels:<?= json_encode(array_map(fn($d)=>'D'.$d['dimension_no'].': '.$d['dimension_name'],$dimensions)) ?>,
-    datasets:[{label:'SBM Score (%)',data:<?= json_encode(array_map(fn($d)=>$dimScoreMap[$d['dimension_no']]['percentage']??0,$dimensions)) ?>,
-      backgroundColor:'rgba(22,163,74,.15)',borderColor:'#16A34A',pointBackgroundColor:'#16A34A',pointRadius:5}]
-  },
-  options:{scales:{r:{beginAtZero:true,max:100,ticks:{stepSize:25,callback:v=>v+'%'}}},plugins:{legend:{display:false}}}
-});
-</script>
 
 <?php else: ?>
 <div class="alert alert-warning"><?= svgIcon('alert-circle') ?><span>No assessment data yet for SY <?= e($sy['label']??'—') ?>. <a href="self_assessment.php" style="color:var(--gold);font-weight:600;">Start your self-assessment →</a></span></div>
@@ -137,47 +120,6 @@ new Chart(document.getElementById('radarChart'),{
 </div>
 <?php endif; ?>
 
-<?php if(count($allCycles) >= 2 && !empty($trendData)): ?>
-<div class="card" style="margin-top:20px;">
-  <div class="card-head">
-    <span class="card-title">Cross-Cycle Trend</span>
-    <span style="font-size:12px;color:var(--n400);"><?= count($allCycles) ?> assessment cycle(s)</span>
-  </div>
-  <div class="card-body">
-    <canvas id="trendChart" height="100"></canvas>
-  </div>
-</div>
-<script>
-const TREND_CYCLES = <?= json_encode(array_map(fn($c, $i) => 'Cycle '.($i+1).' ('.date('M Y', strtotime($c['created_at'])).')', $allCycles, array_keys($allCycles))) ?>;
-const TREND_DIMS   = <?= json_encode(array_column($dimensions, 'dimension_name')) ?>;
-const TREND_COLORS = <?= json_encode(array_column($dimensions, 'color_hex')) ?>;
-const TREND_DATA   = <?= json_encode($trendData) ?>;
-const CYCLE_IDS    = <?= json_encode(array_column($allCycles, 'cycle_id')) ?>;
 
-const datasets = TREND_DIMS.map((name, idx) => ({
-  label: 'D' + (idx+1) + ': ' + name,
-  data: CYCLE_IDS.map(cid => TREND_DATA[cid]?.[idx+1] ?? null),
-  borderColor: TREND_COLORS[idx],
-  backgroundColor: TREND_COLORS[idx] + '22',
-  tension: 0.35,
-  pointRadius: 5,
-  borderWidth: 2,
-  spanGaps: true,
-}));
-
-new Chart(document.getElementById('trendChart'), {
-  type: 'line',
-  data: { labels: TREND_CYCLES, datasets },
-  options: {
-    scales: { y: { min:0, max:100, ticks:{ callback: v => v+'%' } } },
-    plugins: {
-      legend: { position:'bottom', labels:{ font:{ family:"'DM Sans',sans-serif", size:12 }, padding:10 } },
-      tooltip: { callbacks:{ label: ctx => ' '+ctx.dataset.label+': '+ctx.raw+'%' } }
-    },
-    responsive: true
-  }
-});
-</script>
-<?php endif; ?>
 
 <?php include __DIR__.'/../includes/footer.php'; ?>

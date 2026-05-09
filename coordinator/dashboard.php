@@ -376,27 +376,27 @@ include __DIR__ . '/../includes/header.php';
   }
 
   .hero-btn-primary {
-    background: rgba(74, 222, 128, 0.15);
+    background: rgba(255, 255, 255, .12);
     color: #fff;
-    border: 1px solid rgba(74, 222, 128, 0.35);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, .2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   }
 
   .hero-btn-primary:hover {
-    background: rgba(74, 222, 128, 0.25);
+    background: rgba(255, 255, 255, .2);
     transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.20);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
   }
 
   .hero-btn-secondary {
-    background: rgba(255, 255, 255, .06);
-    color: rgba(255, 255, 255, .80);
-    border: 1px solid rgba(255, 255, 255, .14);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
+    background: rgba(255, 255, 255, .05);
+    color: rgba(255, 255, 255, .75);
+    border: 1px solid rgba(255, 255, 255, .1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .hero-btn-secondary:hover {
-    background: rgba(255, 255, 255, .13);
+    background: rgba(255, 255, 255, .12);
     transform: translateY(-1px);
     color: #fff;
   }
@@ -510,25 +510,7 @@ include __DIR__ . '/../includes/header.php';
     margin-bottom: 24px;
   }
 
-  .stats-v2 .stat-v2:nth-child(1) {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 18px rgba(22, 163, 74, 0.06);
-  }
 
-  .stats-v2 .stat-v2:nth-child(2) {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 18px rgba(37, 99, 235, 0.05);
-  }
-
-  .stats-v2 .stat-v2:nth-child(3) {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 18px rgba(217, 119, 6, 0.05);
-  }
-
-  .stats-v2 .stat-v2:nth-child(4) {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 18px rgba(37, 99, 235, 0.05);
-  }
-
-  .stats-v2 .stat-v2:nth-child(5) {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 18px rgba(124, 58, 237, 0.06);
-  }
 
   .stat-v2 {
     background: #fff;
@@ -537,7 +519,7 @@ include __DIR__ . '/../includes/header.php';
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
     transition: transform 180ms var(--ease), box-shadow 180ms var(--ease);
     position: relative;
-    overflow: visible;
+    overflow: hidden;
     border: 1px solid var(--n-200);
   }
 
@@ -554,11 +536,11 @@ include __DIR__ . '/../includes/header.php';
 
   .stat-v2-accent {
     position: absolute;
-    top: -1px;
-    left: -1px;
-    right: -1px;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 3px;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-radius: 0;
     z-index: 1;
   }
 
@@ -721,8 +703,8 @@ include __DIR__ . '/../includes/header.php';
   }
 
   .dim-num {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
     border-radius: 6px;
     display: flex;
     align-items: center;
@@ -730,7 +712,8 @@ include __DIR__ . '/../includes/header.php';
     font-size: 11px;
     font-weight: 800;
     flex-shrink: 0;
-    color: #fff;
+    color: #111827;
+    background: none !important;
   }
 
   .dim-info {
@@ -739,10 +722,10 @@ include __DIR__ . '/../includes/header.php';
   }
 
   .dim-name {
-    font-size: 12.5px;
-    font-weight: 500;
-    color: var(--n-600);
-    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--n-700);
+    margin-bottom: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -781,8 +764,29 @@ include __DIR__ . '/../includes/header.php';
     font-weight: 800;
     text-align: right;
     flex-shrink: 0;
-    min-width: 38px;
+    min-width: 42px;
     letter-spacing: -0.4px;
+    position: relative;
+    cursor: help;
+  }
+
+  .dim-pct[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 6px);
+    background: #0f172a;
+    color: #fff;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0;
+    white-space: nowrap;
+    padding: 5px 8px;
+    border-radius: 6px;
+    z-index: 20;
+    box-shadow: 0 8px 20px rgba(2, 6, 23, 0.25);
+    pointer-events: none;
   }
 
   /* ── TEACHER SUBMISSIONS ── */
@@ -1039,7 +1043,7 @@ include __DIR__ . '/../includes/header.php';
     gap: 12px;
     max-height: 0;
     overflow: hidden;
-    transition: max-height .35s cubic-bezier(.4,0,.2,1), opacity .25s ease, margin .25s ease;
+    transition: max-height .35s cubic-bezier(.4, 0, .2, 1), opacity .25s ease, margin .25s ease;
     opacity: 0;
     margin-top: 0;
   }
@@ -1370,6 +1374,7 @@ include __DIR__ . '/../includes/header.php';
     .an-insight-extra {
       grid-template-columns: repeat(2, 1fr);
     }
+
     .an-insight-extra.open {
       max-height: 400px;
     }
@@ -2042,23 +2047,11 @@ include __DIR__ . '/../includes/header.php';
       <div class="stat-v2-value"><?= $totalResponded ?></div>
       <div class="stat-v2-meta"><span class="stat-v2-badge badge-green"><?= $progress ?>% complete</span></div>
     </div>
+
     <div class="stat-v2">
-      <div class="stat-v2-accent" style="background:<?= $hasScore ? $mat['color'] : '#6B7280' ?>;"></div>
-      <div class="stat-v2-label">SBM Score</div>
-      <div class="stat-v2-value" style="color:<?= $hasScore ? $mat['color'] : 'var(--n-300)' ?>;">
-        <?= $hasScore ? $cycle['overall_score'] . '%' : '—' ?>
-      </div>
-      <div class="stat-v2-meta" style="color:var(--n-400);">
-        <?= $hasScore ? e($cycle['maturity_level']) : 'Awaiting data' ?>
-      </div>
-    </div>
-    <div class="stat-v2">
-      <div class="stat-v2-accent"
-        style="background:<?= $submittedTeachers === $totalTeachers && $totalTeachers > 0 ? '#16A34A' : '#D97706' ?>;">
-      </div>
+      <div class="stat-v2-accent" style="background:#16A34A;"></div>
       <div class="stat-v2-label">Teachers Submitted</div>
-      <div class="stat-v2-value"
-        style="color:<?= $submittedTeachers === $totalTeachers && $totalTeachers > 0 ? '#16A34A' : 'var(--n-900)' ?>;">
+      <div class="stat-v2-value" style="color:var(--n-900);">
         <?= $submittedTeachers ?>/<?= $totalTeachers ?>
       </div>
       <div class="stat-v2-meta">
@@ -2069,19 +2062,19 @@ include __DIR__ . '/../includes/header.php';
       </div>
       <div class="kpi-bar">
         <div class="kpi-bar-fill"
-          style="width:<?= $totalTeachers > 0 ? round(($submittedTeachers / $totalTeachers) * 100) : 0 ?>%;background:<?= $submittedTeachers === $totalTeachers && $totalTeachers > 0 ? 'linear-gradient(90deg,#16A34A,#4ADE80)' : 'linear-gradient(90deg,#D97706,#FCD34D)' ?>;">
+          style="width:<?= $totalTeachers > 0 ? round(($submittedTeachers / $totalTeachers) * 100) : 0 ?>%;background:#16A34A;">
         </div>
       </div>
     </div>
     <div class="stat-v2">
-      <div class="stat-v2-accent" style="background:#2563EB;"></div>
+      <div class="stat-v2-accent" style="background:#16A34A;"></div>
       <div class="stat-v2-label">Dimensions Scored</div>
       <div class="stat-v2-value"><?= count($dimScores) ?></div>
       <div class="stat-v2-meta"><span class="stat-v2-badge badge-blue">of 6 total</span></div>
     </div>
     <?php if ($totalIndicators > 0): ?>
       <div class="stat-v2">
-        <div class="stat-v2-accent" style="background:#7C3AED;"></div>
+        <div class="stat-v2-accent" style="background:#16A34A;"></div>
         <div class="stat-v2-label">Remaining</div>
         <div class="stat-v2-value" style="color:var(--n-700);"><?= $totalIndicators - $totalResponded ?></div>
         <div class="stat-v2-meta" style="color:var(--n-400);">indicators left</div>
@@ -2133,7 +2126,7 @@ include __DIR__ . '/../includes/header.php';
         style="box-shadow:0 2px 6px rgba(0,0,0,0.07),0 12px 28px rgba(0,0,0,0.06),inset 0 1px 0 rgba(255,255,255,0.95);">
         <div class="card-head">
           <span class="card-title">Dimension Performance</span>
-          <a href="dimensions.php" class="btn btn-ghost btn-sm">View details →</a>
+          <a href="dimensions.php" class="btn btn-ghost btn-sm">View details</a>
         </div>
         <div class="card-body">
           <?php if ($dimScores):
@@ -2169,19 +2162,15 @@ include __DIR__ . '/../includes/header.php';
                 $chartColors[] = $ds['color_hex'];
                 ?>
                 <div class="dim-row">
-                  <div class="dim-num" style="background:<?= e($ds['color_hex']) ?>;">
-                    <?= svgIcon(getDimensionIcon((int)$ds['dimension_no'])) ?>
+                  <div class="dim-num">
+                    <?= svgIcon(getDimensionIcon((int) $ds['dimension_no'])) ?>
                   </div>
                   <div class="dim-info">
                     <div class="dim-name"><?= e($ds['dimension_name']) ?></div>
-                    <div class="dim-prog">
-                      <div class="dim-prog-fill"
-                        style="width:<?= min(100, $pct) ?>%;background:linear-gradient(90deg,<?= e($ds['color_hex']) ?>,<?= e($ds['color_hex']) ?>bb);">
-                      </div>
-                    </div>
                   </div>
                   <div style="text-align:right;flex-shrink:0;min-width:90px;">
-                    <div class="dim-pct" style="color:<?= $mat2['color'] ?>;"><?= $pct > 0 ? $pct . '%' : '—' ?></div>
+                    <div class="dim-pct" data-tooltip="<?= $pct > 0 ? e($mat2['label']) : 'No score yet' ?>"
+                      style="color:<?= $mat2['color'] ?>;"><?= $pct > 0 ? $pct . '%' : '—' ?></div>
                     <div
                       style="font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--n-300);text-transform:uppercase;">
                       <?= $done ?>/<?= $dimActiveCount[$ds['dimension_id']] ?? $ds['indicator_count'] ?> rated
@@ -2210,7 +2199,7 @@ include __DIR__ . '/../includes/header.php';
       <div class="card">
         <div class="card-head"><span class="card-title">Dimension Score Comparison</span></div>
         <div class="card-body">
-          <div style="position:relative;height:220px;">
+          <div style="position:relative;height:190px;">
             <?php if ($dimScores): ?>
               <canvas id="dimBarChart"></canvas>
             <?php else: ?>
@@ -2432,8 +2421,7 @@ include __DIR__ . '/../includes/header.php';
       $curMaturity = $anAvgOverall !== null ? computeMaturity($anAvgOverall) : ($currCycle['maturity_level'] ?? null);
       $anMatColors = ['Beginning' => '#DC2626', 'Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
       ?>
-      <div class="an-insight-val"
-        style="font-size:18px;color:<?= $curMaturity ? 'var(--n-900)' : 'var(--n-400)' ?>;">
+      <div class="an-insight-val" style="font-size:18px;color:<?= $curMaturity ? 'var(--n-900)' : 'var(--n-400)' ?>;">
         <?= $curMaturity ?? '—' ?>
       </div>
       <div class="an-insight-lbl">Maturity Level</div>
@@ -2444,7 +2432,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="an-insight-card">
       <?php if ($anWeakDim): ?>
         <div class="an-insight-val" style="color:var(--n-900);">
-          <?= svgIcon(getDimensionIcon((int)$anWeakDim['dimension_no']), '', 'width:20px;height:20px;') ?>
+          <?= svgIcon(getDimensionIcon((int) $anWeakDim['dimension_no']), '', 'width:20px;height:20px;') ?>
           <?= e($anWeakDim['dimension_name']) ?>
         </div>
         <div class="an-insight-lbl">Needs Work (Weakest)</div>
@@ -2461,7 +2449,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="an-insight-card">
       <?php if ($anTopDim): ?>
         <div class="an-insight-val" style="color:var(--n-900);">
-          <?= svgIcon(getDimensionIcon((int)$anTopDim['dimension_no']), '', 'width:20px;height:20px;') ?>
+          <?= svgIcon(getDimensionIcon((int) $anTopDim['dimension_no']), '', 'width:20px;height:20px;') ?>
           <?= e($anTopDim['dimension_name']) ?>
         </div>
         <div class="an-insight-lbl">Strongest Dimension</div>
@@ -2494,7 +2482,9 @@ include __DIR__ . '/../includes/header.php';
   <div class="an-insight-toggle-wrap">
     <button class="an-insight-toggle-btn" id="coordInsightToggleBtn" onclick="toggleCoordInsightExtras()">
       <span id="coordInsightToggleText">See more</span>
-      <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      <svg viewBox="0 0 24 24">
+        <polyline points="6 9 12 15 18 9" />
+      </svg>
     </button>
   </div>
 
@@ -2533,24 +2523,6 @@ include __DIR__ . '/../includes/header.php';
     </div>
   </div>
 
-  <!-- Dimension Score Comparison -->
-  <div class="chart-card" style="margin-bottom:18px;">
-    <div class="chart-card-head">
-      <span class="chart-card-title">Dimension Score Comparison</span>
-      <div class="chart-legend" style="margin-bottom:0;">
-        <?php foreach ($anDimAvgs as $d): ?>
-          <div class="chart-legend-item">
-            <div class="chart-legend-swatch" style="background:<?= e($d['color_hex']) ?>;"></div>
-            <span style="display:flex;align-items:center;gap:4px;">
-              <?= svgIcon(getDimensionIcon((int)$d['dimension_no']), '', 'width:12px;height:12px;opacity:0.7;') ?>
-              D<?= $d['dimension_no'] ?>
-            </span>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    </div>
-    <div class="chart-card-body"><canvas id="anDimBarChart" height="80"></canvas></div>
-  </div>
 
   <!-- Dimension trend over time -->
   <?php if (count($trendSYLabels) >= 2): ?>
@@ -2650,9 +2622,6 @@ include __DIR__ . '/../includes/header.php';
               <div style="font-size:12.5px;color:var(--n-700);margin-bottom:5px;line-height:1.45;">
                 <?= e(substr($ind['indicator_text'], 0, 100)) ?>…
               </div>
-              <div class="an-weak-prog">
-                <div class="an-weak-fill" style="width:<?= $pct ?>%;background:<?= $color ?>;"></div>
-              </div>
               <div style="font-size:11px;color:var(--n-400);margin-top:4px;"><?= $ind['response_count'] ?> response(s)</div>
             </div>
           <?php endforeach; ?>
@@ -2691,9 +2660,6 @@ include __DIR__ . '/../includes/header.php';
                   Avg: <strong style="color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</strong> ·
                   Worst: <?= number_format($cw['worst_cycle_avg'], 2) ?> ·
                   Best: <?= number_format($cw['best_cycle_avg'], 2) ?>
-                </div>
-                <div class="an-cw-bar-track">
-                  <div class="an-cw-bar-fill" style="width:<?= $pct ?>%;background:<?= $color ?>;"></div>
                 </div>
               </div>
               <div style="font-size:11px;font-weight:700;color:var(--red);text-align:center;min-width:48px;">
@@ -2783,13 +2749,25 @@ include __DIR__ . '/../includes/header.php';
 
 </div><!-- /viewAnalytics -->
 
-<?php if ($dimScores): ?>
-  <script>
-    const dimLabels = <?= json_encode($chartLabels) ?>;
-    const dimValues = <?= json_encode($chartData) ?>;
-    const dimColors = <?= json_encode($chartColors) ?>;
 
-    new Chart(document.getElementById('dimBarChart'), {
+
+<script>
+  // -- KPI toggle
+  function toggleCoordInsightExtras() {
+    const extra = document.getElementById('coordInsightExtra');
+    const btn = document.getElementById('coordInsightToggleBtn');
+    const txt = document.getElementById('coordInsightToggleText');
+    const isOpen = extra.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+    txt.textContent = isOpen ? 'See less' : 'See more';
+  }
+  // -- Dimension Bar Chart (Progress View) --------------------
+  const dimLabels = <?= json_encode(array_map(fn($d) => 'D' . $d['dimension_no'], $dimScores)) ?>;
+  const dimValues = <?= json_encode(array_map(fn($d) => $d['percentage'] !== null ? floatval($d['percentage']) : null, $dimScores)) ?>;
+  const dimColors = <?= json_encode(['#4ADE80', '#22C55E', '#16A34A', '#15803D', '#166534', '#14532D']) ?>;
+  const dimBarEl = document.getElementById('dimBarChart');
+  if (dimBarEl && dimValues.length > 0) {
+    new Chart(dimBarEl, {
       type: 'bar',
       data: {
         labels: dimLabels,
@@ -2813,19 +2791,8 @@ include __DIR__ . '/../includes/header.php';
         plugins: { legend: { display: false } }
       }
     });
-  </script>
-<?php endif; ?>
-
-<script>
-  // -- KPI toggle
-  function toggleCoordInsightExtras() {
-    const extra = document.getElementById('coordInsightExtra');
-    const btn = document.getElementById('coordInsightToggleBtn');
-    const txt = document.getElementById('coordInsightToggleText');
-    const isOpen = extra.classList.toggle('open');
-    btn.classList.toggle('open', isOpen);
-    txt.textContent = isOpen ? 'See less' : 'See more';
   }
+
   // -- View switcher
   function switchView(view, btn) {
     document.querySelectorAll('.vt-btn').forEach(b => b.classList.remove('active'));
@@ -2958,39 +2925,6 @@ include __DIR__ . '/../includes/header.php';
       });
     }
 
-    // Dimension bar chart
-    if (anDimValues.some(v => v !== null && v > 0)) {
-      const barDatasets = [{
-        label: 'SY ' + anCurrSyLabel,
-        data: anDimValues,
-        backgroundColor: anDimColors.map(c => c + '30'),
-        borderColor: anDimColors,
-        borderWidth: 2, borderRadius: 8, borderSkipped: false,
-      }];
-      if (anDimValCmp.length && anDimValCmp.some(v => v > 0)) {
-        barDatasets.push({
-          label: 'SY ' + anCompareSyLabel,
-          data: anDimValCmp,
-          backgroundColor: '#9CA3AF30', borderColor: '#9CA3AF',
-          borderWidth: 2, borderRadius: 8, borderSkipped: false,
-        });
-      }
-      new Chart(document.getElementById('anDimBarChart'), {
-        type: 'bar',
-        data: { labels: anDimLabels, datasets: barDatasets },
-        options: {
-          scales: {
-            y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
-            x: { ticks: { font: { size: 12, weight: '600' } }, grid: { display: false } }
-          },
-          plugins: { legend: { display: barDatasets.length > 1, position: 'bottom', labels: { font: { size: 11 }, padding: 10 } } },
-          responsive: true, maintainAspectRatio: true,
-        }
-      });
-    } else {
-      const bc = document.getElementById('anDimBarChart');
-      if (bc) bc.closest('.chart-card-body').innerHTML = '<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No dimension score data for this school year.</p>';
-    }
   }
 
   // Auto-switch to analytics if ?view=analytics in URL
@@ -3410,7 +3344,8 @@ include __DIR__ . '/../includes/header.php';
       <div class="ip-view-header-top">
         <div class="ip-view-title-block">
           <div class="ip-view-title-icon">
-            <img src="<?= e(baseUrl()) ?>/assets/seal.png" alt="DASMARINAS INTEGRATED HIGH SCHOOL" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.12));">
+            <img src="<?= e(baseUrl()) ?>/assets/seal.png" alt="DASMARINAS INTEGRATED HIGH SCHOOL"
+              style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.12));">
           </div>
           <div>
             <div class="ip-view-title">School Head Improvement Plan</div>
