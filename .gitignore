@@ -14,6 +14,7 @@ __pycache__/
 *.pyd
 *.pyw
 ml/venv/
+ml/venv64/
 ml/env/
 ml/__pycache__/
 ml/*.egg-info/
