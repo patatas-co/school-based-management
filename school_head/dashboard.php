@@ -2349,7 +2349,7 @@ include __DIR__ . '/../includes/header.php';
       <?= date('l, F j, Y') ?>
       &nbsp;·&nbsp; Dasmariñas Integrated High School
     </div>
-    <?php if ($deadlineInfo): ?>
+    <?php if ($deadlineInfo && (!$currCycle || !in_array($currCycle['status'], ['completed', 'finalized', 'validated']))): ?>
       <?= renderDeadlineChip($deadlineInfo, 'dark') ?>
     <?php endif; ?>
   </div>
@@ -2455,9 +2455,8 @@ include __DIR__ . '/../includes/header.php';
           yet.</span>
       <?php endif; ?>
       <a href="dashboard.php?sy_id=<?= $currentSYRow['sy_id'] ?? '' ?>"
-        style="margin-left:auto;font-weight:700;white-space:nowrap;color:inherit;text-decoration:none;opacity:.8;">→
-        Current
-        SY</a>
+        style="margin-left:auto;font-weight:700;white-space:nowrap;color:inherit;text-decoration:none;opacity:.8;">
+        Go back to Current School Year</a>
     </div>
   <?php endif; ?>
 
@@ -2473,11 +2472,11 @@ include __DIR__ . '/../includes/header.php';
       <span><strong><?= $returned ?> assessment<?= $returned !== 1 ? 's' : '' ?></strong> returned for revision — awaiting
         feedback.</span>
       <a href="assessment.php?status=returned"
-        style="margin-left:auto;font-weight:700;color:var(--amber);white-space:nowrap;">View →</a>
+        style="margin-left:auto;font-weight:700;color:var(--amber);white-space:nowrap;">View Assessments</a>
     </div>
   <?php endif; ?>
 
-  <!-- ━━━━━━━━━━━ KPI STATS ━━━━━━━━━━━ -->
+  <!-- ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  KPI STATS ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  -->
   <div class="stats-v2">
     <div class="stat-v2">
       <div class="stat-v2-accent" style="background:#16A34A;"></div>

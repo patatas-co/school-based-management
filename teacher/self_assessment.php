@@ -66,6 +66,63 @@ if (!$cycleCheck) {
     exit;
 }
 
+// ── Cycle is complete/validated — show "Thank you" instead of read-only indicators
+if ($cycleCheck && in_array($cycleCheck['status'], ['completed', 'finalized', 'validated'])) {
+    $pageTitle = 'SBM Self-Assessment';
+    $activePage = 'self_assessment.php';
+    include __DIR__ . '/../includes/header.php';
+    $stSyLbl = $db->prepare("SELECT label FROM school_years WHERE sy_id=? LIMIT 1");
+    $stSyLbl->execute([$syId]);
+    $syLabel = $stSyLbl->fetchColumn() ?: '—';
+    ?>
+    <div class="page-head">
+        <div class="page-head-text">
+            <h2>SBM Self-Assessment</h2>
+            <p>Dasmariñas Integrated High School &nbsp;·&nbsp; SY <?= e($syLabel) ?></p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body" style="text-align:center;padding:80px 20px;">
+            <div style="width:80px;height:80px;border-radius:50%;background:#DCFCE7;
+                    display:flex;align-items:center;justify-content:center;margin:0 auto 24px;
+                    box-shadow:0 0 0 8px rgba(22,163,74,0.08);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" style="width:36px;height:36px;">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+            </div>
+            <h3 style="font-size:22px;font-weight:800;color:var(--n800);margin-bottom:10px;">
+                Thank You for Participating!
+            </h3>
+            <p style="font-size:14.5px;color:var(--n500);max-width:460px;margin:0 auto 12px;line-height:1.7;">
+                The SBM Self-Assessment cycle for <strong>SY <?= e($syLabel) ?></strong>
+                has been completed and validated. Your contributions have been recorded
+                and are part of the final assessment results.
+            </p>
+            <div style="margin-top:28px;margin-bottom:16px;">
+                <a href="dashboard.php" style="display:inline-flex;align-items:center;gap:7px;
+                    padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;
+                    background:var(--brand-600);color:#fff;text-decoration:none;
+                    transition:background 140ms;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    Back to Dashboard
+                </a>
+            </div>
+            <p style="font-size:12.5px;color:var(--n400);max-width:400px;margin:0 auto;">
+                If you have any questions, please contact your School Head or SBM Coordinator.
+            </p>
+        </div>
+    </div>
+    <?php
+    include __DIR__ . '/../includes/footer.php';
+    exit;
+}
+
 // ── FETCH ASSIGNED INDICATORS ─────────────────────────────────
 $assignStmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignments WHERE teacher_id = ?");
 $assignStmt->execute([$uid]);

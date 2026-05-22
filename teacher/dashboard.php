@@ -46,7 +46,7 @@ include __DIR__ . '/../includes/header.php';
     <h2>Welcome, <?= e(explode(' ', trim($_SESSION['full_name']))[0]) ?></h2>
     <p>View your school's SBM progress and announcements.</p>
   </div>
-  <?php if ($deadlineInfo): ?>
+  <?php if ($deadlineInfo && (!$cycle || !in_array($cycle['status'], ['completed', 'finalized', 'validated']))): ?>
     <div class="page-head-actions">
       <?= renderDeadlineChip($deadlineInfo, 'light') ?>
     </div>

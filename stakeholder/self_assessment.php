@@ -41,27 +41,26 @@ if ($cycleCheck && in_array($cycleCheck['status'], ['completed', 'finalized', 'v
         </div>
     </div>
     <div class="card">
-        <div class="card-body" style="text-align:center;padding:70px 20px;">
-            <div style="width:72px;height:72px;border-radius:50%;
-                    background:#FEE2E2;
-                    display:flex;align-items:center;justify-content:center;
-                    margin:0 auto 20px;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round"
-                    stroke-linejoin="round" style="width:32px;height:32px;">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+        <div class="card-body" style="text-align:center;padding:80px 20px;">
+            <div style="width:80px;height:80px;border-radius:50%;background:#DCFCE7;
+                    display:flex;align-items:center;justify-content:center;margin:0 auto 24px;
+                    box-shadow:0 0 0 8px rgba(22,163,74,0.08);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" style="width:36px;height:36px;">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
                 </svg>
             </div>
-            <h3 style="font-size:20px;font-weight:800;color:var(--n800);margin-bottom:10px;">
-                Assessment Already Finalized
+            <h3 style="font-size:22px;font-weight:800;color:var(--n800);margin-bottom:10px;">
+                Thank You for Participating!
             </h3>
-            <p style="font-size:14px;color:var(--n500);max-width:420px;
-                  margin:0 auto 8px;line-height:1.7;">
-                The SBM Self-Assessment for this school year has already been
-                finalized. No further responses can be submitted or modified.
+            <p style="font-size:14.5px;color:var(--n500);max-width:460px;margin:0 auto 12px;line-height:1.7;">
+                The SBM Self-Assessment cycle for <strong>SY <?= e($syLabel) ?></strong>
+                has been completed and validated. Your contributions have been recorded
+                and are part of the final assessment results.
             </p>
-            <p style="font-size:12.5px;color:var(--n400);">
-                Please contact your School Head if you have concerns.
+            <p style="font-size:12.5px;color:var(--n400);max-width:400px;margin:0 auto;">
+                If you have any questions, please contact your School Head or SBM Coordinator.
             </p>
         </div>
     </div>
@@ -524,7 +523,7 @@ include __DIR__ . '/../includes/header.php';
         <p><?= e($school['school_name'] ?? '') ?> &nbsp;·&nbsp;
             SY <?= e($sy['label'] ?? '—') ?></p>
     </div>
-    <?php if ($deadlineInfo): ?>
+    <?php if ($deadlineInfo && (!$cycle || !in_array($cycle['status'], ['completed', 'finalized', 'validated']))): ?>
         <div class="page-head-actions">
             <?= renderDeadlineChip($deadlineInfo, 'light') ?>
         </div>

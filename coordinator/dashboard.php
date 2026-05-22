@@ -1967,7 +1967,7 @@ include __DIR__ . '/../includes/header.php';
       <?php endif; ?>
     </div>
 
-    <?php if ($deadlineInfo): ?>
+    <?php if ($deadlineInfo && (!$cycle || !in_array($cycle['status'], ['completed', 'finalized', 'validated']))): ?>
       <?= renderDeadlineChip($deadlineInfo, 'dark') ?>
     <?php endif; ?>
 
