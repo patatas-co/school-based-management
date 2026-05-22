@@ -5,7 +5,27 @@ require_once __DIR__ . '/../includes/auth.php';
 requireRole('school_head', 'sbm_coordinator');
 $db = getDB();
 $schoolId = $_SESSION['school_id'] ?? 0;
-$sy = $db->query("SELECT * FROM school_years WHERE is_current=1 LIMIT 1")->fetch();
+// School year filter — default to current
+$allSY = $db->query("SELECT sy_id, label FROM school_years ORDER BY sy_id DESC")->fetchAll();
+
+// Only show school years that have at least one attachment
+$sysWithEvidence = $db->query("
+    SELECT DISTINCT sy.sy_id, sy.label
+    FROM school_years sy
+    JOIN sbm_cycles c ON c.sy_id = sy.sy_id
+    JOIN response_attachments ra ON ra.cycle_id = c.cycle_id
+    WHERE ra.deleted_at IS NULL AND ra.is_current_version = 1
+    ORDER BY sy.sy_id DESC
+")->fetchAll();
+
+$selectedSyId = (int)($_GET['sy_id'] ?? 0);
+if (!$selectedSyId) {
+    $sy = $db->query("SELECT * FROM school_years WHERE is_current=1 LIMIT 1")->fetch();
+} else {
+    $st = $db->prepare("SELECT * FROM school_years WHERE sy_id=? LIMIT 1");
+    $st->execute([$selectedSyId]);
+    $sy = $st->fetch();
+}
 $syId = $sy['sy_id'] ?? 0;
 
 // Get current cycle
@@ -79,6 +99,13 @@ foreach ($allAttachments as $att) {
 $pageTitle = 'Evidence Files';
 $activePage = 'evidence.php';
 include __DIR__ . '/../includes/header.php';
+
+// ── Helper: build current URL with replaced sy_id ──
+function syFilterUrl(int $syId): string {
+    $params = $_GET;
+    $params['sy_id'] = $syId;
+    return '?' . http_build_query($params);
+}
 
 function formatFileSize(int $bytes): string
 {
@@ -300,128 +327,57 @@ function roleLabel(string $role): string
 
 <div class="page-head">
   <div class="page-head-text">
-    <h2>Evidence & MOV</h2>
-    <p>Means of Verification submitted per indicator — SY <?= e($sy['label'] ?? '—') ?></p>
+    <h2>Evidence & MOV Files</h2>
+    <p>Uploaded evidence files per indicator — SY <?= e($sy['label'] ?? '—') ?></p>
   </div>
   <div class="page-head-actions">
-    <a href="self_assessment.php" class="btn btn-primary"><?= svgIcon('edit') ?> Edit Assessment</a>
+    <?php if (!empty($sysWithEvidence)): ?>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <label style="font-size:13px;font-weight:600;color:var(--n600);white-space:nowrap;display:flex;align-items:center;gap:5px;">
+          School Year:
+          <span style="position:relative;display:inline-flex;align-items:center;cursor:default;"
+                onmouseenter="document.getElementById('evSyTooltip').style.opacity='1';document.getElementById('evSyTooltip').style.visibility='visible';"
+                onmouseleave="document.getElementById('evSyTooltip').style.opacity='0';document.getElementById('evSyTooltip').style.visibility='hidden';">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 style="width:14px;height:14px;color:var(--n400);">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <div id="evSyTooltip" style="position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+                 background:var(--n900);color:#fff;font-size:11.5px;font-weight:500;line-height:1.5;
+                 padding:7px 11px;border-radius:7px;white-space:nowrap;pointer-events:none;
+                 opacity:0;visibility:hidden;transition:opacity .15s,visibility .15s;z-index:99;
+                 box-shadow:0 4px 12px rgba(0,0,0,.18);">
+              Only school years with attachments uploaded will appear here.
+              <div style="position:absolute;top:100%;left:50%;transform:translateX(-50%);
+                   border:5px solid transparent;border-top-color:var(--n900);"></div>
+            </div>
+          </span>
+        </label>
+        <div class="p-select" id="evSySelect" style="width:200px;">
+          <div class="p-select-trigger" onclick="togglePSelect(event, 'evSySelect')">
+            <span class="p-select-val">
+              <?= e(array_column($sysWithEvidence, 'label', 'sy_id')[$syId] ?? 'Select School Year') ?>
+            </span>
+          </div>
+          <div class="p-select-menu">
+            <?php foreach ($sysWithEvidence as $syw): ?>
+              <div class="p-select-item <?= $syw['sy_id'] == $syId ? 'selected' : '' ?>"
+                   onclick="location.href='<?= e(syFilterUrl($syw['sy_id'])) ?>'">
+                S.Y <?= e($syw['label']) ?>
+                <?php if ($syw['sy_id'] == $syId): ?>
+                  <span class="p-select-check"></span>
+                <?php endif; ?>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
+      <?php endif; ?>
   </div>
 </div>
 
 <?php if (!$cycle): ?>
-  <div class="alert alert-warning"><?= svgIcon('alert-circle') ?><span>No active assessment cycle. Please start your
-      self-assessment first.</span></div>
-<?php else: ?>
-
-  <?php
-  // Check which indicators are missing required evidence
-  $missingEvidence = [];
-  if ($cycle) {
-    try {
-      $reqStmt = $db->prepare("
-            SELECT i.indicator_id, i.indicator_code, i.indicator_text,
-                   COALESCE(r.required_count, 0) AS required_count,
-                   COUNT(CASE WHEN ra.deleted_at IS NULL AND ra.is_current_version=1 THEN 1 END) AS uploaded_count
-            FROM sbm_indicators i
-            LEFT JOIN indicator_evidence_requirements r ON r.indicator_id = i.indicator_id
-            LEFT JOIN response_attachments ra ON ra.indicator_id = i.indicator_id
-                AND ra.cycle_id = ? AND ra.school_id = ?
-            WHERE i.is_active = 1
-            GROUP BY i.indicator_id
-            HAVING required_count > 0 AND uploaded_count < required_count
-        ");
-      $reqStmt->execute([$cycle['cycle_id'], $schoolId]);
-      $missingEvidence = $reqStmt->fetchAll();
-    } catch (\Exception $e) {
-      $missingEvidence = [];
-    }
-  }
-  ?>
-  <?php if (!empty($missingEvidence)): ?>
-    <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:9px;
-              padding:14px 18px;margin-bottom:18px;border-left:4px solid #D97706;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"
-          style="width:18px;height:18px;flex-shrink:0;">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          <line x1="12" y1="9" x2="12" y2="13" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
-        <strong style="font-size:13.5px;color:#92400E;">
-          <?= count($missingEvidence) ?> indicator<?= count($missingEvidence) !== 1 ? 's' : '' ?> missing required evidence
-        </strong>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;">
-        <?php foreach ($missingEvidence as $m): ?>
-          <span style="background:#FDE68A;border-radius:6px;padding:3px 9px;
-                     font-size:12px;font-weight:700;color:#78350F;">
-            <?= e($m['indicator_code']) ?>
-            <span style="font-weight:400;opacity:.8;">
-              (<?= $m['uploaded_count'] ?>/<?= $m['required_count'] ?> files)
-            </span>
-          </span>
-        <?php endforeach; ?>
-      </div>
-    </div>
-  <?php endif; ?>
-
-  <div class="card mb5" style="margin-bottom:16px;">
-    <div class="card-body" style="padding:12px 16px;">
-      <div class="flex-c" style="gap:16px;flex-wrap:wrap;">
-        <?php foreach ($dimensions as $d):
-          $cnt = 0;
-          foreach ($responses as $r) {
-            if ($r['dimension_no'] == $d['dimension_no'])
-              $cnt++;
-          }
-          ?>
-          <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;">
-            <span
-              style="width:11px;height:11px;border-radius:50%;background:<?= e($d['color_hex']) ?>;flex-shrink:0;display:block;"></span>
-            <span>D<?= $d['dimension_no'] ?></span>
-            <strong style="color:<?= e($d['color_hex']) ?>;"><?= $cnt ?></strong>
-          </div>
-        <?php endforeach; ?>
-        <span style="color:var(--n400);font-size:12px;margin-left:auto;"><?= count($responses) ?> total with
-          evidence</span>
-      </div>
-    </div>
-  </div>
-
-  <?php if ($responses):
-    $lastDim = '';
-    foreach ($responses as $r):
-      if ($r['dimension_name'] !== $lastDim):
-        $lastDim = $r['dimension_name']; ?>
-        <div style="margin-top:18px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
-          <span style="width:4px;height:18px;border-radius:2px;background:<?= e($r['color_hex']) ?>;flex-shrink:0;"></span>
-          <strong style="font-size:14px;color:var(--n900);">Dimension <?= $r['dimension_no'] ?>:
-            <?= e($r['dimension_name']) ?></strong>
-        </div>
-      <?php endif; ?>
-      <div
-        style="background:var(--white);border:1px solid var(--n200);border-radius:9px;padding:14px 16px;margin-bottom:8px;border-left:3px solid <?= e($r['color_hex']) ?>;">
-        <div class="flex-cb" style="margin-bottom:6px;">
-          <span
-            style="font-family:monospace;font-size:11.5px;color:var(--n500);background:var(--n100);padding:2px 7px;border-radius:4px;"><?= e($r['indicator_code']) ?></span>
-          <?= sbmRatingBadge($r['rating']) ?>
-        </div>
-        <p style="font-size:13px;color:var(--n700);margin-bottom:8px;line-height:1.6;"><?= e($r['indicator_text']) ?></p>
-        <?php if ($r['evidence_text']): ?>
-          <div
-            style="background:var(--n50);border:1px solid var(--n200);border-radius:6px;padding:10px 12px;font-size:12.5px;color:var(--n600);">
-            <div style="font-size:10.5px;font-weight:700;color:var(--n400);text-transform:uppercase;margin-bottom:4px;">Evidence
-              / MOV</div>
-            <?= nl2br(e($r['evidence_text'])) ?>
-          </div>
-        <?php endif; ?>
-      </div>
-    <?php endforeach;
-  else: ?>
-    <div class="alert alert-info"><?= svgIcon('info') ?><span>No evidence has been submitted yet. Add evidence when filling
-        out the self-assessment.</span></div>
-  <?php endif; ?>
-
+  <div class="alert alert-warning"><?= svgIcon('alert-circle') ?><span>No assessment cycle found for this school year.</span></div>
 <?php endif; ?>
 
 <!-- ══════════════════════════════════════════════════════════

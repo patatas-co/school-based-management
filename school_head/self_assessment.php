@@ -335,18 +335,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
       $db->prepare("
-          INSERT INTO sh_indicator_overrides
-              (cycle_id, indicator_id, school_id, original_avg, override_rating, override_reason, overridden_by)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-                original_avg     = VALUES(original_avg),
-                override_rating  = VALUES(override_rating),
-                override_reason  = VALUES(override_reason),
-                overridden_by    = VALUES(overridden_by),
-                overridden_at    = NOW()
-      ")->execute([$cycleId, $indicatorId, $schoolId, $originalAvg, $overrideRating, $reason, $_SESSION['user_id']]);
-
-      $db->prepare("
           INSERT INTO sh_indicator_override_history
           (cycle_id, indicator_id, school_id, action_type, previous_rating, new_rating, override_reason, changed_by)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
