@@ -104,12 +104,12 @@ if (!$reportData): ?>
     ?>
     <?php foreach ($grouped as $dimNo => $indicators): ?>
       <?php $first = $indicators[0]; ?>
-      <div class="card" style="margin-bottom:14px;">
+      <div class="card dim-card" style="margin-bottom:14px;">
         <div class="card-head" style="background:<?= htmlspecialchars($first['color_hex'] ?? '#16A34A') ?>1A;">
           <span class="card-title">Dimension <?= $dimNo ?>: <?= e($first['dimension_name']) ?></span>
           <span style="font-size:12px;color:var(--n500);"><?= count($indicators) ?> indicators</span>
         </div>
-        <div class="tbl-wrap">
+        <div class="tbl-wrap dim-body">
           <table>
             <thead>
               <tr>

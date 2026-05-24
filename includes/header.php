@@ -2297,8 +2297,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
           onerror="this.style.display='none'">
       </div>
       <div class="sb-brand-text">
-        <div class="sb-brand-name">DIHS SBM Portal</div>
-        <div class="sb-brand-sub">Dasmariñas Integrated HS</div>
+        <div class="sb-brand-name">Dasmarinas Integrated High</div>
+        <div class="sb-brand-sub">School-Based Management Portal</div>
       </div>
     </div>
 

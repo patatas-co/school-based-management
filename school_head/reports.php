@@ -27,11 +27,50 @@ include __DIR__.'/../includes/header.php';
 ?>
 <div class="page-head">
   <div class="page-head-text"><h2>Reports &amp; Documentation</h2><p>Generate official SBM Annex A and performance reports.</p></div>
-  <div class="page-head-actions">
+  <div class="page-head-actions" style="display:flex;align-items:center;gap:10px;">
     <?php if($reportData): ?>
     <a href="<?= baseUrl() ?>/export_pdf.php?cycle_id=<?= $reportData['cycle_id'] ?>&type=dimension" target="_blank" class="btn btn-secondary">Download Dimension Report (PDF)</a>
+    <div style="position:relative;display:inline-block;">
+      <button class="btn btn-icon" id="dimKebabBtn" onclick="toggleKebabMenu()" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--n200);border-radius:8px;background:var(--white);cursor:pointer;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg>
+      </button>
+      <div id="dimKebabMenu" style="display:none;position:absolute;right:0;top:42px;background:var(--white);border:1px solid var(--n200);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);min-width:190px;z-index:100;padding:6px 0;">
+        <div onclick="setAllDims(true)" style="padding:10px 16px;font-size:13.5px;cursor:pointer;display:flex;align-items:center;gap:9px;color:var(--n700);" onmouseover="this.style.background='var(--n50)'" onmouseout="this.style.background=''">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Show All Dimensions
+        </div>
+        <div onclick="setAllDims(false)" style="padding:10px 16px;font-size:13.5px;cursor:pointer;display:flex;align-items:center;gap:9px;color:var(--n700);" onmouseover="this.style.background='var(--n50)'" onmouseout="this.style.background=''">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Hide All Dimensions
+        </div>
+      </div>
+    </div>
     <?php endif; ?>
   </div>
+<script>
+function toggleKebabMenu() {
+  const m = document.getElementById('dimKebabMenu');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+function setAllDims(show) {
+  document.querySelectorAll('.dim-card').forEach(card => {
+    card.style.display = show ? '' : 'none';
+  });
+  localStorage.setItem('dimsVisible', show ? '1' : '0');
+  document.getElementById('dimKebabMenu').style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const stored = localStorage.getItem('dimsVisible');
+  if (stored === '0') {
+    document.querySelectorAll('.dim-card').forEach(card => {
+      card.style.display = 'none';
+    });
+  }
+});
+document.addEventListener('click', function(e) {
+  if (!document.getElementById('dimKebabBtn')?.contains(e.target))
+    document.getElementById('dimKebabMenu').style.display = 'none';
+});
+</script>
 </div>
 
 <div class="card mb5" style="margin-bottom:18px;">
