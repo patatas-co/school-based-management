@@ -2009,13 +2009,6 @@ include __DIR__ . '/../includes/header.php';
         Continue Assessment
       </a>
     <?php endif; ?>
-    <a href="improvement.php" class="hero-btn hero-btn-secondary">
-      <svg viewBox="0 0 24 24">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-        <polyline points="17 6 23 6 23 12" />
-      </svg>
-      Improvement Plan
-    </a>
     <a href="reports.php" class="hero-btn hero-btn-secondary">
       <svg viewBox="0 0 24 24">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />

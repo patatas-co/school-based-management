@@ -57,6 +57,33 @@ include __DIR__ . '/../includes/header.php';
     overflow: hidden;
   }
 
+  .db-hero-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 150ms ease;
+    white-space: nowrap;
+  }
+  .db-hero-btn-secondary {
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.25);
+  }
+  .db-hero-btn-secondary:hover {
+    background: rgba(255,255,255,.22);
+  }
+  .db-hero-btn svg {
+    width: 14px; height: 14px;
+    stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
   .sa-hero-bg {
     position: absolute;
     inset: 0;
@@ -178,7 +205,10 @@ include __DIR__ . '/../includes/header.php';
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;position:relative; z-index:1;">
     <a href="users.php?action=create" class="btn btn-primary">Add Account</a>
-    <a href="<?= baseUrl() ?>/school_head/settings.php" class="btn btn-secondary">School Years</a>
+    <a href="<?= baseUrl() ?>/school_head/settings.php" class="db-hero-btn db-hero-btn-secondary">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      School Years
+    </a>
   </div>
 </div>
 
