@@ -28,6 +28,9 @@ define('SBM_MODULE_ACCESS', [
     // ── Monitoring ──────────────────────────────────────────
     'monitor_teachers' => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 
+    // ── Form Management ─────────────────────────────────────
+    'manage_form' => [ROLE_COORDINATOR],
+
     // ── Workflow / Timeline ──────────────────────────────────
     'workflow_configure' => [ROLE_SCHOOL_HEAD],
     'workflow_view' => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
@@ -123,7 +126,8 @@ define('SBM_NAV', [
             'users',
             [
                 ['Assign Indicators', 'coordinator/assign_indicators.php', 'check-square'],
-                ['Teacher Status', 'coordinator/teacher_status.php', 'users']
+                ['Teacher Status', 'coordinator/teacher_status.php', 'users'],
+                ['Manage Form', 'coordinator/manage_form.php', 'edit']
             ]
         ],
         [
