@@ -258,6 +258,24 @@ include __DIR__ . '/../includes/header.php';
 }
 .mf-dim-head:hover { background: var(--n-50); }
 
+.mf-dim-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.mf-dim-icon svg {
+    width: 16px;
+    height: 16px;
+    stroke: #fff;
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 .mf-dim-number {
     width: 36px;
     height: 36px;
@@ -269,7 +287,11 @@ include __DIR__ . '/../includes/header.php';
     font-size: 14px;
     font-weight: 800;
     flex-shrink: 0;
-    color: #fff;
+    color: var(--n-500);
+    background: var(--n-100) !important;
+}
+.mf-dim-icon svg {
+    stroke: var(--n-500) !important;
 }
 
 .mf-dim-title {
@@ -552,11 +574,24 @@ include __DIR__ . '/../includes/header.php';
 
             <?php if ($activeDimensions):
                 $dimColors = ['#2563EB','#16A34A','#7C3AED','#D97706','#DC2626','#0D9488'];
-                foreach ($activeDimensions as $dIdx => $dim): ?>
+                $dimIconPaths = [
+                    '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+                    '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+                    '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+                    '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+                    '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+                    '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+                ];
+                foreach ($activeDimensions as $dIdx => $dim):
+                    $bgColor  = '';
+                    $iconPath = $dimIconPaths[$dIdx % count($dimIconPaths)];
+                ?>
                 <div class="mf-dim-card">
                     <div class="mf-dim-head" onclick="toggleDimBody(this)">
-                        <div class="mf-dim-number" style="background:<?= e($dimColors[$dIdx % count($dimColors)]) ?>;">
-                            <?= $dim['dimension_no'] ?>
+                        <div class="mf-dim-number">
+                            <div class="mf-dim-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><?= $iconPath ?></svg>
+                            </div>
                         </div>
                         <div class="mf-dim-title">Dimension <?= $dim['dimension_no'] ?>: <?= e($dim['dimension_name']) ?></div>
                         <div class="mf-dim-count"><?= count($dim['indicators']) ?> indicators</div>
@@ -658,6 +693,20 @@ let _selectedVersionId = null;
 let _isEditing  = false;
 
 const DIM_COLORS = ['#2563EB','#16A34A','#7C3AED','#D97706','#DC2626','#0D9488'];
+const DIM_ICONS  = [
+    // D1 Curriculum & Teaching — book-open
+    '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+    // D2 Learning Environment — home
+    '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+    // D3 Leadership — star
+    '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    // D4 Governance & Accountability — shield
+    '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    // D5 Human Resources — users
+    '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    // D6 Finance — bar-chart-2
+    '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+];
 
 // ── VERSION SELECT ────────────────────────────────────────────
 function selectVersion(vId, isActive) {
@@ -704,9 +753,12 @@ async function previewVersion(vId) {
     let html = '';
     data.dimensions.forEach((d, i) => {
         const color = DIM_COLORS[i % DIM_COLORS.length];
-        html += `<div style="margin-bottom:18px;">
+        const previewIcon = DIM_ICONS[i % DIM_ICONS.length];
+    html += `<div style="margin-bottom:18px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-                <span style="width:32px;height:32px;border-radius:8px;background:${color};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;">${d.dimension_no}</span>
+                <span style="width:32px;height:32px;border-radius:8px;background:var(--n-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--n-500)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;">${previewIcon}</svg>
+                </span>
                 <span style="font-size:14px;font-weight:700;color:var(--n-900);">Dimension ${d.dimension_no}: ${_esc(d.dimension_name)}</span>
                 <span style="font-size:11.5px;color:var(--n-400);">${d.indicators.length} indicators</span>
             </div>`;
@@ -782,6 +834,7 @@ function renderDimCard(container, dim, dIdx) {
     card.className = 'mf-dim-card editing';
     card.dataset.dIdx = dIdx;
 
+    const iconPath = DIM_ICONS[dIdx % DIM_ICONS.length];
     let indHtml = dim.indicators.map((ind, iIdx) => `
         <div class="mf-edit-row" data-iidx="${iIdx}">
             <div class="mf-edit-drag" title="Drag to reorder">
@@ -804,7 +857,11 @@ function renderDimCard(container, dim, dIdx) {
 
     card.innerHTML = `
         <div class="mf-dim-head" onclick="toggleDimBody(this)">
-            <div class="mf-dim-number" style="background:${color};">${dim.dimension_no}</div>
+            <div class="mf-dim-number">
+                <div class="mf-dim-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${iconPath}</svg>
+                </div>
+            </div>
             <div style="flex:1;display:flex;align-items:center;gap:8px;">
                 <input type="text" class="fc" value="${_esc(dim.dimension_name)}"
                     placeholder="Dimension name…"
