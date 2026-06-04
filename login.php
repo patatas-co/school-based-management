@@ -123,6 +123,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->prepare("UPDATE users SET last_login=NOW() WHERE user_id=?")->execute([$row['user_id']]);
         logActivity('login', 'auth', 'User logged in');
 
+        // Handle remember me
+        if (!empty($_POST['remember_me'])) {
+          setcookie('remember_email', $row['email'], time() + (30 * 24 * 60 * 60), '/', '', false, true);
+        } else {
+          setcookie('remember_email', '', time() - 3600, '/');
+        }
+
         if ($row['force_password_change'] ?? false) {
           $_SESSION['force_pw_change'] = true;
           header('Location: ' . baseUrl() . '/change_password.php');
@@ -152,10 +159,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
   <title>Sign In — <?= e(SITE_NAME) ?></title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
     rel="stylesheet">
   <style>
     *,
@@ -183,8 +188,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       --red: #DC2626;
       --redb: #FEE2E2;
       --white: #FFFFFF;
-      --font: 'DM Sans', sans-serif;
-      --serif: 'Instrument Serif', Georgia, serif;
+      --font: 'Inter', -apple-system, sans-serif;
+      --display: 'Manrope', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', 'Courier New', monospace;
     }
 
     html,
@@ -208,6 +214,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
       padding: 56px 64px;
     }
 
@@ -231,11 +239,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .left-body {
       position: relative;
       z-index: 1;
-      margin: auto 0;
-      padding-top: 72px;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
     }
 
     .eyebrow {
+      font-family: var(--mono);
       display: inline-flex;
       align-items: center;
       gap: 7px;
@@ -260,6 +273,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .headline {
+      font-family: var(--font);
+      text-align: center;
       font-family: var(--serif);
       font-size: clamp(40px, 4.2vw, 60px);
       font-weight: 400;
@@ -608,47 +623,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <!-- LEFT PANEL -->
     <div class="panel-left">
-      <div
-        style="position:absolute;bottom:-60px;right:-60px;z-index:0;pointer-events:none;opacity:.04;filter:grayscale(1);">
-        <img src="assets/seal.png" alt="" style="width:380px;height:380px;object-fit:contain;">
-      </div>
       <div class="left-body">
-        <span class="eyebrow"><?= e(SITE_NAME) ?></span>
-        <h1 class="headline">DIHS School-Based<br><em>Management Portal</em></h1>
-        <p class="sub">Dasmariñas Integrated High School's digital platform for SBM self-assessment, monitoring, and
-          planning aligned with DepEd Order No. 007, s. 2024.</p>
-        <div class="left-stats">
-          <div class="stat-item">
-            <div class="stat-num">42</div>
-            <div class="stat-lbl">Indicators</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-num">6</div>
-            <div class="stat-lbl">Dimensions</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-num">4</div>
-            <div class="stat-lbl">Maturity Levels</div>
-          </div>
-        </div>
+        <img src="assets/seal.png" alt="Dasmariñas Integrated High School"
+          style="width:200px;height:200px;object-fit:contain;margin-bottom:28px;">
+        <span class="eyebrow">School-Based Management Monitoring System</span>
+        <h1 class="headline" style="font-size:clamp(22px,3vw,36px);line-height:1.25;margin-top:10px;">Dasmariñas Integrated <br>High School</h1>
       </div>
     </div>
 
     <!-- RIGHT PANEL -->
     <div class="panel-right">
       <div class="form-wrap">
-        <a href="index.php" class="back-link">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Back to home
-        </a>
-
-        <div class="form-eyebrow"><span class="form-dot"></span><span class="form-eyebrow-text">Secure Portal
-            Access</span></div>
-        <h2 class="form-title">Welcome back</h2>
-        <p class="form-sub">Sign in with your credentials to continue.</p>
 
         <?php if ($error): ?>
           <div class="alert-err">
@@ -662,8 +647,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
         <?php endif; ?>
 
-        <form method="post" action="login.php" autocomplete="off">
+        <form method="post" action="login.php" autocomplete="on" novalidate>
           <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+          <!-- Forces browser to anchor autofill dropdown to the correct position -->
+          <input type="text" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" tabindex="-1" aria-hidden="true" autocomplete="off">
 
           <div class="field">
             <label>Username or Email</label>
@@ -675,15 +662,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   <circle cx="12" cy="7" r="4" />
                 </svg>
               </span>
-              <input class="fc" type="text" name="username" value="<?= e($_POST['username'] ?? '') ?>"
-                placeholder="Enter username or email" required autofocus>
+              <input class="fc" type="text" name="username" id="username"
+                value="<?= e($_POST['username'] ?? $_COOKIE['remember_email'] ?? '') ?>"
+                placeholder="Enter username or email" required autofocus
+                autocomplete="email">
             </div>
           </div>
 
           <div class="field">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
-              <label for="password" style="margin-bottom:0;">Password</label>
-              <a href="forgot_password.php" class="forgot-link">Forgot password?</a>
+            <div style="margin-bottom:7px;">
+              <label for="password">Password</label>
             </div>
             <div class="field-wrap">
               <span class="field-icon">
@@ -693,28 +681,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </svg>
               </span>
               <input class="fc" type="password" id="password" name="password" placeholder="Enter your password"
-                required>
+                required autocomplete="new-password">
             </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+            <input type="checkbox" id="rememberMe" name="remember_me"
+              style="width:15px;height:15px;accent-color:var(--green);cursor:pointer;flex-shrink:0;"
+              <?= !empty($_COOKIE['remember_email']) ? 'checked' : '' ?>>
+            <label for="rememberMe"
+              style="font-size:13px;color:var(--mid);cursor:pointer;user-select:none;">Remember me</label>
           </div>
 
           <button class="btn-login" type="submit">
             Sign In
-            <span class="arrow">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-                  stroke-linejoin="round" />
-              </svg>
-            </span>
           </button>
+          <div style="margin-top:12px;text-align:right;">
+            <a href="forgot_password.php" class="forgot-link">Forgot password?</a>
+          </div>
         </form>
-
-        <div class="roles">
-          <span class="role-pill"><span class="role-dot" style="background:#7C3AED;"></span>System Admin</span>
-          <span class="role-pill"><span class="role-dot"></span>School Head</span>
-          <span class="role-pill"><span class="role-dot" style="background:#16A34A;"></span>SBM Coordinator</span>
-          <span class="role-pill"><span class="role-dot" style="background:#0D9488;"></span>Teacher</span>
-          <span class="role-pill"><span class="role-dot" style="background:#2563EB;"></span>Stakeholder</span>
-        </div>
 
         <div
           style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid #F3F4F6;">

@@ -74,10 +74,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
   <title>Forgot Password — <?= e(SITE_NAME) ?></title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
     rel="stylesheet">
 
   <style>
@@ -105,8 +103,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       --red: #DC2626;
       --redb: #FEE2E2;
       --white: #FFFFFF;
-      --font: 'DM Sans', sans-serif;
-      --serif: 'Instrument Serif', Georgia, serif;
+      --font: 'Inter', -apple-system, sans-serif;
+      --display: 'Manrope', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', 'Courier New', monospace;
     }
 
     html,
@@ -132,6 +131,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
       padding: 56px 64px;
     }
 
@@ -159,12 +160,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .left-body {
       position: relative;
       z-index: 1;
-      margin-top: auto;
-      margin-bottom: auto;
-      padding-top: 40px;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
     }
 
     .eyebrow {
+      font-family: var(--mono);
       display: inline-flex;
       align-items: center;
       gap: 7px;
@@ -189,20 +194,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .headline {
-      font-family: var(--serif);
-      font-size: clamp(38px, 4vw, 56px);
+      font-family: var(--font);
+      font-size: clamp(20px, 2.6vw, 32px);
       font-weight: 400;
       color: #fff;
-      line-height: 1.08;
-      letter-spacing: -1.5px;
+      line-height: 1.3;
+      letter-spacing: -0.5px;
       margin-bottom: 18px;
+      text-align: center;
       opacity: 0;
       animation: fadeUp .7s .35s ease forwards;
-    }
-
-    .headline em {
-      font-style: italic;
-      color: var(--g300);
     }
 
     .sub {
@@ -598,49 +599,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <!-- ── LEFT PANEL ── -->
     <div class="panel-left">
-      <div
-        style="position:absolute;bottom:-60px;right:-60px;z-index:0;pointer-events:none;opacity:.04;filter:grayscale(1);">
-        <img src="assets/seal.png" alt="" style="width:380px;height:380px;object-fit:contain;">
-      </div>
-
       <div class="left-body">
-        <span class="eyebrow"><?= e(SITE_NAME) ?></span>
-        <h1 class="headline">
-          Account <em>Recovery</em><br>Made Simple
-        </h1>
-        <p class="sub">
-          Regain secure access to the DIHS SBM Portal in just a few steps. Your reset link expires in 30 minutes for
-          security.
-        </p>
-
-        <div class="left-steps">
-          <div class="step">
-            <div class="step-num">1</div>
-            <div class="step-text"><strong>Enter your email</strong><br>The one linked to your portal account.</div>
-          </div>
-          <div class="step">
-            <div class="step-num">2</div>
-            <div class="step-text"><strong>Check your inbox</strong><br>A secure reset link will be sent to you.</div>
-          </div>
-          <div class="step">
-            <div class="step-num">3</div>
-            <div class="step-text"><strong>Set a new password</strong><br>Use the link within 30 minutes to reset.</div>
-          </div>
-        </div>
+        <img src="assets/seal.png" alt="Dasmariñas Integrated High School"
+          style="width:200px;height:200px;object-fit:contain;margin-bottom:28px;">
+        <span class="eyebrow">School-Based Management Monitoring System</span>
+        <h1 class="headline" style="font-size:clamp(22px,3vw,36px);line-height:1.25;margin-top:10px;">Dasmariñas Integrated <br>High School</h1>
       </div>
     </div>
 
     <!-- ── RIGHT PANEL ── -->
     <div class="panel-right">
       <div class="form-wrap">
-
-        <a href="login.php" class="back-link">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Back to sign in
-        </a>
 
         <?php if ($success): ?>
 
@@ -678,15 +647,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php else: ?>
 
-          <!-- ── Form state ── -->
-          <div class="form-eyebrow">
-            <span class="form-dot"></span>
-            <span class="form-eyebrow-text">Password Recovery</span>
-          </div>
-
-          <h2 class="form-title">Forgot your<br>password?</h2>
-          <p class="form-sub">No worries — enter your account email and we'll send you a secure reset link.</p>
-
           <?php if ($error): ?>
             <div class="alert-err">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -721,10 +681,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button class="btn-primary" type="submit" id="submitBtn">
               <span id="btnText">Send Reset Link</span>
               <span id="btnIcon">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-                    stroke-linejoin="round" />
-                </svg>
               </span>
             </button>
           </form>

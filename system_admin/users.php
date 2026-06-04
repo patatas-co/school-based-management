@@ -563,26 +563,6 @@ $roleLabels = [
   </div>
 </div>
 
-<!-- Role tabs -->
-<div class="status-tabs">
-  <a href="users.php<?= ($q || $sf) ? "?" . http_build_query(array_filter(['q' => $q, 'status' => $sf])) : '' ?>"
-    class="status-tab <?= !$rf ? 'active' : '' ?>">
-    All <span class="status-tab-count"><?= $totalUsers ?></span>
-  </a>
-  <?php foreach (['system_admin', 'school_head', 'sbm_coordinator', 'teacher', 'external_stakeholder'] as $r):
-    $cnt = $roleCounts[$r] ?? 0;
-    if (!$cnt)
-      continue; ?>
-    <a href="users.php?role=<?= $r ?><?= ($q || $sf) ? "&" . http_build_query(array_filter(['q' => $q, 'status' => $sf])) : '' ?>"
-      class="status-tab <?= $rf === $r ? 'active' : '' ?>">
-      <span
-        style="display:inline-block;width:7px;height:7px;border-radius:50%;background:<?= $roleColors[$r] ?>;margin-right:4px;"></span>
-      <?= $roleLabels[$r] ?>
-      <span class="status-tab-count"><?= $cnt ?></span>
-    </a>
-  <?php endforeach; ?>
-</div>
-
 <!-- Search -->
 <div class="filter-bar-v2">
   <form method="get" class="flex-c" style="gap:10px;flex:1;">
