@@ -2465,13 +2465,13 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
             <div class="sb-popup-role"><?= e($__roleLabel) ?></div>
           </div>
         </div>
-        <a href="<?= $__base ?>/profile.php" class="sb-popup-item" role="menuitem">
+        <button onclick="openProfileModal()" class="sb-popup-item" role="menuitem" style="width:100%;text-align:left;border:none;background:none;cursor:pointer;">
           <svg viewBox="0 0 24 24">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>
           My Profile
-        </a>
+        </button>
         <div style="height:1px;background:var(--n-100);margin:4px 0;"></div>
         <a href="<?= $__base ?>/logout.php" class="sb-popup-item danger" role="menuitem">
           <svg viewBox="0 0 24 24">
@@ -2487,6 +2487,19 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
   <!-- Mobile backdrop overlay -->
   <div class="sb-overlay" id="sbOverlay"></div>
+
+  <!-- ── GLOBAL PROFILE MODAL ── -->
+  <div id="profileModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;padding:24px;">
+    <div style="background:#fff;border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.22);width:100%;max-width:860px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--n-100);flex-shrink:0;">
+        <span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--n-900);">My Profile</span>
+        <button onclick="closeProfileModal()" style="width:32px;height:32px;border-radius:8px;border:1.5px solid var(--n-200);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="profileModalBody" style="overflow-y:auto;flex:1;"></div>
+    </div>
+  </div>
 
   <!-- ── MAIN WRAPPER ── -->
   <div class="main-wrap <?= $__sbCollapsed ? 'expanded' : '' ?>" id="mainWrap">
@@ -2619,6 +2632,46 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
         // ── User popup ──
         function toggleUserMenu() { document.getElementById('userPopup')?.classList.toggle('open'); }
+
+        async function openProfileModal() {
+          const overlay = document.getElementById('profileModalOverlay');
+          const body = document.getElementById('profileModalBody');
+          document.getElementById('userPopup')?.classList.remove('open');
+          overlay.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+          if (body.dataset.loaded !== '1') {
+            body.innerHTML = '<div style="padding:48px;text-align:center;color:var(--n-400);font-size:13px;">Loading…</div>';
+            try {
+              const res = await fetch('<?= $__base ?>/profile.php?modal=1', { credentials: 'same-origin' });
+              const html = await res.text();
+              body.innerHTML = html;
+              // Re-run any inline scripts from the fetched content
+              body.querySelectorAll('script').forEach(oldScript => {
+                const s = document.createElement('script');
+                s.textContent = oldScript.textContent;
+                document.body.appendChild(s);
+                oldScript.remove();
+              });
+              body.dataset.loaded = '1';
+            } catch(e) {
+              body.innerHTML = '<div style="padding:48px;text-align:center;color:var(--red);font-size:13px;">Failed to load profile.</div>';
+            }
+          }
+        }
+
+        function closeProfileModal() {
+          document.getElementById('profileModalOverlay').style.display = 'none';
+          document.body.style.overflow = '';
+        }
+
+        document.addEventListener('click', e => {
+          const overlay = document.getElementById('profileModalOverlay');
+          if (e.target === overlay) closeProfileModal();
+        });
+
+        document.addEventListener('keydown', e => {
+          if (e.key === 'Escape') closeProfileModal();
+        });
         document.addEventListener('click', e => {
           const tile = document.getElementById('userTile');
           const popup = document.getElementById('userPopup');

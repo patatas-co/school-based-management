@@ -78,7 +78,8 @@ $__initials = strtoupper(substr($__nameParts[0] ?? 'U', 0, 1) . (isset($__namePa
 
 $pageTitle = 'My Profile';
 $activePage = 'profile.php';
-include dirname($__configPath) . '/../includes/header.php';
+$isModal = isset($_GET['modal']) && $_GET['modal'] === '1';
+if (!$isModal) include dirname($__configPath) . '/../includes/header.php';
 ?>
 
 <style>
@@ -90,9 +91,6 @@ include dirname($__configPath) . '/../includes/header.php';
 
 /* Hero card */
 .profile-hero {
-    background: 
-        linear-gradient(to right, rgba(8, 26, 8, 0.8) 0%, rgba(8, 26, 8, 0.4) 50%, rgba(8, 26, 8, 0.1) 100%),
-        url('<?= e(baseUrl()) ?>/assets/cover.png') center/cover no-repeat;
     background-color: #081a08;
     border-radius: var(--radius-lg);
     padding: 36px 36px 32px;
@@ -289,8 +287,15 @@ if (!empty($user['profile_picture']) && file_exists(dirname($__configPath) . '/.
 }
 ?>
 
-<div class="profile-wrap">
+<?php if ($isModal): ?>
+<style>
+body { background: transparent; font-family: 'Inter', -apple-system, sans-serif; }
+</style>
+<?php endif; ?>
 
+<div class="profile-wrap" style="<?= $isModal ? 'padding:24px;' : '' ?>">
+
+<?php if (!$isModal): ?>
   <!-- BREADCRUMB -->
   <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--n-500);margin-bottom:18px;">
     <a href="javascript:history.back()" style="color:var(--n-500);text-decoration:none;display:flex;align-items:center;gap:5px;transition:color 150ms;" onmouseover="this.style.color='var(--n-900)'" onmouseout="this.style.color='var(--n-500)'">
@@ -300,6 +305,7 @@ if (!empty($user['profile_picture']) && file_exists(dirname($__configPath) . '/.
     <span style="color:var(--n-300);">/</span>
     <span>My Profile</span>
   </div>
+<?php endif; ?>
 
   <!-- HERO -->
   <div class="profile-hero">
@@ -420,7 +426,6 @@ if (!empty($user['profile_picture']) && file_exists(dirname($__configPath) . '/.
       </form>
     </div>
     <div class="pf-footer">
-      <button type="button" class="btn btn-secondary" onclick="resetProfileForm()">Reset</button>
       <button type="button" class="btn btn-primary" id="saveProfileBtn" onclick="submitProfile()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Save Changes
@@ -430,38 +435,10 @@ if (!empty($user['profile_picture']) && file_exists(dirname($__configPath) . '/.
 
 
 
-
 </div><!-- /profile-wrap -->
 
 <script>
 const PROFILE_HANDLER = '<?= e(baseUrl()) ?>/includes/profile_handler.php';
-
-// ── Original values for reset ──
-const origName    = <?= json_encode($user['full_name']) ?>;
-const origContact = <?= json_encode($user['contact_number'] ?? '') ?>;
-
-function resetProfileForm() {
-    document.getElementById('fullName').value    = origName;
-    document.getElementById('contactNumber').value = origContact;
-    const fileInput = document.getElementById('avatarFileInput');
-    fileInput.value = '';
-    // Reset preview to current saved state
-    const thumb = document.getElementById('previewThumb');
-    const placeholder = document.getElementById('previewPlaceholder');
-    const wrap  = document.getElementById('previewWrap');
-    const name  = document.getElementById('previewName');
-    const hasPic = <?= !empty($user['profile_picture']) ? 'true' : 'false' ?>;
-    if (hasPic) {
-        thumb.classList.add('visible');
-        if (placeholder) placeholder.style.display = 'none';
-        name.textContent = 'Current profile photo';
-    } else {
-        thumb.classList.remove('visible');
-        if (placeholder) placeholder.style.display = '';
-        name.textContent = 'No photo selected';
-    }
-    wrap.classList.remove('has-file');
-}
 
 function handleAvatarPreview(input) {
     if (!input.files || !input.files[0]) return;
@@ -592,4 +569,4 @@ document.getElementById('avatarFileInput').addEventListener('change', function()
 });
 </script>
 
-<?php include dirname($__configPath) . '/../includes/footer.php'; ?>
+<?php if (!$isModal) include dirname($__configPath) . '/../includes/footer.php'; ?>
