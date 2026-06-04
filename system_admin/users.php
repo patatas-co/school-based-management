@@ -313,7 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   if ($action === 'toggle_status') {
     $id = (int) ($_POST['id'] ?? 0);
     $targetStatus = $_POST['status'] ?? '';
-    $allowedStatuses = ['active', 'inactive'];
+    $allowedStatuses = ['active', 'inactive', 'archived'];
 
     if ($id <= 0) {
       echo json_encode(['ok' => false, 'msg' => 'Invalid user account.']);
@@ -529,7 +529,8 @@ $roleCounts = $db->query("SELECT role,COUNT(*) cnt FROM users GROUP BY role")->f
 $totalUsers = array_sum($roleCounts);
 $activeUsers = $db->query("SELECT COUNT(*) FROM users WHERE status='active'")->fetchColumn();
 
-$pageTitle = 'User Management';
+$statusLabels = ['active' => 'Active Accounts', 'inactive' => 'Inactive Accounts', 'archived' => 'Archived Accounts'];
+$pageTitle = $statusLabels[$sf] ?? 'User Management';
 $activePage = 'users.php';
 include __DIR__ . '/../includes/header.php';
 
@@ -551,67 +552,29 @@ $roleLabels = [
 
 <div class="ph2">
   <div class="ph2-left">
-    <div class="ph2-eyebrow">Management</div>
-    <div class="ph2-title">User Management</div>
-    <div class="ph2-sub">Manage all portal accounts — <?= $activeUsers ?> active users.</div>
+    <?php if (!$sf): ?>
+      <div class="ph2-eyebrow">Management</div>
+      <div class="ph2-title">User Management</div>
+      <div class="ph2-sub">Manage all portal accounts — <?= $activeUsers ?> active users.</div>
+    <?php endif; ?>
   </div>
   <div class="ph2-right">
-    <button class="btn btn-secondary" onclick="openModal('mImport')"><?= svgIcon('upload') ?> Import CSV</button>
-    <button class="btn btn-secondary" onclick="openModal('mEvaluators')"><?= svgIcon('users') ?> Manage
-      Evaluators</button>
-    <button class="btn btn-primary" onclick="openModal('mCreate')"><?= svgIcon('plus') ?> Add User</button>
+    <?php if (!$sf): ?>
+      <button class="btn btn-secondary" onclick="openModal('mImport')"><?= svgIcon('upload') ?> Import CSV</button>
+      <button class="btn btn-secondary" onclick="openModal('mEvaluators')"><?= svgIcon('users') ?> Manage Evaluators</button>
+      <button class="btn btn-primary" onclick="openModal('mCreate')"><?= svgIcon('plus') ?> Add User</button>
+    <?php endif; ?>
   </div>
 </div>
 
 <!-- Search -->
 <div class="filter-bar-v2">
-  <form method="get" class="flex-c" style="gap:10px;flex:1;">
-    <div class="search" style="flex:1;">
-      <span class="si"><?= svgIcon('search') ?></span>
-      <input type="text" name="q" placeholder="Search by name, username or email…" value="<?= e($q) ?>">
-      <?php if ($rf): ?><input type="hidden" name="role" value="<?= e($rf) ?>"><?php endif; ?>
-    </div>
-    <div class="p-select" id="pStatusDropdown">
-      <input type="hidden" name="status" id="pStatusValue" value="<?= e($sf) ?>">
-      <div class="p-select-trigger" onclick="togglePSelect(event)">
-        <span class="p-select-val">
-          <?= $sf === 'active' ? 'Active' : ($sf === 'inactive' ? 'Inactive' : 'All Status') ?>
-        </span>
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--n-400)" stroke-width="2.5"
-          stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </div>
-      <div class="p-select-menu">
-        <!-- All Status -->
-        <div class="p-select-item <?= !$sf ? 'active' : '' ?>" onclick="setPStatus('')">
-          <div class="p-item-content">
-            <div class="p-item-title">All Status</div>
-            <div class="p-item-desc">View all accounts</div>
-          </div>
-          <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
-        </div>
-        <!-- Active -->
-        <div class="p-select-item <?= $sf === 'active' ? 'active' : '' ?>" onclick="setPStatus('active')">
-          <div class="p-item-content">
-            <div class="p-item-title">Active</div>
-            <div class="p-item-desc">Can access the portal</div>
-          </div>
-          <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
-        </div>
-        <!-- Inactive -->
-        <div class="p-select-item <?= $sf === 'inactive' ? 'active' : '' ?>" onclick="setPStatus('inactive')">
-          <div class="p-item-content">
-            <div class="p-item-title">Inactive</div>
-            <div class="p-item-desc">Account is locked</div>
-          </div>
-          <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
-        </div>
-      </div>
-    </div>
-    <button type="submit" class="btn btn-primary btn-sm">Search</button>
-    <?php if ($q || $rf || $sf): ?><a href="users.php" class="btn btn-secondary btn-sm">Reset</a><?php endif; ?>
-  </form>
+  <div class="search" style="flex:1;max-width:420px;">
+    <span class="si"><?= svgIcon('search') ?></span>
+    <input type="text" id="liveSearch" placeholder="Search by name, username or email…"
+      value="<?= e($q) ?>" autocomplete="off"
+      style="width:100%;">
+  </div>
 </div>
 
 <div class="card">
@@ -641,7 +604,7 @@ $roleLabels = [
             <th>Status</th>
             <th>Age</th>
             <th>Last Login</th>
-            <th></th>
+            <th style="text-align:center;">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -653,8 +616,8 @@ $roleLabels = [
               <td>
                 <div class="cell-avatar">
                   <?php if (!empty($u['profile_picture']) && file_exists(__DIR__ . '/../' . $u['profile_picture'])): ?>
-                    <img src="<?= baseUrl() . '/' . $u['profile_picture'] ?>?v=<?= time() ?>" 
-                         style="width:34px;height:34px;border-radius:9px;object-fit:cover;flex-shrink:0;" 
+                    <img src="<?= baseUrl() . '/' . $u['profile_picture'] ?>?v=<?= time() ?>"
+                         style="width:34px;height:34px;border-radius:9px;object-fit:cover;flex-shrink:0;"
                          alt="<?= e($u['full_name']) ?>">
                   <?php else: ?>
                     <div class="cell-av" style="background:<?= $rc ?>;"><?= strtoupper(substr($u['full_name'], 0, 1)) ?></div>
@@ -673,7 +636,7 @@ $roleLabels = [
                 </span>
               </td>
               <td>
-                <?php $statColors = ['active' => ['#DCFCE7', '#16A34A'], 'inactive' => ['var(--n-100)', 'var(--n-500)'], 'suspended' => ['var(--red-bg)', 'var(--red)']];
+                <?php $statColors = ['active' => ['#DCFCE7', '#16A34A'], 'inactive' => ['var(--n-100)', 'var(--n-500)'], 'archived' => ['#FEF3C7', '#D97706'], 'suspended' => ['var(--red-bg)', 'var(--red)']];
                 [$sb, $sc] = $statColors[$u['status']] ?? ['var(--n-100)', 'var(--n-500)']; ?>
                 <span class="user-status-pill"
                   style="display:inline-flex;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:<?= $sb ?>;color:<?= $sc ?>;"><?= ucfirst($u['status']) ?></span>
@@ -687,35 +650,52 @@ $roleLabels = [
               </td>
               <td>
                 <div class="user-row-actions">
-                  <button class="btn btn-secondary btn-sm"
-                    onclick="editUser(<?= $u['user_id'] ?>)"><?= svgIcon('edit') ?></button>
+                  <!-- Edit -->
+                  <button class="btn btn-secondary btn-sm" onclick="editUser(<?= $u['user_id'] ?>)" title="Edit user"><?= svgIcon('edit') ?></button>
+
+                  <!-- Resend email (inactive only) -->
                   <?php if ($u['status'] !== 'active'): ?>
-                    <button class="btn btn-blue btn-sm" onclick="resendEmail(<?= $u['user_id'] ?>)"
-                      title="Resend welcome email"><?= svgIcon('send') ?></button>
+                    <button class="btn btn-blue btn-sm" onclick="resendEmail(<?= $u['user_id'] ?>)" title="Resend welcome email"><?= svgIcon('send') ?></button>
                   <?php endif; ?>
-                  <?php if ($u['user_id'] != $_SESSION['user_id']): ?>
-                    <button class="btn btn-danger btn-sm" data-id="<?= $u['user_id'] ?>" data-name="<?= e($u['full_name']) ?>"
-                      onclick="delUser(this.dataset.id,this.dataset.name,this)"><?= svgIcon('trash') ?></button>
-                  <?php endif; ?>
-                  <?php if ($u['user_id'] != $_SESSION['user_id'] && in_array($u['status'], ['active', 'inactive'], true)): ?>
-                    <div class="row-menu">
-                      <button type="button" class="row-menu-btn" aria-label="Open account actions" aria-expanded="false"
-                        onclick="toggleRowMenu(this)">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
-                          <circle cx="12" cy="5" r="1.8"></circle>
-                          <circle cx="12" cy="12" r="1.8"></circle>
-                          <circle cx="12" cy="19" r="1.8"></circle>
+
+                  <!-- Deactivate / Reactivate (not own account, not archived) -->
+                  <?php if ($u['user_id'] != $_SESSION['user_id'] && $u['status'] !== 'archived'): ?>
+                    <?php if ($u['status'] === 'active'): ?>
+                      <button class="btn btn-warning btn-sm user-status-toggle"
+                        data-user-id="<?= $u['user_id'] ?>" data-user-name="<?= e($u['full_name']) ?>"
+                        data-current-status="active" onclick="toggleUserStatus(this)" title="Deactivate account">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/>
                         </svg>
                       </button>
-                      <div class="row-menu-list" role="menu">
-                        <button type="button"
-                          class="row-menu-item user-status-toggle <?= $u['status'] === 'active' ? 'is-danger' : 'is-success' ?>"
-                          data-user-id="<?= $u['user_id'] ?>" data-user-name="<?= e($u['full_name']) ?>"
-                          data-current-status="<?= e($u['status']) ?>" onclick="toggleUserStatus(this)">
-                          <?= $u['status'] === 'active' ? 'Deactivate account' : 'Reactivate account' ?>
-                        </button>
-                      </div>
-                    </div>
+                    <?php else: ?>
+                      <button class="btn btn-success btn-sm user-status-toggle"
+                        data-user-id="<?= $u['user_id'] ?>" data-user-name="<?= e($u['full_name']) ?>"
+                        data-current-status="<?= e($u['status']) ?>" onclick="toggleUserStatus(this)" title="Reactivate account">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/>
+                        </svg>
+                      </button>
+                    <?php endif; ?>
+                  <?php endif; ?>
+
+                  <!-- Archive / Unarchive (not own account) -->
+                  <?php if ($u['user_id'] != $_SESSION['user_id']): ?>
+                    <?php if ($u['status'] === 'archived'): ?>
+                      <button class="btn btn-success btn-sm" data-id="<?= $u['user_id'] ?>" data-name="<?= e($u['full_name']) ?>"
+                        onclick="unarchiveUser(this.dataset.id, this.dataset.name, this)" title="Unarchive account">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><polyline points="9 12 12 9 15 12"/><line x1="12" y1="9" x2="12" y2="15"/>
+                        </svg>
+                      </button>
+                    <?php else: ?>
+                      <button class="btn btn-amber btn-sm" data-id="<?= $u['user_id'] ?>" data-name="<?= e($u['full_name']) ?>"
+                        onclick="archiveUser(this.dataset.id, this.dataset.name, this)" title="Archive account">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
+                        </svg>
+                      </button>
+                    <?php endif; ?>
                   <?php endif; ?>
                 </div>
               </td>
@@ -731,9 +711,27 @@ $roleLabels = [
   .user-row-actions {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 4px;
   }
+
+  .btn-warning {
+    background: #FEF3C7; color: #D97706;
+    border: 1px solid #FDE68A;
+  }
+  .btn-warning:hover { background: #FDE68A; }
+
+  .btn-success {
+    background: #DCFCE7; color: #16A34A;
+    border: 1px solid #BBF7D0;
+  }
+  .btn-success:hover { background: #BBF7D0; }
+
+  .btn-amber {
+    background: #FFF7ED; color: #C2410C;
+    border: 1px solid #FDBA74;
+  }
+  .btn-amber:hover { background: #FDBA74; }
 
   .row-menu {
     position: relative;
@@ -2263,13 +2261,13 @@ $roleLabels = [
     if (toggleBtn) {
       toggleBtn.dataset.currentStatus = status;
       if (status === 'active') {
-        toggleBtn.textContent = 'Deactivate account';
-        toggleBtn.classList.remove('is-success');
-        toggleBtn.classList.add('is-danger');
+        toggleBtn.className = 'btn btn-warning btn-sm user-status-toggle';
+        toggleBtn.title = 'Deactivate account';
+        toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
       } else {
-        toggleBtn.textContent = 'Reactivate account';
-        toggleBtn.classList.remove('is-danger');
-        toggleBtn.classList.add('is-success');
+        toggleBtn.className = 'btn btn-success btn-sm user-status-toggle';
+        toggleBtn.title = 'Reactivate account';
+        toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>`;
       }
     }
   }
@@ -2331,23 +2329,18 @@ $roleLabels = [
 
     const row = btn.closest('tr');
     const menu = btn.closest('.row-menu');
-    const originalLabel = btn.textContent;
+    const originalHTML = btn.innerHTML;
     btn.disabled = true;
-    btn.textContent = nextStatus === 'active' ? 'Reactivating...' : 'Deactivating...';
+    btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin .7s linear infinite;"><path d="M12 2a10 10 0 1 0 10 10"/></svg>`;
 
     const r = await apiPost('users.php', { action: 'toggle_status', id: btn.dataset.userId, status: nextStatus });
     btn.disabled = false;
-    btn.textContent = originalLabel;
+    btn.innerHTML = originalHTML;
     closeRowMenus();
     toast(r.msg, r.ok ? 'ok' : 'err');
 
     if (!r.ok) return;
 
-    setUserRowStatus(row, r.status || nextStatus);
-    if (menu) {
-      const menuBtn = menu.querySelector('.row-menu-btn');
-      if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
-    }
     setTimeout(() => location.reload(), 500);
   }
   async function delUser(id, name, btn) {
@@ -2765,10 +2758,73 @@ $roleLabels = [
     }
   });
 
-  function setPStatus(val) {
-    document.getElementById('pStatusValue').value = val;
-    document.getElementById('pStatusDropdown').closest('form').submit();
+  async function unarchiveUser(id, name, btn) {
+    if (!confirm(`Unarchive "${name}"? Their account will be set to inactive.`)) return;
+    const r = await apiPost('users.php', { action: 'toggle_status', id, status: 'inactive' });
+    if (r.ok) {
+      toast('Account unarchived.', 'ok');
+      setTimeout(() => location.reload(), 800);
+    } else {
+      toast(r.msg || 'Failed to unarchive.', 'err');
+    }
   }
+
+  async function archiveUser(id, name, btn) {
+    if (!confirm(`Archive "${name}"? They will no longer be able to log in.`)) return;
+    const fd = new FormData();
+    fd.append('action', 'toggle_status');
+    fd.append('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
+    fd.append('id', id);
+    fd.append('status', 'archived');
+    const r = await apiPost('users.php', Object.fromEntries(fd));
+    if (r.ok) {
+      toast('Account archived.', 'ok');
+      btn.closest('tr').querySelector('.user-status-pill').textContent = 'Archived';
+      btn.closest('tr').querySelector('.user-status-pill').style.background = '#FEF3C7';
+      btn.closest('tr').querySelector('.user-status-pill').style.color = '#D97706';
+      setTimeout(() => location.reload(), 800);
+    } else {
+      toast(r.msg || 'Failed to archive.', 'err');
+    }
+  }
+
+  function setPStatus(val) {}
+
+  (function () {
+    const input = document.getElementById('liveSearch');
+    if (!input) return;
+    let debounce;
+    input.addEventListener('input', function () {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        const q = input.value.trim();
+        const url = new URL(window.location.href);
+        if (q) url.searchParams.set('q', q);
+        else url.searchParams.delete('q');
+        // Preserve status filter from URL if present
+        fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+          .then(r => r.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newTable = doc.querySelector('#tblUsers')?.closest('.tbl-wrap') || doc.querySelector('.empty-state');
+            const oldTable = document.querySelector('#tblUsers')?.closest('.tbl-wrap') || document.querySelector('.empty-state');
+            const card = document.querySelector('.card');
+            if (newTable && oldTable) {
+              oldTable.replaceWith(newTable);
+            } else if (newTable && card) {
+              card.appendChild(newTable);
+            }
+            // Update count label
+            const newTitle = doc.querySelector('.card-title');
+            const oldTitle = document.querySelector('.card-title');
+            if (newTitle && oldTitle) oldTitle.innerHTML = newTitle.innerHTML;
+            // Update URL without reload
+            history.replaceState(null, '', url.toString());
+          });
+      }, 300);
+    });
+  })();
 
   // mCreate helpers
   function setCRole(v, l) {

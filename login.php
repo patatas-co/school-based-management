@@ -649,8 +649,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="post" action="login.php" autocomplete="on" novalidate>
           <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
-          <!-- Forces browser to anchor autofill dropdown to the correct position -->
-          <input type="text" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" tabindex="-1" aria-hidden="true" autocomplete="off">
 
           <div class="field">
             <label>Username or Email</label>
@@ -681,7 +679,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </svg>
               </span>
               <input class="fc" type="password" id="password" name="password" placeholder="Enter your password"
-                required autocomplete="new-password">
+                required autocomplete="current-password">
             </div>
           </div>
 

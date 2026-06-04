@@ -39,20 +39,6 @@ if (isset($__role) && defined('SBM_NAV')) {
         ]
       ],
       [
-        'School',
-        'home',
-        [
-          ['School Profile', 'coordinator/school_profile.php', 'home'],
-        ]
-      ],
-      [
-        'School',
-        'home',
-        [
-          ['School Profile', 'coordinator/school_profile.php', 'home'],
-        ]
-      ],
-      [
         'Communication',
         'bell',
         [
@@ -2231,6 +2217,43 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       }
     }
 
+    /* ── Nav Submenu ── */
+    .sb-item-toggle { cursor: pointer; }
+    .sb-chevron {
+      width: 13px; height: 13px;
+      margin-left: auto; flex-shrink: 0;
+      stroke: currentColor; fill: none;
+      stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+      transition: transform .2s var(--ease);
+    }
+    .sb-submenu {
+      display: none;
+      flex-direction: column;
+      padding-left: 36px;
+      gap: 2px;
+      margin-bottom: 2px;
+    }
+    .sb-submenu.open { display: flex; }
+    .sb-item-toggle.open .sb-chevron { transform: rotate(180deg); }
+    .sb-sub-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--sb-text);
+      text-decoration: none;
+      transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+    }
+    .sb-sub-item:hover { background: #F1F5F9; color: var(--sb-text-hover); }
+    .sb-sub-item.active { background: var(--sb-active-bg); color: #166534; font-weight: 600; }
+    .sb-sub-dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    }
+    .sb.collapsed .sb-submenu { display: none !important; }
+
     .p-select.open .p-select-menu {
       display: block;
     }
@@ -2355,18 +2378,50 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         return "<svg viewBox=\"0 0 24 24\">$d</svg>";
       };
 
+      $__currentStatus = $_GET['status'] ?? '';
       foreach ($__navGroups as $group):
         [$groupLabel, $groupIcon, $groupItems] = $group;
         ?>
         <div class="sb-section-label"><?= e($groupLabel) ?></div>
         <?php foreach ($groupItems as $item):
           $isActive = basename($item[1]) === basename($_SERVER['PHP_SELF']);
-          ?>
-          <a href="<?= $__base ?>/<?= e($item[1]) ?>" class="sb-item <?= $isActive ? 'active' : '' ?>"
-            data-label="<?= e($item[0]) ?>">
-            <span class="sb-icon"><?= $__icon($item[2]) ?></span>
-            <span class="sb-label"><?= e($item[0]) ?></span>
-          </a>
+          // Special case: User Accounts gets a submenu
+          if ($item[0] === 'User Accounts'):
+            $isOpen = $isActive;
+            $isParentActive = $isActive && $__currentStatus === '';
+            ?>
+            <div class="sb-item sb-item-toggle <?= $isOpen ? 'open' : '' ?> <?= $isParentActive ? 'active' : '' ?>"
+              onclick="toggleSbSubmenu(this)" data-label="User Accounts"
+              style="cursor:pointer;">
+              <a href="<?= $__base ?>/system_admin/users.php"
+                onclick="event.stopPropagation();"
+                style="display:contents;color:inherit;text-decoration:none;">
+                <span class="sb-icon"><?= $__icon($item[2]) ?></span>
+                <span class="sb-label">User Accounts</span>
+              </a>
+              <svg class="sb-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="sb-submenu <?= $isOpen ? 'open' : '' ?>">
+              <a href="<?= $__base ?>/system_admin/users.php?status=active"
+                class="sb-sub-item <?= ($isActive && $__currentStatus === 'active') ? 'active' : '' ?>">
+                Active
+              </a>
+              <a href="<?= $__base ?>/system_admin/users.php?status=inactive"
+                class="sb-sub-item <?= ($isActive && $__currentStatus === 'inactive') ? 'active' : '' ?>">
+                Inactive
+              </a>
+              <a href="<?= $__base ?>/system_admin/users.php?status=archived"
+                class="sb-sub-item <?= ($isActive && $__currentStatus === 'archived') ? 'active' : '' ?>">
+                Archived
+              </a>
+            </div>
+          <?php else: ?>
+            <a href="<?= $__base ?>/<?= e($item[1]) ?>" class="sb-item <?= $isActive ? 'active' : '' ?>"
+              data-label="<?= e($item[0]) ?>">
+              <span class="sb-icon"><?= $__icon($item[2]) ?></span>
+              <span class="sb-label"><?= e($item[0]) ?></span>
+            </a>
+          <?php endif; ?>
         <?php endforeach; ?>
       <?php endforeach; ?>
     </nav>
@@ -2496,6 +2551,14 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         function svgIcon(n, cls = '', style = '') {
           const d = SVG_PATHS[n] || '';
           return `<span class="sb-icon ${cls}" style="${style}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg></span>`;
+        }
+
+        function toggleSbSubmenu(el) {
+          el.classList.toggle('open');
+          const sub = el.nextElementSibling;
+          if (sub && sub.classList.contains('sb-submenu')) {
+            sub.classList.toggle('open');
+          }
         }
 
         // ── Sidebar collapse ──

@@ -17,7 +17,6 @@ define('SBM_MODULE_ACCESS', [
     'user_management' => [ROLE_SYSTEM_ADMIN],
     'system_settings' => [ROLE_SYSTEM_ADMIN],
     'school_years' => [ROLE_SYSTEM_ADMIN],
-    'school_profile' => [ROLE_SYSTEM_ADMIN, ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 
     // ── Dashboards ──────────────────────────────────────────
 
@@ -63,7 +62,6 @@ define('SBM_NAV', [
             'users',
             [
                 ['User Accounts', 'system_admin/users.php', 'users'],
-                ['School Profile', 'school_head/school_profile.php', 'home'],
                 ['School Years', 'school_head/settings.php', 'calendar'],
             ]
         ],
@@ -83,7 +81,6 @@ define('SBM_NAV', [
             'users',
             [
                 ['Evidence & MOV', 'school_head/evidence.php', 'paperclip'],
-                ['School Profile', 'school_head/school_profile.php', 'home'],
             ]
         ],
         [
@@ -135,13 +132,6 @@ define('SBM_NAV', [
             'check-circle',
             [
                 ['Self-Assessment', 'coordinator/self_assessment.php', 'check-circle'],
-            ]
-        ],
-        [
-            'School',
-            'home',
-            [
-                ['School Profile', 'coordinator/school_profile.php', 'home'],
             ]
         ],
         [
