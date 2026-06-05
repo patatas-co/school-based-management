@@ -31,7 +31,7 @@ $uid = (int) $_SESSION['user_id'];
 
 // Fetch current user data — safely add contact_number column if missing
 try {
-    $userStmt = $db->prepare("SELECT user_id, username, email, full_name, role, status, school_id, last_login, created_at, contact_number, profile_picture FROM users WHERE user_id = ?");
+    $userStmt = $db->prepare("SELECT user_id, username, email, full_name, role, status, school_id, last_login, created_at, contact_number, profile_picture, department FROM users WHERE user_id = ?");
     $userStmt->execute([$uid]);
     $user = $userStmt->fetch();
 } catch (\PDOException $e) {
@@ -44,7 +44,11 @@ try {
         $db->exec("ALTER TABLE users ADD COLUMN profile_picture VARCHAR(255) DEFAULT NULL");
     } catch (\Exception $ex) {
     }
-    $userStmt = $db->prepare("SELECT user_id, username, email, full_name, role, status, school_id, last_login, created_at, contact_number, profile_picture FROM users WHERE user_id = ?");
+    try {
+        $db->exec("ALTER TABLE users ADD COLUMN department VARCHAR(100) DEFAULT NULL");
+    } catch (\Exception $ex) {
+    }
+    $userStmt = $db->prepare("SELECT user_id, username, email, full_name, role, status, school_id, last_login, created_at, contact_number, profile_picture, department FROM users WHERE user_id = ?");
     $userStmt->execute([$uid]);
     $user = $userStmt->fetch();
 }
@@ -406,6 +410,13 @@ body { background: transparent; font-family: 'Inter', -apple-system, sans-serif;
             <div class="pf-readonly">
               <svg class="pf-readonly-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
               <?= e($user['email']) ?>
+            </div>
+          </div>
+          <div class="pf-group">
+            <label>Department</label>
+            <div class="pf-readonly">
+              <svg class="pf-readonly-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+              <?= !empty($user['department']) ? e($user['department']) : '<span style="color:#94A3B8;">Not set</span>' ?>
             </div>
           </div>
           <div class="pf-group">

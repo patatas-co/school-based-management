@@ -452,6 +452,10 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       display: none !important;
     }
 
+    .sb.collapsed .sb-chevron {
+      display: none !important;
+    }
+
     .sb.collapsed .sb-icon {
       width: 24px;
       height: 24px;
@@ -461,15 +465,29 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       justify-content: center;
     }
 
-    .sb.collapsed .sb-icon svg {
+    /* Collapsed logout button */
+    .sb.collapsed .sb-footer:last-of-type {
+      padding: 10px 0 !important;
+    }
+
+    .sb.collapsed .sb-footer:last-of-type a {
+      justify-content: center !important;
+      padding: 9px 0 !important;
+    }
+
+    .sb.collapsed .sb-footer:last-of-type a .sb-label {
+      display: none !important;
+    }
+
+    .sb.collapsed .sb-footer:last-of-type a svg {
       width: 20px;
       height: 20px;
-      stroke: var(--sb-text);
+      margin: 0;
     }
 
     /* User footer */
-    .sb-footer {
-      border-top: 1px solid #E5E7EB;
+        .sb-footer {
+      border-top: none;
       padding: 10px 8px 12px;
       flex-shrink: 0;
       position: relative;
@@ -477,41 +495,47 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
     .sb-user-tile {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 9px;
-      padding: 9px 10px;
-      border-radius: 8px;
+      gap: 8px;
+      padding: 16px 10px 12px;
+      border-radius: 12px;
       cursor: pointer;
       transition: background var(--dur);
+      text-align: center;
     }
 
     .sb-user-tile:hover {
       background: #F1F5F9;
-      border-radius: 8px;
+      border-radius: 12px;
     }
 
     .sb-avatar {
-      width: 34px;
-      height: 34px;
-      border-radius: 8px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
       font-family: var(--font-display);
-      font-size: 13px;
+      font-size: 18px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
       color: #fff;
+      border: 2.5px solid rgba(255,255,255,0.6);
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      transition: width 200ms ease, height 200ms ease, font-size 200ms ease;
     }
 
     .sb-user-info {
       flex: 1;
       min-width: 0;
+      width: 100%;
     }
 
     .sb-user-name {
-      font-size: 12.5px;
-      font-weight: 600;
+      font-size: 13px;
+      font-weight: 700;
       color: #0F172A;
       white-space: nowrap;
       overflow: hidden;
@@ -520,21 +544,16 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     }
 
     .sb-user-role {
-      font-size: 10.5px;
+      font-size: 11px;
       color: #94A3B8;
-      margin-top: 1px;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .sb-user-more {
-      width: 14px;
-      height: 14px;
-      stroke: #94A3B8;
-      stroke-width: 2;
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      flex-shrink: 0;
-      transition: transform 200ms var(--ease);
+      display: none;
     }
 
     .sb.collapsed .sb-user-info,
@@ -545,6 +564,34 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     .sb.collapsed .sb-user-tile {
       justify-content: center;
       padding: 9px;
+    }
+
+    /* Collapsed profile card */
+    .sb.collapsed .sb-profile-card {
+      padding: 14px 0 12px;
+      gap: 0;
+    }
+
+    .sb.collapsed .sb-profile-text {
+      display: none;
+    }
+
+    .sb.collapsed .sb-profile-avatar {
+      width: 42px !important;
+      height: 42px !important;
+      font-size: 15px !important;
+    }
+
+    .sb.collapsed .sb-edit-badge {
+      width: 16px !important;
+      height: 16px !important;
+      bottom: -1px !important;
+      right: -1px !important;
+    }
+
+    .sb.collapsed .sb-edit-badge svg {
+      width: 8px !important;
+      height: 8px !important;
     }
 
     .sb-popup {
@@ -2254,6 +2301,78 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     }
     .sb.collapsed .sb-submenu { display: none !important; }
 
+    /* ── Collapsed flyout submenu ── */
+    .sb-flyout {
+      display: none;
+      position: fixed;
+      left: 62px;
+      background: #ffffff;
+      border: 1px solid #E5E7EB;
+      border-radius: 10px;
+      padding: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.06);
+      z-index: 3000;
+      min-width: 160px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(-6px);
+      transition: opacity 150ms ease, transform 150ms ease;
+    }
+
+    .sb-flyout.visible {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .sb-flyout-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #94A3B8;
+      padding: 4px 10px 6px;
+    }
+
+    .sb-flyout-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      text-decoration: none;
+      transition: background 120ms ease, color 120ms ease;
+      white-space: nowrap;
+    }
+
+    .sb-flyout-item:hover {
+      background: #F1F5F9;
+      color: #166534;
+    }
+
+    .sb-flyout-item.active {
+      background: #DCFCE7;
+      color: #166534;
+      font-weight: 600;
+    }
+
+    .sb-flyout-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #94A3B8;
+      flex-shrink: 0;
+      transition: background 120ms ease;
+    }
+
+    .sb-flyout-item.active .sb-flyout-dot,
+    .sb-flyout-item:hover .sb-flyout-dot {
+      background: #16A34A;
+    }
+
     .p-select.open .p-select-menu {
       display: block;
     }
@@ -2325,6 +2444,30 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       </div>
     </div>
 
+        <!-- ── PROFILE CARD (top of nav) ── -->
+    <div id="userTile" onclick="openProfileModal()" role="button" tabindex="0" class="sb-profile-card"
+      style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 10px 14px;cursor:pointer;transition:all 200ms ease;flex-shrink:0;">
+      <div style="position:relative;display:inline-block;">
+        <div class="sb-avatar sb-profile-avatar" style="background:<?= $__roleColor ?>;overflow:hidden;">
+          <?php if (!empty($__me['profile_picture'])): ?>
+            <img src="<?= e($__base . '/' . $__me['profile_picture']) ?>?v=<?= time() ?>"
+              style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Avatar">
+          <?php else: ?><?= e($__initials) ?><?php endif; ?>
+        </div>
+        <div class="sb-edit-badge" onclick="event.stopPropagation();openProfileModal();" title="Edit profile"
+          style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:#16A34A;border:2px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity 200ms ease;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:10px;height:10px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+      </div>
+      <div class="sb-profile-text" style="text-align:center;width:100%;transition:opacity 200ms ease,max-height 200ms ease;overflow:hidden;">
+        <div style="font-size:13px;font-weight:700;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" class="sb-user-name"><?= e($__me['name']) ?></div>
+        <div style="font-size:11px;color:#94A3B8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= e($__roleLabel) ?></div>
+        <?php if (!empty($__me['department'])): ?>
+        <div style="font-size:11px;color:#94A3B8;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= e($__me['department']) ?></div>
+        <?php endif; ?>
+      </div>
+    </div>
+
     <nav class="sb-nav" id="sbNav" aria-label="Main navigation">
       <?php
       $__svgPaths = [
@@ -2392,7 +2535,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
             ?>
             <div class="sb-item sb-item-toggle <?= $isOpen ? 'open' : '' ?> <?= $isParentActive ? 'active' : '' ?>"
               onclick="toggleSbSubmenu(this)" data-label="User Accounts"
-              style="cursor:pointer;">
+              style="cursor:pointer;position:relative;"
+              onmouseenter="showSbFlyout(this)" onmouseleave="hideSbFlyout(this)">
               <a href="<?= $__base ?>/system_admin/users.php"
                 onclick="event.stopPropagation();"
                 style="display:contents;color:inherit;text-decoration:none;">
@@ -2400,6 +2544,28 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
                 <span class="sb-label">User Accounts</span>
               </a>
               <svg class="sb-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+
+              <!-- Flyout for collapsed state -->
+              <div class="sb-flyout" id="sbFlyoutUserAccounts"
+                onmouseenter="keepSbFlyout(this)" onmouseleave="hideSbFlyout(this)">
+                <div class="sb-flyout-title">User Accounts</div>
+                <a href="<?= $__base ?>/system_admin/users.php"
+                  class="sb-flyout-item <?= ($isParentActive) ? 'active' : '' ?>">
+                  <span class="sb-flyout-dot"></span> All Users
+                </a>
+                <a href="<?= $__base ?>/system_admin/users.php?status=active"
+                  class="sb-flyout-item <?= ($isActive && $__currentStatus === 'active') ? 'active' : '' ?>">
+                  <span class="sb-flyout-dot"></span> Active
+                </a>
+                <a href="<?= $__base ?>/system_admin/users.php?status=inactive"
+                  class="sb-flyout-item <?= ($isActive && $__currentStatus === 'inactive') ? 'active' : '' ?>">
+                  <span class="sb-flyout-dot"></span> Inactive
+                </a>
+                <a href="<?= $__base ?>/system_admin/users.php?status=archived"
+                  class="sb-flyout-item <?= ($isActive && $__currentStatus === 'archived') ? 'active' : '' ?>">
+                  <span class="sb-flyout-dot"></span> Archived
+                </a>
+              </div>
             </div>
             <div class="sb-submenu <?= $isOpen ? 'open' : '' ?>">
               <a href="<?= $__base ?>/system_admin/users.php?status=active"
@@ -2426,29 +2592,25 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       <?php endforeach; ?>
     </nav>
 
-    <div style="display:flex;justify-content:center;padding:8px 0 4px;pointer-events:none;flex-shrink:0;">
-      <img src="<?= $__base ?>/assets/seal.png" alt=""
-        style="width:48px;height:48px;object-fit:contain;opacity:.06;filter:grayscale(1) brightness(2);">
-    </div>
-
     <div class="sb-footer">
-      <div class="sb-user-tile" id="userTile" onclick="toggleUserMenu()" role="button" tabindex="0"
-        style="cursor:pointer;">
-        <div class="sb-avatar" style="background:<?= $__roleColor ?>;overflow:hidden;">
-          <?php if (!empty($__me['profile_picture'])): ?>
-            <img src="<?= e($__base . '/' . $__me['profile_picture']) ?>?v=<?= time() ?>"
-              style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Avatar">
-          <?php else: ?>   <?= e($__initials) ?><?php endif; ?>
+      <div class="sb-user-tile" id="userTileFooter"
+        style="display:none;">
+        <div style="position:relative;display:inline-block;">
+          <div class="sb-avatar" style="background:<?= $__roleColor ?>;overflow:hidden;">
+            <?php if (!empty($__me['profile_picture'])): ?>
+              <img src="<?= e($__base . '/' . $__me['profile_picture']) ?>?v=<?= time() ?>"
+                style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Avatar">
+            <?php else: ?><?= e($__initials) ?><?php endif; ?>
+          </div>
+          <div onclick="event.stopPropagation();openProfileModal();" title="Edit profile"
+            style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:#16A34A;border:2px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:10px;height:10px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </div>
         </div>
         <div class="sb-user-info">
           <div class="sb-user-name"><?= e($__me['name']) ?></div>
           <div class="sb-user-role"><?= e($__roleLabel) ?></div>
         </div>
-        <svg class="sb-user-more" viewBox="0 0 24 24">
-          <circle cx="12" cy="5" r="1" />
-          <circle cx="12" cy="12" r="1" />
-          <circle cx="12" cy="19" r="1" />
-        </svg>
       </div>
 
       <div class="sb-popup" id="userPopup" role="menu">
@@ -2472,16 +2634,20 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
           </svg>
           My Profile
         </button>
-        <div style="height:1px;background:var(--n-100);margin:4px 0;"></div>
-        <a href="<?= $__base ?>/logout.php" class="sb-popup-item danger" role="menuitem">
-          <svg viewBox="0 0 24 24">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-          Sign out
-        </a>
-      </div>
+        </div>
+    </div>
+
+        <div class="sb-footer" style="padding:10px 8px;flex-shrink:0;border-top:none;">
+      <a href="#" onclick="openLogoutModal(event);" class="sb-popup-item danger" role="menuitem"
+        style="display:flex;align-items:center;justify-content:center;gap:9px;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:500;color:#DC2626;text-decoration:none;transition:background var(--dur);"
+        onmouseenter="this.style.background='#FEE2E2'" onmouseleave="this.style.background=''">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        <span class="sb-label" id="logoutLabel">Sign out</span>
+      </a>
     </div>
   </aside>
 
@@ -2567,11 +2733,42 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         }
 
         function toggleSbSubmenu(el) {
+          const sb = document.getElementById('sidebar');
+          if (sb && sb.classList.contains('collapsed')) return; // flyout handles collapsed
           el.classList.toggle('open');
           const sub = el.nextElementSibling;
           if (sub && sub.classList.contains('sb-submenu')) {
             sub.classList.toggle('open');
           }
+        }
+
+        // ── Flyout submenu for collapsed sidebar ──
+        let _flyoutTimer = null;
+
+        function showSbFlyout(triggerEl) {
+          const sb = document.getElementById('sidebar');
+          if (!sb || !sb.classList.contains('collapsed')) return;
+          const flyout = triggerEl.querySelector('.sb-flyout');
+          if (!flyout) return;
+          clearTimeout(_flyoutTimer);
+          flyout.style.display = 'block';
+          const rect = triggerEl.getBoundingClientRect();
+          flyout.style.top = (rect.top + rect.height / 2 - 20) + 'px';
+          requestAnimationFrame(() => flyout.classList.add('visible'));
+        }
+
+        function hideSbFlyout(triggerEl) {
+          const flyout = triggerEl.closest('.sb-item-toggle')?.querySelector('.sb-flyout')
+                      || triggerEl.querySelector?.('.sb-flyout');
+          if (!flyout) return;
+          _flyoutTimer = setTimeout(() => {
+            flyout.classList.remove('visible');
+            setTimeout(() => { if (!flyout.classList.contains('visible')) flyout.style.display = 'none'; }, 150);
+          }, 80);
+        }
+
+        function keepSbFlyout(flyoutEl) {
+          clearTimeout(_flyoutTimer);
         }
 
         // ── Sidebar collapse ──
@@ -2917,9 +3114,42 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
           } catch (e) { toast('Network error.', 'err'); }
         }
 
-        function sbmMaturityBadge(level) {
+                function sbmMaturityBadge(level) {
           const map = { 'Beginning': ['#FEE2E2', '#DC2626', '#FECACA'], 'Developing': ['#FEF3C7', '#D97706', '#FDE68A'], 'Maturing': ['#DBEAFE', '#2563EB', '#BFDBFE'], 'Advanced': ['#DCFCE7', '#16A34A', '#BBF7D0'] };
           const [bg, c, br] = map[level] || ['#F3F4F6', '#6B7280', '#E5E7EB'];
           return `<span class="pill" style="background:${bg};color:${c};border-color:${br};">${level}</span>`;
         }
       </script>
+
+  <!-- Logout Confirmation Modal -->
+  <div id="logoutModal" class="overlay">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-head">
+        <div class="modal-title">Confirm Sign Out</div>
+        <button class="modal-close" onclick="closeLogoutModal()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="text-align:center;padding:32px 24px;">
+        <p style="font-size:15px;font-weight:600;color:var(--n-900);margin-bottom:8px;">Are you sure you want to sign out?</p>
+        <p style="font-size:13px;color:var(--n-500);">You will need to log in again to access your account.</p>
+      </div>
+      <div class="modal-foot" style="justify-content:center;gap:12px;">
+        <button class="btn btn-secondary" onclick="closeLogoutModal()">Cancel</button>
+        <a href="<?= $__base ?>/logout.php" class="btn btn-danger">Yes, Sign Out</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openLogoutModal(event) {
+      if (event) event.preventDefault();
+      document.getElementById('logoutModal').classList.add('open');
+    }
+    function closeLogoutModal() {
+      document.getElementById('logoutModal').classList.remove('open');
+    }
+  </script>
+
+</body>
+</html>

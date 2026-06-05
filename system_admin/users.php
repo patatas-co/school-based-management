@@ -2,7 +2,7 @@
 ob_start();
 // ============================================================
 // system_admin/users.php — User Management
-// Roles: system_admin | school_head | sbm_coordinator | teacher | external_stakeholder
+// Roles: driven by `roles` table (system + custom)
 // ============================================================
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth.php';
@@ -18,22 +18,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   $action = $_POST['action'];
 
   if ($action === 'create') {
-    $pw = $_POST['password'] ?? '';
-    if ($pw && strlen($pw) < 8) {
-      echo json_encode(['ok' => false, 'msg' => 'Password must be at least 8 characters.']);
-      exit;
-    }
     $role = $_POST['role'] ?? '';
-    if (!in_array($role, ['system_admin', 'school_head', 'sbm_coordinator', 'teacher', 'external_stakeholder'], true)) {
+    $validRoleSlugs = $db->query("SELECT slug FROM roles")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array($role, $validRoleSlugs, true)) {
       echo json_encode(['ok' => false, 'msg' => 'Invalid role.']);
       exit;
     }
     try {
-      $hashedPw = $pw ? password_hash($pw, PASSWORD_DEFAULT) : null;
-      $initialStatus = $pw ? ($_POST['status'] ?? 'active') : 'inactive';
+      $initialStatus = $_POST['status'] ?? 'inactive';
       $schoolId = (int) ($_POST['school_id'] ?: SCHOOL_ID);
-      $db->prepare("INSERT INTO users (username,password,email,full_name,role,status,school_id) VALUES (?,?,?,?,?,?,?)")
-        ->execute([trim($_POST['username']), $hashedPw, trim($_POST['email']), trim($_POST['full_name']), $role, $initialStatus, $schoolId]);
+      $empId = trim($_POST['employee_id'] ?? '');
+      $dept  = trim($_POST['department'] ?? '');
+      $db->prepare("INSERT INTO users (username,password,email,full_name,role,status,school_id,employee_id,department) VALUES (?,?,?,?,?,?,?,?,?)")
+        ->execute([trim($_POST['username']), null, trim($_POST['email']), trim($_POST['full_name']), $role, $initialStatus, $schoolId, $empId ?: null, $dept ?: null]);
       $newId = $db->lastInsertId();
       logActivity('create_user', 'users', 'Created: ' . trim($_POST['username']));
 
@@ -41,33 +38,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $schoolStmt->execute([$schoolId]);
       $schoolName = $schoolStmt->fetchColumn() ?: '—';
 
-      if (!$pw) {
-        $newUser = ['user_id' => $newId, 'full_name' => trim($_POST['full_name']), 'email' => trim($_POST['email'])];
-        $emailMsg = 'User created. A password setup link will be sent via email.';
-        $responseJson = json_encode(['ok' => true, 'msg' => $emailMsg, 'emailSent' => true, 'user' => ['id' => $newId, 'full_name' => trim($_POST['full_name']), 'username' => trim($_POST['username']), 'email' => trim($_POST['email']), 'role' => $role, 'status' => $initialStatus, 'school' => $schoolName]]);
+      $newUser = ['user_id' => $newId, 'full_name' => trim($_POST['full_name']), 'email' => trim($_POST['email'])];
+      $responseJson = json_encode(['ok' => true, 'msg' => 'User created. A password setup link will be sent via email.', 'emailSent' => true, 'user' => ['id' => $newId, 'full_name' => trim($_POST['full_name']), 'username' => trim($_POST['username']), 'email' => trim($_POST['email']), 'role' => $role, 'status' => $initialStatus, 'school' => $schoolName]]);
 
-        // Close output buffers and send response to browser immediately
-        while (ob_get_level())
-          ob_end_clean();
-        header('Content-Type: application/json');
-        header('Content-Length: ' . strlen($responseJson));
-        header('Connection: close');
-        echo $responseJson;
-        flush();
-        if (function_exists('fastcgi_finish_request')) {
-          fastcgi_finish_request();
-        }
-
-        // Send email after response delivered (or inline if fastcgi unavailable)
-        ignore_user_abort(true);
-        set_time_limit(60);
-        require_once __DIR__ . '/../includes/email_service.php';
-        sendAccountCreationEmail($db, $newUser);
-        exit;
-      } else {
-        $emailMsg = 'User created with the provided password.';
-        echo json_encode(['ok' => true, 'msg' => $emailMsg, 'emailSent' => false, 'user' => ['id' => $newId, 'full_name' => trim($_POST['full_name']), 'username' => trim($_POST['username']), 'email' => trim($_POST['email']), 'role' => $role, 'status' => $initialStatus, 'school' => $schoolName]]);
+      // Close output buffers and send response to browser immediately
+      while (ob_get_level())
+        ob_end_clean();
+      header('Content-Type: application/json');
+      header('Content-Length: ' . strlen($responseJson));
+      header('Connection: close');
+      echo $responseJson;
+      flush();
+      if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
       }
+
+      // Send email after response delivered (or inline if fastcgi unavailable)
+      ignore_user_abort(true);
+      set_time_limit(60);
+      require_once __DIR__ . '/../includes/email_service.php';
+      sendAccountCreationEmail($db, $newUser);
       exit;
     } catch (Exception $e) {
       echo json_encode(['ok' => false, 'msg' => 'Error: ' . $e->getMessage()]);
@@ -76,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   }
 
   if ($action === 'get') {
-    $st = $db->prepare("SELECT user_id,username,email,full_name,role,status,school_id FROM users WHERE user_id=?");
+    $st = $db->prepare("SELECT user_id,username,email,full_name,role,status,school_id,department,employee_id FROM users WHERE user_id=?");
     $st->execute([(int) $_POST['id']]);
     echo json_encode($st->fetch());
     exit;
@@ -84,20 +74,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
   if ($action === 'update') {
     $id = (int) $_POST['id'];
-    $pw = $_POST['password'] ?? '';
     $newRole = $_POST['role'] ?? '';
-    if (!in_array($newRole, ['system_admin', 'school_head', 'sbm_coordinator', 'teacher', 'external_stakeholder'], true)) {
+    $validRoleSlugs2 = $db->query("SELECT slug FROM roles")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array($newRole, $validRoleSlugs2, true)) {
       echo json_encode(['ok' => false, 'msg' => 'Invalid role.']);
       exit;
     }
     try {
-      if ($pw) {
-        $db->prepare("UPDATE users SET full_name=?,email=?,role=?,status=?,school_id=?,password=? WHERE user_id=?")
-          ->execute([trim($_POST['full_name']), trim($_POST['email']), $newRole, $_POST['status'], (int) ($_POST['school_id'] ?: null), password_hash($pw, PASSWORD_DEFAULT), $id]);
-      } else {
-        $db->prepare("UPDATE users SET full_name=?,email=?,role=?,status=?,school_id=? WHERE user_id=?")
-          ->execute([trim($_POST['full_name']), trim($_POST['email']), $newRole, $_POST['status'], (int) ($_POST['school_id'] ?: null), $id]);
-      }
+      $dept = trim($_POST['department'] ?? '');
+      $db->prepare("UPDATE users SET full_name=?,email=?,role=?,status=?,school_id=?,department=? WHERE user_id=?")
+        ->execute([trim($_POST['full_name']), trim($_POST['email']), $newRole, $_POST['status'], (int) ($_POST['school_id'] ?: null), $dept ?: null, $id]);
       logActivity('update_user', 'users', 'Updated user ID:' . $id);
       echo json_encode(['ok' => true, 'msg' => 'User updated.']);
       exit;
@@ -418,35 +404,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $success = 0;
     $failed = 0;
     $errors = [];
-    $validRoles = ['system_admin', 'school_head', 'sbm_coordinator', 'teacher', 'external_stakeholder'];
+    $validRoles = $db->query("SELECT slug FROM roles")->fetchAll(PDO::FETCH_COLUMN);
     $db->beginTransaction();
     try {
       $importedIds = [];
+      // Build header index map (case-insensitive, trimmed)
+      $headerMap = [];
+      foreach ($headers as $i => $h) {
+        $headerMap[strtolower(trim($h))] = $i;
+      }
+      $col = function($name) use ($headerMap, &$row) {
+        return isset($headerMap[$name]) && isset($row[$headerMap[$name]]) ? trim($row[$headerMap[$name]]) : '';
+      };
+
       while (($row = fgetcsv($handle)) !== FALSE) {
-        if (count($row) < 4) {
-          $failed++;
-          continue;
-        }
-        [$fullName, $username, $email, $role] = array_map('trim', array_slice($row, 0, 4));
-        $password = isset($row[4]) ? trim($row[4]) : null;
-        if (!in_array($role, $validRoles)) {
-          $failed++;
-          $errors[] = "Invalid role for $username";
-          continue;
-        }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-          $failed++;
-          $errors[] = "Invalid email for $username";
-          continue;
-        }
+        if (count($row) < 3) { $failed++; continue; }
+
+        $employeeId = $col('employee_id');
+        $fullName   = $col('full_name');
+        $email      = $col('email');
+        $department = $col('department');
+        $role       = strtolower($col('role'));
+        $status     = strtolower($col('status')) ?: 'inactive';
+        $username   = $col('username');
+
+        if (!$fullName || !$email || !$username) { $failed++; $errors[] = "Missing required fields in row"; continue; }
+        if (!in_array($role, $validRoles)) { $failed++; $errors[] = "Invalid role '$role' for $username"; continue; }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { $failed++; $errors[] = "Invalid email for $username"; continue; }
+        if (!in_array($status, ['active', 'inactive'])) { $status = 'inactive'; }
+
         try {
-          $db->prepare("INSERT INTO users (username,password,email,full_name,role,status,school_id) VALUES (?,?,?,?,?,?,?)")
-            ->execute([$username, $password ? password_hash($password, PASSWORD_DEFAULT) : null, $email, $fullName, $role, $password ? 'active' : 'inactive', SCHOOL_ID]);
+          $db->prepare("INSERT INTO users (username,password,email,full_name,role,status,school_id,employee_id,department) VALUES (?,?,?,?,?,?,?,?,?)")
+            ->execute([$username, null, $email, $fullName, $role, $status, SCHOOL_ID, $employeeId ?: null, $department ?: null]);
           $newId = $db->lastInsertId();
           $success++;
-          if (!$password) {
-            $importedIds[] = (int) $newId; // track for post-commit email sending
-          }
+          $importedIds[] = (int) $newId; // track for post-commit email sending
         } catch (Exception $e) {
           $failed++;
           $errors[] = "Error creating $username: " . $e->getMessage();
@@ -480,8 +472,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       }
     }
     echo json_encode(['ok' => true, 'msg' => "Import complete. $success success, $failed failed.", 'errors' => $errors]);
-    exit;
+  exit;
+}
+
+// ── Roles CRUD ──────────────────────────────────────────────
+if ($action === 'list_roles') {
+  $hierarchyOrder = ['system_admin','school_head','sbm_coordinator','teacher','external_stakeholder'];
+  $placeholders = implode(',', array_fill(0, count($hierarchyOrder), '?'));
+  $rows = $db->prepare("SELECT id,slug,label,color,description,is_system FROM roles ORDER BY CASE slug " . implode(' ', array_map(fn($s,$i) => "WHEN '$s' THEN $i", $hierarchyOrder, array_keys($hierarchyOrder))) . " ELSE 99 END ASC")->execute([]);
+  $rows = $db->query("SELECT id,slug,label,color,description,is_system FROM roles ORDER BY CASE slug WHEN 'system_admin' THEN 1 WHEN 'school_head' THEN 2 WHEN 'sbm_coordinator' THEN 3 WHEN 'teacher' THEN 4 WHEN 'external_stakeholder' THEN 5 ELSE 6 END ASC, label ASC")->fetchAll(PDO::FETCH_ASSOC);
+  echo json_encode(['ok' => true, 'data' => $rows]); exit;
+}
+
+if ($action === 'save_role') {
+  $id    = intval($_POST['id'] ?? 0);
+  $label = trim($_POST['label'] ?? '');
+  $color = trim($_POST['color'] ?? '#64748B');
+  $desc  = trim($_POST['description'] ?? '');
+  if (!$label) { echo json_encode(['ok' => false, 'msg' => 'Label is required.']); exit; }
+  if ($id) {
+    $db->prepare("UPDATE roles SET label=?,color=?,description=? WHERE id=? AND is_system=0")->execute([$label, $color, $desc, $id]);
+    echo json_encode(['ok' => true, 'msg' => 'Role updated.']); exit;
+  } else {
+    $slug = preg_replace('/[^a-z0-9]+/', '_', strtolower($label));
+    try {
+      $db->prepare("INSERT INTO roles (slug,label,color,is_system,description) VALUES (?,?,?,0,?)")->execute([$slug, $label, $color, $desc]);
+      echo json_encode(['ok' => true, 'msg' => 'Role added.', 'slug' => $slug, 'description' => $desc]); exit;
+    } catch (PDOException $e) {
+      echo json_encode(['ok' => false, 'msg' => 'Role slug already exists. Try a different name.']); exit;
+    }
   }
+}
+
+if ($action === 'delete_role') {
+  $id = intval($_POST['id'] ?? 0);
+  $role = $db->prepare("SELECT slug,is_system FROM roles WHERE id=?");
+  $role->execute([$id]);
+  $r = $role->fetch(PDO::FETCH_ASSOC);
+  if (!$r) { echo json_encode(['ok' => false, 'msg' => 'Role not found.']); exit; }
+  if ($r['is_system']) { echo json_encode(['ok' => false, 'msg' => 'System roles cannot be deleted.']); exit; }
+  $inUse = $db->prepare("SELECT COUNT(*) FROM users WHERE role=?")->execute([$r['slug']]);
+  $count = $db->prepare("SELECT COUNT(*) FROM users WHERE role=?");
+  $count->execute([$r['slug']]);
+  if ($count->fetchColumn() > 0) { echo json_encode(['ok' => false, 'msg' => 'Cannot delete — role is assigned to users.']); exit; }
+  $db->prepare("DELETE FROM roles WHERE id=? AND is_system=0")->execute([$id]);
+  echo json_encode(['ok' => true, 'msg' => 'Role deleted.']); exit;
+}
   exit;
 }
 if (isset($_GET['action']) && $_GET['action'] === 'download_template') {
@@ -496,7 +532,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'download_user_template') {
   header('Content-Type: text/csv');
   header('Content-Disposition: attachment; filename="user_template.csv"');
   $out = fopen('php://output', 'w');
-  fputcsv($out, ['full_name', 'username', 'email', 'role', 'password']);
+  fputcsv($out, ['employee_id', 'full_name', 'email', 'department', 'role', 'status', 'username']);
+  fputcsv($out, ['100-456-789', 'Juan dela Cruz', 'juan@deped.gov.ph', 'Grade 10 - Science', 'teacher', 'active', 'juandelacruz']);
   fclose($out);
   exit;
 }
@@ -534,57 +571,30 @@ $pageTitle = $statusLabels[$sf] ?? 'User Management';
 $activePage = 'users.php';
 include __DIR__ . '/../includes/header.php';
 
-$roleColors = [
-  'system_admin' => '#7C3AED', // Purple
-  'school_head' => '#166534', // Deeper green
-  'sbm_coordinator' => '#2563EB', // Blue
-  'teacher' => '#0D9488', // Teal
-  'external_stakeholder' => '#D97706', // Amber
-];
-$roleLabels = [
-  'system_admin' => 'System Admin',
-  'school_head' => 'School Head',
-  'sbm_coordinator' => 'SBM Coordinator',
-  'teacher' => 'School Teacher',
-  'external_stakeholder' => 'Stakeholder',
-];
+$_allRoles  = $db->query("SELECT slug,label,color,description FROM roles ORDER BY CASE slug WHEN 'system_admin' THEN 1 WHEN 'school_head' THEN 2 WHEN 'sbm_coordinator' THEN 3 WHEN 'teacher' THEN 4 WHEN 'external_stakeholder' THEN 5 ELSE 6 END ASC, label ASC")->fetchAll(PDO::FETCH_ASSOC);
+$roleColors = array_column($_allRoles, 'color', 'slug');
+$roleLabels = array_column($_allRoles, 'label', 'slug');
 ?>
 
-<div class="ph2">
-  <div class="ph2-left">
-    <?php if (!$sf): ?>
-      <div class="ph2-eyebrow">Management</div>
-      <div class="ph2-title">User Management</div>
-      <div class="ph2-sub">Manage all portal accounts — <?= $activeUsers ?> active users.</div>
-    <?php endif; ?>
-  </div>
-  <div class="ph2-right">
-    <?php if (!$sf): ?>
-      <button class="btn btn-secondary" onclick="openModal('mImport')"><?= svgIcon('upload') ?> Import CSV</button>
-      <button class="btn btn-secondary" onclick="openModal('mEvaluators')"><?= svgIcon('users') ?> Manage Evaluators</button>
-      <button class="btn btn-primary" onclick="openModal('mCreate')"><?= svgIcon('plus') ?> Add User</button>
-    <?php endif; ?>
-  </div>
-</div>
-
-<!-- Search -->
-<div class="filter-bar-v2">
-  <div class="search" style="flex:1;max-width:420px;">
+<!-- Search + Actions bar -->
+<div class="filter-bar-v2" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+  <div class="search" style="flex:1;min-width:200px;max-width:360px;">
     <span class="si"><?= svgIcon('search') ?></span>
     <input type="text" id="liveSearch" placeholder="Search by name, username or email…"
       value="<?= e($q) ?>" autocomplete="off"
       style="width:100%;">
   </div>
+  <?php if (!$sf): ?>
+    <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">
+      <button class="btn btn-secondary" onclick="openModal('mImport')"><?= svgIcon('upload') ?> Import CSV</button>
+      <button class="btn btn-secondary" onclick="openRolesModal()"><?= svgIcon('shield') ?> Manage Roles</button>
+      <button class="btn btn-secondary" onclick="openModal('mEvaluators')"><?= svgIcon('users') ?> Manage Evaluators</button>
+      <button class="btn btn-primary" onclick="openModal('mCreate')"><?= svgIcon('plus') ?> Add User</button>
+    </div>
+  <?php endif; ?>
 </div>
 
 <div class="card">
-  <div class="card-head">
-    <span class="card-title">
-      <?= $rf ? ($roleLabels[$rf] ?? ucfirst($rf)) . 's' : 'All Users' ?>
-      <span
-        style="font-weight:400;color:var(--n-400);font-family:var(--font-body);font-size:13px;">(<?= count($users) ?>)</span>
-    </span>
-  </div>
   <?php if (!$users): ?>
     <div class="empty-state">
       <div class="empty-icon"><?= svgIcon('users') ?></div>
@@ -1348,12 +1358,11 @@ $roleLabels = [
         onclick="closeModal('mCreate')"><?= svgIcon('x') ?></button></div>
     <div class="modal-body">
       <div class="form-row">
+        <div class="fg"><label>Employee ID</label><input class="fc" id="c_empid" placeholder="e.g. 100-456-789"></div>
         <div class="fg"><label>Full Name *</label><input class="fc" id="c_name" placeholder="Juan dela Cruz"></div>
-        <div class="fg"><label>Username *</label><input class="fc" id="c_user" placeholder="juandelacruz"
-            autocomplete="off"></div>
       </div>
-      <div class="fg"><label>Email *</label><input class="fc" type="email" id="c_email" placeholder="juan@deped.gov.ph">
-      </div>
+      <div class="fg"><label>Email *</label><input class="fc" type="email" id="c_email" placeholder="juan@deped.gov.ph"></div>
+      <div class="fg"><label>Department</label><input class="fc" id="c_dept" placeholder="e.g. Grade 10 — Science"></div>
       <div class="form-row">
         <div class="fg">
           <label>Role *</label>
@@ -1364,14 +1373,12 @@ $roleLabels = [
               <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
             </div>
             <div class="p-select-menu">
-              <?php foreach (['system_admin' => 'System Admin', 'school_head' => 'School Head', 'sbm_coordinator' => 'SBM Coordinator', 'teacher' => 'Teacher'] as $val => $lbl): ?>
-                <div class="p-select-item <?= $val === 'teacher' ? 'active' : '' ?>" data-val="<?= $val ?>"
-                  onclick="setCRole('<?= $val ?>', '<?= $lbl ?>')">
+              <?php foreach ($_allRoles as $r): ?>
+                <div class="p-select-item <?= $r['slug'] === 'teacher' ? 'active' : '' ?>" data-val="<?= e($r['slug']) ?>"
+                  onclick="setCRole('<?= e($r['slug']) ?>', '<?= e($r['label']) ?>')">
                   <div class="p-item-content">
-                    <div class="p-item-title"><?= $lbl ?></div>
-                    <div class="p-item-desc">
-                      <?= $val === 'system_admin' ? 'Total system control' : 'Standard institutional access' ?>
-                    </div>
+                    <div class="p-item-title"><?= e($r['label']) ?></div>
+                    <div class="p-item-desc"><?= !empty($r['description']) ? e($r['description']) : ($r['slug'] === 'system_admin' ? 'Total system control' : 'Standard institutional access') ?></div>
                   </div>
                   <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
                 </div>
@@ -1403,13 +1410,12 @@ $roleLabels = [
           </div>
         </div>
       </div>
-      <div class="fg">
-        <label>Password <span style="font-weight:400;color:var(--n-400);">(leave blank to send setup
-            link)</span></label>
-        <input class="fc" type="password" id="c_pass" placeholder="Leave blank — user sets password via email"
-          autocomplete="new-password">
-        <input type="hidden" id="c_school" value="<?= SCHOOL_ID ?>">
+      <div class="fg"><label>Username *</label><input class="fc" id="c_user" placeholder="juandelacruz" autocomplete="off"></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;font-size:12.5px;color:#166534;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        A password setup link will be sent to the user's email after account creation.
       </div>
+      <input type="hidden" id="c_school" value="<?= SCHOOL_ID ?>">
     </div>
     <div class="modal-foot">
       <button class="btn btn-secondary" onclick="closeModal('mCreate')">Cancel</button>
@@ -1429,6 +1435,7 @@ $roleLabels = [
         <div class="fg"><label>Full Name</label><input class="fc" id="e_name"></div>
         <div class="fg"><label>Email</label><input class="fc" type="email" id="e_email"></div>
       </div>
+      <div class="fg"><label>Department</label><input class="fc" id="e_dept" placeholder="e.g. Grade 10 — Science"></div>
       <div class="form-row">
         <div class="fg">
           <label>Role</label>
@@ -1439,11 +1446,11 @@ $roleLabels = [
               <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
             </div>
             <div class="p-select-menu">
-              <?php foreach (['system_admin' => 'System Admin', 'school_head' => 'School Head', 'sbm_coordinator' => 'SBM Coordinator', 'teacher' => 'Teacher', 'external_stakeholder' => 'External Stakeholder'] as $val => $lbl): ?>
-                <div class="p-select-item" data-val="<?= $val ?>" onclick="setERole('<?= $val ?>', '<?= $lbl ?>')">
+              <?php foreach ($_allRoles as $r): ?>
+                <div class="p-select-item" data-val="<?= e($r['slug']) ?>" onclick="setERole('<?= e($r['slug']) ?>', '<?= e($r['label']) ?>')">
                   <div class="p-item-content">
-                    <div class="p-item-title"><?= $lbl ?></div>
-                    <div class="p-item-desc"><?= e($lbl) ?> account access level</div>
+                    <div class="p-item-title"><?= e($r['label']) ?></div>
+                    <div class="p-item-desc"><?= !empty($r['description']) ? e($r['description']) : ($r['slug'] === 'system_admin' ? 'Total system control' : 'Standard institutional access') ?></div>
                   </div>
                   <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
                 </div>
@@ -1480,12 +1487,6 @@ $roleLabels = [
           Dasmariñas Integrated High School
         </div>
         <input type="hidden" id="e_school" value="<?= SCHOOL_ID ?>">
-      </div>
-      <div class="fg">
-        <label>New Password <span style="font-weight:400;color:var(--n-400);">(leave blank to keep
-            current)</span></label>
-        <input class="fc" type="password" id="e_pass" placeholder="Leave blank to keep current"
-          autocomplete="new-password">
       </div>
     </div>
     <div class="modal-foot">
@@ -1803,17 +1804,10 @@ $roleLabels = [
           style="font-size:11px;font-weight:700;color:var(--n-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">
           Required CSV format</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <?php foreach (['full name', 'username', 'email', 'role'] as $col): ?>
-            <span
-              style="font-size:12px;font-family:monospace;background:#fff;border:1px solid var(--n-200);border-radius:4px;padding:3px 9px;color:var(--n-700);"><?= $col ?></span>
+          <?php foreach (['employee_id', 'full_name', 'email', 'department', 'role', 'status', 'username'] as $col): ?>
+            <span style="font-size:12px;font-family:monospace;background:#fff;border:1px solid var(--n-200);border-radius:4px;padding:3px 9px;color:var(--n-700);"><?= $col ?></span>
           <?php endforeach; ?>
-          <span
-            style="font-size:12px;font-family:monospace;background:#fff;border:1px solid var(--n-100);border-radius:4px;padding:3px 9px;color:var(--n-400);font-style:italic;">password
-            (optional)</span>
         </div>
-        <div style="margin-top:10px;font-size:11px;color:var(--n-400);">Valid roles: School Head ·
-          SBM Coordinator ·
-          Teacher</div>
       </div>
       <div style="margin-bottom:12px;">
         <div class="import-card" id="userImportCard">
@@ -1834,10 +1828,13 @@ $roleLabels = [
               </div>
             </div>
             <div class="import-schema">
-              <span class="import-col">full name</span>
-              <span class="import-col">username</span>
+              <span class="import-col">employee_id</span>
+              <span class="import-col">full_name</span>
               <span class="import-col">email</span>
+              <span class="import-col">department</span>
               <span class="import-col">role</span>
+              <span class="import-col">status</span>
+              <span class="import-col">username</span>
             </div>
           </div>
 
@@ -1908,6 +1905,47 @@ $roleLabels = [
       <button class="btn btn-secondary" onclick="closeModal('mImport')">Cancel</button>
       <button class="btn btn-primary" onclick="importUsers()"><?= svgIcon('upload') ?> Upload &amp;
         Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Manage Roles Modal ── -->
+<div class="overlay" id="mRoles">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-head">
+      <span class="modal-title">Manage Roles</span>
+      <button class="modal-close" onclick="closeModal('mRoles')"><?= svgIcon('x') ?></button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Add new role -->
+      <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:10px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Add New Role</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div class="fg" style="flex:1;margin:0;">
+            <label>Role Name *</label>
+            <input class="fc" id="nr_label" placeholder="e.g. Department Head" oninput="previewRoleSlug()">
+          </div>
+          <input type="hidden" id="nr_color" value="#64748B">
+          <button class="btn btn-primary" style="margin-top:20px;white-space:nowrap;" onclick="saveNewRole()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Role
+          </button>
+        </div>
+        <div class="fg" style="margin:10px 0 0;">
+          <label>Description <span style="font-weight:400;color:#94A3B8;">(shown in role dropdown)</span></label>
+          <input class="fc" id="nr_desc" placeholder="e.g. Manages department-level tasks">
+        </div>
+      </div>
+
+      <!-- Existing roles list -->
+      <div style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Existing Roles</div>
+      <div id="rolesList" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;">
+        <div style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">Loading…</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mRoles')">Close</button>
     </div>
   </div>
 </div>
@@ -2290,28 +2328,28 @@ $roleLabels = [
   }
 
   async function createUser() {
-    const d = { action: 'create', full_name: $('c_name'), username: $('c_user'), email: $('c_email'), role: $('c_role'), status: $('c_status'), school_id: $('c_school'), password: $('c_pass') };
+    const d = { action: 'create', full_name: $('c_name'), username: $('c_user'), email: $('c_email'), role: $('c_role'), status: $('c_status'), school_id: $('c_school'), employee_id: $('c_empid'), department: $('c_dept') };
     const r = await apiPost('users.php', d);
     toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) { closeModal('mCreate');['c_name', 'c_user', 'c_email', 'c_pass'].forEach(id => $v(id, '')); setTimeout(() => location.reload(), 800); }
+    if (r.ok) { closeModal('mCreate');['c_name', 'c_user', 'c_email', 'c_empid', 'c_dept'].forEach(id => $v(id, '')); setTimeout(() => location.reload(), 800); }
   }
   async function editUser(id) {
     const r = await apiPost('users.php', { action: 'get', id });
     if (!r || !r.user_id) { toast('Failed to load user.', 'err'); return; }
-    $v('e_id', r.user_id); $v('e_name', r.full_name); $v('e_email', r.email);
+    $v('e_id', r.user_id); $v('e_name', r.full_name); $v('e_email', r.email); $v('e_dept', r.department || '');
 
     // Init custom dropdowns
-    const roleMap = { 'system_admin': 'System Admin', 'school_head': 'School Head', 'sbm_coordinator': 'SBM Coordinator', 'teacher': 'Teacher', 'external_stakeholder': 'External Stakeholder' };
+    const roleMap = <?= json_encode(array_column($_allRoles, 'label', 'slug')) ?>;
     setERole(r.role || 'teacher', roleMap[r.role] || 'Teacher');
 
     const statusMap = { 'active': 'Active', 'inactive': 'Inactive', 'suspended': 'Suspended' };
     setEStatus(r.status || 'active', statusMap[r.status] || 'Active');
 
-    $v('e_school', r.school_id || ''); $v('e_pass', '');
+    $v('e_school', r.school_id || '');
     openModal('mEdit');
   }
   async function updateUser() {
-    const r = await apiPost('users.php', { action: 'update', id: $('e_id'), full_name: $('e_name'), email: $('e_email'), role: $('e_role'), status: $('e_status'), school_id: $('e_school'), password: $('e_pass') });
+    const r = await apiPost('users.php', { action: 'update', id: $('e_id'), full_name: $('e_name'), email: $('e_email'), role: $('e_role'), status: $('e_status'), school_id: $('e_school'), department: $('e_dept') });
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) { closeModal('mEdit'); setTimeout(() => location.reload(), 800); }
   }
@@ -2435,6 +2473,175 @@ $roleLabels = [
         setTimeout(() => toastEl.remove(), 300);
       }
     }, 3000);
+  }
+
+  // ── Roles Modal ──────────────────────────────────────────
+  async function openRolesModal() {
+    openModal('mRoles');
+    await loadRolesList();
+  }
+
+  async function loadRolesList() {
+    const wrap = document.getElementById('rolesList');
+    wrap.innerHTML = '<div style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">Loading…</div>';
+    const r = await apiPost('users.php', { action: 'list_roles' });
+    if (!r.ok || !r.data) { wrap.innerHTML = '<div style="color:red;padding:12px;">Failed to load roles.</div>'; return; }
+    if (!r.data.length) { wrap.innerHTML = '<div style="text-align:center;padding:20px;color:#94A3B8;">No roles found.</div>'; return; }
+    wrap.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#F8FAFC;border-bottom:1px solid #E5E7EB;">
+            <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;width:28%;">Name</th>
+            <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;">Description</th>
+            <th style="text-align:center;padding:8px 12px;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;width:80px;">Type</th>
+            <th style="text-align:center;padding:8px 12px;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;width:60px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${r.data.map((role, i) => `
+          <tr style="border-bottom:1px solid #F1F5F9;transition:background .12s;" onmouseenter="this.style.background='#F8FAFC'" onmouseleave="this.style.background=''">
+            <td style="padding:9px 12px;font-weight:600;color:#0F172A;">${role.label}</td>
+            <td style="padding:9px 12px;color:#64748B;">${role.description || '<span style="color:#CBD5E1;">—</span>'}</td>
+            <td style="padding:9px 12px;text-align:center;">
+              ${role.is_system == 1
+                ? `<span style="font-size:10px;font-weight:700;color:#94A3B8;background:#F1F5F9;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em;">System</span>`
+                : `<span style="font-size:10px;font-weight:700;color:#16A34A;background:#DCFCE7;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em;">Custom</span>`
+              }
+            </td>
+            <td style="padding:9px 12px;text-align:center;">
+              <div style="display:flex;align-items:center;justify-content:center;gap:5px;">
+                ${role.is_system == 1 ? `
+                  <span style="color:#CBD5E1;font-size:12px;">—</span>
+                ` : `
+                  <button onclick="openEditRole(${role.id},'${role.label.replace(/'/g,"\\'")}','${(role.description||'').replace(/'/g,"\\'")}','${role.slug}')" title="Edit role"
+                    style="background:#EFF6FF;border:none;cursor:pointer;padding:5px 8px;border-radius:6px;color:#2563EB;line-height:0;transition:all .15s;"
+                    onmouseenter="this.style.background='#DBEAFE'" onmouseleave="this.style.background='#EFF6FF'">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button onclick="deleteRole(${role.id},'${role.label.replace(/'/g,"\\'")}') " title="Delete role"
+                    style="background:#FEE2E2;border:none;cursor:pointer;padding:5px 8px;border-radius:6px;color:#DC2626;line-height:0;transition:all .15s;"
+                    onmouseenter="this.style.background='#FECACA'" onmouseleave="this.style.background='#FEE2E2'">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                `}
+              </div>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function previewRoleSlug() {}
+
+  async function saveNewRole() {
+    const label = document.getElementById('nr_label').value.trim();
+    const description = document.getElementById('nr_desc').value.trim();
+    const color = '#64748B';
+    if (!label) { toast('Role name is required.', 'warning'); return; }
+    const r = await apiPost('users.php', { action: 'save_role', id: 0, label, color, description });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) {
+      document.getElementById('nr_label').value = '';
+      document.getElementById('nr_desc').value = '';
+      await loadRolesList();
+      injectRoleOption(r.slug, label, description);
+    }
+  }
+
+  function injectRoleOption(slug, label, description = '') {
+    const desc = description || 'Standard institutional access';
+    const itemHTML = (fn) => `
+      <div class="p-item-content">
+        <div class="p-item-title">${label}</div>
+        <div class="p-item-desc">${desc}</div>
+      </div>
+      <div class="p-item-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>`;
+
+    // Add to Create User dropdown
+    const createMenu = document.querySelector('#pCRoleDropdown .p-select-menu');
+    if (createMenu && !createMenu.querySelector(`[data-val="${slug}"]`)) {
+      const div = document.createElement('div');
+      div.className = 'p-select-item';
+      div.dataset.val = slug;
+      div.setAttribute('onclick', `setCRole('${slug}', '${label}')`);
+      div.innerHTML = itemHTML('setCRole');
+      createMenu.appendChild(div);
+    }
+
+    // Add to Edit User dropdown
+    const editMenu = document.querySelector('#pERoleDropdown .p-select-menu');
+    if (editMenu && !editMenu.querySelector(`[data-val="${slug}"]`)) {
+      const div = document.createElement('div');
+      div.className = 'p-select-item';
+      div.dataset.val = slug;
+      div.setAttribute('onclick', `setERole('${slug}', '${label}')`);
+      div.innerHTML = itemHTML('setERole');
+      editMenu.appendChild(div);
+    }
+
+    if (typeof roleMap !== 'undefined') roleMap[slug] = label;
+  }
+
+  async function deleteRole(id, label) {
+    if (!confirm(`Delete role "${label}"? This cannot be undone.`)) return;
+    const r = await apiPost('users.php', { action: 'delete_role', id });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) await loadRolesList();
+  }
+
+  function openEditRole(id, label, description, slug) {
+    // Replace the roles table with an edit form inside rolesList
+    const wrap = document.getElementById('rolesList');
+    const editId = `editRoleForm_${id}`;
+    // Inject edit panel above table
+    const existing = document.getElementById(editId);
+    if (existing) { existing.remove(); return; }
+    const panel = document.createElement('div');
+    panel.id = editId;
+    panel.style = 'background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px 16px;margin-bottom:10px;';
+    panel.innerHTML = `
+      <div style="font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Editing: ${label}</div>
+      <div style="display:flex;gap:10px;flex-direction:column;">
+        <div class="fg" style="margin:0;">
+          <label>Role Name *</label>
+          <input class="fc" id="er_label_${id}" value="${label}">
+        </div>
+        <div class="fg" style="margin:0;">
+          <label>Description</label>
+          <input class="fc" id="er_desc_${id}" value="${description}">
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="document.getElementById('${editId}').remove()">Cancel</button>
+          <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" onclick="saveEditRole(${id},'${slug}')">Save Changes</button>
+        </div>
+      </div>`;
+    wrap.insertBefore(panel, wrap.firstChild);
+  }
+
+  async function saveEditRole(id, slug) {
+    const label = document.getElementById(`er_label_${id}`).value.trim();
+    const description = document.getElementById(`er_desc_${id}`).value.trim();
+    if (!label) { toast('Role name is required.', 'warning'); return; }
+    const r = await apiPost('users.php', { action: 'save_role', id, label, color: '#64748B', description });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) {
+      document.getElementById(`editRoleForm_${id}`)?.remove();
+      await loadRolesList();
+      // Update dropdowns in-place
+      const updateMenu = (selector, fn) => {
+        const item = document.querySelector(`${selector} [data-val="${slug}"]`);
+        if (item) {
+          item.setAttribute('onclick', `${fn}('${slug}','${label}')`);
+          const title = item.querySelector('.p-item-title');
+          const desc  = item.querySelector('.p-item-desc');
+          if (title) title.textContent = label;
+          if (desc)  desc.textContent  = description || 'Standard institutional access';
+        }
+      };
+      updateMenu('#pCRoleDropdown .p-select-menu', 'setCRole');
+      updateMenu('#pERoleDropdown .p-select-menu', 'setERole');
+      if (typeof roleMap !== 'undefined') roleMap[slug] = label;
+    }
   }
 
   async function importUsers() {

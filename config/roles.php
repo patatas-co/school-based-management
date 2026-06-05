@@ -62,7 +62,7 @@ define('SBM_NAV', [
             'users',
             [
                 ['User Accounts', 'system_admin/users.php', 'users'],
-                ['School Years', 'school_head/settings.php', 'calendar'],
+                ['System Settings', 'school_head/settings.php', 'calendar'],
             ]
         ],
     ],

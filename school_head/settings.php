@@ -199,14 +199,6 @@ include __DIR__ . '/../includes/header.php';
   }
 </style>
 
-<div class="ph2">
-  <div class="ph2-left">
-    <div class="ph2-eyebrow">Administration</div>
-    <div class="ph2-title">System Settings</div>
-    <div class="ph2-sub">Manage school years, system configuration, and application metadata.</div>
-  </div>
-</div>
-
 <div class="grid2" style="gap:20px;align-items:start;">
 
   <!-- School Years Panel -->

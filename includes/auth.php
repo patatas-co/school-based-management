@@ -60,14 +60,31 @@ function requireRole(string ...$roles): void
 
 function me(): array
 {
-    return [
+    $base = [
         'id' => $_SESSION['user_id'] ?? null,
         'name' => $_SESSION['full_name'] ?? '',
         'role' => $_SESSION['role'] ?? '',
         'user' => $_SESSION['username'] ?? '',
         'school_id' => $_SESSION['school_id'] ?? null,
         'profile_picture' => $_SESSION['profile_picture'] ?? null,
+        'department' => $_SESSION['department'] ?? null,
     ];
+
+    // If department not in session yet, fetch from DB and cache it
+    if ($base['id'] && !isset($_SESSION['department'])) {
+        try {
+            $db = getDB();
+            $row = $db->prepare("SELECT department FROM users WHERE user_id=? LIMIT 1");
+            $row->execute([$base['id']]);
+            $dept = $row->fetchColumn();
+            $_SESSION['department'] = $dept ?: null;
+            $base['department'] = $_SESSION['department'];
+        } catch (\Exception $e) {
+            // column may not exist yet
+        }
+    }
+
+    return $base;
 }
 
 function requireSystemAdmin(): void
