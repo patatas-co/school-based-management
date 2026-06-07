@@ -461,10 +461,22 @@ function sbmRatingLabel(int $r): string
 
 function sbmMaturityLevel(float $pct): array
 {
-    foreach (SBM_MATURITY as $m) {
+    // Use DB-configured bands if available, otherwise fall back to the defined constant
+    static $cached = null;
+    if ($cached === null) {
+        try {
+            $db  = getDB();
+            $row = $db->query("SELECT setting_value FROM system_settings WHERE setting_key='sbm_maturity_bands' LIMIT 1")->fetchColumn();
+            $cached = $row ? json_decode($row, true) : null;
+        } catch (\Throwable $e) {
+            $cached = false; // mark as tried so we don't re-query on error
+        }
+    }
+    $bands = (is_array($cached) && count($cached) === 4) ? $cached : SBM_MATURITY;
+    foreach ($bands as $m) {
         if ($pct >= $m['min'] && $pct <= $m['max']) {
             return $m;
         }
     }
-    return SBM_MATURITY[array_key_last(SBM_MATURITY)];
+    return $bands[array_key_last($bands)];
 }
