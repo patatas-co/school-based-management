@@ -102,6 +102,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       exit;
     }
   }
+  if ($_POST['action'] === 'save_maturity') {
+    $bands = $_POST['bands'] ?? [];
+    if (!is_array($bands) || count($bands) !== 4) {
+      echo json_encode(['ok' => false, 'msg' => 'Exactly 4 maturity bands are required.']);
+      exit;
+    }
+    // Validate and sort by min ascending
+    $parsed = [];
+    foreach ($bands as $b) {
+      $min   = (int)   ($b['min']   ?? 0);
+      $max   = (int)   ($b['max']   ?? 0);
+      $level = (int)   ($b['level'] ?? 0);
+      $label = trim($b['label'] ?? '');
+      $color = trim($b['color'] ?? '#000000');
+      $bg    = trim($b['bg']    ?? '#FFFFFF');
+      if ($min < 0 || $max > 100 || $min >= $max || !$label || $level < 1 || $level > 4) {
+        echo json_encode(['ok' => false, 'msg' => "Invalid band data for level $level."]);
+        exit;
+      }
+      $parsed[] = compact('min', 'max', 'level', 'label', 'color', 'bg');
+    }
+    usort($parsed, fn($a,$b) => $a['min'] <=> $b['min']);
+    // Ensure bands are contiguous (max of prev == min of next - 1)
+    for ($i = 1; $i < count($parsed); $i++) {
+      if ($parsed[$i]['min'] !== $parsed[$i-1]['max'] + 1) {
+        echo json_encode(['ok' => false, 'msg' => 'Bands must be contiguous with no gaps or overlaps (e.g. 0-25, 26-50).']);
+        exit;
+      }
+    }
+    if ($parsed[0]['min'] !== 0 || $parsed[count($parsed)-1]['max'] !== 100) {
+      echo json_encode(['ok' => false, 'msg' => 'Bands must cover 0–100 exactly.']);
+      exit;
+    }
+    $db->prepare("DELETE FROM system_settings WHERE setting_key = 'sbm_maturity_bands'")->execute();
+    $db->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES ('sbm_maturity_bands', ?)")
+      ->execute([json_encode($parsed)]);
+    echo json_encode(['ok' => true, 'msg' => 'Maturity bands saved.']);
+    exit;
+  }
+  if ($_POST['action'] === 'get_maturity') {
+    $row = $db->query("SELECT setting_value FROM system_settings WHERE setting_key='sbm_maturity_bands' LIMIT 1")->fetchColumn();
+    echo json_encode(['ok' => true, 'bands' => $row ? json_decode($row, true) : []]);
+    exit;
+  }
   if ($_POST['action'] === 'get_sy') {
     $st = $db->prepare("SELECT sy_id, label, date_start, date_end, is_current, created_at FROM school_years WHERE sy_id=?");
     $st->execute([(int) $_POST['id']]);
@@ -117,6 +161,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 $syears = $db->query("SELECT * FROM school_years ORDER BY sy_id DESC")->fetchAll();
+
+// Load saved maturity bands (fall back to DepEd defaults if not yet configured)
+$maturityRow = $db->query("SELECT setting_value FROM system_settings WHERE setting_key='sbm_maturity_bands' LIMIT 1")->fetchColumn();
+$maturityBands = $maturityRow ? json_decode($maturityRow, true) : [
+    ['min'=>0,  'max'=>25,  'level'=>1, 'label'=>'Beginning',  'color'=>'#DC2626', 'bg'=>'#FEE2E2'],
+    ['min'=>26, 'max'=>50,  'level'=>2, 'label'=>'Developing', 'color'=>'#D97706', 'bg'=>'#FEF3C7'],
+    ['min'=>51, 'max'=>75,  'level'=>3, 'label'=>'Maturing',   'color'=>'#2563EB', 'bg'=>'#DBEAFE'],
+    ['min'=>76, 'max'=>100, 'level'=>4, 'label'=>'Advanced',   'color'=>'#16A34A', 'bg'=>'#DCFCE7'],
+];
 
 $userCount = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $activeUsers = $db->query("SELECT COUNT(*) FROM users WHERE status='active'")->fetchColumn();
@@ -201,6 +254,9 @@ include __DIR__ . '/../includes/header.php';
 
 <div class="grid2" style="gap:20px;align-items:start;">
 
+  <!-- Left Column: School Years + Maturity Bands -->
+  <div style="display:flex;flex-direction:column;gap:20px;">
+
   <!-- School Years Panel -->
   <div class="settings-section">
     <div class="settings-section-header">
@@ -252,7 +308,36 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
   </div>
 
-  <div style="display:flex;flex-direction:column;gap:16px;">
+  <!-- Maturity Level Configuration Panel -->
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <div class="settings-section-icon" style="background:var(--brand-100);color:var(--brand-700);">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div class="settings-section-info">
+        <div class="settings-section-title">Maturity Level Bands</div>
+        <div class="settings-section-desc">Configure score ranges for each SBM maturity level.</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openMaturityModal()" style="margin-left:auto;">
+        <?= svgIcon('edit') ?> Edit
+      </button>
+    </div>
+    <?php foreach ($maturityBands as $band): ?>
+      <div class="info-row">
+        <span class="info-label" style="display:flex;align-items:center;gap:8px;">
+          <strong>Level <?= (int)$band['level'] ?></strong> — <?= e($band['label']) ?>
+        </span>
+        <span class="info-value" style="font-family:monospace;font-size:13px;">
+          <?= (int)$band['min'] ?>% – <?= (int)$band['max'] ?>%
+        </span>
+      </div>
+    <?php endforeach; ?>
+  </div><!-- end maturity panel -->
+
+  </div><!-- end left column -->
+
+  <!-- Right Column: System Info + Quick Links -->
+  <div style="display:flex;flex-direction:column;gap:20px;">
     <!-- System Stats -->
     <div class="settings-section">
       <div class="settings-section-header">
@@ -286,32 +371,25 @@ include __DIR__ . '/../includes/header.php';
       <div class="info-row"><span class="info-label">DepEd Order Reference</span><span class="info-value"
           style="font-size:13px;">No. 007, s. 2024</span></div>
     </div>
+  </div>
+</div>
 
-    <!-- Quick Links -->
-    <div class="settings-section">
-      <div class="settings-section-header">
-        <div class="settings-section-icon" style="background:var(--n-100);color:var(--n-600);">
-          <svg viewBox="0 0 24 24">
-            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-          </svg>
-        </div>
-        <div class="settings-section-info">
-          <div class="settings-section-title">Quick Navigation</div>
-          <div class="settings-section-desc">Jump to related configuration pages.</div>
-        </div>
-      </div>
-      <div class="info-row"><a href="<?= baseUrl() ?>/system_admin/users.php"
-          style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">User Management</a><span
-          style="font-size:12px;color:var(--n-400);"><?= $userCount ?> users</span></div>
-      <div class="info-row"><a href="<?= baseUrl() ?>/system_admin/dashboard.php"
-          style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">System Admin
-          Dashboard</a><span style="font-size:12px;color:var(--n-400);">Admin overview</span></div>
-      <div class="info-row"><span
-          style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">School Years</span><span
-          style="font-size:12px;color:var(--n-400);"><?= count($syears) ?> configured</span></div>
-      <div class="info-row"><span
-          style="color:var(--brand-600);font-size:13.5px;font-weight:600;text-decoration:none;">Current Cycle
-          Data</span><span style="font-size:12px;color:var(--n-400);"><?= $cycleCount ?> assessment cycles</span></div>
+<!-- Maturity Bands Modal -->
+<div class="overlay" id="mMaturity">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-head">
+      <span class="modal-title">Edit Maturity Level Bands</span>
+      <button class="modal-close" onclick="closeModal('mMaturity')"><?= svgIcon('x') ?></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--n-500);margin-bottom:16px;">
+        Bands must be contiguous and cover <strong>0–100%</strong> with no gaps or overlaps.
+      </p>
+      <div id="maturityBandsForm"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mMaturity')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMaturity()"><?= svgIcon('save') ?> Save</button>
     </div>
   </div>
 </div>
@@ -342,6 +420,71 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
+  // ── Maturity Bands ────────────────────────────────────────────────
+  const DEFAULT_BANDS = <?= json_encode(array_values($maturityBands)) ?>;
+
+  function buildMaturityForm(bands) {
+    let html = `
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
+        <thead>
+          <tr style="background:var(--n-50);border-bottom:2px solid var(--n-200);">
+            <th style="padding:10px 12px;text-align:left;font-weight:600;color:var(--n-600);">Level</th>
+            <th style="padding:10px 12px;text-align:left;font-weight:600;color:var(--n-600);">Band Name</th>
+            <th style="padding:10px 12px;text-align:center;font-weight:600;color:var(--n-600);">Min Score (%)</th>
+            <th style="padding:10px 12px;text-align:center;font-weight:600;color:var(--n-600);">Max Score (%)</th>
+          </tr>
+        </thead>
+        <tbody>`;
+    bands.forEach((b, i) => {
+      html += `
+          <tr style="border-bottom:1px solid var(--n-200);">
+            <td style="padding:10px 12px;font-weight:600;color:var(--n-700);">Level ${b.level}</td>
+            <td style="padding:10px 12px;color:var(--n-700);">${b.label}</td>
+            <td style="padding:10px 12px;text-align:center;">
+              <input class="fc" type="number" min="0" max="100" id="mat_min_${i}" value="${b.min}"
+                style="width:80px;text-align:center;margin:0 auto;">
+            </td>
+            <td style="padding:10px 12px;text-align:center;">
+              <input class="fc" type="number" min="0" max="100" id="mat_max_${i}" value="${b.max}"
+                style="width:80px;text-align:center;margin:0 auto;">
+            </td>
+          </tr>
+          <input type="hidden" id="mat_level_${i}" value="${b.level}">
+          <input type="hidden" id="mat_label_${i}" value="${b.label}">
+          <input type="hidden" id="mat_color_${i}" value="${b.color}">
+          <input type="hidden" id="mat_bg_${i}" value="${b.bg}">`;
+    });
+    html += `
+        </tbody>
+      </table>`;
+    document.getElementById('maturityBandsForm').innerHTML = html;
+  }
+
+  async function openMaturityModal() {
+    const r = await apiPost('settings.php', { action: 'get_maturity' });
+    const bands = (r && r.bands && r.bands.length === 4) ? r.bands : DEFAULT_BANDS;
+    buildMaturityForm(bands);
+    openModal('mMaturity');
+  }
+
+  async function saveMaturity() {
+    const bands = [];
+    for (let i = 0; i < 4; i++) {
+      bands.push({
+        level: parseInt(document.getElementById(`mat_level_${i}`).value),
+        label: document.getElementById(`mat_label_${i}`).value,
+        min:   parseInt(document.getElementById(`mat_min_${i}`).value),
+        max:   parseInt(document.getElementById(`mat_max_${i}`).value),
+        color: document.getElementById(`mat_color_${i}`).value,
+        bg:    document.getElementById(`mat_bg_${i}`).value,
+      });
+    }
+    const r = await apiPost('settings.php', { action: 'save_maturity', bands });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) { closeModal('mMaturity'); setTimeout(() => location.reload(), 800); }
+  }
+
+  // ── School Years ──────────────────────────────────────────────────
   function resetSY() { $v('sy_id', ''); $v('sy_label', ''); $v('sy_start', ''); $v('sy_end', ''); $el('sy_current').checked = false; $el('mSYTitle').textContent = 'Add School Year'; }
   async function saveSY() {
     const d = { action: 'save_sy', sy_id: $('sy_id'), label: $('sy_label'), date_start: $('sy_start'), date_end: $('sy_end'), is_current: $el('sy_current').checked ? 1 : 0 };

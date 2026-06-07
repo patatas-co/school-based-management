@@ -542,7 +542,7 @@ $q = $_GET['q'] ?? '';
 $rf = $_GET['role'] ?? '';
 $sf = $_GET['status'] ?? '';
 
-$sql = "SELECT u.user_id,u.username,u.email,u.full_name,u.role,u.status,u.school_id,u.last_login,u.created_at,u.email_verified,u.force_password_change,u.profile_picture,s.school_name FROM users u LEFT JOIN schools s ON u.school_id=s.school_id WHERE 1=1";
+$sql = "SELECT u.user_id,u.username,u.email,u.full_name,u.role,u.status,u.school_id,u.last_login,u.created_at,u.email_verified,u.force_password_change,u.profile_picture,u.department,s.school_name FROM users u LEFT JOIN schools s ON u.school_id=s.school_id WHERE 1=1";
 $p = [];
 if ($q) {
   $qE = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($q)) . '%';
@@ -572,8 +572,11 @@ $activePage = 'users.php';
 include __DIR__ . '/../includes/header.php';
 
 $_allRoles  = $db->query("SELECT slug,label,color,description FROM roles ORDER BY CASE slug WHEN 'system_admin' THEN 1 WHEN 'school_head' THEN 2 WHEN 'sbm_coordinator' THEN 3 WHEN 'teacher' THEN 4 WHEN 'external_stakeholder' THEN 5 ELSE 6 END ASC, label ASC")->fetchAll(PDO::FETCH_ASSOC);
-$roleColors = array_column($_allRoles, 'color', 'slug');
-$roleLabels = array_column($_allRoles, 'label', 'slug');
+$roleColors  = array_column($_allRoles, 'color', 'slug');
+$roleLabels  = array_column($_allRoles, 'label', 'slug');
+$_allDepts   = $db->prepare("SELECT name FROM departments WHERE school_id=? ORDER BY name ASC");
+$_allDepts->execute([SCHOOL_ID]);
+$_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
 ?>
 
 <!-- Search + Actions bar -->
@@ -610,6 +613,7 @@ $roleLabels = array_column($_allRoles, 'label', 'slug');
           <tr>
             <th>User</th>
             <th>Username</th>
+            <th>Department</th>
             <th>Role</th>
             <th>Status</th>
             <th>Age</th>
@@ -639,6 +643,15 @@ $roleLabels = array_column($_allRoles, 'label', 'slug');
                 </div>
               </td>
               <td style="font-family:monospace;font-size:12px;color:var(--n-500);"><?= e($u['username']) ?></td>
+              <td style="font-size:12px;color:var(--n-500);">
+                <?php if (!empty($u['department'])): ?>
+                  <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--n-100);color:var(--n-600);border:1px solid var(--n-200);">
+                    <?= e($u['department']) ?>
+                  </span>
+                <?php else: ?>
+                  <span style="color:var(--n-300);">—</span>
+                <?php endif; ?>
+              </td>
               <td>
                 <span
                   style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:<?= $rc ?>18;color:<?= $rc ?>;border:1px solid <?= $rc ?>30;">
@@ -1435,7 +1448,28 @@ $roleLabels = array_column($_allRoles, 'label', 'slug');
         <div class="fg"><label>Full Name</label><input class="fc" id="e_name"></div>
         <div class="fg"><label>Email</label><input class="fc" type="email" id="e_email"></div>
       </div>
-      <div class="fg"><label>Department</label><input class="fc" id="e_dept" placeholder="e.g. Grade 10 — Science"></div>
+      <div class="fg">
+        <label>Department</label>
+        <div class="p-select p-select-fluid" id="pEDeptDropdown">
+          <input type="hidden" id="e_dept">
+          <div class="p-select-trigger" onclick="togglePSelect(event, 'pEDeptDropdown')">
+            <span class="p-select-val" id="pEDeptLabel">Select Department</span>
+            <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
+          </div>
+          <div class="p-select-menu">
+            <div class="p-select-item" data-val="" onclick="setEDept('', '— None —')">
+              <div class="p-item-content"><div class="p-item-title">— None —</div></div>
+              <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+            </div>
+            <?php foreach ($_allDepts as $dname): ?>
+              <div class="p-select-item" data-val="<?= e($dname) ?>" onclick="setEDept('<?= e($dname) ?>', '<?= e($dname) ?>')">
+                <div class="p-item-content"><div class="p-item-title"><?= e($dname) ?></div></div>
+                <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
       <div class="form-row">
         <div class="fg">
           <label>Role</label>
@@ -2336,7 +2370,10 @@ $roleLabels = array_column($_allRoles, 'label', 'slug');
   async function editUser(id) {
     const r = await apiPost('users.php', { action: 'get', id });
     if (!r || !r.user_id) { toast('Failed to load user.', 'err'); return; }
-    $v('e_id', r.user_id); $v('e_name', r.full_name); $v('e_email', r.email); $v('e_dept', r.department || '');
+    $v('e_id', r.user_id); $v('e_name', r.full_name); $v('e_email', r.email);
+    const deptVal = r.department || '';
+    const deptLabel = deptVal || '— None —';
+    setEDept(deptVal, deptLabel);
 
     // Init custom dropdowns
     const roleMap = <?= json_encode(array_column($_allRoles, 'label', 'slug')) ?>;
@@ -3048,6 +3085,25 @@ $roleLabels = array_column($_allRoles, 'label', 'slug');
   }
 
   // mEdit helpers
+  function setEDept(v, l) {
+    $v('e_dept', v);
+    // Try to find a matching item in the dropdown
+    const items = document.querySelectorAll('#pEDeptDropdown .p-select-item');
+    let matched = false;
+    items.forEach(i => {
+      const match = i.dataset.val.trim().toLowerCase() === (v || '').trim().toLowerCase();
+      i.classList.toggle('active', match);
+      if (match) {
+        document.getElementById('pEDeptLabel').textContent = i.dataset.val;
+        $v('e_dept', i.dataset.val);
+        matched = true;
+      }
+    });
+    if (!matched) {
+      document.getElementById('pEDeptLabel').textContent = v ? v + ' (not found)' : '— None —';
+    }
+    closeAllPSelects();
+  }
   function setERole(v, l) {
     $v('e_role', v);
     document.getElementById('pERoleLabel').textContent = l;
