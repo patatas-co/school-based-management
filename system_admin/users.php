@@ -84,6 +84,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $dept = trim($_POST['department'] ?? '');
       $db->prepare("UPDATE users SET full_name=?,email=?,role=?,status=?,school_id=?,department=? WHERE user_id=?")
         ->execute([trim($_POST['full_name']), trim($_POST['email']), $newRole, $_POST['status'], (int) ($_POST['school_id'] ?: null), $dept ?: null, $id]);
+        
+      if ($id === (int) ($_SESSION['user_id'] ?? 0)) {
+        $_SESSION['full_name'] = trim($_POST['full_name']);
+        $_SESSION['email'] = trim($_POST['email']);
+        $_SESSION['role'] = $newRole;
+        $_SESSION['department'] = $dept ?: null;
+      }
+
       logActivity('update_user', 'users', 'Updated user ID:' . $id);
       echo json_encode(['ok' => true, 'msg' => 'User updated.']);
       exit;

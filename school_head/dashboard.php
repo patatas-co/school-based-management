@@ -2354,7 +2354,6 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
   </div>
   <div class="db-hero-right" style="align-items:center;">
-
     <?php if (count($allSYs) > 0): ?>
       <!-- Custom SY Dropdown -->
       <div class="sy-dd" id="syDropdown">
@@ -2407,29 +2406,10 @@ include __DIR__ . '/../includes/header.php';
         </div>
       </div>
     <?php endif; ?>
-
-    <a href="assessment.php?status=submitted&sy_id=<?= $selectedSyId ?>" class="db-hero-btn db-hero-btn-primary">
-      <svg viewBox="0 0 24 24">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-        <polyline points="22 4 12 14.01 9 11.01" />
-      </svg>
-      Review Submissions
-      <?php if ($submitted - $validated > 0): ?>
-        <span
-          style="background:rgba(255,255,255,.2);border-radius:999px;padding:1px 7px;font-size:11px;"><?= $submitted - $validated ?></span>
-      <?php endif; ?>
-    </a>
-    <a href="reports.php?sy_id=<?= $selectedSyId ?>" class="db-hero-btn db-hero-btn-secondary">
-      <svg viewBox="0 0 24 24">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-      </svg>
-      Reports
-    </a>
   </div><!-- /db-hero-right -->
 </div><!-- /db-hero -->
 
-<!-- ━━━━━━━━━━━ VIEW TOGGLE ━━━━━━━━━━━ -->
+<!-- ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  VIEW TOGGLE ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  -->
 <div class="view-toggle-wrap">
   <div class="view-toggle">
     <button class="vt-btn active" onclick="switchView('progress', this)">Progress</button>

@@ -2000,22 +2000,7 @@ include __DIR__ . '/../includes/header.php';
       </div>
     <?php endif; ?>
 
-    <?php if ($cycle && $cycle['status'] === 'in_progress'): ?>
-      <a href="self_assessment.php" class="hero-btn hero-btn-primary">
-        <svg viewBox="0 0 24 24">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-          <polyline points="22 4 12 14.01 9 11.01" />
-        </svg>
-        Continue Assessment
-      </a>
-    <?php endif; ?>
-    <a href="reports.php" class="hero-btn hero-btn-secondary">
-      <svg viewBox="0 0 24 24">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-      </svg>
-      Reports
-    </a>
+
   </div>
 </div>
 
