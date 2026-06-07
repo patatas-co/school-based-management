@@ -192,10 +192,8 @@ $successMsg = $mode === 'reset'
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
   <title><?= e($pageTitle) ?> — <?= e(SITE_NAME) ?></title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
     rel="stylesheet">
   <style>
     *,
@@ -221,8 +219,9 @@ $successMsg = $mode === 'reset'
       --n100: #F3F4F6;
       --red: #DC2626;
       --redb: #FEE2E2;
-      --font: 'DM Sans', sans-serif;
-      --serif: 'Instrument Serif', Georgia, serif;
+      --font: 'Inter', -apple-system, sans-serif;
+      --display: 'Manrope', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', 'Courier New', monospace;
     }
 
     html,
@@ -272,8 +271,11 @@ $successMsg = $mode === 'reset'
     .left-body {
       position: relative;
       z-index: 1;
-      margin: auto 0;
-      padding-top: 40px;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
     }
 
     .eyebrow {
@@ -445,9 +447,9 @@ $successMsg = $mode === 'reset'
     }
 
     .section-title {
-      font-family: var(--serif);
+      font-family: var(--display);
       font-size: 32px;
-      font-weight: 400;
+      font-weight: 700;
       color: var(--dark);
       letter-spacing: -.5px;
       line-height: 1.1;
@@ -549,7 +551,7 @@ $successMsg = $mode === 'reset'
 
     input[type="password"] {
       width: 100%;
-      padding: 12px 13px 12px 42px;
+      padding: 12px 40px 12px 42px;
       border: 1.5px solid var(--n200);
       border-radius: 10px;
       font-size: 14px;
@@ -558,12 +560,18 @@ $successMsg = $mode === 'reset'
       background: #fff;
       outline: none;
       transition: border-color .2s, box-shadow .2s;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+      box-shadow: none;
+      height: 46px;
     }
 
     input[type="password"]:focus {
       border-color: var(--green);
       box-shadow: 0 0 0 3px rgba(22, 163, 74, .12);
+    }
+
+    input[type="password"]::placeholder {
+      color: var(--light);
+      font-size: 13.5px;
     }
 
     .hint {
@@ -777,48 +785,17 @@ $successMsg = $mode === 'reset'
 
     <!-- Left Panel -->
     <div class="panel-left">
-      <div
-        style="position:absolute;bottom:-60px;right:-60px;z-index:0;pointer-events:none;opacity:.04;filter:grayscale(1);">
-        <img src="assets/seal.png" alt="" style="width:380px;height:380px;object-fit:contain;">
-      </div>
       <div class="left-body">
-        <span class="eyebrow"><?= e(SITE_NAME) ?></span>
-        <h1 class="headline">
-          <?= $mode === 'reset' ? 'Secure <em>Password</em><br>Reset' : 'Activate <em>Your</em><br>Account' ?>
-        </h1>
-        <p class="sub">
-          <?= $mode === 'reset'
-            ? 'Create a new secure password for your DIHS SBM Portal account. Your link expires in 30 minutes.'
-            : 'Set a password to complete your account setup and gain access to the DIHS SBM Portal.' ?>
-        </p>
-        <div class="left-steps">
-          <div class="step">
-            <div class="step-num">1</div>
-            <div class="step-text"><strong>Enter a new password</strong><br>Choose something strong and unique.</div>
-          </div>
-          <div class="step">
-            <div class="step-num">2</div>
-            <div class="step-text"><strong>Confirm your password</strong><br>Re-enter to make sure it's correct.</div>
-          </div>
-          <div class="step">
-            <div class="step-num">3</div>
-            <div class="step-text"><strong>Sign in</strong><br>Use your credentials to access the portal.</div>
-          </div>
-        </div>
+        <img src="assets/seal.png" alt="Dasmariñas Integrated High School"
+          style="width:200px;height:200px;object-fit:contain;margin-bottom:28px;">
+        <span class="eyebrow">School-Based Management Monitoring System</span>
+        <h1 class="headline" style="font-size:clamp(22px,3vw,36px);line-height:1.25;margin-top:10px;">Dasmariñas Integrated <br>High School</h1>
       </div>
     </div>
 
     <!-- Right Panel -->
     <div class="panel-right">
       <div class="form-wrap">
-
-        <a href="<?= baseUrl() ?>/login.php" class="back-link">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Back to sign in
-        </a>
 
         <?php if ($success): ?>
           <!-- ── Success ── -->
@@ -909,25 +886,6 @@ $successMsg = $mode === 'reset'
 
         <?php else: ?>
           <!-- ── Password Form ── -->
-          <div class="mode-badge <?= $mode ?>">
-            <?php if ($mode === 'reset'): ?>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="1 4 1 10 7 10" />
-                <path d="M3.51 15a9 9 0 1 0 .49-3.45" />
-              </svg>
-              Password Reset
-            <?php else: ?>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2L3 7V12C3 16.97 6.84 21.61 12 23C17.16 21.61 21 16.97 21 12V7L12 2Z" />
-              </svg>
-              Account Setup
-            <?php endif; ?>
-          </div>
-
-          <h2 class="section-title"><?= e($cardHeading) ?></h2>
-          <p class="section-subtitle"><?= e($cardSubtitle) ?></p>
 
           <div class="user-pill">
             <div class="user-avatar">
