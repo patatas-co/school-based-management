@@ -2913,16 +2913,21 @@ include __DIR__ . '/../includes/header.php';
       <div class="chart-card-head" style="flex-wrap:wrap;gap:10px;">
         <span class="chart-card-title">Indicator Trend Analysis</span>
         <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-          <label for="indTrendDimSelect" style="font-size:12px;font-weight:600;color:var(--n-500);white-space:nowrap;">Dimension:</label>
-          <select id="indTrendDimSelect" onchange="updateIndicatorTrendChart(this.value)"
-            style="padding:5px 10px;border-radius:7px;border:1.5px solid var(--n-200);background:#fff;font-size:12.5px;font-weight:600;color:var(--n-700);cursor:pointer;outline:none;">
-            <option value="1">D1: Curriculum and Teaching</option>
-            <option value="2">D2: Learning Environment</option>
-            <option value="3">D3: Leadership</option>
-            <option value="4">D4: Governance and Accountability</option>
-            <option value="5">D5: Human Resources and Team Development</option>
-            <option value="6">D6: Finance and Resource Management and Mobilization</option>
-          </select>
+          <label style="font-size:12px;font-weight:600;color:var(--n-500);white-space:nowrap;">Dimension:</label>
+          <div class="p-select" id="indTrendDimSelect" style="width:220px;">
+            <div class="p-select-trigger" onclick="togglePSelect(event, 'indTrendDimSelect')"
+              style="padding:5px 12px;font-size:12.5px;min-height:32px;">
+              <span class="p-select-val">D1: Curriculum and Teaching</span>
+            </div>
+            <div class="p-select-menu">
+              <div class="p-select-item selected" onclick="indTrendSelectDim(this, 1, 'D1: Curriculum and Teaching')">D1: Curriculum and Teaching</div>
+              <div class="p-select-item" onclick="indTrendSelectDim(this, 2, 'D2: Learning Environment')">D2: Learning Environment</div>
+              <div class="p-select-item" onclick="indTrendSelectDim(this, 3, 'D3: Leadership')">D3: Leadership</div>
+              <div class="p-select-item" onclick="indTrendSelectDim(this, 4, 'D4: Governance and Accountability')">D4: Governance and Accountability</div>
+              <div class="p-select-item" onclick="indTrendSelectDim(this, 5, 'D5: Human Resources and Team Development')">D5: Human Resources and Team Development</div>
+              <div class="p-select-item" onclick="indTrendSelectDim(this, 6, 'D6: Finance and Resource Management and Mobilization')">D6: Finance and Resource Management and Mobilization</div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="chart-card-body" style="min-height:260px;display:flex;align-items:center;justify-content:center;">
@@ -3596,6 +3601,16 @@ include __DIR__ . '/../includes/header.php';
 
   let anIndTrendChartInstance = null;
 
+  function indTrendSelectDim(el, val, label) {
+    event.stopPropagation();
+    document.querySelector('#indTrendDimSelect .p-select-val').textContent = label;
+    document.querySelectorAll('#indTrendDimSelect .p-select-item').forEach(i => i.classList.remove('selected'));
+    el.classList.add('selected');
+    const wrap = document.getElementById('indTrendDimSelect');
+    if (wrap) wrap.classList.remove('open');
+    updateIndicatorTrendChart(val);
+  }
+
   function updateIndicatorTrendChart(dimId) {
     dimId = parseInt(dimId);
     const el = document.getElementById('anIndTrendChart');
@@ -3669,26 +3684,26 @@ include __DIR__ . '/../includes/header.php';
             grid: { display: false }
           }
         },
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'line', pointStyleWidth: 24 }
-          },
-          tooltip: {
-            callbacks: {
-              title: ctx => {
-                const code = ctx[0].dataset.label;
-                return 'D' + dimId + ' · Indicator ' + code;
-              },
-              beforeBody: ctx => 'Dimension: ' + (dimNames[dimId] || ''),
-              label: ctx => {
-                const sy = ctx.label;
-                const pct = ctx.raw !== null ? ctx.raw + '%' : 'No data';
-                return ' SY ' + sy + ': ' + pct;
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'line', pointStyleWidth: 24 }
+            },
+            tooltip: {
+              callbacks: {
+                title: ctx => {
+                  const code = ctx[0].dataset.label;
+                  return 'D' + dimId + ' · Indicator ' + code;
+                },
+                beforeBody: ctx => 'Dimension: ' + (dimNames[dimId] || ''),
+                label: ctx => {
+                  const sy = ctx.label;
+                  const pct = ctx.raw !== null ? ctx.raw + '%' : 'No data';
+                  return ' SY ' + sy + ': ' + pct;
+                }
               }
             }
-          }
-        },
+          },
         responsive: true,
         maintainAspectRatio: true,
         animation: { duration: 400, easing: 'easeInOutQuart' },
