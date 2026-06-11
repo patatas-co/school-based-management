@@ -2907,6 +2907,28 @@ include __DIR__ . '/../includes/header.php';
       </div>
       <div class="chart-card-body"><canvas id="anDimTrendChart" height="90"></canvas></div>
     </div>
+
+    <!-- Indicator Trend Analysis -->
+    <div class="chart-card" style="margin-bottom:18px;">
+      <div class="chart-card-head" style="flex-wrap:wrap;gap:10px;">
+        <span class="chart-card-title">Indicator Trend Analysis</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+          <label for="indTrendDimSelect" style="font-size:12px;font-weight:600;color:var(--n-500);white-space:nowrap;">Dimension:</label>
+          <select id="indTrendDimSelect" onchange="updateIndicatorTrendChart(this.value)"
+            style="padding:5px 10px;border-radius:7px;border:1.5px solid var(--n-200);background:#fff;font-size:12.5px;font-weight:600;color:var(--n-700);cursor:pointer;outline:none;">
+            <option value="1">D1: Curriculum and Teaching</option>
+            <option value="2">D2: Learning Environment</option>
+            <option value="3">D3: Leadership</option>
+            <option value="4">D4: Governance and Accountability</option>
+            <option value="5">D5: Human Resources and Team Development</option>
+            <option value="6">D6: Finance and Resource Management and Mobilization</option>
+          </select>
+        </div>
+      </div>
+      <div class="chart-card-body" style="min-height:260px;display:flex;align-items:center;justify-content:center;">
+        <canvas id="anIndTrendChart" height="90"></canvas>
+      </div>
+    </div>
   <?php endif; ?>
 
   <!-- Tabbed bottom section -->
@@ -3513,6 +3535,165 @@ include __DIR__ . '/../includes/header.php';
       });
     }
 
+    // -- Indicator Trend chart (initial load) -----------------
+    if (document.getElementById('anIndTrendChart')) {
+      updateIndicatorTrendChart(1);
+    }
+
+  }
+
+  // -- Indicator trend data from PHP -------------------------
+  const anIndTrendData = <?php
+    // Query: per-indicator percentage scores across all cycles
+    // percentage = (avg_rating / 4) * 100 — same formula used in scoring
+    $indTrendQ = $db->prepare("
+      SELECT sy.label AS sy_label,
+             i.indicator_id, i.indicator_code,
+             d.dimension_id,
+             ROUND((AVG(all_r.rating) / 4) * 100, 1) AS pct
+      FROM (
+          SELECT cycle_id, indicator_id, rating FROM sbm_responses
+          UNION ALL
+          SELECT cycle_id, indicator_id, rating FROM teacher_responses
+      ) AS all_r
+      JOIN sbm_indicators i  ON all_r.indicator_id = i.indicator_id
+      JOIN sbm_dimensions d  ON i.dimension_id = d.dimension_id
+      JOIN sbm_cycles c      ON all_r.cycle_id = c.cycle_id
+      JOIN school_years sy   ON c.sy_id = sy.sy_id
+      WHERE c.school_id = ? AND c.overall_score IS NOT NULL
+      GROUP BY sy.sy_id, i.indicator_id
+      ORDER BY sy.date_start ASC, d.dimension_no ASC, i.indicator_code ASC
+    ");
+    $indTrendQ->execute([$mySchoolId]);
+    $indTrendRows = $indTrendQ->fetchAll();
+
+    // Build structure: { dimension_id: { indicator_code: { sy_label: pct } } }
+    $indTrendByDim = [];
+    $indMetaByDim  = []; // dimension_id => [ {code, indicator_id} ]
+    foreach ($indTrendRows as $r) {
+      $did  = (int)$r['dimension_id'];
+      $code = $r['indicator_code'];
+      $lbl  = $r['sy_label'];
+      $pct  = floatval($r['pct']);
+      if (!isset($indTrendByDim[$did][$code])) {
+        $indTrendByDim[$did][$code] = [];
+        $indMetaByDim[$did][$code]  = $code;
+      }
+      $indTrendByDim[$did][$code][$lbl] = $pct;
+    }
+    echo json_encode([
+      'byDim'   => $indTrendByDim,
+      'metaDim' => $indMetaByDim,
+      'syLabels'=> $trendSYLabels,
+    ]);
+  ?>;
+
+  // Palette of 10 distinct colors for indicators
+  const indPalette = [
+    '#2563EB','#16A34A','#DC2626','#D97706','#7C3AED',
+    '#0D9488','#DB2777','#EA580C','#65A30D','#0284C7'
+  ];
+
+  let anIndTrendChartInstance = null;
+
+  function updateIndicatorTrendChart(dimId) {
+    dimId = parseInt(dimId);
+    const el = document.getElementById('anIndTrendChart');
+    if (!el) return;
+
+    const syLabels = anIndTrendData.syLabels;
+    const byDim    = anIndTrendData.byDim[dimId] || {};
+    const codes    = Object.keys(byDim);
+
+    if (anIndTrendChartInstance) {
+      anIndTrendChartInstance.destroy();
+      anIndTrendChartInstance = null;
+    }
+
+    if (!codes.length || syLabels.length < 1) {
+      el.closest('.chart-card-body').innerHTML =
+        '<p style="text-align:center;color:var(--n-400);font-size:13px;padding:48px 0;">No indicator data available for this dimension yet.</p>';
+      return;
+    }
+
+    // Restore canvas if it was replaced with a message
+    if (!el.getContext) {
+      const newCanvas = document.createElement('canvas');
+      newCanvas.id = 'anIndTrendChart';
+      newCanvas.setAttribute('height', '90');
+      el.parentNode.replaceChild(newCanvas, el);
+    }
+    const canvas = document.getElementById('anIndTrendChart');
+
+    const dimColors = {
+      1:'#2563EB', 2:'#16A34A', 3:'#7C3AED',
+      4:'#D97706', 5:'#DC2626', 6:'#0D9488'
+    };
+    const dimColor = dimColors[dimId] || '#6B7280';
+
+    const datasets = codes.map((code, i) => {
+      const data = syLabels.map(lbl => byDim[code][lbl] ?? null);
+      const color = indPalette[i % indPalette.length];
+      return {
+        label: code,
+        data,
+        borderColor: color,
+        backgroundColor: color + '18',
+        pointBackgroundColor: color,
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        borderWidth: 2,
+        tension: 0,
+        spanGaps: true,
+      };
+    });
+
+    const dimNames = {
+      1:'Curriculum and Teaching', 2:'Learning Environment', 3:'Leadership',
+      4:'Governance and Accountability', 5:'Human Resources and Team Development',
+      6:'Finance and Resource Management and Mobilization'
+    };
+
+    anIndTrendChartInstance = new Chart(canvas, {
+      type: 'line',
+      data: { labels: syLabels, datasets },
+      options: {
+        scales: {
+          y: {
+            min: 0, max: 100,
+            ticks: { callback: v => v + '%', font: { size: 11 } },
+            grid: { color: '#F3F4F6' }
+          },
+          x: {
+            ticks: { font: { size: 11, weight: '600' } },
+            grid: { display: false }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'line', pointStyleWidth: 24 }
+          },
+          tooltip: {
+            callbacks: {
+              title: ctx => {
+                const code = ctx[0].dataset.label;
+                return 'D' + dimId + ' · Indicator ' + code;
+              },
+              beforeBody: ctx => 'Dimension: ' + (dimNames[dimId] || ''),
+              label: ctx => {
+                const sy = ctx.label;
+                const pct = ctx.raw !== null ? ctx.raw + '%' : 'No data';
+                return ' SY ' + sy + ': ' + pct;
+              }
+            }
+          }
+        },
+        responsive: true,
+        maintainAspectRatio: true,
+        animation: { duration: 400, easing: 'easeInOutQuart' },
+      }
+    });
   }
 
   // -- Auto-switch to analytics if ?view=analytics is in URL --
