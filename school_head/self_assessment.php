@@ -416,6 +416,38 @@ function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId,
             percentage=VALUES(percentage),
             computed_at=NOW()
     ")->execute([$cycleId, $schoolId, $dimId, $rawTotal, $maxTotal, $pct]);
+
+  // Keep overall_score in sbm_cycles in sync with the latest dimension scores
+  syncCycleOverallScore($db, $cycleId);
+}
+
+/**
+ * Recalculates overall_score and maturity_level for the given cycle
+ * from the current sbm_dimension_scores rows and writes the result
+ * back into sbm_cycles. Call this whenever any dimension score changes.
+ */
+function syncCycleOverallScore(PDO $db, int $cycleId): void
+{
+  $st = $db->prepare("
+    SELECT SUM(raw_score) AS total_raw, SUM(max_score) AS total_max
+    FROM sbm_dimension_scores
+    WHERE cycle_id = ?
+  ");
+  $st->execute([$cycleId]);
+  $row = $st->fetch(PDO::FETCH_ASSOC);
+
+  $totalRaw = floatval($row['total_raw'] ?? 0);
+  $totalMax = floatval($row['total_max'] ?? 0);
+
+  if ($totalMax > 0) {
+    $overall  = round(($totalRaw / $totalMax) * 100, 2);
+    $maturity = sbmMaturityLevel($overall)['label'];
+    $db->prepare("
+      UPDATE sbm_cycles
+      SET overall_score = ?, maturity_level = ?
+      WHERE cycle_id = ?
+    ")->execute([$overall, $maturity, $cycleId]);
+  }
 }
 
 // ── LOAD DATA ────────────────────────────────────────────────

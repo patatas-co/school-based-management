@@ -142,7 +142,9 @@ $compareSyId = (int) ($_GET['compare_sy'] ?? 0);
 // Analytics dimension averages
 $anDimAvgQ = $db->prepare("
     SELECT d.dimension_id, d.dimension_no, d.dimension_name, d.color_hex,
-           ROUND(AVG(ds.percentage),1) AS avg_pct
+           ROUND(AVG(ds.percentage),1) AS avg_pct,
+           SUM(ds.raw_score)           AS sum_raw,
+           SUM(ds.max_score)           AS sum_max
     FROM sbm_dimensions d
     LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
     LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id
@@ -263,7 +265,11 @@ $consistentlyWeak = $consistentlyWeakQ->fetchAll();
 
 // Summary insights
 $anAllPcts = array_filter(array_column($anDimAvgs, 'avg_pct'), fn($v) => $v !== null);
-$anAvgOverall = count($anAllPcts) > 0 ? round(array_sum($anAllPcts) / count($anAllPcts), 1) : null;
+// Use the same weighted formula as sbm_cycles.overall_score:
+// SUM(raw_score) / SUM(max_score) * 100, so the KPI card matches the trend chart.
+$_anTotalRaw = array_sum(array_column($anDimAvgs, 'sum_raw'));
+$_anTotalMax = array_sum(array_column($anDimAvgs, 'sum_max'));
+$anAvgOverall = $_anTotalMax > 0 ? round(($_anTotalRaw / $_anTotalMax) * 100, 1) : null;
 $anTopDim = !empty($anAllPcts) ? $anDimAvgs[array_search(max($anAllPcts), array_column($anDimAvgs, 'avg_pct'))] : null;
 $anWeakDim = !empty($anAllPcts) ? $anDimAvgs[array_search(min($anAllPcts), array_column($anDimAvgs, 'avg_pct'))] : null;
 // Correctly identify current and previous cycles relative to selection
@@ -2016,51 +2022,6 @@ include __DIR__ . '/../includes/header.php';
 <div id="viewProgress">
 
   <!-- ═══════════════════════════════════════════════════════
-     KPI STAT CARDS — matches school_head stats-v2
-     ═══════════════════════════════════════════════════════ -->
-  <div class="stats-v2">
-    <div class="stat-v2">
-      <div class="stat-v2-accent" style="background:#16A34A;"></div>
-      <div class="stat-v2-label">Indicators Rated</div>
-      <div class="stat-v2-value"><?= $totalResponded ?></div>
-      <div class="stat-v2-meta"><span class="stat-v2-badge badge-green"><?= $progress ?>% complete</span></div>
-    </div>
-
-    <div class="stat-v2">
-      <div class="stat-v2-accent" style="background:#16A34A;"></div>
-      <div class="stat-v2-label">Teachers Submitted</div>
-      <div class="stat-v2-value" style="color:var(--n-900);">
-        <?= $submittedTeachers ?>/<?= $totalTeachers ?>
-      </div>
-      <div class="stat-v2-meta">
-        <span
-          class="stat-v2-badge <?= $submittedTeachers === $totalTeachers && $totalTeachers > 0 ? 'badge-green' : 'badge-amber' ?>">
-          <?= $totalTeachers > 0 ? round(($submittedTeachers / $totalTeachers) * 100) : 0 ?>% submitted
-        </span>
-      </div>
-      <div class="kpi-bar">
-        <div class="kpi-bar-fill"
-          style="width:<?= $totalTeachers > 0 ? round(($submittedTeachers / $totalTeachers) * 100) : 0 ?>%;background:#16A34A;">
-        </div>
-      </div>
-    </div>
-    <div class="stat-v2">
-      <div class="stat-v2-accent" style="background:#16A34A;"></div>
-      <div class="stat-v2-label">Dimensions Scored</div>
-      <div class="stat-v2-value"><?= count($dimScores) ?></div>
-      <div class="stat-v2-meta"><span class="stat-v2-badge badge-blue">of 6 total</span></div>
-    </div>
-    <?php if ($totalIndicators > 0): ?>
-      <div class="stat-v2">
-        <div class="stat-v2-accent" style="background:#16A34A;"></div>
-        <div class="stat-v2-label">Remaining</div>
-        <div class="stat-v2-value" style="color:var(--n-700);"><?= $totalIndicators - $totalResponded ?></div>
-        <div class="stat-v2-meta" style="color:var(--n-400);">indicators left</div>
-      </div>
-    <?php endif; ?>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════════════
      ASSESSMENT PIPELINE — mirrors school_head
      ═══════════════════════════════════════════════════════ -->
   <div class="card"
@@ -2489,7 +2450,6 @@ include __DIR__ . '/../includes/header.php';
     <div class="chart-card">
       <div class="chart-card-head">
         <span class="chart-card-title">Overall Score Trend</span>
-        <span style="font-size:12px;color:var(--n-400);"><?= count($cycleHistory) ?> cycle(s)</span>
       </div>
       <div class="chart-card-body" style="min-height:300px;display:flex;align-items:center;justify-content:center;">
         <?php if (count($cycleHistory) >= 1): ?>
@@ -2507,7 +2467,6 @@ include __DIR__ . '/../includes/header.php';
     <div class="chart-card" style="margin-bottom:18px;">
       <div class="chart-card-head">
         <span class="chart-card-title">Dimension Trend — All Cycles</span>
-        <span style="font-size:12px;color:var(--n-400);">Track how each dimension has moved over time</span>
       </div>
       <div class="chart-card-body"><canvas id="anDimTrendChart" height="90"></canvas></div>
     </div>
@@ -2821,7 +2780,7 @@ include __DIR__ . '/../includes/header.php';
         backgroundColor: 'rgba(37,99,235,.13)',
         borderColor: '#2563EB',
         pointBackgroundColor: anDimColors,
-        pointRadius: 5,
+        pointRadius: 0,
         borderWidth: 2,
       }];
       if (anDimValCmp.length && anDimValCmp.some(v => v > 0)) {
@@ -2864,7 +2823,7 @@ include __DIR__ . '/../includes/header.php';
             backgroundColor: 'rgba(37,99,235,.08)',
             pointBackgroundColor: anCycleScores.map(s => s >= 76 ? '#16A34A' : (s >= 51 ? '#2563EB' : (s >= 26 ? '#D97706' : '#DC2626'))),
             pointRadius: 6, pointHoverRadius: 8,
-            borderWidth: 2.5, tension: 0.3, fill: true,
+            borderWidth: 2.5, tension: 0, fill: true,
           }]
         },
         options: {
@@ -2886,7 +2845,7 @@ include __DIR__ . '/../includes/header.php';
         return {
           label: 'D' + dm.no + ': ' + dm.name,
           data, borderColor: dm.color, backgroundColor: dm.color + '22',
-          pointBackgroundColor: dm.color, pointRadius: 5, borderWidth: 2, tension: 0.3,
+          pointBackgroundColor: dm.color, pointRadius: 0, pointHoverRadius: 0, borderWidth: 2, tension: 0,
         };
       });
       new Chart(dimTrendEl, {
@@ -2897,7 +2856,7 @@ include __DIR__ . '/../includes/header.php';
             y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
             x: { ticks: { font: { size: 11, weight: '600' } }, grid: { display: false } }
           },
-          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, usePointStyle: true, pointStyleWidth: 8 } } },
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, usePointStyle: true, pointStyle: 'line', pointStyleWidth: 24 } } },
           responsive: true, maintainAspectRatio: true,
         }
       });

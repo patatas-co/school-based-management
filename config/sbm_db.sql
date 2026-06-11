@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 02, 2026 at 10:54 PM
+-- Generation Time: Jun 11, 2026 at 04:34 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -411,28 +411,28 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (432, NULL, 'password_change', 'auth', 'User changed password', '::1', '2026-04-09 09:51:56'),
 (433, NULL, 'create_user', 'users', 'Created: Patty', '::1', '2026-04-09 09:53:37'),
 (434, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-04-09 09:55:08'),
-(435, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 09:55:20'),
-(436, 72, 'delete_user', 'users', 'Deleted user ID:71', '::1', '2026-04-09 09:55:30'),
+(435, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-09 09:55:20'),
+(436, NULL, 'delete_user', 'users', 'Deleted user ID:71', '::1', '2026-04-09 09:55:30'),
 (437, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 09:57:35'),
 (438, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:00:19'),
 (439, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:00:25'),
-(440, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:00:31'),
-(441, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:00:39'),
+(440, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:00:31'),
+(441, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:00:39'),
 (442, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:01:13'),
-(443, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:39:26'),
+(443, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:39:26'),
 (444, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:39:54'),
-(445, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:43:15'),
+(445, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:43:15'),
 (446, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 10:43:43'),
 (447, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:06:04'),
 (448, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:12:57'),
 (449, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:18:36'),
 (450, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:19:24'),
 (451, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:19:39'),
-(452, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:22:02'),
+(452, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:22:02'),
 (453, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:22:17'),
-(454, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:23:34'),
+(454, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:23:34'),
 (455, 12, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:24:29'),
-(456, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:24:35'),
+(456, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:24:35'),
 (457, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 11:24:40'),
 (458, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 13:35:37'),
 (459, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-09 13:40:14'),
@@ -440,17 +440,17 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (461, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:13:40'),
 (462, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:14:05'),
 (463, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:14:34'),
-(464, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:17:22'),
+(464, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:17:22'),
 (465, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:35:04'),
-(466, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:37:39'),
+(466, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:37:39'),
 (467, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-09 17:55:08'),
 (468, 12, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:00:57'),
 (469, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:02:35'),
-(470, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:02:42'),
+(470, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:02:42'),
 (471, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:02:57'),
 (472, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:03:12'),
-(473, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:03:20'),
-(474, 72, 'create_user', 'users', 'Created: Rol', '::1', '2026-04-10 03:05:14'),
+(473, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:03:20'),
+(474, NULL, 'create_user', 'users', 'Created: Rol', '::1', '2026-04-10 03:05:14'),
 (475, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-04-10 03:06:04'),
 (476, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-10 03:06:24'),
 (477, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-10 04:25:53'),
@@ -458,88 +458,88 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (479, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 02:51:17'),
 (480, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 02:52:15'),
 (481, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 02:54:43'),
-(482, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 02:56:05'),
+(482, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 02:56:05'),
 (483, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 02:56:45'),
 (484, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 02:58:38'),
 (485, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:12:59'),
-(486, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:17:35'),
-(487, 72, 'delete_user', 'users', 'Deleted user ID:73', '::1', '2026-04-11 03:17:57'),
+(486, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:17:35'),
+(487, NULL, 'delete_user', 'users', 'Deleted user ID:73', '::1', '2026-04-11 03:17:57'),
 (488, 13, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:19:00'),
-(489, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:29:26'),
+(489, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:29:26'),
 (490, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:31:07'),
-(491, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:34:42'),
+(491, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:34:42'),
 (492, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:39:16'),
-(493, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:41:17'),
+(493, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:41:17'),
 (494, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-11 03:42:08'),
 (495, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:30:55'),
-(496, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:31:27'),
+(496, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:31:27'),
 (497, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:32:08'),
-(498, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:32:18'),
+(498, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:32:18'),
 (499, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:32:29'),
-(500, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:33:37'),
+(500, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:33:37'),
 (501, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:35:16'),
 (502, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-04-11 09:38:16'),
 (503, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:38:25'),
-(504, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:38:56'),
-(505, 72, 'create_temp_evaluator', 'users', 'Created temp evaluator for cycle 7: dozenjames54@gmail.com', '::1', '2026-04-11 09:39:55'),
+(504, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:38:56'),
+(505, NULL, 'create_temp_evaluator', 'users', 'Created temp evaluator for cycle 7: dozenjames54@gmail.com', '::1', '2026-04-11 09:39:55'),
 (506, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-04-11 09:41:55'),
 (507, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:42:21'),
 (508, 12, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:48:24'),
 (509, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:48:36'),
-(510, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:48:45'),
-(511, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 1 evaluators for cycle 7', '::1', '2026-04-11 10:00:13'),
-(512, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 10:07:51'),
-(513, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:08:06'),
-(514, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:08:09'),
-(515, 72, 'delete_user', 'users', 'Deleted user ID:74', '::1', '2026-04-11 10:08:17'),
-(516, 72, 'create_temp_evaluator', 'users', 'Created temp evaluator for cycle 7: dozenjames54@gmail.com', '::1', '2026-04-11 10:40:04'),
+(510, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 09:48:45'),
+(511, NULL, 'deactivate_cycle_evaluators', 'users', 'Deactivated 1 evaluators for cycle 7', '::1', '2026-04-11 10:00:13'),
+(512, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 10:07:51'),
+(513, NULL, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:08:06'),
+(514, NULL, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:08:09'),
+(515, NULL, 'delete_user', 'users', 'Deleted user ID:74', '::1', '2026-04-11 10:08:17'),
+(516, NULL, 'create_temp_evaluator', 'users', 'Created temp evaluator for cycle 7: dozenjames54@gmail.com', '::1', '2026-04-11 10:40:04'),
 (517, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-04-11 10:40:44'),
 (518, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 10:40:55'),
-(519, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 10:51:37'),
-(520, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 1 evaluators for cycle 7', '::1', '2026-04-11 10:54:35'),
-(521, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:38'),
-(522, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:43'),
-(523, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:47'),
-(524, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:49'),
-(525, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:52'),
-(526, 72, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 7: 2026-04-11 19:01:00 to 2026-04-11 19:05:00', '::1', '2026-04-11 11:01:26'),
-(527, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 11:02:30'),
-(528, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 11:02:38'),
-(529, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 1 evaluators for cycle 7', '::1', '2026-04-11 11:03:58'),
-(530, 72, 'reactivate_evaluators', 'users', 'Reactivated 1 evaluators for cycle 7', '::1', '2026-04-11 11:04:09'),
-(531, 72, 'delete_user', 'users', 'Deleted user ID:75', '::1', '2026-04-11 11:13:34'),
+(519, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 10:51:37'),
+(520, NULL, 'deactivate_cycle_evaluators', 'users', 'Deactivated 1 evaluators for cycle 7', '::1', '2026-04-11 10:54:35'),
+(521, NULL, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:38'),
+(522, NULL, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:43'),
+(523, NULL, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:47'),
+(524, NULL, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:49'),
+(525, NULL, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 10:54:52'),
+(526, NULL, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 7: 2026-04-11 19:01:00 to 2026-04-11 19:05:00', '::1', '2026-04-11 11:01:26'),
+(527, NULL, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 11:02:30'),
+(528, NULL, 'deactivate_cycle_evaluators', 'users', 'Deactivated 0 evaluators for cycle 7', '::1', '2026-04-11 11:02:38'),
+(529, NULL, 'deactivate_cycle_evaluators', 'users', 'Deactivated 1 evaluators for cycle 7', '::1', '2026-04-11 11:03:58'),
+(530, NULL, 'reactivate_evaluators', 'users', 'Reactivated 1 evaluators for cycle 7', '::1', '2026-04-11 11:04:09'),
+(531, NULL, 'delete_user', 'users', 'Deleted user ID:75', '::1', '2026-04-11 11:13:34'),
 (532, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 11:14:32'),
 (533, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-11 11:35:58'),
-(534, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 11:36:34'),
-(535, 72, 'create_temp_evaluator', 'users', 'Created temp evaluator for cycle 7: dozenjames54@gmail.com', '::1', '2026-04-11 11:37:39'),
-(536, 72, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 7: 2026-04-11 19:01:00 to 2026-04-11 19:05:00', '::1', '2026-04-11 11:37:46'),
-(537, 72, 'reactivate_evaluators', 'users', 'Reactivated 1 evaluators for cycle 7', '::1', '2026-04-11 11:37:57'),
+(534, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 11:36:34'),
+(535, NULL, 'create_temp_evaluator', 'users', 'Created temp evaluator for cycle 7: dozenjames54@gmail.com', '::1', '2026-04-11 11:37:39'),
+(536, NULL, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 7: 2026-04-11 19:01:00 to 2026-04-11 19:05:00', '::1', '2026-04-11 11:37:46'),
+(537, NULL, 'reactivate_evaluators', 'users', 'Reactivated 1 evaluators for cycle 7', '::1', '2026-04-11 11:37:57'),
 (538, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-04-11 11:39:09'),
 (539, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 11:39:16'),
-(540, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 12:02:26'),
+(540, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 12:02:26'),
 (541, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 12:02:45'),
 (542, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 12:14:13'),
 (543, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 12:36:50'),
-(544, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 14:09:46'),
+(544, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 14:09:46'),
 (545, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 14:55:14'),
-(546, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 15:29:23'),
-(547, 72, 'deactivate_cycle_evaluators', 'users', 'Deactivated 1 evaluators for cycle 7', '::1', '2026-04-11 16:42:26'),
-(548, 72, 'reactivate_evaluators', 'users', 'Reactivated 1 evaluators for cycle 7', '::1', '2026-04-11 16:43:06'),
+(546, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 15:29:23'),
+(547, NULL, 'deactivate_cycle_evaluators', 'users', 'Deactivated 1 evaluators for cycle 7', '::1', '2026-04-11 16:42:26'),
+(548, NULL, 'reactivate_evaluators', 'users', 'Reactivated 1 evaluators for cycle 7', '::1', '2026-04-11 16:43:06'),
 (549, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 16:57:19'),
 (550, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 16:57:41'),
-(551, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 16:58:22'),
+(551, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 16:58:22'),
 (552, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:00:58'),
 (553, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:02:19'),
 (554, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:06:07'),
 (555, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:08:16'),
-(556, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:34:30'),
-(557, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:36:24'),
+(556, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:34:30'),
+(557, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:36:24'),
 (558, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-11 17:36:31'),
 (559, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:00:59'),
-(560, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:23:07'),
+(560, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:23:07'),
 (561, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:23:14'),
 (562, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:24:35'),
-(563, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:26:40'),
+(563, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:26:40'),
 (564, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:33:20'),
 (565, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:35:50'),
 (566, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:49:13'),
@@ -553,41 +553,41 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (574, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:51:39'),
 (575, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:52:30'),
 (576, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:53:29'),
-(577, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:57:25'),
+(577, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:57:25'),
 (578, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 04:58:28'),
 (579, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:18:42'),
 (580, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 10', '::1', '2026-04-12 05:25:53'),
 (581, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:40:39'),
 (582, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:45:24'),
-(583, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:48:02'),
+(583, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:48:02'),
 (584, 12, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:52:14'),
-(585, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:52:34'),
+(585, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:52:34'),
 (586, 12, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:53:58'),
 (587, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:54:10'),
 (588, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 12', '::1', '2026-04-12 05:55:37'),
 (589, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-04-12 05:55:53'),
-(590, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:59:24'),
+(590, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:59:24'),
 (591, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-12 05:59:39'),
 (592, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:03:03'),
 (593, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 12', '::1', '2026-04-12 06:03:21'),
-(594, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:07:52'),
+(594, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:07:52'),
 (595, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:09:16'),
 (596, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:09:31'),
 (597, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 12', '::1', '2026-04-12 06:10:22'),
 (598, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 12', '::1', '2026-04-12 06:10:56'),
-(599, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:14:14'),
-(600, 72, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 9: 2026-04-12 16:00:00 to 2026-04-21 06:00:00', '::1', '2026-04-12 06:15:38'),
+(599, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:14:14'),
+(600, NULL, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 9: 2026-04-12 16:00:00 to 2026-04-21 06:00:00', '::1', '2026-04-12 06:15:38'),
 (601, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:15:49'),
 (602, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:16:01'),
-(603, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:16:10'),
-(604, 72, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 9: 2026-04-12 16:00:00 to 2026-04-21 06:00:00', '::1', '2026-04-12 06:16:26'),
-(605, 72, 'delete_user', 'users', 'Deleted user ID:76', '::1', '2026-04-12 06:16:42'),
-(606, 72, 'create_temp_evaluator', 'users', 'Created temp evaluator for cycle 9: dozenjames54@gmail.com', '::1', '2026-04-12 06:17:36'),
+(603, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:16:10'),
+(604, NULL, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 9: 2026-04-12 16:00:00 to 2026-04-21 06:00:00', '::1', '2026-04-12 06:16:26'),
+(605, NULL, 'delete_user', 'users', 'Deleted user ID:76', '::1', '2026-04-12 06:16:42'),
+(606, NULL, 'create_temp_evaluator', 'users', 'Created temp evaluator for cycle 9: dozenjames54@gmail.com', '::1', '2026-04-12 06:17:36'),
 (607, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-04-12 06:19:12'),
-(608, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:20:51'),
+(608, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:20:51'),
 (609, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:25:01'),
-(610, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:25:17'),
-(611, 72, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 9: 2026-04-12 16:00:00 to 2026-04-21 06:00:00', '::1', '2026-04-12 06:55:08'),
+(610, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 06:25:17'),
+(611, NULL, 'set_cycle_dates', 'sbm_cycles', 'Updated access window for cycle 9: 2026-04-12 16:00:00 to 2026-04-21 06:00:00', '::1', '2026-04-12 06:55:08'),
 (612, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-12 09:23:36'),
 (613, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-12 09:23:47'),
 (614, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-14 09:12:15'),
@@ -611,38 +611,38 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (632, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:44:11'),
 (633, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:45:11'),
 (634, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-04-14 10:48:12'),
-(635, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-14 10:48:48'),
-(636, 72, 'update_user', 'users', 'Updated user ID:15', '::1', '2026-04-14 10:58:20'),
-(637, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-14 10:58:44'),
+(635, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-14 10:48:48'),
+(636, NULL, 'update_user', 'users', 'Updated user ID:15', '::1', '2026-04-14 10:58:20'),
+(637, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-14 10:58:44'),
 (638, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:16:46'),
-(639, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:20:37'),
+(639, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:20:37'),
 (640, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:20:53'),
-(641, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:21:36'),
-(642, 72, 'update_user', 'users', 'Updated user ID:15', '::1', '2026-04-14 11:21:44'),
+(641, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:21:36'),
+(642, NULL, 'update_user', 'users', 'Updated user ID:15', '::1', '2026-04-14 11:21:44'),
 (643, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:21:55'),
 (644, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:23:10'),
-(645, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:23:35'),
+(645, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:23:35'),
 (646, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:24:25'),
 (647, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:25:00'),
 (648, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:25:33'),
-(649, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:29:06'),
-(650, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:29:16'),
-(651, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:29:26');
+(649, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:29:06');
 INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, `ip_address`, `created_at`) VALUES
+(650, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:29:16'),
+(651, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:29:26'),
 (652, 37, 'sh_update_school_profile', 'school_profile', 'School Head updated school profile for school_id: 1', '::1', '2026-04-14 11:30:22'),
 (653, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:33:33'),
 (654, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-14 11:33:55'),
 (655, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-15 10:37:00'),
-(656, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-15 10:50:21'),
+(656, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-15 10:50:21'),
 (657, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-15 10:50:29'),
 (658, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-15 10:50:46'),
-(659, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-15 13:49:48'),
-(660, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-16 11:49:34'),
+(659, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-15 13:49:48'),
+(660, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-16 11:49:34'),
 (661, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-16 11:49:46'),
-(662, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-16 11:49:59'),
+(662, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-16 11:49:59'),
 (663, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-16 11:50:10'),
 (664, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-16 12:43:11'),
-(665, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-16 13:02:19'),
+(665, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-16 13:02:19'),
 (666, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-16 13:17:51'),
 (667, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-16 16:37:43'),
 (668, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-16 17:32:37'),
@@ -655,7 +655,7 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (675, 14, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 14 submitted for cycle 9', '::1', '2026-04-16 17:36:22'),
 (676, 13, 'login', 'auth', 'User logged in', '::1', '2026-04-16 17:36:29'),
 (677, 13, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 13 submitted for cycle 9', '::1', '2026-04-16 17:37:06'),
-(678, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-16 17:37:14'),
+(678, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-16 17:37:14'),
 (679, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-16 17:37:29'),
 (680, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-16 17:37:43'),
 (681, 37, 'sh_override_indicator', 'self_assessment', 'SH overrode indicator 1.4 from avg 3.00 to 2 in cycle 9', '::1', '2026-04-16 17:38:42'),
@@ -685,17 +685,17 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (705, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-18 08:29:26'),
 (706, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-18 08:30:07'),
 (707, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-18 08:30:21'),
-(708, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-18 10:05:17'),
+(708, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-18 10:05:17'),
 (709, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-18 10:07:46'),
-(710, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-18 10:08:30'),
+(710, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-18 10:08:30'),
 (711, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-18 10:08:50'),
 (712, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-18 10:09:33'),
 (713, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-18 10:27:26'),
 (714, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-18 10:41:51'),
 (715, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-18 10:51:02'),
 (716, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-18 11:08:52'),
-(717, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-18 16:28:24'),
-(718, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-18 16:28:33'),
+(717, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-18 16:28:24'),
+(718, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-18 16:28:33'),
 (719, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-18 16:28:42'),
 (720, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-18 16:29:32'),
 (721, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-18 16:30:10'),
@@ -714,10 +714,10 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (734, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 02:57:33'),
 (735, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 02:57:59'),
 (736, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 02:59:13'),
-(737, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-19 02:59:22'),
-(738, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:02:08'),
+(737, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-19 02:59:22'),
+(738, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:02:08'),
 (739, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:02:17'),
-(740, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:05:23'),
+(740, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:05:23'),
 (741, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:06:19'),
 (742, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 14', '::1', '2026-04-19 03:08:39'),
 (743, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-04-19 03:09:04'),
@@ -729,8 +729,8 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (749, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:22:05'),
 (750, 2, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 2 submitted for cycle 10', '::1', '2026-04-19 03:25:08'),
 (751, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:25:47'),
-(752, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:26:11'),
-(753, 72, 'delete_user', 'users', 'Deleted user ID:77', '::1', '2026-04-19 03:26:28'),
+(752, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:26:11'),
+(753, NULL, 'delete_user', 'users', 'Deleted user ID:77', '::1', '2026-04-19 03:26:28'),
 (754, 12, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:26:38'),
 (755, 12, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 12 submitted for cycle 10', '::1', '2026-04-19 03:28:05'),
 (756, 14, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:28:14'),
@@ -751,7 +751,7 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (771, 37, 'validate_assessment', 'assessment', 'Validated cycle ID:10', '::1', '2026-04-19 03:49:14'),
 (772, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:49:24'),
 (773, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:51:29'),
-(774, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:55:01'),
+(774, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:55:01'),
 (775, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 03:56:36'),
 (776, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-19 04:02:59'),
 (777, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 04:03:29'),
@@ -771,7 +771,7 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (791, 37, 'validate_assessment', 'assessment', 'Validated cycle ID:11', '::1', '2026-04-19 04:34:20'),
 (792, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-19 04:34:29'),
 (793, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 04:34:47'),
-(794, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-19 04:35:41'),
+(794, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-19 04:35:41'),
 (795, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 04:36:36'),
 (796, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-04-19 04:36:50'),
 (797, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 16', '::1', '2026-04-19 04:37:50'),
@@ -794,45 +794,45 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (814, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:25:16'),
 (815, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:27:15'),
 (816, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:31:24'),
-(817, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:37:08'),
+(817, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:37:08'),
 (818, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:37:21'),
 (819, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:38:30'),
-(820, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:38:53'),
+(820, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:38:53'),
 (821, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:39:03'),
-(822, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:44:01'),
+(822, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:44:01'),
 (823, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 10:46:59'),
 (824, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 14', '::1', '2026-04-19 11:03:00'),
 (825, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-19 12:23:25'),
 (826, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:01:53'),
-(827, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:02:08'),
+(827, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:02:08'),
 (828, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:02:24'),
-(829, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:15:17'),
-(830, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:26:50'),
+(829, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:15:17'),
+(830, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:26:50'),
 (831, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:27:05'),
-(832, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:27:19'),
+(832, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:27:19'),
 (833, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:28:30'),
-(834, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:30:17'),
+(834, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:30:17'),
 (835, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-21 02:31:55'),
 (836, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-21 03:35:57'),
 (837, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-24 04:33:00'),
 (838, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-24 11:18:44'),
 (839, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-24 11:22:15'),
-(840, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-24 11:22:26'),
+(840, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-24 11:22:26'),
 (841, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-24 11:22:42'),
 (842, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-25 11:05:20'),
 (843, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-25 11:11:27'),
 (844, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-25 11:11:41'),
-(845, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-25 11:13:30'),
+(845, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-25 11:13:30'),
 (846, 15, 'login', 'auth', 'User logged in', '::1', '2026-04-25 11:15:30'),
 (847, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-26 02:38:55'),
 (848, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-26 03:39:23'),
 (849, 12, 'login', 'auth', 'User logged in', '::1', '2026-04-26 03:40:56'),
-(850, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-26 03:44:27'),
+(850, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-26 03:44:27'),
 (851, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-26 03:46:48'),
 (852, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-26 03:49:00'),
 (853, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-26 12:16:25'),
 (854, 2, 'login', 'auth', 'User logged in', '::1', '2026-04-26 12:16:58'),
-(855, 72, 'login', 'auth', 'User logged in', '::1', '2026-04-26 12:18:37'),
+(855, NULL, 'login', 'auth', 'User logged in', '::1', '2026-04-26 12:18:37'),
 (856, 46, 'login', 'auth', 'User logged in', '::1', '2026-04-26 12:21:48'),
 (857, 37, 'login', 'auth', 'User logged in', '::1', '2026-04-26 12:24:21'),
 (858, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-01 04:24:54'),
@@ -870,13 +870,13 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (890, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-09 16:23:52'),
 (891, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-09 16:26:00'),
 (892, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-20 14:32:52'),
-(893, 72, 'login', 'auth', 'User logged in', '::1', '2026-05-22 10:22:15'),
-(894, 72, 'login', 'auth', 'User logged in', '::1', '2026-05-22 10:22:39'),
-(895, 72, 'create_user', 'users', 'Created: jamesdozen', '::1', '2026-05-22 10:24:04'),
+(893, NULL, 'login', 'auth', 'User logged in', '::1', '2026-05-22 10:22:15'),
+(894, NULL, 'login', 'auth', 'User logged in', '::1', '2026-05-22 10:22:39'),
+(895, NULL, 'create_user', 'users', 'Created: jamesdozen', '::1', '2026-05-22 10:24:04'),
 (896, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-05-22 10:28:47'),
 (897, NULL, 'login', 'auth', 'User logged in', '::1', '2026-05-22 10:29:06'),
-(898, 72, 'login', 'auth', 'User logged in', '::1', '2026-05-22 10:29:32'),
-(899, 72, 'delete_user', 'users', 'Deleted user ID:78', '::1', '2026-05-22 10:29:37'),
+(898, NULL, 'login', 'auth', 'User logged in', '::1', '2026-05-22 10:29:32'),
+(899, NULL, 'delete_user', 'users', 'Deleted user ID:78', '::1', '2026-05-22 10:29:37'),
 (900, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-22 10:29:51'),
 (901, 2, 'login', 'auth', 'User logged in', '::1', '2026-05-22 10:33:50'),
 (902, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-22 10:41:42'),
@@ -890,31 +890,144 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (910, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-22 14:00:33'),
 (911, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-22 16:31:56'),
 (912, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-22 16:32:27'),
-(913, 72, 'login', 'auth', 'User logged in', '::1', '2026-05-22 16:32:47'),
+(913, NULL, 'login', 'auth', 'User logged in', '::1', '2026-05-22 16:32:47'),
 (914, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-22 16:32:58'),
-(915, 72, 'login', 'auth', 'User logged in', '::1', '2026-05-22 16:33:08'),
+(915, NULL, 'login', 'auth', 'User logged in', '::1', '2026-05-22 16:33:08'),
 (916, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-22 16:33:20'),
-(917, 72, 'login', 'auth', 'User logged in', '::1', '2026-05-22 16:51:04'),
+(917, NULL, 'login', 'auth', 'User logged in', '::1', '2026-05-22 16:51:04'),
 (918, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-22 16:51:16'),
 (919, 37, 'login', 'auth', 'User logged in', '127.0.0.1', '2026-05-23 13:57:14'),
 (920, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-23 14:39:44'),
 (921, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-23 14:51:21'),
 (922, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-24 15:02:50'),
 (923, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-26 09:35:38'),
-(924, 72, 'login', 'auth', 'User logged in', '::1', '2026-05-26 13:37:37'),
+(924, NULL, 'login', 'auth', 'User logged in', '::1', '2026-05-26 13:37:37'),
 (925, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-26 13:37:47'),
 (926, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-27 03:44:13'),
 (927, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-27 03:47:32'),
 (928, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-27 03:53:16'),
-(929, 72, 'login', 'auth', 'User logged in', '::1', '2026-05-27 03:58:38'),
-(930, 72, 'login', 'auth', 'User logged in', '::1', '2026-05-27 04:03:00'),
+(929, NULL, 'login', 'auth', 'User logged in', '::1', '2026-05-27 03:58:38'),
+(930, NULL, 'login', 'auth', 'User logged in', '::1', '2026-05-27 04:03:00'),
 (931, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-27 04:03:07'),
-(932, 72, 'login', 'auth', 'User logged in', '::1', '2026-05-27 04:06:47'),
+(932, NULL, 'login', 'auth', 'User logged in', '::1', '2026-05-27 04:06:47'),
 (933, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-27 04:09:44'),
 (934, 37, 'login', 'auth', 'User logged in', '::1', '2026-05-31 12:12:46'),
 (935, 46, 'login', 'auth', 'User logged in', '::1', '2026-05-31 13:51:03'),
 (936, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-01 11:35:16'),
-(937, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-02 20:43:17');
+(937, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-02 20:43:17'),
+(938, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-03 21:05:25'),
+(939, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-03 21:11:42'),
+(940, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-03 21:18:47'),
+(941, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-03 21:18:59'),
+(942, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-03 21:19:15'),
+(943, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-03 21:22:09'),
+(944, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-03 21:22:29'),
+(945, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-03 21:23:07'),
+(946, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-03 21:23:25'),
+(947, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-04 02:34:16'),
+(948, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-04 02:34:51'),
+(949, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-04 04:13:06'),
+(950, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-04 05:08:21'),
+(951, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-04 05:14:00'),
+(952, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-04 05:18:34'),
+(953, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-04 05:19:51'),
+(954, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-04 05:20:04'),
+(955, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-04 06:03:41'),
+(956, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-04 06:06:30'),
+(957, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-04 06:06:41'),
+(958, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-04 06:07:00'),
+(959, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-04 06:14:54'),
+(960, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-04 06:15:11'),
+(961, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-04 06:15:20'),
+(962, NULL, 'toggle_user_status', 'users', 'User ID 14 status changed to inactive', '::1', '2026-06-04 06:15:43'),
+(963, NULL, 'toggle_user_status', 'users', 'User ID 14 status changed to active', '::1', '2026-06-04 06:16:34'),
+(964, NULL, 'toggle_user_status', 'users', 'User ID 15 status changed to inactive', '::1', '2026-06-04 06:43:37'),
+(965, NULL, 'toggle_user_status', 'users', 'User ID 15 status changed to active', '::1', '2026-06-04 06:43:51'),
+(966, NULL, 'toggle_user_status', 'users', 'User ID 13 status changed to inactive', '::1', '2026-06-04 06:44:04'),
+(967, NULL, 'toggle_user_status', 'users', 'User ID 13 status changed to active', '::1', '2026-06-04 06:46:17'),
+(968, NULL, 'toggle_user_status', 'users', 'User ID 13 status changed to inactive', '::1', '2026-06-04 06:46:20'),
+(969, NULL, 'toggle_user_status', 'users', 'User ID 13 status changed to active', '::1', '2026-06-04 06:46:25'),
+(970, NULL, 'toggle_user_status', 'users', 'User ID 14 status changed to inactive', '::1', '2026-06-04 06:49:45'),
+(971, NULL, 'toggle_user_status', 'users', 'User ID 14 status changed to active', '::1', '2026-06-04 06:49:50'),
+(972, NULL, 'toggle_user_status', 'users', 'User ID 14 status changed to inactive', '::1', '2026-06-04 06:49:55'),
+(973, NULL, 'toggle_user_status', 'users', 'User ID 14 status changed to active', '::1', '2026-06-04 06:51:12'),
+(974, NULL, 'toggle_user_status', 'users', 'User ID 14 status changed to inactive', '::1', '2026-06-04 06:51:15'),
+(975, NULL, 'toggle_user_status', 'users', 'User ID 14 status changed to active', '::1', '2026-06-04 06:51:19'),
+(976, NULL, 'toggle_user_status', 'users', 'User ID 12 status changed to archived', '::1', '2026-06-04 07:00:16'),
+(977, NULL, 'toggle_user_status', 'users', 'User ID 12 status changed to inactive', '::1', '2026-06-04 07:02:21'),
+(978, NULL, 'toggle_user_status', 'users', 'User ID 12 status changed to active', '::1', '2026-06-04 07:02:31'),
+(979, NULL, 'toggle_user_status', 'users', 'User ID 12 status changed to archived', '::1', '2026-06-04 07:02:37'),
+(980, NULL, 'toggle_user_status', 'users', 'User ID 12 status changed to inactive', '::1', '2026-06-04 07:02:50'),
+(981, NULL, 'toggle_user_status', 'users', 'User ID 12 status changed to active', '::1', '2026-06-04 07:02:55'),
+(982, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-04 13:48:32'),
+(983, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-04 16:08:37'),
+(984, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-06-04 16:12:28'),
+(985, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-04 16:40:06'),
+(986, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-04 16:40:19'),
+(987, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-04 16:44:47'),
+(988, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-04 16:45:56'),
+(989, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-05 00:34:56'),
+(990, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-05 00:35:41'),
+(991, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-05 01:05:01'),
+(992, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-05 01:05:36'),
+(993, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-05 02:27:30'),
+(994, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-05 02:30:02'),
+(995, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-05 03:57:38'),
+(996, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-05 09:05:24'),
+(997, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-05 09:08:46'),
+(998, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-05 09:30:43'),
+(999, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-05 09:30:53'),
+(1000, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-05 09:31:11'),
+(1001, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-05 10:36:04'),
+(1002, NULL, 'update_user', 'users', 'Updated user ID:15', '::1', '2026-06-05 10:46:21'),
+(1003, 15, 'login', 'auth', 'User logged in', '::1', '2026-06-05 10:46:31'),
+(1004, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-05 10:52:33'),
+(1005, 2, 'login', 'auth', 'User logged in', '::1', '2026-06-05 10:55:55'),
+(1006, 15, 'login', 'auth', 'User logged in', '::1', '2026-06-05 10:56:17'),
+(1007, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-05 10:56:38'),
+(1008, NULL, 'create_department', 'departments', 'Created: English', '::1', '2026-06-07 11:43:18'),
+(1009, NULL, 'update_user', 'users', 'Updated user ID:15', '::1', '2026-06-07 11:43:29'),
+(1010, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 11:50:07'),
+(1011, NULL, 'update_user', 'users', 'Updated user ID:46', '::1', '2026-06-07 11:50:18'),
+(1012, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 11:50:30'),
+(1013, NULL, 'create_department', 'departments', 'Created: IT Department', '::1', '2026-06-07 11:51:01'),
+(1014, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 11:51:10'),
+(1015, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 11:54:51'),
+(1016, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 11:58:35'),
+(1017, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 12:10:17'),
+(1018, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 12:10:23'),
+(1019, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-07 12:40:55'),
+(1020, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-07 12:41:16'),
+(1021, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-07 16:15:46'),
+(1022, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-07 16:15:53'),
+(1023, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-07 16:31:27'),
+(1024, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 16:47:00'),
+(1025, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 16:47:08'),
+(1026, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 16:48:28'),
+(1027, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 16:48:35'),
+(1028, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 16:50:07'),
+(1029, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 16:50:13'),
+(1030, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-07 17:07:24'),
+(1031, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-07 17:07:41'),
+(1032, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 17:24:17'),
+(1033, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 17:26:32'),
+(1034, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 17:26:38'),
+(1035, NULL, 'toggle_user_status', 'users', 'User ID 15 status changed to inactive', '::1', '2026-06-07 17:26:55'),
+(1036, NULL, 'toggle_user_status', 'users', 'User ID 15 status changed to active', '::1', '2026-06-07 17:27:04'),
+(1037, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 17:27:47'),
+(1038, NULL, 'update_user', 'users', 'Updated user ID:72', '::1', '2026-06-07 17:27:58'),
+(1039, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-07 17:28:23'),
+(1040, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-07 17:28:30'),
+(1041, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-07 17:29:04'),
+(1042, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-06-07 17:30:49'),
+(1043, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-06-07 17:31:06'),
+(1044, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-07 17:31:49'),
+(1045, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-07 17:32:52'),
+(1046, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-07 17:33:15'),
+(1047, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-07 17:33:29'),
+(1048, NULL, 'login', 'auth', 'User logged in', '::1', '2026-06-07 17:40:32'),
+(1049, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-11 02:32:34'),
+(1050, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-11 02:33:16');
 
 -- --------------------------------------------------------
 
@@ -1048,6 +1161,28 @@ CREATE TABLE `cycle_stage_gates` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `departments`
+--
+
+CREATE TABLE `departments` (
+  `department_id` int(10) UNSIGNED NOT NULL,
+  `school_id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(120) NOT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `departments`
+--
+
+INSERT INTO `departments` (`department_id`, `school_id`, `name`, `description`, `created_at`) VALUES
+(1, 1, 'English', NULL, '2026-06-07 19:43:18'),
+(2, 1, 'IT Department', NULL, '2026-06-07 19:51:01');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `email_logs`
 --
 
@@ -1066,8 +1201,7 @@ CREATE TABLE `email_logs` (
 --
 
 INSERT INTO `email_logs` (`log_id`, `user_id`, `email_type`, `recipient_email`, `status`, `error_message`, `sent_at`) VALUES
-(29, 46, 'account_creation', 'mendozacharles11011@gmail.com', 'sent', NULL, '2026-04-01 02:35:53'),
-(67, 72, 'account_creation', 'ariascharles00@gmail.com', 'sent', NULL, '2026-04-09 09:53:42');
+(29, 46, 'account_creation', 'mendozacharles11011@gmail.com', 'sent', NULL, '2026-04-01 02:35:53');
 
 -- --------------------------------------------------------
 
@@ -1296,8 +1430,7 @@ CREATE TABLE `password_setup_tokens` (
 --
 
 INSERT INTO `password_setup_tokens` (`token_id`, `user_id`, `token`, `type`, `expires_at`, `used_at`, `created_at`) VALUES
-(36, 46, '25de0e85006db5c333e8d45d3733be2eff8b27e9fa2207f55e070ffac278a993', 'setup', '2026-04-03 10:35:08', '2026-04-01 10:40:39', '2026-04-01 02:35:08'),
-(74, 72, '39f0807dde06988876bc2e355da85edc901ff689d4a30fb6aa115cf3b853b691', 'setup', '2026-04-11 17:53:37', '2026-04-09 17:55:08', '2026-04-09 09:53:37');
+(36, 46, '25de0e85006db5c333e8d45d3733be2eff8b27e9fa2207f55e070ffac278a993', 'setup', '2026-04-03 10:35:08', '2026-04-01 10:40:39', '2026-04-01 02:35:08');
 
 -- --------------------------------------------------------
 
@@ -1332,6 +1465,34 @@ CREATE TABLE `response_attachments` (
 
 INSERT INTO `response_attachments` (`attachment_id`, `version`, `parent_attachment_id`, `cycle_id`, `indicator_id`, `school_id`, `uploaded_by`, `uploader_role`, `category`, `is_current_version`, `original_name`, `stored_name`, `file_size`, `mime_type`, `uploaded_at`, `deleted_at`, `deleted_by`, `replace_reason`) VALUES
 (5, 1, NULL, 10, 7, 1, 15, 'teacher', 'other', 1, 'SAMPLE MOVs.pdf', '45c1c9fd1649deb768a5048cab8394c6.pdf', 469513, 'application/pdf', '2026-04-19 11:12:22', NULL, NULL, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `roles`
+--
+
+CREATE TABLE `roles` (
+  `id` int(11) NOT NULL,
+  `slug` varchar(60) NOT NULL,
+  `label` varchar(100) NOT NULL,
+  `color` varchar(20) NOT NULL DEFAULT '#16A34A',
+  `description` varchar(255) DEFAULT NULL,
+  `is_system` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `roles`
+--
+
+INSERT INTO `roles` (`id`, `slug`, `label`, `color`, `description`, `is_system`, `created_at`) VALUES
+(1, 'system_admin', 'System Admin', '#7C3AED', NULL, 1, '2026-06-05 09:36:29'),
+(2, 'school_head', 'School Head', '#166534', NULL, 1, '2026-06-05 09:36:29'),
+(3, 'sbm_coordinator', 'SBM Coordinator', '#2563EB', NULL, 1, '2026-06-05 09:36:29'),
+(4, 'teacher', 'School Teacher', '#0D9488', NULL, 1, '2026-06-05 09:36:29'),
+(5, 'external_stakeholder', 'External Stakeholder', '#D97706', NULL, 1, '2026-06-05 09:36:29'),
+(11, 'tambay', 'Tambay', '#64748B', 'Yelo', 0, '2026-06-07 11:42:07');
 
 -- --------------------------------------------------------
 
@@ -1846,6 +2007,18 @@ INSERT INTO `system_config` (`config_id`, `config_key`, `config_value`, `updated
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `system_settings`
+--
+
+CREATE TABLE `system_settings` (
+  `setting_key` varchar(100) NOT NULL,
+  `setting_value` text NOT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `teacher_indicator_assignments`
 --
 
@@ -2297,8 +2470,10 @@ CREATE TABLE `users` (
   `email` varchar(120) NOT NULL,
   `full_name` varchar(120) NOT NULL,
   `role` enum('system_admin','school_head','sbm_coordinator','teacher','external_stakeholder') NOT NULL DEFAULT 'teacher',
-  `status` enum('active','inactive','suspended') NOT NULL DEFAULT 'active',
+  `status` enum('active','inactive','archived','suspended') NOT NULL DEFAULT 'inactive',
   `school_id` int(11) DEFAULT NULL,
+  `employee_id` varchar(50) DEFAULT NULL,
+  `department` varchar(100) DEFAULT NULL,
   `last_login` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `email_verified` tinyint(1) DEFAULT 0,
@@ -2314,15 +2489,15 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`, `contact_number`, `profile_picture`) VALUES
-(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, '2026-05-22 18:33:50', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, '2026-04-26 11:40:56', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, '2026-04-19 12:40:42', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, '2026-04-19 12:40:06', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, '2026-05-22 22:00:24', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza M. Evangelio', 'school_head', 'active', 1, '2026-05-31 20:12:46', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1776163511.jpg'),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, '2026-06-03 04:43:17', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
-(72, 'Patty', '$2y$10$V5F8wLfNzHXU1XPrYScCBuTOd.le0o88IVEUGx52m4dDIg256otOC', 'ariascharles00@gmail.com', 'Charles Mendoza', 'system_admin', 'active', 1, '2026-05-27 12:06:47', '2026-04-09 09:53:37', 0, NULL, NULL, '2026-04-09 17:53:42', 0, NULL, NULL);
+INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `employee_id`, `department`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`, `contact_number`, `profile_picture`) VALUES
+(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, NULL, '2026-06-05 18:55:55', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, NULL, '2026-04-26 11:40:56', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, NULL, '2026-04-19 12:40:42', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, NULL, '2026-04-19 12:40:06', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-06-05 18:56:17', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza M. Evangelio', 'school_head', 'active', 1, NULL, NULL, '2026-06-08 01:32:52', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg'),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, NULL, '2026-06-11 10:32:34', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
+(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'IT Department', '2026-06-11 10:33:16', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -2341,7 +2516,7 @@ CREATE TABLE `v_cycle_evaluator_summary` (
 ,`custom_access_end` datetime
 ,`full_name` varchar(120)
 ,`email` varchar(120)
-,`user_account_status` enum('active','inactive','suspended')
+,`user_account_status` enum('active','inactive','archived','suspended')
 ,`submission_status` enum('draft','submitted')
 ,`submitted_at` datetime
 ,`response_count` int(11)
@@ -2464,6 +2639,13 @@ ALTER TABLE `cycle_stage_gates`
   ADD KEY `checked_by` (`checked_by`);
 
 --
+-- Indexes for table `departments`
+--
+ALTER TABLE `departments`
+  ADD PRIMARY KEY (`department_id`),
+  ADD UNIQUE KEY `uq_dept_school` (`school_id`,`name`);
+
+--
 -- Indexes for table `email_logs`
 --
 ALTER TABLE `email_logs`
@@ -2559,6 +2741,13 @@ ALTER TABLE `response_attachments`
   ADD KEY `indicator_id` (`indicator_id`),
   ADD KEY `idx_parent` (`parent_attachment_id`),
   ADD KEY `idx_current_version` (`is_current_version`,`cycle_id`);
+
+--
+-- Indexes for table `roles`
+--
+ALTER TABLE `roles`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `slug` (`slug`);
 
 --
 -- Indexes for table `sbm_cycles`
@@ -2685,6 +2874,12 @@ ALTER TABLE `system_config`
   ADD UNIQUE KEY `config_key` (`config_key`);
 
 --
+-- Indexes for table `system_settings`
+--
+ALTER TABLE `system_settings`
+  ADD PRIMARY KEY (`setting_key`);
+
+--
 -- Indexes for table `teacher_indicator_assignments`
 --
 ALTER TABLE `teacher_indicator_assignments`
@@ -2748,7 +2943,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=938;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1051;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`
@@ -2787,10 +2982,16 @@ ALTER TABLE `cycle_stage_gates`
   MODIFY `gate_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `departments`
+--
+ALTER TABLE `departments`
+  MODIFY `department_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
 -- AUTO_INCREMENT for table `email_logs`
 --
 ALTER TABLE `email_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=82;
 
 --
 -- AUTO_INCREMENT for table `evidence_audit_log`
@@ -2850,13 +3051,19 @@ ALTER TABLE `ml_training_snapshots`
 -- AUTO_INCREMENT for table `password_setup_tokens`
 --
 ALTER TABLE `password_setup_tokens`
-  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=84;
+  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
 
 --
 -- AUTO_INCREMENT for table `response_attachments`
 --
 ALTER TABLE `response_attachments`
   MODIFY `attachment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `roles`
+--
+ALTER TABLE `roles`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `sbm_cycles`

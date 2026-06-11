@@ -282,7 +282,9 @@ $compareSyId = (int) ($_GET['compare_sy'] ?? 0);
 // -- Analytics dimension averages ------------------------------
 $anDimAvgQ = $db->prepare("
     SELECT d.dimension_id, d.dimension_no, d.dimension_name, d.color_hex,
-           ROUND(AVG(ds.percentage),1) AS avg_pct
+           ROUND(AVG(ds.percentage),1) AS avg_pct,
+           SUM(ds.raw_score)           AS sum_raw,
+           SUM(ds.max_score)           AS sum_max
     FROM sbm_dimensions d
     LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
     LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id
@@ -419,7 +421,11 @@ $consistentlyWeak = $consistentlyWeakQ->fetchAll();
 
 // -- Summary insights ------------------------------------------
 $anAllPcts = array_filter(array_column($anDimAvgs, 'avg_pct'), fn($v) => $v !== null);
-$anAvgOverall = count($anAllPcts) > 0 ? round(array_sum($anAllPcts) / count($anAllPcts), 1) : null;
+// Use the same weighted formula as sbm_cycles.overall_score:
+// SUM(raw_score) / SUM(max_score) * 100, so the KPI card matches the trend chart.
+$_anTotalRaw = array_sum(array_column($anDimAvgs, 'sum_raw'));
+$_anTotalMax = array_sum(array_column($anDimAvgs, 'sum_max'));
+$anAvgOverall = $_anTotalMax > 0 ? round(($_anTotalRaw / $_anTotalMax) * 100, 1) : null;
 $anTopDim = !empty($anAllPcts) ? $anDimAvgs[array_search(max($anAllPcts), array_column($anDimAvgs, 'avg_pct'))] : null;
 $anWeakDim = !empty($anAllPcts) ? $anDimAvgs[array_search(min($anAllPcts), array_column($anDimAvgs, 'avg_pct'))] : null;
 
@@ -2456,47 +2462,6 @@ include __DIR__ . '/../includes/header.php';
     </div>
   <?php endif; ?>
 
-  <!-- ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  KPI STATS ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  -->
-  <div class="stats-v2">
-    <div class="stat-v2">
-      <div class="stat-v2-accent" style="background:#16A34A;"></div>
-      <div class="stat-v2-label">Assessment Cycles</div>
-      <div class="stat-v2-value" data-live="total-cycles"><?= number_format($totalCycles) ?></div>
-      <div class="stat-v2-meta"><span class="stat-v2-badge badge-blue"><?= $inProgress ?> in progress</span></div>
-    </div>
-    <div class="stat-v2">
-      <div class="stat-v2-accent" style="background:#16A34A;"></div>
-      <div class="stat-v2-label">Awaiting Validation</div>
-      <div class="stat-v2-value" style="color:<?= ($submitted - $validated) > 0 ? 'var(--amber)' : 'var(--n-900)' ?>;">
-        <?= $submitted - $validated ?>
-      </div>
-      <div class="stat-v2-meta"><span class="stat-v2-badge badge-amber"><?= $submitted ?> total submitted</span></div>
-    </div>
-    <div class="stat-v2">
-      <div class="stat-v2-accent" style="background:#16A34A;"></div>
-      <div class="stat-v2-label">Validated</div>
-      <div class="stat-v2-value" data-live="validated"><?= number_format($validated) ?></div>
-      <div class="stat-v2-meta"><span class="stat-v2-badge badge-green"><?= $validationRate ?>% of submitted</span>
-      </div>
-    </div>
-    <div class="stat-v2">
-      <div class="stat-v2-accent" style="background:#16A34A;"></div>
-      <div class="stat-v2-label">Teachers Submitted</div>
-      <div class="stat-v2-value"
-        style="color:<?= $teacherSubmitRate >= 100 ? '#16A34A' : ($teacherSubmitRate >= 50 ? '#16A34A' : 'var(--n-900)') ?>;">
-        <?= $submittedTeachers ?>/<?= $totalTeachers ?>
-      </div>
-      <div class="stat-v2-meta">
-        <span class="stat-v2-badge <?= $teacherSubmitRate >= 100 ? 'badge-green' : 'badge-amber' ?>">
-          <?= $teacherSubmitRate ?>% submitted
-        </span>
-      </div>
-      <div class="kpi-bar">
-        <div class="kpi-bar-fill" style="width:<?= $teacherSubmitRate ?>%;background:#16A34A;"></div>
-      </div>
-    </div>
-  </div>
-
   <!-- ━━━━━━━━━━━ PIPELINE ━━━━━━━━━━━ -->
   <div class="card" style="margin-bottom:20px;">
     <div class="card-head">
@@ -2908,7 +2873,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="chart-card">
       <div class="chart-card-head">
         <span class="chart-card-title">Overall Score Trend</span>
-        <span style="font-size:12px;color:var(--n-400);"><?= count($cycleHistory) ?> cycle(s)</span>
+        <div id="anTrendLegend" style="display:flex;gap:16px;align-items:center;font-size:12px;color:var(--n-600);"></div>
       </div>
       <div class="chart-card-body" style="min-height:300px;display:flex;align-items:center;justify-content:center;">
         <?php if (count($cycleHistory) >= 1): ?>
@@ -3329,7 +3294,7 @@ include __DIR__ . '/../includes/header.php';
         backgroundColor: 'rgba(37,99,235,.13)',
         borderColor: '#2563EB',
         pointBackgroundColor: anDimColors,
-        pointRadius: 5, borderWidth: 2,
+        pointRadius: 0, borderWidth: 2,
       }];
       if (anDimValCmp.length && anDimValCmp.some(v => v > 0)) {
         radarDatasets.push({
@@ -3419,7 +3384,7 @@ include __DIR__ . '/../includes/header.php';
         pointBackgroundColor: ptColors.concat(showPrediction ? ['transparent'] : []),
         pointRadius: ctx => ctx.raw === null ? 0 : 6,
         pointHoverRadius: ctx => ctx.raw === null ? 0 : 8,
-        borderWidth: 2.5, tension: 0.3, fill: true,
+        borderWidth: 2.5, tension: 0, fill: true,
         order: 2,
       }];
 
@@ -3451,10 +3416,9 @@ include __DIR__ . '/../includes/header.php';
           },
           plugins: {
             legend: {
-              display: showPrediction,
-              position: 'top',
-              labels: { usePointStyle: true, boxWidth: 8, font: { size: 11 }, padding: 12 }
+              display: false,
             },
+            htmlLegend: { containerID: 'anTrendLegend' },
             tooltip: {
               callbacks: {
                 label: ctx => {
@@ -3465,7 +3429,32 @@ include __DIR__ . '/../includes/header.php';
             }
           },
           responsive: true, maintainAspectRatio: true, aspectRatio: 1.5,
-        }
+        },
+        plugins: [{
+          id: 'htmlLegend',
+          afterUpdate(chart) {
+            const container = document.getElementById(chart.options.plugins.htmlLegend?.containerID);
+            if (!container) return;
+            container.innerHTML = '';
+            chart.data.datasets.forEach((ds, i) => {
+              const item = document.createElement('div');
+              item.style.cssText = 'display:flex;align-items:center;gap:6px;cursor:pointer;';
+              const swatch = document.createElement('span');
+              swatch.style.cssText = `display:inline-block;width:24px;height:2px;background:${ds.borderColor};border-radius:2px;`;
+              const label = document.createElement('span');
+              label.textContent = ds.label;
+              item.appendChild(swatch);
+              item.appendChild(label);
+              item.onclick = () => {
+                const meta = chart.getDatasetMeta(i);
+                meta.hidden = !meta.hidden;
+                item.style.opacity = meta.hidden ? '0.4' : '1';
+                chart.update();
+              };
+              container.appendChild(item);
+            });
+          }
+        }]
       });
 
       // ── Populate the prediction insight card below the chart ──
@@ -3507,7 +3496,7 @@ include __DIR__ . '/../includes/header.php';
         return {
           label: 'D' + dm.no + ': ' + dm.name,
           data, borderColor: dm.color, backgroundColor: dm.color + '22',
-          pointBackgroundColor: dm.color, pointRadius: 5, borderWidth: 2, tension: 0.3,
+          pointBackgroundColor: dm.color, pointRadius: 0, pointHoverRadius: 0, borderWidth: 2, tension: 0,
         };
       });
       new Chart(dimTrendEl, {
@@ -3518,7 +3507,7 @@ include __DIR__ . '/../includes/header.php';
             y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
             x: { ticks: { font: { size: 11, weight: '600' } }, grid: { display: false } }
           },
-          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, usePointStyle: true, pointStyleWidth: 8 } } },
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, usePointStyle: true, pointStyle: 'line', pointStyleWidth: 24 } } },
           responsive: true, maintainAspectRatio: true,
         }
       });
