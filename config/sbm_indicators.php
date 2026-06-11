@@ -351,9 +351,6 @@ define('SBM_MATURITY', [
 
 // ── Indicators answered by TEACHER ONLY (not SH, not External) ──────────────
 define('TEACHER_ONLY_CODES', [
-    '1.4',   // Contextualized LMs
-    '1.5',   // Remediation activities
-    '1.6',   // Peace / DepEd values
 ]);
 
 // ── Indicators shared by SH/SBM Coord AND Teacher (SH+Teacher ONLY — no External) ──
@@ -363,6 +360,9 @@ define('TEACHER_ONLY_CODES', [
 define('SH_TEACHER_CODES', [
     '1.1',   // Grade 3 proficiency
     '1.2',   // Grade 6/10/12 NAT
+    '1.4',   // Contextualized LMs
+    '1.5',   // Remediation activities
+    '1.6',   // Peace / DepEd values
     '1.7',   // Test item analysis
     '2.3',   // Reduced dropout
     '2.9',   // Mental wellness
@@ -377,6 +377,7 @@ define('SH_TEACHER_CODES', [
 
 // ── Indicators answered by SH/SBM Coord AND External Stakeholder (no Teacher) ─
 define('SH_EXT_CODES', [
+    '4.6',   // Stakeholder satisfaction rating
     '1.8',   // TLE-TVL industry engagement
     '2.5',   // Disadvantaged / OSYs / adult learners
     '2.10',  // PWD-friendly facilities
@@ -400,7 +401,6 @@ define('SH_TCH_EXT_CODES', [
 
 // ── Indicators answered by Teacher AND External (SH is NOT primary rater) ────
 define('TCH_EXT_CODES', [
-    '4.6',   // Stakeholder satisfaction rating
 ]);
 
 // ── Indicators answered by SH/SBM Coord ONLY ─────────────────────────────────

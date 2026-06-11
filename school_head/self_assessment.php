@@ -334,11 +334,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       exit;
     }
 
-      $db->prepare("
-          INSERT INTO sh_indicator_override_history
-          (cycle_id, indicator_id, school_id, action_type, previous_rating, new_rating, override_reason, changed_by)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ")->execute([$cycleId, $indicatorId, $schoolId, $actionType, $previousRating, $overrideRating, $reason, $_SESSION['user_id']]);
+      // override history table removed
 
 
   } catch (\Throwable $e) {
@@ -374,16 +370,6 @@ function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId,
   $maxTotal = 0;
 
   foreach ($inds as $ind) {
-    // Priority 1: Check Override table (Global for all types now)
-    $ov = $db->prepare("SELECT override_rating FROM sh_indicator_overrides WHERE cycle_id=? AND indicator_id=?");
-    $ov->execute([$cycleId, $ind['indicator_id']]);
-    $override = $ov->fetchColumn();
-
-    if ($override !== false) {
-      $rawTotal += (int) $override;
-      $maxTotal += 4;
-      continue;
-    }
 
     if (isTeacherHandled($ind['indicator_code'])) {
       $avg = $db->prepare("SELECT AVG(rating) FROM teacher_responses WHERE cycle_id=? AND indicator_id=?");
@@ -417,8 +403,7 @@ function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId,
             computed_at=NOW()
     ")->execute([$cycleId, $schoolId, $dimId, $rawTotal, $maxTotal, $pct]);
 
-  // Keep overall_score in sbm_cycles in sync with the latest dimension scores
-  syncCycleOverallScore($db, $cycleId);
+  // overall_score is only computed on submission, not during live rating
 }
 
 /**
@@ -488,15 +473,13 @@ $shIndicators = array_filter($indicators, fn($i) => in_array($i['indicator_code'
 $shResponded = count(array_filter($shIndicators, fn($i) => isset($responses[$i['indicator_id']])));
 $shTotal = count($shIndicators);
 
-// Teacher indicators that the School Head has overridden
-// Teacher-only = in TEACHER_INDICATOR_CODES but not SH_ONLY
 $teacherIndicators = array_filter(
   $indicators,
   fn($i) =>
   in_array($i['indicator_code'], TEACHER_INDICATOR_CODES) &&
   !in_array($i['indicator_code'], SH_ONLY_INDICATOR_CODES)
 );
-$overridenCount = count(array_filter($teacherIndicators, fn($i) => isset($overrides[$i['indicator_id']])));
+$overridenCount = 0;
 
 $totalDone = count($responses);
 $totalCount = count($indicators);
@@ -1252,10 +1235,10 @@ include __DIR__ . '/../includes/header.php';
                     </div>
                   <?php else: ?>
                     <div class="teacher-info-title">
-                      <?= $isTeacherCard ? 'Teacher Indicator' : 'System Oversight' ?>
+                      <?= $isTeacherCard ? 'Teacher Indicator' : ($isCoordinatorView ? 'System Oversight' : 'Teacher Indicator') ?>
                     </div>
                     <div class="teacher-info-body">
-                      <?= $isTeacherCard ? 'No teacher input yet. Teachers rate this in their portal.' : '' ?>
+                      <?= $isTeacherCard || !$isCoordinatorView ? 'No teacher input yet. Teachers rate this in their portal.' : '' ?>
                     </div>
                   <?php endif; ?>
                 </div>
