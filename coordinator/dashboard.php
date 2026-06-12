@@ -137,7 +137,9 @@ $mat = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : null;
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 // Comparison SY
-$compareSyId = (int) ($_GET['compare_sy'] ?? 0);
+$compareSyIds = array_values(array_unique(array_filter(array_map('intval', explode(',', $_GET['compare_sy'] ?? '')), fn($v) => $v > 0 && $v !== $syId)));
+$compareSyIds = array_slice($compareSyIds, 0, 2); // up to 2 extra cycles (3 total)
+$compareSyId = $compareSyIds[0] ?? 0;
 
 // Analytics dimension averages
 $anDimAvgQ = $db->prepare("
@@ -154,9 +156,9 @@ $anDimAvgQ = $db->prepare("
 $anDimAvgQ->execute([$syId, $schoolId]);
 $anDimAvgs = $anDimAvgQ->fetchAll();
 
-// Comparison SY dimension averages
-$anDimAvgsCompare = [];
-if ($compareSyId && $compareSyId !== $syId) {
+// Comparison SY dimension averages (supports multiple compare cycles)
+$anDimAvgsCompareList = [];
+foreach ($compareSyIds as $cmpSyId) {
   $cmpQ = $db->prepare("
     SELECT d.dimension_no, d.dimension_name, d.color_hex,
            ROUND(AVG(ds.percentage),1) AS avg_pct
@@ -166,9 +168,14 @@ if ($compareSyId && $compareSyId !== $syId) {
     WHERE c.sy_id = ? AND c.school_id = ?
     GROUP BY d.dimension_id ORDER BY d.dimension_no
   ");
-  $cmpQ->execute([$compareSyId, $schoolId]);
-  $anDimAvgsCompare = $cmpQ->fetchAll();
+  $cmpQ->execute([$cmpSyId, $schoolId]);
+  $anDimAvgsCompareList[] = [
+    'sy_id' => $cmpSyId,
+    'label' => array_column($allSYs, 'label', 'sy_id')[$cmpSyId] ?? '',
+    'data' => $cmpQ->fetchAll(),
+  ];
 }
+$anDimAvgsCompare = $anDimAvgsCompareList[0]['data'] ?? [];
 
 // Assessment history
 $historyQ = $db->prepare("
@@ -2060,31 +2067,38 @@ include __DIR__ . '/../includes/header.php';
     <span style="font-size:13px;font-weight:700;color:var(--n-900);"><?= e($syLabel) ?></span>
     <div style="width:1px;height:18px;background:var(--n-200);margin:0 4px;"></div>
     <label>Compare with:</label>
-    <div class="p-select" id="anCompareSelect2" style="width:160px;">
-      <input type="hidden" name="compare_sy_id" value="<?= $compareSyId ?>">
+    <div class="p-select" id="anCompareSelect2" style="width:200px;">
       <div class="p-select-trigger" onclick="togglePSelect(event, 'anCompareSelect2')"
         style="padding:5px 12px;font-size:12.5px;min-height:32px;">
-        <span
-          class="p-select-val"><?= $compareSyId ? 'SY ' . e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') : 'None' ?></span>
+        <span class="p-select-val"><?= !empty($compareSyIds) ? 'SY ' . implode(', SY ', array_map(fn($id) => e(array_column($allSYs, 'label', 'sy_id')[$id] ?? ''), $compareSyIds)) : 'None' ?></span>
       </div>
       <div class="p-select-menu">
-        <div class="p-select-item <?= !$compareSyId ? 'selected' : '' ?>"
-          onclick="location.href='dashboard.php?compare_sy=0&view=analytics'">None</div>
+        <div class="p-select-item <?= empty($compareSyIds) ? 'selected' : '' ?>"
+          onclick="location.href='dashboard.php?compare_sy=&view=progress'">None</div>
         <?php foreach ($allSYs as $sy):
           if ($sy['sy_id'] == $syId)
-            continue; ?>
-          <div class="p-select-item <?= $sy['sy_id'] == $compareSyId ? 'selected' : '' ?>"
-            onclick="location.href='dashboard.php?compare_sy=<?= $sy['sy_id'] ?>&view=analytics'">
-            SY <?= e($sy['label']) ?><?php if ($sy['sy_id'] == $compareSyId): ?><span
+            continue;
+          $isSelected = in_array($sy['sy_id'], $compareSyIds);
+          if ($isSelected) {
+            $newIds = array_values(array_diff($compareSyIds, [$sy['sy_id']]));
+          } else {
+            $newIds = array_merge($compareSyIds, [$sy['sy_id']]);
+            $newIds = array_slice($newIds, -2); // keep max 2
+          }
+          $newParam = implode(',', $newIds);
+        ?>
+          <div class="p-select-item <?= $isSelected ? 'selected' : '' ?>"
+            onclick="location.href='dashboard.php?compare_sy=<?= $newParam ?>&view=progress'">
+            SY <?= e($sy['label']) ?><?php if ($isSelected): ?><span
                 class="p-select-check"></span><?php endif; ?>
           </div>
         <?php endforeach; ?>
       </div>
     </div>
-    <?php if ($compareSyId): ?>
+    <?php if (!empty($compareSyIds)): ?>
       <span
         style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--blue-bg);color:var(--blue);">Comparing
-        2 cycles</span>
+        <?= count($compareSyIds) + 1 ?> cycles</span>
       <a href="dashboard.php?view=progress" class="btn btn-ghost btn-sm">✕ Clear</a>
     <?php endif; ?>
     <div style="margin-left:auto;display:flex;gap:8px;">
@@ -2148,7 +2162,7 @@ include __DIR__ . '/../includes/header.php';
 
   <!-- Charts row -->
   <div class="grid2" style="margin-bottom:18px;align-items:start;grid-template-columns:1fr 1fr;">
-    <div class="chart-card" style="display:flex;flex-direction:column;height:478px;min-width:0;">
+    <div class="chart-card" style="display:flex;flex-direction:column;height:480px;min-width:0;">
       <div class="chart-card-head">
         <span class="chart-card-title">Dimension Score Comparison</span>
       </div>
@@ -2551,6 +2565,10 @@ include __DIR__ . '/../includes/header.php';
     txt.textContent = isOpen ? 'See less' : 'See more';
   }
   const anCompareSyLabel = <?= json_encode(!empty($anDimAvgsCompare) ? (array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') : '') ?>;
+  const anDimValCmpList = <?= json_encode(array_map(fn($c) => [
+    'label' => $c['label'],
+    'values' => array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $c['data'])
+  ], $anDimAvgsCompareList)) ?>;
   const anCurrSyLabel = <?= json_encode($syLabel) ?>;
   const anDimValCmp = <?= json_encode(!empty($anDimAvgsCompare) ? array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $anDimAvgsCompare) : []) ?>;
 
@@ -2560,15 +2578,7 @@ include __DIR__ . '/../includes/header.php';
   const dimNos = <?= json_encode(array_map(fn($d) => (int) $d['dimension_no'], $dimScores)) ?>;
   const dimLabels = dimNos.map(no => dimAbbrevMap[no] || ('D' + no));
   const dimValues = <?= json_encode(array_map(fn($d) => $d['percentage'] !== null ? floatval($d['percentage']) : null, $dimScores)) ?>;
-
-  function dimPerfColor(v) {
-    if (v === null || v === undefined) return '#9CA3AF';
-    if (v >= 80) return '#16A34A';
-    if (v >= 60) return '#2563EB';
-    if (v >= 40) return '#D97706';
-    return '#DC2626';
-  }
-  const dimColors = dimValues.map(dimPerfColor);
+  const dimColors = <?= json_encode(array_map(fn($d) => $d['color_hex'] ?? '#4ADE80', $dimScores)) ?>;
 
   const dimBarEl = document.getElementById('dimBarChart');
   if (dimBarEl && dimValues.length > 0) {
@@ -2583,20 +2593,23 @@ include __DIR__ . '/../includes/header.php';
       barPercentage: 0.55,
       categoryPercentage: 0.8
     }];
-    if (anDimValCmp.length && anDimValCmp.some(v => v > 0)) {
+    const cmpDashPatterns = [[4, 4], [2, 2], [1, 3]];
+    const cmpOpacities = ['20', '14', '0E'];
+    anDimValCmpList.forEach((cmp, idx) => {
+      if (!cmp.values.length || !cmp.values.some(v => v > 0)) return;
       dimBarDatasets.push({
-        label: 'SY ' + anCompareSyLabel,
-        data: anDimValCmp,
-        backgroundColor: anDimValCmp.map(v => dimPerfColor(v) + '20'),
-        borderColor: anDimValCmp.map(v => dimPerfColor(v) + '99'),
+        label: 'SY ' + cmp.label,
+        data: cmp.values,
+        backgroundColor: dimColors.map(c => c + (cmpOpacities[idx] || '0E')),
+        borderColor: dimColors.map(c => c + '99'),
         borderWidth: 2,
         borderRadius: 6,
         borderSkipped: 'start',
-        borderDash: [4, 4],
+        borderDash: cmpDashPatterns[idx] || [1, 3],
         barPercentage: 0.55,
         categoryPercentage: 0.8
       });
-    }
+    });
 
     const validVals = dimValues.filter(v => v !== null && v !== undefined);
     const dimAverage = validVals.length ? (validVals.reduce((a, b) => a + b, 0) / validVals.length) : null;
