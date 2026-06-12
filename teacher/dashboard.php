@@ -58,7 +58,7 @@ include __DIR__ . '/../includes/header.php';
     <?= svgIcon('home') ?>
     <span><strong><?= e($school['school_name']) ?></strong> &nbsp;·&nbsp; SY <?= e($sy['label'] ?? '—') ?> &nbsp;·&nbsp;
       <?php if ($cycle): ?>
-        Assessment Status: <?= sbmMaturityBadge($cycle['maturity_level'] ?? 'Beginning') ?>
+        Assessment Status: <?= sbmMaturityBadge($cycle['maturity_level'] ?? 'Developing') ?>
       <?php else: ?>
         No active assessment cycle yet.
       <?php endif; ?>

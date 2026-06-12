@@ -35,12 +35,11 @@ def _maturity_training_data():
       [1] slope        — score change per assessment cycle (+ve = improving)
       [2] weak_ratio   — fraction of indicators rated < 2.5 (0.0–1.0)
 
-    Labels: 'Beginning' | 'Developing' | 'Maturing' | 'Advanced'
+    Labels: 'Developing' | 'Maturing' | 'Advanced'
 
     Key nuance vs. hardcoded rules:
-      - score=78%, slope=-7, weak_ratio=0.5  → Maturing  (not Advanced — declining)
-      - score=24%, slope=+12, weak_ratio=0.2 → Beginning  (but noted as recovering)
-      - score=51%, week_ratio=0.6            → Developing (many weak indicators drag it down)
+      - score=89%, slope=-7, weak_ratio=0.5  → Maturing  (not Advanced — declining)
+      - score=64%, week_ratio=0.6            → Developing (many weak indicators drag it down)
     """
     rng = np.random.default_rng(42)
     X, y = [], []
@@ -54,36 +53,27 @@ def _maturity_training_data():
             ])
             y.append(label)
 
-    # ── Beginning (0–25) ───────────────────────────────────────────
-    add(200, (0,  25),  (-8,  3),  (0.65, 1.00), "Beginning")   # typical
-    add(30,  (0,  10),  (-10, -2), (0.85, 1.00), "Beginning")   # critical decline
-    add(20,  (20, 25),  (3,   8),  (0.50, 0.75), "Beginning")   # recovering but still Beginning
+    # ── Developing (0–62.5) ─────────────────────────────────────────
+    add(300, (0, 62.5),  (-8,  6),  (0.40, 1.00), "Developing")  # typical / low
+    add(50,  (0, 30),    (-10, -2), (0.70, 1.00), "Developing")  # critical decline
+    add(50,  (50, 62.5), (4,  10),  (0.20, 0.50), "Developing")  # high-end, improving
 
-    # ── Developing (26–50) ─────────────────────────────────────────
-    add(200, (26, 50),  (-5,  6),  (0.30, 0.70), "Developing")  # typical
-    add(30,  (26, 35),  (-5,  0),  (0.55, 0.80), "Developing")  # low-end, struggling
-    add(20,  (45, 50),  (5,  10),  (0.20, 0.40), "Developing")  # high-end, positive trend
+    # ── Maturing (62.5–87.5) ───────────────────────────────────────────
+    add(300, (62.5, 87.5), (-4,  8),  (0.10, 0.45), "Maturing")    # typical
+    add(50,  (62.5, 70),   (-5,  0),  (0.30, 0.60), "Maturing")    # low-end, watch out
+    add(50,  (80, 87.5),   (5,  12),  (0.05, 0.20), "Maturing")    # approaching Advanced
 
-    # ── Maturing (51–75) ───────────────────────────────────────────
-    add(200, (51, 75),  (-3,  8),  (0.10, 0.40), "Maturing")    # typical
-    add(30,  (51, 60),  (-5,  0),  (0.35, 0.55), "Maturing")    # low-end, watch out
-    add(20,  (70, 75),  (5,  10),  (0.05, 0.15), "Maturing")    # approaching Advanced
-
-    # ── Advanced (76–100) ──────────────────────────────────────────
-    add(200, (76, 100), (0,  10),  (0.00, 0.20), "Advanced")    # typical
-    add(30,  (76, 80),  (-4,  0),  (0.15, 0.30), "Advanced")    # borderline but still Advanced
-    add(20,  (90, 100), (5,  12),  (0.00, 0.05), "Advanced")    # exemplary
+    # ── Advanced (87.5–100) ──────────────────────────────────────────
+    add(300, (87.5, 100), (0,  10),  (0.00, 0.20), "Advanced")    # typical
+    add(50,  (87.5, 92),  (-4,  0),  (0.10, 0.30), "Advanced")    # borderline but still Advanced
+    add(50,  (93, 100),   (5,  15),  (0.00, 0.05), "Advanced")    # exemplary
 
     # ── Cross-boundary nuance: regression risk ──────────────────────
     # High score + negative trend + many weak indicators → Maturing (not Advanced)
-    add(50,  (76, 83),  (-10, -4), (0.40, 0.65), "Maturing")
+    add(60,  (87.5, 92),  (-10, -4), (0.35, 0.60), "Maturing")
 
-    # Low score + strong positive trend → still in category, but "best case"
-    add(20,  (22, 25),  (8,  15),  (0.30, 0.50), "Beginning")
-    add(20,  (47, 50),  (8,  15),  (0.10, 0.30), "Developing")
-
-    # ── Borderline score + heavy weak indicators → pull down one level ──
-    add(30,  (51, 56),  (-2,  2),  (0.55, 0.80), "Developing")  # 51–56 but weak
+    # Borderline score + heavy weak indicators → pull down one level
+    add(40,  (62.5, 68),  (-2,  2),  (0.50, 0.75), "Developing")  # 62.5–68 but weak
 
     return np.array(X, dtype=float), np.array(y)
 
@@ -162,7 +152,7 @@ class SBMDecisionTreeClassifier:
                                         weight=1.2, weak_count=7, slope=-2.0)
     """
 
-    MATURITY_ORDER = ["Beginning", "Developing", "Maturing", "Advanced"]
+    MATURITY_ORDER = ["Developing", "Maturing", "Advanced"]
 
     def __init__(self):
         self.maturity_model = DecisionTreeClassifier(
@@ -220,7 +210,7 @@ class SBMDecisionTreeClassifier:
                         Pass 0.0 if indicator-level data is unavailable.
 
         Returns:
-            One of: 'Beginning', 'Developing', 'Maturing', 'Advanced'
+            One of: 'Developing', 'Maturing', 'Advanced'
         """
         x = np.array([[float(score), float(slope), float(weak_ratio)]])
         return str(self.maturity_model.predict(x)[0])
@@ -239,7 +229,7 @@ class SBMDecisionTreeClassifier:
             {
               "maturity":      "Maturing",
               "confidence":    0.82,
-              "probabilities": {"Beginning": 0.01, "Developing": 0.17,
+              "probabilities": {"Developing": 0.18,
                                 "Maturing": 0.82, "Advanced": 0.0}
             }
         """

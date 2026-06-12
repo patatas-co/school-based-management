@@ -14,8 +14,8 @@ maturity_tests = [
     (55.0,  3.0,  0.25, "typical Maturing"),
     (51.0,  0.0,  0.65, "Maturing score but heavy weak indicators"),
     (35.0,  0.0,  0.55, "typical Developing"),
-    (15.0, -3.0,  0.85, "critical Beginning"),
-    (24.0, 12.0,  0.30, "Beginning but recovering fast"),
+    (15.0, -3.0,  0.85, "critical Developing"),
+    (24.0, 12.0,  0.30, "Developing but recovering fast"),
 ]
 
 for score, slope, wr, note in maturity_tests:

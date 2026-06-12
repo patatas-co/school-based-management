@@ -1048,7 +1048,7 @@ CREATE TABLE `analytics_snapshots` (
   `raw_score` decimal(8,2) DEFAULT 0.00,
   `max_score` decimal(8,2) DEFAULT 0.00,
   `overall_score` decimal(5,2) DEFAULT NULL COMMENT 'Copied from sbm_cycles for convenience',
-  `maturity_level` enum('Beginning','Developing','Maturing','Advanced') DEFAULT NULL,
+  `maturity_level` enum('Developing','Maturing','Advanced') DEFAULT NULL,
   `snapshot_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -1396,7 +1396,7 @@ CREATE TABLE `ml_training_snapshots` (
   `dim_scores` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`dim_scores`)),
   `indicator_ratings` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`indicator_ratings`)),
   `overall_score` decimal(5,2) DEFAULT NULL,
-  `maturity_level` enum('Beginning','Developing','Maturing','Advanced') DEFAULT NULL,
+  `maturity_level` enum('Developing','Maturing','Advanced') DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -1506,7 +1506,7 @@ CREATE TABLE `sbm_cycles` (
   `school_id` int(11) NOT NULL,
   `status` enum('draft','setup','assigning','in_progress','consolidating','submitted','returned','validated','finalized') DEFAULT 'draft',
   `overall_score` decimal(5,2) DEFAULT NULL,
-  `maturity_level` enum('Beginning','Developing','Maturing','Advanced') DEFAULT NULL,
+  `maturity_level` enum('Developing','Maturing','Advanced') DEFAULT NULL,
   `started_at` datetime DEFAULT NULL,
   `submitted_at` datetime DEFAULT NULL,
   `validated_at` datetime DEFAULT NULL,

@@ -865,7 +865,7 @@ $pillMap = [
     </div>
     <div>
       <div style="font-size:11.5px;font-weight:700;color:var(--n600);margin-bottom:4px;">Maturity Levels</div>
-      <div style="font-size:13px;color:var(--n800);">Beginning · Developing · Maturing · Advanced</div>
+      <div style="font-size:13px;color:var(--n800);">Developing · Maturing · Advanced</div>
     </div>
     <div>
       <div style="font-size:11.5px;font-weight:700;color:var(--n600);margin-bottom:4px;">Dimensions</div>

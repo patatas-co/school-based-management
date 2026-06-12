@@ -603,7 +603,7 @@ include __DIR__ . '/../includes/header.php';
   <!-- Overall score -->
   <div class="insight-card">
     <div class="insight-val"
-      style="color:<?= $avgOverall !== null ? ($avgOverall >= 76 ? '#16A34A' : ($avgOverall >= 51 ? '#2563EB' : ($avgOverall >= 26 ? '#D97706' : '#DC2626'))) : 'var(--n-400)' ?>;">
+      style="color:<?= $avgOverall !== null ? ($avgOverall >= 87.5 ? '#16A34A' : ($avgOverall >= 62.5 ? '#2563EB' : '#D97706')) : 'var(--n-400)' ?>;">
       <?= $avgOverall !== null ? $avgOverall . '%' : '—' ?>
     </div>
     <div class="insight-lbl">Overall SBM Score</div>
@@ -619,7 +619,7 @@ include __DIR__ . '/../includes/header.php';
     <?php
     // Use dynamic maturity based on the calculated overall score to ensure consistency
     $curMaturity = $avgOverall !== null ? computeMaturity($avgOverall) : ($currCycle['maturity_level'] ?? null);
-    $matColors = ['Beginning' => '#DC2626', 'Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
+    $matColors = ['Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
     ?>
     <div class="insight-val" style="font-size:18px;color:<?= $curMaturity ? 'var(--n-900)' : 'var(--n-400)' ?>;">
       <?= $curMaturity ?? '—' ?>

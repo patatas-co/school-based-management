@@ -142,10 +142,9 @@ $ratingBgs = [
 ];
 
 function getMaturityLabel(float $pct): array {
-    if ($pct >= 76) return ['label' => 'Advanced',   'color' => '#16A34A', 'bg' => '#DCFCE7'];
-    if ($pct >= 51) return ['label' => 'Maturing',   'color' => '#2563EB', 'bg' => '#DBEAFE'];
-    if ($pct >= 26) return ['label' => 'Developing', 'color' => '#D97706', 'bg' => '#FEF3C7'];
-    return              ['label' => 'Beginning',  'color' => '#DC2626', 'bg' => '#FEE2E2'];
+    if ($pct >= 87.5) return ['label' => 'Advanced',   'color' => '#16A34A', 'bg' => '#DCFCE7'];
+    if ($pct >= 62.5) return ['label' => 'Maturing',   'color' => '#2563EB', 'bg' => '#DBEAFE'];
+    return              ['label' => 'Developing', 'color' => '#D97706', 'bg' => '#FEF3C7'];
 }
 
 $overallMat = getMaturityLabel((float)($cycle['overall_score'] ?? 0));

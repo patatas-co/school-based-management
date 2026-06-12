@@ -22,11 +22,11 @@ logger = logging.getLogger(__name__)
 # ── Reference data ──────────────────────────────────────────────────────────────
 
 # Kept for fallback only (used if sklearn is unavailable)
+# Aligned with RM No. 53 s. 2021 — 3 levels, no "Beginning"
 _MATURITY_BANDS = [
-    (76, 100, "Advanced"),
-    (51, 75,  "Maturing"),
-    (26, 50,  "Developing"),
-    (0,  25,  "Beginning"),
+    (87.5, 100.0, "Advanced"),
+    (62.5, 87.49, "Maturing"),
+    (0.0,  62.49, "Developing"),
 ]
 
 DIMENSION_NAMES = {
@@ -74,7 +74,7 @@ def get_maturity(
                     Defaults to 0.0 when indicator data is unavailable.
 
     Returns:
-        One of: 'Beginning', 'Developing', 'Maturing', 'Advanced'
+        One of: 'Developing', 'Maturing', 'Advanced'
     """
     try:
         clf = get_classifier()
@@ -84,7 +84,7 @@ def get_maturity(
         for low, high, label in _MATURITY_BANDS:
             if low <= score <= high:
                 return label
-        return "Beginning"
+        return "Developing"
 
 
 def get_maturity_with_confidence(
@@ -100,7 +100,7 @@ def get_maturity_with_confidence(
         {
           "maturity":      "Maturing",
           "confidence":    0.82,
-          "probabilities": {"Beginning": 0.01, ...}
+          "probabilities": {"Developing": 0.18, ...}
         }
     """
     try:

@@ -3114,8 +3114,9 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
           } catch (e) { toast('Network error.', 'err'); }
         }
 
-                function sbmMaturityBadge(level) {
-          const map = { 'Beginning': ['#FEE2E2', '#DC2626', '#FECACA'], 'Developing': ['#FEF3C7', '#D97706', '#FDE68A'], 'Maturing': ['#DBEAFE', '#2563EB', '#BFDBFE'], 'Advanced': ['#DCFCE7', '#16A34A', '#BBF7D0'] };
+        function sbmMaturityBadge(level) {
+          if (level === 'Beginning') level = 'Developing';
+          const map = { 'Developing': ['#FEF3C7', '#D97706', '#FDE68A'], 'Maturing': ['#DBEAFE', '#2563EB', '#BFDBFE'], 'Advanced': ['#DCFCE7', '#16A34A', '#BBF7D0'] };
           const [bg, c, br] = map[level] || ['#F3F4F6', '#6B7280', '#E5E7EB'];
           return `<span class="pill" style="background:${bg};color:${c};border-color:${br};">${level}</span>`;
         }

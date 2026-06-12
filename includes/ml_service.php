@@ -228,7 +228,7 @@ function runMLPipeline(PDO $db, int $cycleId): bool
         'classification' => $meta['classification'] ?? '',
         'sy_label'       => $meta['sy_label']       ?? '',
         'overall_score'  => $meta['overall_score']  ?? 0,
-        'maturity_level' => $meta['maturity_level'] ?? 'Beginning',
+        'maturity_level' => $meta['maturity_level'] ?? 'Developing',
         'dim_scores'     => array_map(fn($d) => $d['percentage'], $dimScores),
         'dim_details'    => $dimScores,
         'indicators'     => $mergedIndicators,
@@ -291,7 +291,7 @@ function runRuleBasedPipeline(array $payload): array
     $schoolName  = $payload['school_name'];
     $syLabel     = $payload['sy_label'];
     $overall     = (float)($payload['overall_score'] ?? 0);
-    $maturity    = $payload['maturity_level'] ?? 'Beginning';
+    $maturity    = $payload['maturity_level'] ?? 'Developing';
     $ratingSummary = $payload['rating_summary'];
 
     $ratingLabels = [
@@ -797,20 +797,17 @@ function buildStructuredRecommendations(
 
     // ── Dimension-Level Recommendations ───────────────────────
     $lines[] = "\n📐 DIMENSION-LEVEL PRIORITY ACTIONS";
-    $weakOnly = array_filter($weakestDims, fn($d) => $d['score'] < 76);
+    $weakOnly = array_filter($weakestDims, fn($d) => $d['score'] < 87.5);
     foreach (array_slice($weakOnly, 0, 4) as $dim) {
         $pct     = $dim['score'];
         $dimMat  = $dim['maturity'];
         $dimName = $dim['dimension_name'];
         $gap     = $dim['gap_from_avg'];
         $lines[] = "\n  $dimName ($pct% — $dimMat):";
-        if ($pct < 26) {
-            $lines[] = "  → CRITICAL: This dimension is in the Beginning level. Immediate SDO technical assistance";
-            $lines[] = "    is recommended. Prioritize this in the SIP as a High Priority action.";
-        } elseif ($pct < 51) {
-            $lines[] = "  → This dimension needs significant improvement. Create a dedicated action plan,";
-            $lines[] = "    allocate resources, and schedule monthly monitoring with the SDO.";
-        } elseif ($pct < 76) {
+        if ($pct < 62.5) {
+            $lines[] = "  → This dimension is in the Developing level. Prioritize this in the SIP";
+            $lines[] = "    as a High Priority action. SDO technical assistance is advised.";
+        } elseif ($pct < 87.5) {
             $lines[] = "  → Good progress noted. Focus on the remaining weak indicators to reach the";
             $lines[] = "    Advanced level. Current gap from average: {$gap}%.";
         }
@@ -846,7 +843,7 @@ function buildStructuredRecommendations(
     $lines[] = "NOTE: These recommendations are generated based on the SBM self-assessment data";
     $lines[] = "submitted by $schoolName for SY $syLabel. All action plans should be";
     $lines[] = "integrated into the School Improvement Plan (SIP) and monitored quarterly by the SDO.";
-    $lines[] = "For dimensions rated 'Beginning' or 'Developing', SDO technical assistance is strongly advised.";
+    $lines[] = "For dimensions rated 'Developing', SDO technical assistance is strongly advised.";
 
     return implode("\n", $lines);
 }
@@ -856,10 +853,9 @@ function buildStructuredRecommendations(
  */
 function getMaturityLabel(float $pct): string
 {
-    if ($pct >= 76) return 'Advanced';
-    if ($pct >= 51) return 'Maturing';
-    if ($pct >= 26) return 'Developing';
-    return 'Beginning';
+    if ($pct >= 87.5) return 'Advanced';
+    if ($pct >= 62.5) return 'Maturing';
+    return 'Developing';
 }
 
 /**

@@ -216,12 +216,14 @@ function formatActivityAction(string $action): string
 function sbmMaturityBadge(string $level): string
 {
     $map = [
-        'Beginning' => ['#FEE2E2', '#DC2626', '#FECACA'],
         'Developing' => ['#FEF3C7', '#D97706', '#FDE68A'],
         'Maturing' => ['#DBEAFE', '#2563EB', '#BFDBFE'],
         'Advanced' => ['#DCFCE7', '#16A34A', '#BBF7D0'],
     ];
-    [$bg, $c, $br] = $map[$level] ?? ['#F3F4F6', '#6B7280', '#E5E7EB'];
+    if ($level === 'Beginning') {
+        $level = 'Developing';
+    }
+    [$bg, $c, $br] = $map[$level] ?? ['#FEF3C7', '#D97706', '#FDE68A'];
     return "<span style=\"display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;background:$bg;color:$c;border:1px solid $br;\">$level</span>";
 }
 
@@ -261,13 +263,11 @@ function sbmRatingBadge(int $r): string
 
 function computeMaturity(float $pct): string
 {
-    if ($pct >= 76)
+    if ($pct >= 87.5)
         return 'Advanced';
-    if ($pct >= 51)
+    if ($pct >= 62.5)
         return 'Maturing';
-    if ($pct >= 26)
-        return 'Developing';
-    return 'Beginning';
+    return 'Developing';
 }
 
 /**

@@ -2358,7 +2358,7 @@ include __DIR__ . '/../includes/header.php';
       <?php
       // Use dynamic maturity based on the calculated overall score to ensure consistency
       $curMaturity = $anAvgOverall !== null ? computeMaturity($anAvgOverall) : ($currCycle['maturity_level'] ?? null);
-      $anMatColors = ['Beginning' => '#DC2626', 'Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
+      $anMatColors = ['Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
       ?>
       <div class="an-insight-val" style="font-size:18px;color:<?= $curMaturity ? 'var(--n-900)' : 'var(--n-400)' ?>;">
         <?= $curMaturity ?? '—' ?>

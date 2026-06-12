@@ -336,12 +336,12 @@ define('SBM_RATINGS', [
     4 => ['label' => 'Always manifested', 'short' => 'AM', 'color' => '#16A34A', 'bg' => '#DCFCE7'],
 ]);
 
-// ── Maturity levels ───────────────────────────────────────────────────────────
+// ── Maturity levels (RM No. 53 s. 2021) ──────────────────────────────────────
+// Level I Developing: 0–62.49% | Level II Maturing: 62.5–87.49% | Level III Advanced: 87.5–100%
 define('SBM_MATURITY', [
-    ['min' => 0, 'max' => 25, 'level' => 1, 'label' => 'Beginning', 'color' => '#DC2626', 'bg' => '#FEE2E2'],
-    ['min' => 26, 'max' => 50, 'level' => 2, 'label' => 'Developing', 'color' => '#D97706', 'bg' => '#FEF3C7'],
-    ['min' => 51, 'max' => 75, 'level' => 3, 'label' => 'Maturing', 'color' => '#2563EB', 'bg' => '#DBEAFE'],
-    ['min' => 76, 'max' => 100, 'level' => 4, 'label' => 'Advanced', 'color' => '#16A34A', 'bg' => '#DCFCE7'],
+    ['min' => 0.0,  'max' => 62.49,  'level' => 1, 'label' => 'Developing', 'color' => '#D97706', 'bg' => '#FEF3C7'],
+    ['min' => 62.5, 'max' => 87.49,  'level' => 2, 'label' => 'Maturing',   'color' => '#2563EB', 'bg' => '#DBEAFE'],
+    ['min' => 87.5, 'max' => 100.0,  'level' => 3, 'label' => 'Advanced',   'color' => '#16A34A', 'bg' => '#DCFCE7'],
 ]);
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -472,7 +472,7 @@ function sbmMaturityLevel(float $pct): array
             $cached = false; // mark as tried so we don't re-query on error
         }
     }
-    $bands = (is_array($cached) && count($cached) === 4) ? $cached : SBM_MATURITY;
+    $bands = (is_array($cached) && count($cached) === 3) ? $cached : SBM_MATURITY;
     foreach ($bands as $m) {
         if ($pct >= $m['min'] && $pct <= $m['max']) {
             return $m;

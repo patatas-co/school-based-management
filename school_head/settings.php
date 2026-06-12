@@ -104,34 +104,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   }
   if ($_POST['action'] === 'save_maturity') {
     $bands = $_POST['bands'] ?? [];
-    if (!is_array($bands) || count($bands) !== 4) {
-      echo json_encode(['ok' => false, 'msg' => 'Exactly 4 maturity bands are required.']);
+    if (!is_array($bands) || count($bands) !== 3) {
+      echo json_encode(['ok' => false, 'msg' => 'Exactly 3 maturity bands are required.']);
       exit;
     }
     // Validate and sort by min ascending
     $parsed = [];
     foreach ($bands as $b) {
-      $min   = (int)   ($b['min']   ?? 0);
-      $max   = (int)   ($b['max']   ?? 0);
+      $min   = (float) ($b['min']   ?? 0);
+      $max   = (float) ($b['max']   ?? 0);
       $level = (int)   ($b['level'] ?? 0);
       $label = trim($b['label'] ?? '');
       $color = trim($b['color'] ?? '#000000');
       $bg    = trim($b['bg']    ?? '#FFFFFF');
-      if ($min < 0 || $max > 100 || $min >= $max || !$label || $level < 1 || $level > 4) {
+      if ($min < 0 || $max > 100 || $min >= $max || !$label || $level < 1 || $level > 3) {
         echo json_encode(['ok' => false, 'msg' => "Invalid band data for level $level."]);
         exit;
       }
       $parsed[] = compact('min', 'max', 'level', 'label', 'color', 'bg');
     }
     usort($parsed, fn($a,$b) => $a['min'] <=> $b['min']);
-    // Ensure bands are contiguous (max of prev == min of next - 1)
+    // Ensure bands are contiguous (min of next == max of prev)
     for ($i = 1; $i < count($parsed); $i++) {
-      if ($parsed[$i]['min'] !== $parsed[$i-1]['max'] + 1) {
-        echo json_encode(['ok' => false, 'msg' => 'Bands must be contiguous with no gaps or overlaps (e.g. 0-25, 26-50).']);
+      if (abs($parsed[$i]['min'] - $parsed[$i-1]['max']) > 0.02) {
+        echo json_encode(['ok' => false, 'msg' => 'Bands must be contiguous with no gaps or overlaps (e.g. 0-62.5, 62.5-87.5).']);
         exit;
       }
     }
-    if ($parsed[0]['min'] !== 0 || $parsed[count($parsed)-1]['max'] !== 100) {
+    if ($parsed[0]['min'] > 0.01 || $parsed[count($parsed)-1]['max'] < 99.99) {
       echo json_encode(['ok' => false, 'msg' => 'Bands must cover 0–100 exactly.']);
       exit;
     }
@@ -165,10 +165,9 @@ $syears = $db->query("SELECT * FROM school_years ORDER BY sy_id DESC")->fetchAll
 // Load saved maturity bands (fall back to DepEd defaults if not yet configured)
 $maturityRow = $db->query("SELECT setting_value FROM system_settings WHERE setting_key='sbm_maturity_bands' LIMIT 1")->fetchColumn();
 $maturityBands = $maturityRow ? json_decode($maturityRow, true) : [
-    ['min'=>0,  'max'=>25,  'level'=>1, 'label'=>'Beginning',  'color'=>'#DC2626', 'bg'=>'#FEE2E2'],
-    ['min'=>26, 'max'=>50,  'level'=>2, 'label'=>'Developing', 'color'=>'#D97706', 'bg'=>'#FEF3C7'],
-    ['min'=>51, 'max'=>75,  'level'=>3, 'label'=>'Maturing',   'color'=>'#2563EB', 'bg'=>'#DBEAFE'],
-    ['min'=>76, 'max'=>100, 'level'=>4, 'label'=>'Advanced',   'color'=>'#16A34A', 'bg'=>'#DCFCE7'],
+    ['min'=>0.0,  'max'=>62.49,  'level'=>1, 'label'=>'Developing', 'color'=>'#D97706', 'bg'=>'#FEF3C7'],
+    ['min'=>62.5, 'max'=>87.49,  'level'=>2, 'label'=>'Maturing',   'color'=>'#2563EB', 'bg'=>'#DBEAFE'],
+    ['min'=>87.5, 'max'=>100.0,  'level'=>3, 'label'=>'Advanced',   'color'=>'#16A34A', 'bg'=>'#DCFCE7'],
 ];
 
 $userCount = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
@@ -441,11 +440,11 @@ include __DIR__ . '/../includes/header.php';
             <td style="padding:10px 12px;font-weight:600;color:var(--n-700);">Level ${b.level}</td>
             <td style="padding:10px 12px;color:var(--n-700);">${b.label}</td>
             <td style="padding:10px 12px;text-align:center;">
-              <input class="fc" type="number" min="0" max="100" id="mat_min_${i}" value="${b.min}"
+              <input class="fc" type="number" min="0" max="100" step="0.01" id="mat_min_${i}" value="${b.min}"
                 style="width:80px;text-align:center;margin:0 auto;">
             </td>
             <td style="padding:10px 12px;text-align:center;">
-              <input class="fc" type="number" min="0" max="100" id="mat_max_${i}" value="${b.max}"
+              <input class="fc" type="number" min="0" max="100" step="0.01" id="mat_max_${i}" value="${b.max}"
                 style="width:80px;text-align:center;margin:0 auto;">
             </td>
           </tr>
@@ -462,19 +461,19 @@ include __DIR__ . '/../includes/header.php';
 
   async function openMaturityModal() {
     const r = await apiPost('settings.php', { action: 'get_maturity' });
-    const bands = (r && r.bands && r.bands.length === 4) ? r.bands : DEFAULT_BANDS;
+    const bands = (r && r.bands && r.bands.length === 3) ? r.bands : DEFAULT_BANDS;
     buildMaturityForm(bands);
     openModal('mMaturity');
   }
 
   async function saveMaturity() {
     const bands = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
       bands.push({
         level: parseInt(document.getElementById(`mat_level_${i}`).value),
         label: document.getElementById(`mat_label_${i}`).value,
-        min:   parseInt(document.getElementById(`mat_min_${i}`).value),
-        max:   parseInt(document.getElementById(`mat_max_${i}`).value),
+        min:   parseFloat(document.getElementById(`mat_min_${i}`).value),
+        max:   parseFloat(document.getElementById(`mat_max_${i}`).value),
         color: document.getElementById(`mat_color_${i}`).value,
         bg:    document.getElementById(`mat_bg_${i}`).value,
       });

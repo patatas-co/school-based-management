@@ -212,7 +212,7 @@ $stMaturity = $db->prepare("
   SELECT maturity_level, COUNT(*) cnt FROM sbm_cycles
   WHERE sy_id = ? AND maturity_level IS NOT NULL
   GROUP BY maturity_level
-  ORDER BY FIELD(maturity_level,'Advanced','Maturing','Developing','Beginning')
+  ORDER BY FIELD(maturity_level,'Advanced','Maturing','Developing')
 ");
 $stMaturity->execute([$selectedSyId]);
 $maturity = $stMaturity->fetchAll();
@@ -2538,7 +2538,9 @@ include __DIR__ . '/../includes/header.php';
       </div>
 
       <div class="card">
-        <div class="card-head"><span class="card-title">Dimension Score Comparison</span></div>
+       <div class="card-head"><span class="card-title">Dimension Score Comparison</span>
+          <button class="btn btn-ghost btn-sm" onclick="downloadChart('dimBarChart','dimension_score_comparison')">Download</button>
+        </div>
         <div class="card-body" style="padding:16px 20px 18px;">
           <div style="position:relative;height:190px;">
             <canvas id="dimBarChart"></canvas>
@@ -2622,12 +2624,14 @@ include __DIR__ . '/../includes/header.php';
 
       <!-- Maturity Distribution -->
       <div class="card">
-        <div class="card-head"><span class="card-title">Maturity Distribution</span></div>
+        <div class="card-head"><span class="card-title">Maturity Distribution</span>
+          <button class="btn btn-ghost btn-sm" onclick="downloadChart('maturityChart','maturity_distribution')">Download</button>
+        </div>
         <div class="card-body" style="padding:14px 16px;">
           <?php
           $matData = array_column($maturity, 'cnt', 'maturity_level');
           $matTotal = array_sum(array_column($maturity, 'cnt'));
-          $matColors = ['Beginning' => '#DC2626', 'Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
+          $matColors = ['Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
           ?>
           <?php if ($matTotal > 0): ?>
             <div style="position:relative;max-width:130px;margin:0 auto 12px;">
@@ -2642,7 +2646,7 @@ include __DIR__ . '/../includes/header.php';
               </div>
             </div>
             <div class="mat-legend">
-              <?php foreach (['Beginning', 'Developing', 'Maturing', 'Advanced'] as $lv):
+              <?php foreach (['Developing', 'Maturing', 'Advanced'] as $lv):
                 $cnt = $matData[$lv] ?? 0;
                 $pct2 = $matTotal > 0 ? round(($cnt / $matTotal) * 100) : 0;
                 ?>
@@ -2777,7 +2781,7 @@ include __DIR__ . '/../includes/header.php';
       <?php
       // Use dynamic maturity based on the calculated overall score to ensure consistency
       $curMaturity = $anAvgOverall !== null ? computeMaturity($anAvgOverall) : ($currCycle['maturity_level'] ?? null);
-      $anMatColors = ['Beginning' => '#DC2626', 'Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
+      $anMatColors = ['Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
       ?>
       <div class="an-insight-val" style="font-size:18px;color:<?= $curMaturity ? 'var(--n-900)' : 'var(--n-400)' ?>;">
         <?= $curMaturity ?? '—' ?>
@@ -2854,6 +2858,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="chart-card">
       <div class="chart-card-head">
         <span class="chart-card-title">Dimension Performance Radar</span>
+        <button class="btn btn-ghost btn-sm" onclick="downloadChart('anRadarChart','dimension_performance_radar')">Download</button>
         <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
           <div style="display:flex;align-items:center;gap:10px;font-size:11.5px;">
             <span style="display:flex;align-items:center;gap:4px;"><span
@@ -2873,6 +2878,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="chart-card">
       <div class="chart-card-head">
         <span class="chart-card-title">Overall Score Trend</span>
+        <button class="btn btn-ghost btn-sm" onclick="downloadChart('anTrendLineChart','overall_score_trend')">Download</button>
         <div id="anTrendLegend" style="display:flex;gap:16px;align-items:center;font-size:12px;color:var(--n-600);"></div>
       </div>
       <div class="chart-card-body" style="min-height:300px;display:flex;align-items:center;justify-content:center;">
@@ -2903,7 +2909,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="chart-card" style="margin-bottom:18px;">
       <div class="chart-card-head">
         <span class="chart-card-title">Dimension Trend — All Cycles</span>
-        <span style="font-size:12px;color:var(--n-400);">Track how each dimension has moved over time</span>
+        <button class="btn btn-ghost btn-sm" onclick="downloadChart('anDimTrendChart','dimension_trend_all_cycles')">Download</button>
       </div>
       <div class="chart-card-body"><canvas id="anDimTrendChart" height="90"></canvas></div>
     </div>
@@ -2913,6 +2919,7 @@ include __DIR__ . '/../includes/header.php';
       <div class="chart-card-head" style="flex-wrap:wrap;gap:10px;">
         <span class="chart-card-title">Indicator Trend Analysis</span>
         <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="downloadChart('anIndTrendChart','indicator_trend_analysis')">Download</button>
           <label style="font-size:12px;font-weight:600;color:var(--n-500);white-space:nowrap;">Dimension:</label>
           <div class="p-select" id="indTrendDimSelect" style="width:220px;">
             <div class="p-select-trigger" onclick="togglePSelect(event, 'indTrendDimSelect')"
@@ -3183,6 +3190,22 @@ include __DIR__ . '/../includes/header.php';
   const dimColors = <?= json_encode(['#4ADE80', '#22C55E', '#16A34A', '#15803D', '#166534', '#14532D']) ?>;
   const dimBarEl = document.getElementById('dimBarChart');
   if (dimBarEl) {
+    function downloadChart(canvasId, filename) {
+      const c = document.getElementById(canvasId);
+      if (!c) return;
+      const tmp = document.createElement('canvas');
+      tmp.width = c.width;
+      tmp.height = c.height;
+      const ctx = tmp.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, tmp.width, tmp.height);
+      ctx.drawImage(c, 0, 0);
+      const link = document.createElement('a');
+      link.download = (filename || canvasId) + '.png';
+      link.href = tmp.toDataURL('image/png');
+      link.click();
+    }
+
     new Chart(dimBarEl, {
       type: 'bar',
       data: {
@@ -3213,15 +3236,14 @@ include __DIR__ . '/../includes/header.php';
     new Chart(document.getElementById('maturityChart'), {
       type: 'doughnut',
       data: {
-        labels: ['Beginning', 'Developing', 'Maturing', 'Advanced'],
+        labels: ['Developing', 'Maturing', 'Advanced'],
         datasets: [{
           data: [
-            <?= $matData['Beginning'] ?? 0 ?>,
             <?= $matData['Developing'] ?? 0 ?>,
             <?= $matData['Maturing'] ?? 0 ?>,
             <?= $matData['Advanced'] ?? 0 ?>
           ],
-          backgroundColor: ['#DC2626', '#D97706', '#2563EB', '#16A34A'],
+          backgroundColor: ['#D97706', '#2563EB', '#16A34A'],
           borderWidth: 3,
           borderColor: '#fff',
           hoverOffset: 6
@@ -3490,7 +3512,7 @@ include __DIR__ . '/../includes/header.php';
         const insightBody = insightEl.querySelector('.chart-card-body');
         const trendDir = slope > 0.5 ? 'upward' : (slope < -0.5 ? 'downward' : 'stable');
         const trendLabel = slope > 0.5 ? 'Scores are improving' : (slope < -0.5 ? 'Scores are declining' : 'Scores are steady');
-        const matLevel = predictionValue >= 76 ? 'Advanced' : (predictionValue >= 51 ? 'Maturing' : (predictionValue >= 26 ? 'Developing' : 'Beginning'));
+        const matLevel = predictionValue >= 87.5 ? 'Advanced' : (predictionValue >= 62.5 ? 'Maturing' : 'Developing');
         const confidenceLabel = rSquared >= 0.7 ? 'High confidence' : (rSquared >= 0.4 ? 'Moderate confidence' : 'Low confidence');
         const changePerCycle = Math.abs(slope).toFixed(1);
         const changeDir = slope > 0 ? 'up' : (slope < 0 ? 'down' : 'unchanged');
