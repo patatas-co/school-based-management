@@ -1159,6 +1159,8 @@ include __DIR__ . '/../includes/header.php';
   }
 
   .chart-card-head {
+    flex-wrap: wrap;
+    row-gap: 6px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2018,7 +2020,7 @@ include __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
-<!-- ━━━━━━━━━━━ PROGRESS VIEW ━━━━━━━━━━━ -->
+  <!-- ━━━━━━━━━━━ PROGRESS VIEW ━━━━━━━━━━━ -->
 <div id="viewProgress">
 
   <!-- ═══════════════════════════════════════════════════════
@@ -2052,113 +2054,141 @@ include __DIR__ . '/../includes/header.php';
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════
-     MAIN GRID: Left wide + Right sidebar
-     ═══════════════════════════════════════════════════════ -->
-  <div class="main-grid db-layout-main">
+  <!-- Filter bar -->
+  <div class="an-filter-bar">
+    <label>Primary SY:</label>
+    <span style="font-size:13px;font-weight:700;color:var(--n-900);"><?= e($syLabel) ?></span>
+    <div style="width:1px;height:18px;background:var(--n-200);margin:0 4px;"></div>
+    <label>Compare with:</label>
+    <div class="p-select" id="anCompareSelect2" style="width:160px;">
+      <input type="hidden" name="compare_sy_id" value="<?= $compareSyId ?>">
+      <div class="p-select-trigger" onclick="togglePSelect(event, 'anCompareSelect2')"
+        style="padding:5px 12px;font-size:12.5px;min-height:32px;">
+        <span
+          class="p-select-val"><?= $compareSyId ? 'SY ' . e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') : 'None' ?></span>
+      </div>
+      <div class="p-select-menu">
+        <div class="p-select-item <?= !$compareSyId ? 'selected' : '' ?>"
+          onclick="location.href='dashboard.php?compare_sy=0&view=analytics'">None</div>
+        <?php foreach ($allSYs as $sy):
+          if ($sy['sy_id'] == $syId)
+            continue; ?>
+          <div class="p-select-item <?= $sy['sy_id'] == $compareSyId ? 'selected' : '' ?>"
+            onclick="location.href='dashboard.php?compare_sy=<?= $sy['sy_id'] ?>&view=analytics'">
+            SY <?= e($sy['label']) ?><?php if ($sy['sy_id'] == $compareSyId): ?><span
+                class="p-select-check"></span><?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <?php if ($compareSyId): ?>
+      <span
+        style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--blue-bg);color:var(--blue);">Comparing
+        2 cycles</span>
+      <a href="dashboard.php?view=progress" class="btn btn-ghost btn-sm">✕ Clear</a>
+    <?php endif; ?>
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <?php if (($shPlanCount ?? 0) > 0): ?>
+        <button class="ai-assistant-btn" onclick="viewSHImprovementPlan()"
+          style="border-color:var(--brand-300);background:var(--brand-50);color:var(--brand-700);">
+          <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+          View SH Improvement Plan
+        </button>
+      <?php endif; ?>
+      <button class="ai-assistant-btn" onclick="openAIAssistant()">
+        <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+        </svg>
+        AI Suggestions
+      </button>
+    </div>
+  </div>
 
-    <!-- LEFT COLUMN -->
-    <div style="display:flex;flex-direction:column;gap:18px;min-width:0;">
+  <!-- ━━━━━━━━━━━ PROGRESS VIEW ━━━━━━━━━━━ -->
 
-      <!-- Dimension Performance List -->
-      <div class="card"
-        style="box-shadow:0 2px 6px rgba(0,0,0,0.07),0 12px 28px rgba(0,0,0,0.06),inset 0 1px 0 rgba(255,255,255,0.95);">
-        <div class="card-head">
-          <span class="card-title">Dimension Performance</span>
-          <a href="dimensions.php" class="btn btn-ghost btn-sm">View details</a>
+ <!-- Dimension trend over time -->
+  <?php if (count($trendSYLabels) >= 2): ?>
+    <div class="chart-card" style="margin-bottom:18px;">
+      <div class="chart-card-head">
+        <span class="chart-card-title">Dimension Trend — All Cycles</span>
+      </div>
+      <div class="chart-card-body"><canvas id="anDimTrendChart" height="90"></canvas></div>
+    </div>
+
+    <!-- Indicator Trend Analysis -->
+    <div class="chart-card" style="margin-bottom:18px;">
+      <div class="chart-card-head" style="flex-wrap:wrap;gap:10px;">
+        <span class="chart-card-title">Indicator Trend Analysis</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+          <label style="font-size:12px;font-weight:600;color:var(--n-500);white-space:nowrap;">Dimension:</label>
+          <div class="p-select" id="indTrendDimSelect" style="width:220px;">
+            <div class="p-select-trigger" onclick="togglePSelect(event, 'indTrendDimSelect')"
+              style="padding:5px 12px;font-size:12.5px;min-height:32px;">
+              <span class="p-select-val">D1: Curriculum and Teaching</span>
+            </div>
+            <div class="p-select-menu">
+              <div class="p-select-item selected" onclick="indTrendSelectDim(this, 1, 'D1: Curriculum and Teaching')">D1: Curriculum and Teaching</div>
+              <div class="p-select-item" onclick="indTrendSelectDim(this, 2, 'D2: Learning Environment')">D2: Learning Environment</div>
+              <div class="p-select-item" onclick="indTrendSelectDim(this, 3, 'D3: Leadership')">D3: Leadership</div>
+              <div class="p-select-item" onclick="indTrendSelectDim(this, 4, 'D4: Governance and Accountability')">D4: Governance and Accountability</div>
+              <div class="p-select-item" onclick="indTrendSelectDim(this, 5, 'D5: Human Resources and Team Development')">D5: Human Resources and Team Development</div>
+              <div class="p-select-item" onclick="indTrendSelectDim(this, 6, 'D6: Finance and Resource Management and Mobilization')">D6: Finance and Resource Management and Mobilization</div>
+            </div>
+          </div>
         </div>
-        <div class="card-body">
-          <?php if ($dimScores):
-            $dimCompletionData = [];
-            $dimActiveCount = [];
-            if ($cycle) {
-              $dcStmt = $db->prepare("
-                SELECT dimension_id, COUNT(DISTINCT indicator_id) cnt FROM (
-                    SELECT i.dimension_id, r.indicator_id FROM sbm_responses r JOIN sbm_indicators i ON r.indicator_id=i.indicator_id WHERE r.cycle_id=?
-                    UNION
-                    SELECT i.dimension_id, r.indicator_id FROM teacher_responses r JOIN sbm_indicators i ON r.indicator_id=i.indicator_id WHERE r.cycle_id=?
-                ) as combined
-                GROUP BY dimension_id
-            ");
-              $dcStmt->execute([$cycle['cycle_id'], $cycle['cycle_id']]);
-              foreach ($dcStmt->fetchAll() as $dc)
-                $dimCompletionData[$dc['dimension_id']] = $dc['cnt'];
+      </div>
+      <div class="chart-card-body" style="min-height:260px;display:flex;align-items:center;justify-content:center;">
+        <canvas id="anIndTrendChart" height="90"></canvas>
+      </div>
+    </div>
+  <?php endif; ?>
 
-              $dacStmt = $db->prepare("SELECT dimension_id, COUNT(*) cnt FROM sbm_indicators WHERE is_active=1 GROUP BY dimension_id");
-              $dacStmt->execute();
-              foreach ($dacStmt->fetchAll() as $dac)
-                $dimActiveCount[$dac['dimension_id']] = $dac['cnt'];
-            }
-            $chartLabels = $chartData = $chartColors = [];
-            ?>
-            <div class="dim-list">
-              <?php foreach ($dimScores as $ds):
-                $pct = floatval($ds['percentage']);
-                $mat2 = sbmMaturityLevel($pct);
-                $done = $dimCompletionData[$ds['dimension_id']] ?? 0;
-                $chartLabels[] = 'D' . $ds['dimension_no'];
-                $chartData[] = $pct;
-                $chartColors[] = $ds['color_hex'];
-                ?>
-                <div class="dim-row">
-                  <div class="dim-num">
-                    <?= svgIcon(getDimensionIcon((int) $ds['dimension_no'])) ?>
-                  </div>
-                  <div class="dim-info">
-                    <div class="dim-name"><?= e($ds['dimension_name']) ?></div>
-                  </div>
-                  <div style="text-align:right;flex-shrink:0;min-width:90px;">
-                    <div class="dim-pct" data-tooltip="<?= $pct > 0 ? e($mat2['label']) : 'No score yet' ?>"
-                      style="color:<?= $mat2['color'] ?>;"><?= $pct > 0 ? $pct . '%' : '—' ?></div>
-                    <div
-                      style="font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--n-300);text-transform:uppercase;">
-                      <?= $done ?>/<?= $dimActiveCount[$ds['dimension_id']] ?? $ds['indicator_count'] ?> rated
-                    </div>
-                  </div>
-                </div>
-              <?php endforeach; ?>
+  <!-- Charts row -->
+  <div class="grid2" style="margin-bottom:18px;align-items:start;grid-template-columns:1fr 1fr;">
+    <div class="chart-card" style="display:flex;flex-direction:column;height:478px;min-width:0;">
+      <div class="chart-card-head">
+        <span class="chart-card-title">Dimension Score Comparison</span>
+      </div>
+     <div class="chart-card-body" style="flex:1;padding:8px 16px 6px;box-sizing:border-box;overflow:hidden;">
+        <div style="position:relative;width:100%;height:100%;">
+          <?php if ($dimScores): ?>
+            <div id="dimBarChartInner" style="position:relative;height:100%;min-width:100%;">
+              <canvas id="dimBarChart"></canvas>
             </div>
           <?php else: ?>
-            <div style="text-align:center;padding:40px 20px;color:var(--n-400);">
+            <div
+              style="height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;border:2px dashed var(--n-200);border-radius:8px;background:var(--n-50);">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                stroke-linejoin="round" style="width:36px;height:36px;margin:0 auto 12px;opacity:.4;">
+                stroke-linejoin="round" style="width:32px;height:32px;color:var(--n-300);margin-bottom:8px;">
                 <line x1="18" y1="20" x2="18" y2="10" />
                 <line x1="12" y1="20" x2="12" y2="4" />
                 <line x1="6" y1="20" x2="6" y2="14" />
               </svg>
-              <div style="font-size:14px;font-weight:700;color:var(--n-600);margin-bottom:4px;">No dimension data yet
-              </div>
-              <div style="font-size:13px;">Start the self-assessment to see scores across all 6 SBM dimensions.</div>
+              <div style="font-size:13px;font-weight:600;color:var(--n-400);">Chart data unavailable</div>
+              <div style="font-size:12px;color:var(--n-400);">Scores will appear once evaluations begin.</div>
             </div>
           <?php endif; ?>
         </div>
       </div>
-
-      <!-- Dimension Bar Chart -->
-      <div class="card">
-        <div class="card-head"><span class="card-title">Dimension Score Comparison</span></div>
-        <div class="card-body">
-          <div style="position:relative;height:190px;">
-            <?php if ($dimScores): ?>
-              <canvas id="dimBarChart"></canvas>
-            <?php else: ?>
-              <div
-                style="height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;border:2px dashed var(--n-200);border-radius:8px;background:var(--n-50);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                  stroke-linejoin="round" style="width:32px;height:32px;color:var(--n-300);margin-bottom:8px;">
-                  <line x1="18" y1="20" x2="18" y2="10" />
-                  <line x1="12" y1="20" x2="12" y2="4" />
-                  <line x1="6" y1="20" x2="6" y2="14" />
-                </svg>
-                <div style="font-size:13px;font-weight:600;color:var(--n-400);">Chart data unavailable</div>
-                <div style="font-size:12px;color:var(--n-400);">Scores will appear once evaluations begin.</div>
-              </div>
-            <?php endif; ?>
-          </div>
-        </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-head">
+        <span class="chart-card-title">Overall Score Trend</span>
       </div>
+      <div class="chart-card-body" style="min-height:300px;display:flex;align-items:center;justify-content:center;">
+        <?php if (count($cycleHistory) >= 1): ?>
+          <canvas id="anTrendLineChart"></canvas>
+        <?php else: ?>
+          <p style="text-align:center;color:var(--n-400);font-size:13px;">Not enough cycles for a trend.</p>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
 
-    </div><!-- /LEFT COLUMN -->
+  <div style="display:none;">
 
     <!-- ───────────────────────────────────────
        RIGHT SIDEBAR
@@ -2199,146 +2229,13 @@ include __DIR__ . '/../includes/header.php';
 
       <?php endif; ?>
 
-      <!-- Quick Actions -->
-      <div class="card">
-        <div class="card-head"><span class="card-title">Quick Actions</span></div>
-        <div class="card-body" style="padding:12px 14px;">
-          <div class="quick-actions">
-            <a href="self_assessment.php" class="quick-action-btn">
-              <div class="quick-action-icon" style="background:var(--brand-100);color:var(--brand-700);">
-                <svg viewBox="0 0 24 24">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              </div>
-              Self-Assessment
-            </a>
-            <a href="teacher_status.php" class="quick-action-btn">
-              <div class="quick-action-icon" style="background:var(--teal-bg);color:var(--teal);">
-                <svg viewBox="0 0 24 24">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </div>
-              Teacher Status
-            </a>
-            <a href="reports.php" class="quick-action-btn">
-              <div class="quick-action-icon" style="background:var(--amber-bg);color:var(--amber);">
-                <svg viewBox="0 0 24 24">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-              </div>
-              Reports
-            </a>
-            <a href="analytics.php" class="quick-action-btn">
-              <div class="quick-action-icon" style="background:var(--purple-bg);color:var(--purple);">
-                <svg viewBox="0 0 24 24">
-                  <line x1="18" y1="20" x2="18" y2="10" />
-                  <line x1="12" y1="20" x2="12" y2="4" />
-                  <line x1="6" y1="20" x2="6" y2="14" />
-                </svg>
-              </div>
-              Analytics
-            </a>
-            <a href="evidence.php" class="quick-action-btn">
-              <div class="quick-action-icon" style="background:var(--n-100);color:var(--n-600);">
-                <svg viewBox="0 0 24 24">
-                  <path
-                    d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                </svg>
-              </div>
-              Evidence Files
-            </a>
-          </div>
-        </div>
       </div>
-
-      <!-- Announcements -->
-      <div class="card">
-        <div class="card-head">
-          <span class="card-title">Announcements</span>
-          <a href="announcements.php" class="btn btn-ghost btn-sm">All</a>
-        </div>
-        <div class="card-body" style="padding:10px 16px;">
-          <?php if ($anns):
-            foreach ($anns as $a): ?>
-              <div class="ann-item">
-                <span class="pill pill-<?= e($a['category']) ?>"
-                  style="font-size:10.5px;"><?= ucfirst($a['category']) ?></span>
-                <div style="font-size:13px;font-weight:600;color:var(--n-900);margin:4px 0 2px;"><?= e($a['title']) ?></div>
-                <div style="font-size:11.5px;color:var(--n-400);"><?= e($a['full_name']) ?> ·
-                  <?= timeAgo($a['created_at']) ?>
-                </div>
-              </div>
-            <?php endforeach; else: ?>
-            <p style="font-size:13px;color:var(--n-400);padding:12px 0;">No announcements.</p>
-          <?php endif; ?>
-        </div>
-      </div>
-
-    </div>
   </div>
 
 </div><!-- /viewProgress -->
 
 <!-- ━━━━━━━━━━━ ANALYTICS VIEW ━━━━━━━━━━━ -->
 <div id="viewAnalytics" style="display:none;">
-
-  <!-- Filter bar -->
-  <div class="an-filter-bar">
-    <label>Primary SY:</label>
-    <span style="font-size:13px;font-weight:700;color:var(--n-900);"><?= e($syLabel) ?></span>
-    <div style="width:1px;height:18px;background:var(--n-200);margin:0 4px;"></div>
-    <label>Compare with:</label>
-    <div class="p-select" id="anCompareSelect" style="width:160px;">
-      <input type="hidden" name="compare_sy_id" value="<?= $compareSyId ?>">
-      <div class="p-select-trigger" onclick="togglePSelect(event, 'anCompareSelect')"
-        style="padding:5px 12px;font-size:12.5px;min-height:32px;">
-        <span
-          class="p-select-val"><?= $compareSyId ? 'SY ' . e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') : 'None' ?></span>
-      </div>
-      <div class="p-select-menu">
-        <div class="p-select-item <?= !$compareSyId ? 'selected' : '' ?>"
-          onclick="location.href='dashboard.php?compare_sy=0&view=analytics'">None</div>
-        <?php foreach ($allSYs as $sy):
-          if ($sy['sy_id'] == $syId)
-            continue; ?>
-          <div class="p-select-item <?= $sy['sy_id'] == $compareSyId ? 'selected' : '' ?>"
-            onclick="location.href='dashboard.php?compare_sy=<?= $sy['sy_id'] ?>&view=analytics'">
-            SY <?= e($sy['label']) ?><?php if ($sy['sy_id'] == $compareSyId): ?><span
-                class="p-select-check"></span><?php endif; ?>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    </div>
-    <?php if ($compareSyId): ?>
-      <span
-        style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--blue-bg);color:var(--blue);">Comparing
-        2 cycles</span>
-      <a href="dashboard.php?view=analytics" class="btn btn-ghost btn-sm">✕ Clear</a>
-    <?php endif; ?>
-    <div style="margin-left:auto;display:flex;gap:8px;">
-      <?php if (($shPlanCount ?? 0) > 0): ?>
-        <button class="ai-assistant-btn" onclick="viewSHImprovementPlan()"
-          style="border-color:var(--brand-300);background:var(--brand-50);color:var(--brand-700);">
-          <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-          </svg>
-          View SH Improvement Plan
-        </button>
-      <?php endif; ?>
-      <button class="ai-assistant-btn" onclick="openAIAssistant()">
-        <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-        </svg>
-        AI Suggestions
-      </button>
-    </div>
-  </div>
 
   <!-- KPI insight strip — Primary -->
   <div class="an-insight-strip">
@@ -2426,78 +2323,6 @@ include __DIR__ . '/../includes/header.php';
       </svg>
     </button>
   </div>
-
-  <!-- Charts row -->
-  <div class="grid2" style="margin-bottom:18px;">
-    <div class="chart-card">
-      <div class="chart-card-head">
-        <span class="chart-card-title">Dimension Performance Radar</span>
-        <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
-          <div style="display:flex;align-items:center;gap:10px;font-size:11.5px;">
-            <span style="display:flex;align-items:center;gap:4px;"><span
-                style="width:10px;height:10px;border-radius:50%;background:#16A34A;display:inline-block;"></span>SY
-              <?= e($syLabel) ?></span>
-            <span style="display:flex;align-items:center;gap:4px;"><span
-                style="width:10px;height:10px;border-radius:50%;background:#2563EB;display:inline-block;"></span>SY
-              <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></span>
-          </div>
-        <?php endif; ?>
-      </div>
-      <div class="chart-card-body" style="display:flex;justify-content:center;align-items:center;min-height:300px;">
-        <canvas id="anRadarChart" style="max-height:280px;"></canvas>
-      </div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-card-head">
-        <span class="chart-card-title">Overall Score Trend</span>
-      </div>
-      <div class="chart-card-body" style="min-height:300px;display:flex;align-items:center;justify-content:center;">
-        <?php if (count($cycleHistory) >= 1): ?>
-          <canvas id="anTrendLineChart"></canvas>
-        <?php else: ?>
-          <p style="text-align:center;color:var(--n-400);font-size:13px;">Not enough cycles for a trend.</p>
-        <?php endif; ?>
-      </div>
-    </div>
-  </div>
-
-
- <!-- Dimension trend over time -->
-  <?php if (count($trendSYLabels) >= 2): ?>
-    <div class="chart-card" style="margin-bottom:18px;">
-      <div class="chart-card-head">
-        <span class="chart-card-title">Dimension Trend — All Cycles</span>
-      </div>
-      <div class="chart-card-body"><canvas id="anDimTrendChart" height="90"></canvas></div>
-    </div>
-
-    <!-- Indicator Trend Analysis -->
-    <div class="chart-card" style="margin-bottom:18px;">
-      <div class="chart-card-head" style="flex-wrap:wrap;gap:10px;">
-        <span class="chart-card-title">Indicator Trend Analysis</span>
-        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-          <label style="font-size:12px;font-weight:600;color:var(--n-500);white-space:nowrap;">Dimension:</label>
-          <div class="p-select" id="indTrendDimSelect" style="width:220px;">
-            <div class="p-select-trigger" onclick="togglePSelect(event, 'indTrendDimSelect')"
-              style="padding:5px 12px;font-size:12.5px;min-height:32px;">
-              <span class="p-select-val">D1: Curriculum and Teaching</span>
-            </div>
-            <div class="p-select-menu">
-              <div class="p-select-item selected" onclick="indTrendSelectDim(this, 1, 'D1: Curriculum and Teaching')">D1: Curriculum and Teaching</div>
-              <div class="p-select-item" onclick="indTrendSelectDim(this, 2, 'D2: Learning Environment')">D2: Learning Environment</div>
-              <div class="p-select-item" onclick="indTrendSelectDim(this, 3, 'D3: Leadership')">D3: Leadership</div>
-              <div class="p-select-item" onclick="indTrendSelectDim(this, 4, 'D4: Governance and Accountability')">D4: Governance and Accountability</div>
-              <div class="p-select-item" onclick="indTrendSelectDim(this, 5, 'D5: Human Resources and Team Development')">D5: Human Resources and Team Development</div>
-              <div class="p-select-item" onclick="indTrendSelectDim(this, 6, 'D6: Finance and Resource Management and Mobilization')">D6: Finance and Resource Management and Mobilization</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="chart-card-body" style="min-height:260px;display:flex;align-items:center;justify-content:center;">
-        <canvas id="anIndTrendChart" height="90"></canvas>
-      </div>
-    </div>
-  <?php endif; ?>
 
   <!-- Tabs -->
   <div class="an-tab-btns">
@@ -2725,37 +2550,135 @@ include __DIR__ . '/../includes/header.php';
     btn.classList.toggle('open', isOpen);
     txt.textContent = isOpen ? 'See less' : 'See more';
   }
+  const anCompareSyLabel = <?= json_encode(!empty($anDimAvgsCompare) ? (array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') : '') ?>;
+  const anCurrSyLabel = <?= json_encode($syLabel) ?>;
+  const anDimValCmp = <?= json_encode(!empty($anDimAvgsCompare) ? array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $anDimAvgsCompare) : []) ?>;
+
   // -- Dimension Bar Chart (Progress View) --------------------
-  const dimLabels = <?= json_encode(array_map(fn($d) => 'D' . $d['dimension_no'], $dimScores)) ?>;
+  const dimFullNames = <?= json_encode(array_map(fn($d) => $d['dimension_name'], $dimScores)) ?>;
+  const dimAbbrevMap = {1: 'Curriculum & Teaching', 2: 'Learning Environment', 3: 'Leadership', 4: 'Governance & Accountability', 5: 'HR & Team Dev.', 6: 'Finance & Resources'};
+  const dimNos = <?= json_encode(array_map(fn($d) => (int) $d['dimension_no'], $dimScores)) ?>;
+  const dimLabels = dimNos.map(no => dimAbbrevMap[no] || ('D' + no));
   const dimValues = <?= json_encode(array_map(fn($d) => $d['percentage'] !== null ? floatval($d['percentage']) : null, $dimScores)) ?>;
-  const dimColors = <?= json_encode(['#4ADE80', '#22C55E', '#16A34A', '#15803D', '#166534', '#14532D']) ?>;
+
+  function dimPerfColor(v) {
+    if (v === null || v === undefined) return '#9CA3AF';
+    if (v >= 80) return '#16A34A';
+    if (v >= 60) return '#2563EB';
+    if (v >= 40) return '#D97706';
+    return '#DC2626';
+  }
+  const dimColors = dimValues.map(dimPerfColor);
+
   const dimBarEl = document.getElementById('dimBarChart');
   if (dimBarEl && dimValues.length > 0) {
+    const dimBarDatasets = [{
+      label: 'SY ' + anCurrSyLabel,
+      data: dimValues,
+      backgroundColor: dimColors.map(c => c + '55'),
+      borderColor: dimColors,
+      borderWidth: 2,
+      borderRadius: 6,
+      borderSkipped: 'start',
+      barPercentage: 0.55,
+      categoryPercentage: 0.8
+    }];
+    if (anDimValCmp.length && anDimValCmp.some(v => v > 0)) {
+      dimBarDatasets.push({
+        label: 'SY ' + anCompareSyLabel,
+        data: anDimValCmp,
+        backgroundColor: anDimValCmp.map(v => dimPerfColor(v) + '20'),
+        borderColor: anDimValCmp.map(v => dimPerfColor(v) + '99'),
+        borderWidth: 2,
+        borderRadius: 6,
+        borderSkipped: 'start',
+        borderDash: [4, 4],
+        barPercentage: 0.55,
+        categoryPercentage: 0.8
+      });
+    }
+
+    const validVals = dimValues.filter(v => v !== null && v !== undefined);
+    const dimAverage = validVals.length ? (validVals.reduce((a, b) => a + b, 0) / validVals.length) : null;
+
+    // Plugin: draw the value above each bar
+    const dimValueLabelsPlugin = {
+      id: 'dimValueLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        chart.data.datasets.forEach((dataset, dsIndex) => {
+          const meta = chart.getDatasetMeta(dsIndex);
+          meta.data.forEach((bar, i) => {
+            const val = dataset.data[i];
+            if (val === null || val === undefined) return;
+            ctx.save();
+            ctx.font = '700 11px sans-serif';
+            ctx.fillStyle = '#374151';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(val + '%', bar.x + 6, bar.y);
+            ctx.restore();
+          });
+        });
+      }
+    };
+
+    // Plugin: draw an average reference line
+    const dimAverageLinePlugin = {
+      id: 'dimAverageLine',
+      afterDraw(chart) {
+        if (dimAverage === null) return;
+        const { ctx, chartArea, scales } = chart;
+        const x = scales.x.getPixelForValue(dimAverage);
+        ctx.save();
+        ctx.strokeStyle = '#9333EA';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(x, chartArea.top);
+        ctx.lineTo(x, chartArea.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = '600 10px sans-serif';
+        ctx.fillStyle = '#9333EA';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('Average (' + dimAverage.toFixed(1) + '%)', x, chartArea.top - 4);
+        ctx.restore();
+      }
+    };
+
     new Chart(dimBarEl, {
       type: 'bar',
       data: {
-        labels: dimLabels,
-        datasets: [{
-          label: 'Score (%)',
-          data: dimValues,
-          backgroundColor: dimColors.map(c => c + '33'),
-          borderColor: dimColors,
-          borderWidth: 2,
-          borderRadius: 7,
-          borderSkipped: false
-        }]
+        labels: dimNos.map(no => 'D' + no),
+        datasets: dimBarDatasets
       },
       options: {
+        indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        layout: { padding: { right: 36, left: 4 } },
         scales: {
-          y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
-          x: { ticks: { font: { size: 12, weight: '600' } }, grid: { display: false } }
+          x: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6', drawTicks: false } },
+          y: { ticks: { font: { size: 12, weight: '700' }, autoSkip: false }, grid: { display: false } },
         },
-        plugins: { legend: { display: false } }
+        plugins: {
+          legend: { display: dimBarDatasets.length > 1, position: 'bottom', labels: { font: { size: 11 }, padding: 10 } },
+          tooltip: { callbacks: { title: ctx => dimFullNames[ctx[0].dataIndex], label: ctx => ' ' + ctx.raw + '%' } }
+        },
+        animation: { duration: 600 }
       }
     });
   }
+
+  // -- Init charts that now live in the progress view
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!window._anChartsInit) {
+      window._anChartsInit = true;
+      initAnalyticsCharts();
+    }
+  });
 
   // -- View switcher
   function switchView(view, btn) {
@@ -2774,6 +2697,7 @@ include __DIR__ . '/../includes/header.php';
       window._anChartsInit = true;
       initAnalyticsCharts();
     }
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
   }
 
   // -- Analytics tab switching
@@ -2788,15 +2712,12 @@ include __DIR__ . '/../includes/header.php';
   const anDimLabels = <?= json_encode(array_map(fn($d) => 'D' . $d['dimension_no'], $anDimAvgs)) ?>;
   const anDimColors = <?= json_encode(array_column($anDimAvgs, 'color_hex')) ?>;
   const anDimValues = <?= json_encode(array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $anDimAvgs)) ?>;
-  const anDimValCmp = <?= json_encode(!empty($anDimAvgsCompare) ? array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $anDimAvgsCompare) : []) ?>;
   const anRadarNames = <?= json_encode(array_map(fn($d) => 'D' . $d['dimension_no'] . ': ' . $d['dimension_name'], $anDimAvgs)) ?>;
   const anCycleLabels = <?= json_encode(array_column($cycleHistory, 'sy_label')) ?>;
   const anCycleScores = <?= json_encode(array_map(fn($c) => floatval($c['overall_score']), $cycleHistory)) ?>;
   const anTrendSYLabels = <?= json_encode($trendSYLabels) ?>;
   const anTrendByDim = <?= json_encode($trendByDim) ?>;
   const anDimMeta = <?= json_encode(array_map(fn($d) => ['no' => $d['dimension_no'], 'name' => $d['dimension_name'], 'color' => $d['color_hex']], $anDimAvgs)) ?>;
-  const anCompareSyLabel = <?= json_encode(!empty($anDimAvgsCompare) ? (array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') : '') ?>;
-  const anCurrSyLabel = <?= json_encode($syLabel) ?>;
 
   function initAnalyticsCharts() {
     // Radar chart
