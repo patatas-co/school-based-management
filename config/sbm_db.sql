@@ -1054,20 +1054,6 @@ CREATE TABLE `analytics_snapshots` (
 
 -- --------------------------------------------------------
 
---
--- Table structure for table `announcements`
---
-
-CREATE TABLE `announcements` (
-  `ann_id` int(11) NOT NULL,
-  `posted_by` int(11) NOT NULL,
-  `title` varchar(200) NOT NULL,
-  `content` text NOT NULL,
-  `target_role` enum('all','school_head','sbm_coordinator','teacher','external_stakeholder') DEFAULT 'all',
-  `category` enum('general','policy','deadline','advisory','emergency') DEFAULT 'general',
-  `is_published` tinyint(4) DEFAULT 1,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -2598,12 +2584,6 @@ ALTER TABLE `analytics_snapshots`
   ADD KEY `sy_id` (`sy_id`),
   ADD KEY `dimension_id` (`dimension_id`);
 
---
--- Indexes for table `announcements`
---
-ALTER TABLE `announcements`
-  ADD PRIMARY KEY (`ann_id`),
-  ADD KEY `posted_by` (`posted_by`);
 
 --
 -- Indexes for table `cycle_audit_log`
@@ -2951,11 +2931,6 @@ ALTER TABLE `activity_log`
 ALTER TABLE `analytics_snapshots`
   MODIFY `snap_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
---
--- AUTO_INCREMENT for table `announcements`
---
-ALTER TABLE `announcements`
-  MODIFY `ann_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `cycle_audit_log`
@@ -3204,11 +3179,6 @@ ALTER TABLE `analytics_snapshots`
   ADD CONSTRAINT `analytics_snapshots_ibfk_3` FOREIGN KEY (`sy_id`) REFERENCES `school_years` (`sy_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `analytics_snapshots_ibfk_4` FOREIGN KEY (`dimension_id`) REFERENCES `sbm_dimensions` (`dimension_id`);
 
---
--- Constraints for table `announcements`
---
-ALTER TABLE `announcements`
-  ADD CONSTRAINT `announcements_ibfk_1` FOREIGN KEY (`posted_by`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `cycle_audit_log`

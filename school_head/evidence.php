@@ -52,12 +52,16 @@ if ($cycle) {
   try {
     $attStmt = $db->prepare("
             SELECT ra.*, u.full_name uploader_name, u.role uploader_role_label,
+                   u.department,
                    i.indicator_code, i.indicator_text,
-                   d.dimension_no, d.dimension_name, d.color_hex
+                   d.dimension_no, d.dimension_name, d.color_hex,
+                   sy.label AS sy_label
             FROM response_attachments ra
             JOIN users u          ON ra.uploaded_by   = u.user_id
             JOIN sbm_indicators i ON ra.indicator_id  = i.indicator_id
             JOIN sbm_dimensions d ON i.dimension_id   = d.dimension_id
+            JOIN sbm_cycles c2    ON ra.cycle_id      = c2.cycle_id
+            JOIN school_years sy  ON c2.sy_id         = sy.sy_id
             WHERE ra.cycle_id = ?
               AND ra.deleted_at IS NULL
               AND ra.is_current_version = 1
@@ -326,53 +330,7 @@ function roleLabel(string $role): string
 </style>
 
 <div class="page-head">
-  <div class="page-head-text">
-    <h2>Evidence & MOV Files</h2>
-    <p>Uploaded evidence files per indicator — SY <?= e($sy['label'] ?? '—') ?></p>
-  </div>
   <div class="page-head-actions">
-    <?php if (!empty($sysWithEvidence)): ?>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <label style="font-size:13px;font-weight:600;color:var(--n600);white-space:nowrap;display:flex;align-items:center;gap:5px;">
-          School Year:
-          <span style="position:relative;display:inline-flex;align-items:center;cursor:default;"
-                onmouseenter="document.getElementById('evSyTooltip').style.opacity='1';document.getElementById('evSyTooltip').style.visibility='visible';"
-                onmouseleave="document.getElementById('evSyTooltip').style.opacity='0';document.getElementById('evSyTooltip').style.visibility='hidden';">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                 style="width:14px;height:14px;color:var(--n400);">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
-            </svg>
-            <div id="evSyTooltip" style="position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
-                 background:var(--n900);color:#fff;font-size:11.5px;font-weight:500;line-height:1.5;
-                 padding:7px 11px;border-radius:7px;white-space:nowrap;pointer-events:none;
-                 opacity:0;visibility:hidden;transition:opacity .15s,visibility .15s;z-index:99;
-                 box-shadow:0 4px 12px rgba(0,0,0,.18);">
-              Only school years with attachments uploaded will appear here.
-              <div style="position:absolute;top:100%;left:50%;transform:translateX(-50%);
-                   border:5px solid transparent;border-top-color:var(--n900);"></div>
-            </div>
-          </span>
-        </label>
-        <div class="p-select" id="evSySelect" style="width:200px;">
-          <div class="p-select-trigger" onclick="togglePSelect(event, 'evSySelect')">
-            <span class="p-select-val">
-              <?= e(array_column($sysWithEvidence, 'label', 'sy_id')[$syId] ?? 'Select School Year') ?>
-            </span>
-          </div>
-          <div class="p-select-menu">
-            <?php foreach ($sysWithEvidence as $syw): ?>
-              <div class="p-select-item <?= $syw['sy_id'] == $syId ? 'selected' : '' ?>"
-                   onclick="location.href='<?= e(syFilterUrl($syw['sy_id'])) ?>'">
-                S.Y <?= e($syw['label']) ?>
-                <?php if ($syw['sy_id'] == $syId): ?>
-                  <span class="p-select-check"></span>
-                <?php endif; ?>
-              </div>
-            <?php endforeach; ?>
-          </div>
-        </div>
-      </div>
-      <?php endif; ?>
   </div>
 </div>
 
@@ -383,152 +341,318 @@ function roleLabel(string $role): string
 <!-- ══════════════════════════════════════════════════════════
      ATTACHMENT SUBSECTION — All uploaded evidence files
 ══════════════════════════════════════════════════════════ -->
-<div style="margin-top:32px;">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-    <div style="width:3px;height:22px;background:var(--blue);border-radius:2px;"></div>
-    <h3 style="font-size:17px;font-weight:700;color:var(--n900);">Uploaded Evidence Files</h3>
-    <span
-      style="font-size:12px;font-weight:600;color:var(--n400);background:var(--n100);border-radius:999px;padding:2px 10px;">
-      <?= count($allAttachments) ?> file<?= count($allAttachments) !== 1 ? 's' : '' ?>
-    </span>
-  </div>
+<div style="margin-top:0px;">
 
   <?php if (empty($allAttachments)): ?>
     <div class="card">
       <div class="card-body" style="text-align:center;padding:40px;">
         <div style="font-size:14px;font-weight:600;color:var(--n600);margin-bottom:6px;">No attachments yet</div>
-        <div style="font-size:13px;color:var(--n400);">Teachers and evaluators can attach evidence files when filling out
-          the self-assessment.</div>
+        <div style="font-size:13px;color:var(--n400);">Teachers and evaluators can attach evidence files when filling out the self-assessment.</div>
       </div>
     </div>
 
   <?php else: ?>
 
-    <!-- Summary strip -->
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;">
-      <?php
-      $byRole = [];
-      foreach ($allAttachments as $att) {
-        $r = $att['uploader_role'] ?? 'unknown';
-        $byRole[$r] = ($byRole[$r] ?? 0) + 1;
-      }
-      $roleColors = [
-        'teacher' => ['var(--teal-bg)', 'var(--teal)'],
-        'sbm_coordinator' => ['var(--brand-100)', 'var(--brand-700)'],
-        'school_head' => ['var(--purple-bg)', 'var(--purple)'],
-        'external_stakeholder' => ['var(--blue-bg)', 'var(--blue)'],
-      ];
-      foreach ($byRole as $r => $cnt):
-        [$bg, $color] = $roleColors[$r] ?? ['var(--n100)', 'var(--n600)'];
-        ?>
-        <div style="background:<?= $bg ?>;border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:8px;">
-          <span style="font-size:22px;font-weight:800;color:<?= $color ?>;"><?= $cnt ?></span>
-          <span style="font-size:11.5px;font-weight:600;color:<?= $color ?>;"><?= roleLabel($r) ?>
-            file<?= $cnt !== 1 ? 's' : '' ?></span>
+    <!-- Search + filter bar -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <div style="position:relative;flex:1;min-width:220px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          style="width:15px;height:15px;position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--n400);">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="evSearch" placeholder="Search by file name, uploader, or indicator…"
+          oninput="filterEvTable()"
+          style="width:100%;padding:8px 10px 8px 32px;border:1px solid var(--n200);border-radius:8px;font-size:13px;color:var(--n800);outline:none;box-sizing:border-box;">
+      </div>
+      <!-- Role Filter -->
+      <div class="p-select" id="evRoleSelect" style="width:160px;">
+        <div class="p-select-trigger" onclick="togglePSelect(event,'evRoleSelect')">
+          <span class="p-select-val" id="evRoleLabel">All Roles</span>
         </div>
-      <?php endforeach; ?>
-    </div>
-
-    <!-- Accordion by dimension -->
-    <?php foreach ($attachByDim as $dimNo => $dimData): ?>
-      <div class="card" style="margin-bottom:14px;overflow:hidden;">
-        <div class="ev-section-head" style="border-left:4px solid <?= e($dimData['color_hex']) ?>;">
-          <div class="ev-dim-badge" style="background:<?= e($dimData['color_hex']) ?>;"><?= $dimNo ?></div>
-          <span style="font-size:14px;font-weight:700;color:var(--n900);flex:1;">
-            Dimension <?= $dimNo ?>: <?= e($dimData['dimension_name']) ?>
-          </span>
-          <span style="font-size:12px;font-weight:600;color:var(--n400);">
-            <?= array_sum(array_map(fn($i) => count($i['files']), $dimData['indicators'])) ?>
-            file<?= array_sum(array_map(fn($i) => count($i['files']), $dimData['indicators'])) !== 1 ? 's' : '' ?>
-          </span>
-        </div>
-
-        <div style="padding:14px 16px;">
-          <?php foreach ($dimData['indicators'] as $indId => $indData): ?>
-            <div class="ev-ind-block">
-              <div class="ev-ind-head" onclick="toggleEvInd(<?= $indId ?>)">
-                <span style="font-family:monospace;font-size:11px;font-weight:700;
-                       color:var(--n400);background:var(--n100);
-                       border-radius:4px;padding:2px 7px;flex-shrink:0;">
-                  <?= e($indData['indicator_code']) ?>
-                </span>
-                <span style="font-size:13px;font-weight:600;color:var(--n800);flex:1;
-                       overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                  <?= e(substr($indData['indicator_text'], 0, 80)) ?>
-                  <?= strlen($indData['indicator_text']) > 80 ? '…' : '' ?>
-                </span>
-                <span style="font-size:12px;font-weight:600;color:var(--n500);
-                       background:var(--n100);border-radius:999px;
-                       padding:2px 10px;flex-shrink:0;">
-                  <?= count($indData['files']) ?> file<?= count($indData['files']) !== 1 ? 's' : '' ?>
-                </span>
-                <span id="evChevron<?= $indId ?>" style="color:var(--n300);font-size:16px;flex-shrink:0;">▾</span>
-              </div>
-
-              <div class="ev-ind-body" id="evIndBody<?= $indId ?>">
-                <?php foreach ($indData['files'] as $file): ?>
-                  <div class="ev-file-row">
-                    <span class="ev-file-icon"><?= fileIconHtml($file['mime_type']) ?></span>
-                    <div class="ev-file-info">
-                      <div class="ev-file-name"><?= e($file['original_name']) ?></div>
-                      <div class="ev-file-meta">
-                        <?= formatFileSize($file['file_size']) ?>
-                        &nbsp;·&nbsp;
-                        <?= date('M d, Y g:i A', strtotime($file['uploaded_at'])) ?>
-                      </div>
-                    </div>
-                    <?php if (!empty($file['category'])): ?>
-                      <span style="display:inline-flex;align-items:center;padding:2px 8px;
-                             border-radius:999px;font-size:10.5px;font-weight:700;
-                             background:<?= categoryColor($file['category']) ?>18;
-                             color:<?= categoryColor($file['category']) ?>;
-                             border:1px solid <?= categoryColor($file['category']) ?>33;
-                             white-space:nowrap;flex-shrink:0;">
-                        <?= categoryLabel($file['category'] ?? 'other') ?>
-                      </span>
-                    <?php endif; ?>
-                    <?php if (!empty($file['version']) && (int) $file['version'] > 1): ?>
-                      <span style="display:inline-flex;align-items:center;padding:2px 7px;
-                             border-radius:999px;font-size:10px;font-weight:700;
-                             background:#FEF3C7;color:#D97706;
-                             border:1px solid #FDE68A;white-space:nowrap;flex-shrink:0;">
-                        v<?= (int) $file['version'] ?>
-                      </span>
-                    <?php endif; ?>
-                    <span class="ev-role-badge role-<?= e($file['uploader_role']) ?>">
-                      <?= e($file['uploader_name']) ?> · <?= roleLabel($file['uploader_role']) ?>
-                    </span>
-                    <a href="../includes/serve_attachment.php?id=<?= $file['attachment_id'] ?>" target="_blank"
-                      class="ev-download-btn" download="<?= e($file['original_name']) ?>">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" style="width:13px;height:13px;">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
-                      Download
-                    </a>
-                  </div>
-                <?php endforeach; ?>
-              </div>
-            </div>
-          <?php endforeach; ?>
+        <div class="p-select-menu">
+          <div class="p-select-item selected" onclick="setEvFilter('role','','All Roles',this)">All Roles <span class="p-select-check"></span></div>
+          <div class="p-select-item" onclick="setEvFilter('role','teacher','Teacher',this)">Teacher</div>
+          <div class="p-select-item" onclick="setEvFilter('role','sbm_coordinator','Coordinator',this)">Coordinator</div>
+          <div class="p-select-item" onclick="setEvFilter('role','school_head','School Head',this)">School Head</div>
+          <div class="p-select-item" onclick="setEvFilter('role','external_stakeholder','Stakeholder',this)">Stakeholder</div>
         </div>
       </div>
-    <?php endforeach; ?>
+
+      <!-- Category Filter -->
+      <div class="p-select" id="evCatSelect" style="width:170px;">
+        <div class="p-select-trigger" onclick="togglePSelect(event,'evCatSelect')">
+          <span class="p-select-val" id="evCatLabel">All Categories</span>
+        </div>
+        <div class="p-select-menu">
+          <div class="p-select-item selected" onclick="setEvFilter('cat','','All Categories',this)">All Categories <span class="p-select-check"></span></div>
+          <div class="p-select-item" onclick="setEvFilter('cat','photo','Photo',this)">Photo</div>
+          <div class="p-select-item" onclick="setEvFilter('cat','document','Document',this)">Document</div>
+          <div class="p-select-item" onclick="setEvFilter('cat','report','Report',this)">Report</div>
+          <div class="p-select-item" onclick="setEvFilter('cat','certificate','Certificate',this)">Certificate</div>
+          <div class="p-select-item" onclick="setEvFilter('cat','record','Record',this)">Record</div>
+          <div class="p-select-item" onclick="setEvFilter('cat','other','Other',this)">Other</div>
+        </div>
+      </div>
+      <input type="hidden" id="evRoleFilter" value="">
+      <input type="hidden" id="evCatFilter" value="">
+    </div>
+
+    <!-- Flat table -->
+    <div class="card" style="overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;" id="evTable">
+        <thead>
+          <tr style="background:var(--n50);border-bottom:2px solid var(--n200);">
+            <th style="padding:11px 14px;text-align:left;font-size:11.5px;font-weight:700;color:var(--n500);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">File</th>
+            <th style="padding:11px 14px;text-align:center;font-size:11.5px;font-weight:700;color:var(--n500);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;width:100px;">Indicator</th>
+            <th style="padding:11px 14px 11px 28px;text-align:left;font-size:11.5px;font-weight:700;color:var(--n500);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">Uploaded By</th>
+            <th style="padding:11px 14px;text-align:left;font-size:11.5px;font-weight:700;color:var(--n500);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">Department</th>
+            <th style="padding:11px 14px;text-align:left;font-size:11.5px;font-weight:700;color:var(--n500);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">Category</th>
+            <th style="padding:11px 14px;text-align:left;font-size:11.5px;font-weight:700;color:var(--n500);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">Date & Time</th>
+            <th style="padding:11px 14px;text-align:left;font-size:11.5px;font-weight:700;color:var(--n500);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">Size</th>
+            <th style="padding:11px 14px;text-align:center;font-size:11.5px;font-weight:700;color:var(--n500);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="evTableBody">
+          <?php foreach ($allAttachments as $file): ?>
+            <tr class="ev-table-row"
+              data-name="<?= strtolower(e($file['original_name'])) ?>"
+              data-uploader="<?= strtolower(e($file['uploader_name'])) ?>"
+              data-department="<?= strtolower(e($file['department'] ?? '')) ?>"
+              data-indicator="<?= strtolower(e($file['indicator_code'] . ' ' . $file['indicator_text'])) ?>"
+              data-role="<?= e($file['uploader_role'] ?? '') ?>"
+              data-category="<?= e($file['category'] ?? 'other') ?>"
+              style="border-bottom:1px solid var(--n100);transition:background .12s;">
+              <!-- File -->
+              <td style="padding:12px 14px;max-width:220px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:20px;flex-shrink:0;"><?= fileIconHtml($file['mime_type']) ?></span>
+                  <div style="overflow:hidden;">
+                    <div style="font-size:13px;font-weight:600;color:var(--n900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;" title="<?= e($file['original_name']) ?>">
+                      <?= e($file['original_name']) ?>
+                    </div>
+                    <?php if (!empty($file['version']) && (int)$file['version'] > 1): ?>
+                      <span style="font-size:10px;font-weight:700;background:#FEF3C7;color:#D97706;border-radius:4px;padding:1px 5px;">v<?= (int)$file['version'] ?></span>
+                    <?php endif; ?>
+                  </div>
+                </div>
+              </td>
+              <!-- Indicator -->
+              <td style="padding:12px 14px;text-align:center;">
+                <span style="font-family:monospace;font-size:11px;font-weight:700;color:var(--n500);background:var(--n100);border-radius:4px;padding:3px 8px;display:inline-block;">
+                  <?= e($file['indicator_code']) ?>
+                </span>
+              </td>
+              <!-- Uploaded By -->
+              <td style="padding:12px 14px 12px 28px;white-space:nowrap;">
+                <div style="font-size:13px;font-weight:600;color:var(--n900);"><?= e($file['uploader_name']) ?></div>
+                <div style="font-size:11px;color:var(--n400);margin-top:1px;"><?= roleLabel($file['uploader_role'] ?? '') ?></div>
+              </td>
+              <!-- Department -->
+              <td style="padding:12px 14px;white-space:nowrap;">
+                <?php if (!empty($file['department'])): ?>
+                  <span style="display:inline-flex;align-items:center;padding:3px 9px;border-radius:6px;font-size:11.5px;font-weight:600;background:var(--n100);color:var(--n700);">
+                    <?= e($file['department']) ?>
+                  </span>
+                <?php else: ?>
+                  <span style="font-size:12px;color:var(--n300);">—</span>
+                <?php endif; ?>
+              </td>
+              <!-- Category -->
+              <td style="padding:12px 14px;white-space:nowrap;">
+                <span style="display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;
+                  background:<?= categoryColor($file['category'] ?? 'other') ?>18;
+                  color:<?= categoryColor($file['category'] ?? 'other') ?>;
+                  border:1px solid <?= categoryColor($file['category'] ?? 'other') ?>33;">
+                  <?= categoryLabel($file['category'] ?? 'other') ?>
+                </span>
+              </td>
+              <!-- Date & Time -->
+              <td style="padding:12px 14px;white-space:nowrap;">
+                <div style="font-size:13px;font-weight:600;color:var(--n800);"><?= date('M d, Y', strtotime($file['uploaded_at'])) ?></div>
+                <div style="font-size:11px;color:var(--n400);margin-top:1px;"><?= date('g:i A', strtotime($file['uploaded_at'])) ?></div>
+                <div style="font-size:10.5px;color:var(--n300);margin-top:2px;">SY <?= e($file['sy_label'] ?? '') ?></div>
+              </td>
+              <!-- Size -->
+              <td style="padding:12px 14px;white-space:nowrap;font-size:13px;color:var(--n600);">
+                <?= formatFileSize($file['file_size']) ?>
+              </td>
+              <!-- Actions -->
+              <td style="padding:12px 14px;text-align:center;white-space:nowrap;">
+                <div style="display:inline-flex;align-items:center;gap:6px;">
+                  <!-- Preview -->
+                  <button onclick="openEvPreview('../includes/serve_attachment.php?id=<?= $file['attachment_id'] ?>','<?= e(addslashes($file['original_name'])) ?>','<?= e($file['mime_type']) ?>')"
+                    title="Preview"
+                    style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue)22;transition:background .12s;cursor:pointer;"
+                    onmouseover="this.style.background='var(--blue)';this.style.color='#fff';"
+                    onmouseout="this.style.background='var(--blue-bg)';this.style.color='var(--blue)';">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </button>
+                  <!-- Download -->
+                  <a href="../includes/serve_attachment.php?id=<?= $file['attachment_id'] ?>" download="<?= e($file['original_name']) ?>"
+                    title="Download"
+                    style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal)22;transition:background .12s;text-decoration:none;"
+                    onmouseover="this.style.background='var(--teal)';this.style.color='#fff';"
+                    onmouseout="this.style.background='var(--teal-bg)';this.style.color='var(--teal)';">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+      <div id="evNoResults" style="display:none;padding:36px;text-align:center;font-size:13px;color:var(--n400);">No files match your search.</div>
+    </div>
 
   <?php endif; ?>
 </div>
 
 <script>
-  function toggleEvInd(indId) {
-    const body = document.getElementById('evIndBody' + indId);
-    const chevron = document.getElementById('evChevron' + indId);
-    if (!body) return;
-    const isOpen = body.style.display !== 'none';
-    body.style.display = isOpen ? 'none' : 'block';
-    chevron.textContent = isOpen ? '▸' : '▾';
+  function setEvFilter(type, value, label, el) {
+    if (type === 'role') {
+      document.getElementById('evRoleFilter').value = value;
+      document.getElementById('evRoleLabel').textContent = label;
+      el.closest('.p-select-menu').querySelectorAll('.p-select-item').forEach(i => {
+        i.classList.remove('selected');
+        i.querySelector('.p-select-check') && i.querySelector('.p-select-check').remove();
+      });
+      el.classList.add('selected');
+      if (!el.querySelector('.p-select-check')) {
+        const chk = document.createElement('span'); chk.className = 'p-select-check'; el.appendChild(chk);
+      }
+      document.getElementById('evRoleSelect').classList.remove('open');
+    } else {
+      document.getElementById('evCatFilter').value = value;
+      document.getElementById('evCatLabel').textContent = label;
+      el.closest('.p-select-menu').querySelectorAll('.p-select-item').forEach(i => {
+        i.classList.remove('selected');
+        i.querySelector('.p-select-check') && i.querySelector('.p-select-check').remove();
+      });
+      el.classList.add('selected');
+      if (!el.querySelector('.p-select-check')) {
+        const chk = document.createElement('span'); chk.className = 'p-select-check'; el.appendChild(chk);
+      }
+      document.getElementById('evCatSelect').classList.remove('open');
+    }
+    filterEvTable();
   }
+
+  function filterEvTable() {
+    const search = document.getElementById('evSearch').value.toLowerCase();
+    const role   = document.getElementById('evRoleFilter').value;
+    const cat    = document.getElementById('evCatFilter').value;
+    const rows   = document.querySelectorAll('.ev-table-row');
+    let visible  = 0;
+    rows.forEach(row => {
+      const matchSearch = !search ||
+        row.dataset.name.includes(search) ||
+        row.dataset.uploader.includes(search) ||
+        row.dataset.indicator.includes(search);
+      const matchRole = !role || row.dataset.role === role;
+      const matchCat  = !cat  || row.dataset.category === cat;
+      const show = matchSearch && matchRole && matchCat;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    document.getElementById('evNoResults').style.display = visible === 0 ? '' : 'none';
+  }
+
+  document.querySelectorAll('.ev-table-row').forEach(row => {
+    row.addEventListener('mouseover', () => row.style.background = 'var(--n50)');
+    row.addEventListener('mouseout',  () => row.style.background = '');
+  });
+</script>
+
+<!-- Preview Modal -->
+<div id="evPreviewModal" onclick="if(event.target===this)closeEvPreview()"
+  style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);padding:20px;box-sizing:border-box;">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:900px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.35);">
+    <!-- Modal Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--n100);flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;overflow:hidden;">
+        <span id="evPreviewIcon" style="font-size:20px;flex-shrink:0;"></span>
+        <span id="evPreviewName" style="font-size:14px;font-weight:700;color:var(--n900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:600px;"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <button onclick="closeEvPreview()"
+          style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;border:1px solid var(--n200);background:var(--n50);cursor:pointer;color:var(--n600);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:14px;height:14px;">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <!-- Modal Body -->
+    <div id="evPreviewBody" style="flex:1;overflow:auto;background:var(--n50);display:flex;align-items:center;justify-content:center;min-height:400px;">
+      <!-- content injected by JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+  function openEvPreview(url, name, mime) {
+    document.getElementById('evPreviewName').textContent = name;
+    document.getElementById('evPreviewIcon').textContent = mimeToIcon(mime);
+
+    const body = document.getElementById('evPreviewBody');
+    body.innerHTML = '';
+
+    if (mime.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.cssText = 'max-width:100%;max-height:75vh;object-fit:contain;border-radius:6px;';
+      body.appendChild(img);
+    } else if (mime === 'application/pdf') {
+      const iframe = document.createElement('iframe');
+      iframe.src = url;
+      iframe.style.cssText = 'width:100%;height:75vh;border:none;';
+      body.appendChild(iframe);
+    } else {
+      body.innerHTML = `
+        <div style="text-align:center;padding:48px 24px;">
+          <div style="font-size:48px;margin-bottom:12px;">${mimeToIcon(mime)}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--n800);margin-bottom:6px;">${name}</div>
+          <div style="font-size:13px;color:var(--n400);margin-bottom:20px;">This file type cannot be previewed in the browser.</div>
+          <a href="${url}" download="${name}"
+            style="display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:8px;background:var(--teal);color:#fff;font-size:13px;font-weight:600;text-decoration:none;">
+            Download to view
+          </a>
+        </div>`;
+    }
+
+    const modal = document.getElementById('evPreviewModal');
+    modal.style.display = 'block';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    // center the inner box manually
+    const inner = modal.querySelector('div');
+    inner.style.margin = 'auto';
+    inner.style.position = 'relative';
+    inner.style.top = '50%';
+    inner.style.transform = 'translateY(-50%)';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeEvPreview() {
+    document.getElementById('evPreviewModal').style.display = 'none';
+    document.getElementById('evPreviewBody').innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  function mimeToIcon(mime) {
+    if (mime.startsWith('image/')) return '🖼️';
+    if (mime === 'application/pdf') return '📄';
+    if (mime.includes('word')) return '📝';
+    if (mime.includes('sheet') || mime.includes('excel')) return '📊';
+    if (mime.includes('presentation') || mime.includes('powerpoint')) return '📊';
+    return '📎';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEvPreview(); });
 </script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

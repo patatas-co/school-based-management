@@ -31,9 +31,7 @@ if ($cycle) {
   $dimScores = $st->fetchAll();
 }
 
-// Announcements
-$anns = $db->query("SELECT a.*, u.full_name poster FROM announcements a JOIN users u ON a.posted_by=u.user_id WHERE a.is_published=1 AND a.target_role IN('all','teacher') ORDER BY a.created_at DESC LIMIT 5")->fetchAll();
-
+// Announcements removed
 $syId = $sy['sy_id'] ?? 0;
 $deadlineInfo = $syId ? getDeadlineInfo($db, $syId) : null;
 
@@ -44,7 +42,7 @@ include __DIR__ . '/../includes/header.php';
 <div class="page-head">
   <div class="page-head-text">
     <h2>Welcome, <?= e(explode(' ', trim($_SESSION['full_name']))[0]) ?></h2>
-    <p>View your school's SBM progress and announcements.</p>
+    <p>View your school's SBM progress.</p>
   </div>
   <?php if ($deadlineInfo && (!$cycle || !in_array($cycle['status'], ['completed', 'finalized', 'validated']))): ?>
     <div class="page-head-actions">
@@ -101,28 +99,6 @@ include __DIR__ . '/../includes/header.php';
   </div>
 <?php endif; ?>
 
-<div class="card">
-  <div class="card-head"><span class="card-title">Announcements</span></div>
-  <div class="card-body">
-    <?php if ($anns):
-      foreach ($anns as $a): ?>
-        <div style="border-bottom:1px solid var(--n100);padding:12px 0;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-            <strong style="font-size:13.5px;color:var(--n900);"><?= e($a['title']) ?></strong>
-            <span class="pill pill-<?= e($a['category']) ?>" style="font-size:10px;"><?= ucfirst($a['category']) ?></span>
-          </div>
-          <p style="font-size:13px;color:var(--n600);line-height:1.6;">
-            <?= nl2br(e(substr($a['content'], 0, 200))) ?>     <?= strlen($a['content']) > 200 ? '…' : '' ?>
-          </p>
-          <div style="font-size:11px;color:var(--n400);margin-top:6px;"><?= e($a['poster']) ?> &nbsp;·&nbsp;
-            <?= timeAgo($a['created_at']) ?>
-          </div>
-        </div>
-      <?php endforeach; else: ?>
-      <p style="color:var(--n400);font-size:13px;">No announcements yet.</p>
-    <?php endif; ?>
-  </div>
-</div>
 <?= deadlineChipCss() ?>
 <?= deadlineChipJs() ?>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

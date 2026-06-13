@@ -42,7 +42,6 @@ if (isset($__role) && defined('SBM_NAV')) {
         'Communication',
         'bell',
         [
-          ['Announcements', 'coordinator/announcements.php', 'bell'],
           ['Meetings', 'coordinator/meetings.php', 'calendar'],
         ]
       ],
@@ -61,13 +60,6 @@ if (isset($__role) && defined('SBM_NAV')) {
         'check-circle',
         [
           ['Self-Assessment', 'teacher/self_assessment.php', 'check-circle'],
-        ]
-      ],
-      [
-        'Communication',
-        'bell',
-        [
-          ['Announcements', 'teacher/announcements.php', 'bell'],
         ]
       ],
     ];

@@ -34,14 +34,6 @@ define('SBM_MODULE_ACCESS', [
     'workflow_configure' => [ROLE_SCHOOL_HEAD],
     'workflow_view' => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 
-    // ── Announcements ───────────────────────────────────────
-    'announcement_post' => [ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
-    'announcement_view' => [
-        ROLE_SCHOOL_HEAD,
-        ROLE_COORDINATOR,
-        ROLE_TEACHER,
-        ROLE_STAKEHOLDER
-    ],
     'start_assessment' => [ROLE_SCHOOL_HEAD, ROLE_SYSTEM_ADMIN],
     'assign_indicators' => [ROLE_SYSTEM_ADMIN, ROLE_SCHOOL_HEAD, ROLE_COORDINATOR],
 ]);
@@ -99,13 +91,6 @@ define('SBM_NAV', [
                 ['Workflow Overview', 'school_head/workflow.php', 'trending-up'],
             ]
         ],
-        [
-            'Communication',
-            'bell',
-            [
-                ['Announcements', 'school_head/announcements.php', 'bell'],
-            ]
-        ],
     ],
 
     ROLE_COORDINATOR => [
@@ -135,13 +120,6 @@ define('SBM_NAV', [
                 ['Self-Assessment', 'coordinator/self_assessment.php', 'check-circle'],
             ]
         ],
-        [
-            'Communication',
-            'bell',
-            [
-                ['Announcements', 'coordinator/announcements.php', 'bell'],
-            ]
-        ],
     ],
 
     ROLE_TEACHER => [
@@ -157,13 +135,6 @@ define('SBM_NAV', [
             'check-circle',
             [
                 ['Self-Assessment', 'teacher/self_assessment.php', 'check-circle'],
-            ]
-        ],
-        [
-            'Communication',
-            'bell',
-            [
-                ['Announcements', 'teacher/announcements.php', 'bell'],
             ]
         ],
     ],

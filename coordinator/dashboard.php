@@ -84,8 +84,6 @@ if ($cycle) {
 }
 $progress = $totalIndicators > 0 ? round(($totalResponded / $totalIndicators) * 100) : 0;
 
-$anns = $db->query("SELECT a.*,u.full_name FROM announcements a JOIN users u ON a.posted_by=u.user_id WHERE a.target_role IN('all','sbm_coordinator','school_head') ORDER BY a.created_at DESC LIMIT 5")->fetchAll();
-
 // Teacher submissions
 $teacherList = [];
 if ($cycle) {
@@ -138,7 +136,7 @@ $mat = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : null;
 
 // Comparison SY
 $compareSyIds = array_values(array_unique(array_filter(array_map('intval', explode(',', $_GET['compare_sy'] ?? '')), fn($v) => $v > 0 && $v !== $syId)));
-$compareSyIds = array_slice($compareSyIds, 0, 2); // up to 2 extra cycles (3 total)
+$compareSyIds = array_slice($compareSyIds, 0, 3); // up to 3 extra cycles (4 total)
 $compareSyId = $compareSyIds[0] ?? 0;
 
 // Analytics dimension averages
@@ -2083,7 +2081,7 @@ include __DIR__ . '/../includes/header.php';
             $newIds = array_values(array_diff($compareSyIds, [$sy['sy_id']]));
           } else {
             $newIds = array_merge($compareSyIds, [$sy['sy_id']]);
-            $newIds = array_slice($newIds, -2); // keep max 2
+            $newIds = array_slice($newIds, -3); // keep max 3
           }
           $newParam = implode(',', $newIds);
         ?>
@@ -2160,7 +2158,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
   <?php endif; ?>
 
-  <!-- Charts row -->
+ <!-- Charts row -->
   <div class="grid2" style="margin-bottom:18px;align-items:start;grid-template-columns:1fr 1fr;">
     <div class="chart-card" style="display:flex;flex-direction:column;height:480px;min-width:0;">
       <div class="chart-card-head">
@@ -2201,6 +2199,162 @@ include __DIR__ . '/../includes/header.php';
       </div>
     </div>
   </div>
+
+  <!-- Assessment Cycle History -->
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-head" style="flex-wrap:wrap;gap:10px;">
+      <span class="card-title" id="progressCardTitle">Assessment Cycle History</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="an-tab-btn active" id="progressTabBtn0" onclick="switchProgressTab(0)">Cycle History</button>
+        <button class="an-tab-btn" id="progressTabBtn1" onclick="switchProgressTab(1)">Weak This Cycle</button>
+        <button class="an-tab-btn" id="progressTabBtn2" onclick="switchProgressTab(2)">Consistently Weak</button>
+        <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
+        <button class="an-tab-btn" id="progressTabBtn3" onclick="switchProgressTab(3)">Side-by-Side</button>
+        <?php endif; ?>
+      </div>
+    </div>
+
+    <!-- Panel 0: Cycle History -->
+    <div id="progressPanelInner0">
+      <?php if ($cycleHistory): ?>
+        <div class="tbl-wrap">
+          <table class="tbl-enhanced">
+            <thead>
+              <tr>
+                <th>School Year</th>
+                <th>Overall Score</th>
+                <th>Maturity</th>
+                <th>Status</th>
+                <th>Validated</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach (array_reverse($cycleHistory) as $ch): ?>
+                <tr>
+                  <td style="font-weight:600;">SY <?= e($ch['sy_label']) ?></td>
+                  <td>
+                    <?php if ($ch['overall_score']): ?>
+                      <span style="font-family:var(--font-display);font-size:15px;font-weight:800;color:<?= sbmMaturityLevel(floatval($ch['overall_score']))['color'] ?>;"><?= $ch['overall_score'] ?>%</span>
+                    <?php else: ?><span style="color:var(--n-300);">—</span><?php endif; ?>
+                  </td>
+                  <td>
+                    <?php if ($ch['maturity_level']): ?>
+                      <span class="pill pill-<?= e($ch['maturity_level']) ?>"><?= e($ch['maturity_level']) ?></span>
+                    <?php else: ?>—<?php endif; ?>
+                  </td>
+                  <td><span class="pill pill-<?= e($ch['status']) ?>"><?= ucfirst(str_replace('_', ' ', $ch['status'])) ?></span></td>
+                  <td style="font-size:12px;color:var(--n-400);">
+                    <?= $ch['validated_at'] ? date('M d, Y', strtotime($ch['validated_at'])) : '—' ?>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php else: ?>
+        <div class="empty-state"><div class="empty-title">No cycle history yet.</div></div>
+      <?php endif; ?>
+    </div>
+
+    <!-- Panel 1: Weak This Cycle -->
+    <div id="progressPanelInner1" style="display:none;">
+      <?php if ($weakIndicatorRows): ?>
+        <div class="card-body" style="padding:0;">
+          <?php foreach ($weakIndicatorRows as $ind):
+            $avgR = floatval($ind['avg_rating']);
+            $color = $avgR >= 3 ? 'var(--n-800)' : ($avgR >= 2 ? 'var(--amber)' : 'var(--red)');
+          ?>
+            <div style="padding:12px 20px;border-bottom:1px solid var(--n-100);">
+              <div class="flex-cb" style="margin-bottom:4px;">
+                <div>
+                  <span style="font-size:10.5px;font-weight:700;color:var(--n-400);text-transform:uppercase;letter-spacing:.05em;"><?= e($ind['indicator_code']) ?></span>
+                  <span style="font-size:10.5px;color:var(--n-400);margin-left:6px;padding:1px 7px;background:var(--n-100);border-radius:4px;"><?= e($ind['dimension_name']) ?></span>
+                </div>
+                <span style="font-size:13px;font-weight:700;color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</span>
+              </div>
+              <div style="font-size:12.5px;color:var(--n-700);margin-bottom:5px;line-height:1.45;"><?= e(substr($ind['indicator_text'], 0, 100)) ?>…</div>
+              <div style="font-size:11px;color:var(--n-400);margin-top:4px;"><?= $ind['response_count'] ?> response(s)</div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php else: ?>
+        <div class="empty-state"><div class="empty-title">No weak indicators found for this cycle.</div></div>
+      <?php endif; ?>
+    </div>
+
+    <!-- Panel 2: Consistently Weak -->
+    <div id="progressPanelInner2" style="display:none;">
+      <?php if ($consistentlyWeak): ?>
+        <div class="card-body" style="padding:0;">
+          <?php foreach ($consistentlyWeak as $cw):
+            $avgR = floatval($cw['avg_rating']);
+            $color = $avgR >= 2 ? 'var(--amber)' : 'var(--red)';
+          ?>
+            <div class="an-cw-row">
+              <div class="an-cw-badge" style="background:<?= $avgR < 2 ? 'var(--red-bg)' : 'var(--amber-bg)' ?>;color:<?= $color ?>;"><?= e($cw['indicator_code']) ?></div>
+              <div class="an-cw-info">
+                <div class="an-cw-title"><?= e(substr($cw['indicator_text'], 0, 95)) ?>...</div>
+                <div class="an-cw-meta"><?= e($cw['dimension_name']) ?> · Avg: <strong style="color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</strong> · Worst: <?= number_format($cw['worst_cycle_avg'], 2) ?> · Best: <?= number_format($cw['best_cycle_avg'], 2) ?></div>
+              </div>
+              <div style="font-size:11px;font-weight:700;color:var(--red);text-align:center;min-width:48px;">Priority<br>Action</div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php else: ?>
+        <div class="empty-state"><div class="empty-title">No consistently weak indicators</div><div class="empty-sub">All indicators are averaging above 2.5 across cycles.</div></div>
+      <?php endif; ?>
+    </div>
+
+    <!-- Panel 3: Side-by-Side -->
+    <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
+    <div id="progressPanelInner3" style="display:none;">
+      <div class="tbl-wrap">
+        <table class="tbl-enhanced">
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>SY <?= e($syLabel) ?></th>
+              <th>SY <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></th>
+              <th>Change</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php
+            $cmpMap = array_column($anDimAvgsCompare, 'avg_pct', 'dimension_no');
+            foreach ($anDimAvgs as $dim):
+              $cur = $dim['avg_pct'] !== null ? floatval($dim['avg_pct']) : null;
+              $cmp = isset($cmpMap[$dim['dimension_no']]) ? floatval($cmpMap[$dim['dimension_no']]) : null;
+              $chg = ($cur !== null && $cmp !== null) ? round($cur - $cmp, 1) : null;
+              $chgC = $chg === null ? 'var(--n-400)' : ($chg > 0 ? 'var(--brand-600)' : ($chg < 0 ? 'var(--red)' : 'var(--n-400)'));
+            ?>
+            <tr>
+              <td style="font-weight:600;">D<?= $dim['dimension_no'] ?>: <?= e($dim['dimension_name']) ?></td>
+              <td><?= $cur !== null ? $cur . '%' : '—' ?></td>
+              <td><?= $cmp !== null ? $cmp . '%' : '—' ?></td>
+              <td><span style="font-size:13px;font-weight:700;color:<?= $chgC ?>;"><?= $chg !== null ? ($chg > 0 ? '▲ +' : ($chg < 0 ? '▼ ' : '')) . abs($chg) . '%' : '—' ?></span></td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <?php endif; ?>
+
+  </div>
+
+  <script>
+  const progressTitles = ['Assessment Cycle History', 'Weak This Cycle', 'Consistently Weak', 'Side-by-Side Comparison'];
+  function switchProgressTab(idx) {
+    for (var i = 0; i <= 3; i++) {
+      var panel = document.getElementById('progressPanelInner' + i);
+      var btn = document.getElementById('progressTabBtn' + i);
+      if (panel) panel.style.display = (i === idx) ? '' : 'none';
+      if (btn) btn.classList.toggle('active', i === idx);
+    }
+    var title = document.getElementById('progressCardTitle');
+    if (title) title.textContent = progressTitles[idx] || '';
+  }
+  </script>
 
   <div style="display:none;">
 
@@ -2339,8 +2493,7 @@ include __DIR__ . '/../includes/header.php';
   </div>
 
   <!-- Tabs -->
-  <div class="an-tab-btns">
-    <button class="an-tab-btn active" onclick="anSwitchTab(this,'anTabHistory')">Cycle History</button>
+  <div class="an-tab-btns" style="display:none;">
     <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabWeak')">Weak This Cycle</button>
     <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabConsistent')">Consistently Weak</button>
     <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
@@ -2348,58 +2501,8 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
   </div>
 
-  <!-- TAB: Cycle History -->
-  <div class="an-tab-panel active" id="anTabHistory">
-    <div class="card" style="margin-bottom:18px;">
-      <div class="card-head"><span class="card-title">Assessment Cycle History</span></div>
-      <?php if ($cycleHistory): ?>
-        <div class="tbl-wrap">
-          <table class="tbl-enhanced">
-            <thead>
-              <tr>
-                <th>School Year</th>
-                <th>Overall Score</th>
-                <th>Maturity</th>
-                <th>Status</th>
-                <th>Validated</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach (array_reverse($cycleHistory) as $ch): ?>
-                <tr>
-                  <td style="font-weight:600;">SY <?= e($ch['sy_label']) ?></td>
-                  <td>
-                    <?php if ($ch['overall_score']): ?>
-                      <span
-                        style="font-family:var(--font-display);font-size:15px;font-weight:800;color:<?= sbmMaturityLevel(floatval($ch['overall_score']))['color'] ?>;"><?= $ch['overall_score'] ?>%</span>
-                    <?php else: ?><span style="color:var(--n-300);">—</span><?php endif; ?>
-                  </td>
-                  <td>
-                    <?php if ($ch['maturity_level']): ?>
-                      <span class="pill pill-<?= e($ch['maturity_level']) ?>"><?= e($ch['maturity_level']) ?></span>
-                    <?php else: ?>—<?php endif; ?>
-                  </td>
-                  <td><span
-                      class="pill pill-<?= e($ch['status']) ?>"><?= ucfirst(str_replace('_', ' ', $ch['status'])) ?></span>
-                  </td>
-                  <td style="font-size:12px;color:var(--n-400);">
-                    <?= $ch['validated_at'] ? date('M d, Y', strtotime($ch['validated_at'])) : '—' ?>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      <?php else: ?>
-        <div class="empty-state">
-          <div class="empty-title">No cycle history yet.</div>
-        </div>
-      <?php endif; ?>
-    </div>
-  </div>
-
   <!-- TAB: Weak This Cycle -->
-  <div class="an-tab-panel" id="anTabWeak">
+  <div class="an-tab-panel active" id="anTabWeak">
     <div class="card" style="margin-bottom:18px;">
       <div class="card-head">
         <span class="card-title">Weak Indicators This Cycle</span>
@@ -2550,6 +2653,52 @@ include __DIR__ . '/../includes/header.php';
     </div>
   <?php endif; ?>
 
+<!-- Assessment Cycle History (displayed in Progress view) -->
+  <?php /* table moved to progress view */ ?>
+  <div class="card" style="display:none;">
+    <div class="card-head"><span class="card-title">Assessment Cycle History</span></div>
+    <?php if ($cycleHistory): ?>
+      <div class="tbl-wrap">
+        <table class="tbl-enhanced">
+          <thead>
+            <tr>
+              <th>School Year</th>
+              <th>Overall Score</th>
+              <th>Maturity</th>
+              <th>Status</th>
+              <th>Validated</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach (array_reverse($cycleHistory) as $ch): ?>
+              <tr>
+                <td style="font-weight:600;">SY <?= e($ch['sy_label']) ?></td>
+                <td>
+                  <?php if ($ch['overall_score']): ?>
+                    <span style="font-family:var(--font-display);font-size:15px;font-weight:800;color:<?= sbmMaturityLevel(floatval($ch['overall_score']))['color'] ?>;"><?= $ch['overall_score'] ?>%</span>
+                  <?php else: ?><span style="color:var(--n-300);">—</span><?php endif; ?>
+                </td>
+                <td>
+                  <?php if ($ch['maturity_level']): ?>
+                    <span class="pill pill-<?= e($ch['maturity_level']) ?>"><?= e($ch['maturity_level']) ?></span>
+                  <?php else: ?>—<?php endif; ?>
+                </td>
+                <td><span class="pill pill-<?= e($ch['status']) ?>"><?= ucfirst(str_replace('_', ' ', $ch['status'])) ?></span></td>
+                <td style="font-size:12px;color:var(--n-400);">
+                  <?= $ch['validated_at'] ? date('M d, Y', strtotime($ch['validated_at'])) : '—' ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php else: ?>
+      <div class="empty-state">
+        <div class="empty-title">No cycle history yet.</div>
+      </div>
+    <?php endif; ?>
+  </div>
+
 </div><!-- /viewAnalytics -->
 
 
@@ -2614,25 +2763,50 @@ include __DIR__ . '/../includes/header.php';
     const validVals = dimValues.filter(v => v !== null && v !== undefined);
     const dimAverage = validVals.length ? (validVals.reduce((a, b) => a + b, 0) / validVals.length) : null;
 
-    // Plugin: draw the value above each bar
+    // Plugin: draw the value + change label to the right of each bar
     const dimValueLabelsPlugin = {
       id: 'dimValueLabels',
       afterDatasetsDraw(chart) {
         const { ctx } = chart;
+        const datasets = chart.data.datasets;
+        const isCurrent = (dsIndex) => dsIndex === 0;
+        // Ensure current SY bar (index 0) is always drawn on top visually
+        const isCompare = datasets.length > 1;
+
+        // Find the rightmost bar end per row across all datasets
+        const numRows = chart.data.labels.length;
+        const rowMaxX = new Array(numRows).fill(0);
+        const rowY = new Array(numRows).fill(0);
         chart.data.datasets.forEach((dataset, dsIndex) => {
           const meta = chart.getDatasetMeta(dsIndex);
           meta.data.forEach((bar, i) => {
-            const val = dataset.data[i];
-            if (val === null || val === undefined) return;
-            ctx.save();
-            ctx.font = '700 11px sans-serif';
-            ctx.fillStyle = '#374151';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(val + '%', bar.x + 6, bar.y);
-            ctx.restore();
+            if (bar.x > rowMaxX[i]) {
+              rowMaxX[i] = bar.x;
+              rowY[i] = bar.y;
+            }
           });
         });
+
+        // Only draw the change label once per row, after the longest bar
+        if (isCompare) {
+          const currDataset = datasets[0];
+          const cmpDataset = datasets[1];
+          currDataset.data.forEach((val, i) => {
+            if (val === null || val === undefined) return;
+            const cmpVal = cmpDataset.data[i];
+            if (cmpVal === null || cmpVal === undefined) return;
+            const change = Math.round((val - cmpVal) * 10) / 10;
+            const changeText = (change > 0 ? '▲ +' : (change < 0 ? '▼ ' : '')) + change + '%';
+            const changeColor = change > 0 ? '#16a34a' : (change < 0 ? '#dc2626' : '#6b7280');
+            ctx.save();
+            ctx.font = 'bold 10.5px sans-serif';
+            ctx.fillStyle = changeColor;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(changeText, rowMaxX[i] + 6, rowY[i]);
+            ctx.restore();
+          });
+        }
       }
     };
 
@@ -2667,11 +2841,12 @@ include __DIR__ . '/../includes/header.php';
         labels: dimNos.map(no => 'D' + no),
         datasets: dimBarDatasets
       },
+      plugins: [dimValueLabelsPlugin],
       options: {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        layout: { padding: { right: 36, left: 4 } },
+        layout: { padding: { right: 60, left: 4 } },
         scales: {
           x: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6', drawTicks: false } },
           y: { ticks: { font: { size: 12, weight: '700' }, autoSkip: false }, grid: { display: false } },

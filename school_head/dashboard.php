@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
     $dimScores[] = [
       'dimension_name' => $row['dimension_name'],
       'score' => (float) $row['avg_pct'],
-      'maturity' => $row['avg_pct'] >= 66.6 ? 'Advanced' : ($row['avg_pct'] >= 33.3 ? 'Maturing' : 'Developing')
+      'maturity' => sbmMaturityLevel(floatval($row['avg_pct']))['label']
     ];
   }
 
