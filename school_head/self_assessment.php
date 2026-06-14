@@ -201,14 +201,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       }
 
       $teacherOnlyCodes = array_merge(TEACHER_ONLY_CODES, TCH_EXT_CODES);
-      $ph = buildInPlaceholders($teacherOnlyCodes);
-      $db->prepare("
+      if (empty($teacherOnlyCodes)) {
+        $db->prepare("
+    DELETE r FROM sbm_responses r
+    JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
+    WHERE r.cycle_id = ?
+      AND i.dimension_id = ?
+")->execute([$cycleRow['cycle_id'], $dimId]);
+      } else {
+        $ph = buildInPlaceholders($teacherOnlyCodes);
+        $db->prepare("
     DELETE r FROM sbm_responses r
     JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
     WHERE r.cycle_id = ?
       AND i.dimension_id = ?
       AND i.indicator_code NOT IN ($ph)
 ")->execute(array_merge([$cycleRow['cycle_id'], $dimId], $teacherOnlyCodes));
+      }
 
       $db->prepare("UPDATE sbm_dimension_scores SET raw_score=0,max_score=0,percentage=0,computed_at=NOW()
               WHERE cycle_id=? AND dimension_id=?")
@@ -938,11 +947,7 @@ include __DIR__ . '/../includes/header.php';
 </style>
 
 <!-- ── PAGE HEAD ──────────────────────────────────────────── -->
-<div class="page-head">
-  <div class="page-head-text">
-    <h2>SBM Self-Assessment</h2>
-    <p>Rate all indicators across 6 dimensions using the 4 Degrees of Manifestation scale.</p>
-  </div>
+<div class="page-head" style="justify-content:flex-end;margin-bottom:16px;">
   <div class="page-head-actions">
     <?php if (!$cycle): ?>
       <?php if (hasAccess('start_assessment')): ?>
@@ -1486,7 +1491,7 @@ include __DIR__ . '/../includes/header.php';
   // ── Clear entire dimension ─────────────────────────────────
   function confirmClearDim(dimNo) {
     const dimWrap = document.getElementById('dim' + dimNo);
-    const ratedCount = dimWrap?.querySelectorAll('.indicator-row[data-role="sh"].rated').length ?? 0;
+    const ratedCount = dimWrap?.querySelectorAll('.indicator-row[data-sh="1"].rated').length ?? 0;
     if (ratedCount === 0) { toast('No ratings to clear in this dimension.', 'warning'); return; }
 
     const dimName = dimWrap?.querySelector('[style*="font-size:14.5px"]')?.textContent?.trim() ?? `Dimension ${dimNo}`;
@@ -1508,7 +1513,7 @@ include __DIR__ . '/../includes/header.php';
     if (!r.ok) { toast(r.msg, 'err'); return; }
 
     // Reset each SH card's UI only — no progress calls yet
-    dimWrap.querySelectorAll('.indicator-row[data-role="sh"]').forEach(row => {
+    dimWrap.querySelectorAll('.indicator-row[data-sh="1"]').forEach(row => {
       const indId = row.id.replace('row', '');
       if (!row.classList.contains('rated')) return;
 

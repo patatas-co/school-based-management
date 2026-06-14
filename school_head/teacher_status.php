@@ -91,7 +91,7 @@ if ($cycle) {
     $pageParams[] = $offset;
 
     $pageStmt = $db->prepare("
-        SELECT u.user_id, u.full_name, u.email, u.username,
+        SELECT u.user_id, u.full_name, u.email, u.username, u.department,
                ts.status      AS sub_status,
                ts.submitted_at,
                ts.response_count
@@ -185,6 +185,17 @@ include __DIR__.'/../includes/header.php';
 .ts-badge.done    { background:#DCFCE7;color:#16A34A; }
 .ts-empty        { text-align:center;padding:40px 20px;color:var(--n400);font-size:13px; }
 
+/* ── Table layout ─────────────────────────────────────── */
+.ts-table        { width:100%;border-collapse:collapse; }
+.ts-table th     { text-align:left;font-size:11px;font-weight:700;color:var(--n400);text-transform:uppercase;letter-spacing:.04em;padding:10px 14px;border-bottom:1px solid var(--n200); }
+.ts-table th.ts-th-status { text-align:right; }
+.ts-table td     { padding:12px 14px;font-size:13px;color:var(--n800);vertical-align:middle; }
+.ts-table tbody tr { transition:background .12s; }
+.ts-table tbody tr:hover { background:var(--n50); }
+.ts-table tbody tr + tr td { border-top:1px solid var(--n100); }
+.ts-table td.ts-td-status { text-align:right; }
+.ts-td-sub      { font-size:12px;color:var(--n500); }
+
 /* ── Pagination ──────────────────────────────────────── */
 .ts-pager        { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:12px 20px;border-top:1px solid var(--n100); }
 .ts-pager-info   { font-size:12px;color:var(--n500); }
@@ -206,6 +217,7 @@ include __DIR__.'/../includes/header.php';
 </style>
 
 <!-- ── Page header ─────────────────────────────────────────── -->
+<?php if (empty($_COORDINATOR_VIEW)): ?>
 <div class="page-head">
   <div class="page-head-text">
     <h2>Teacher Submission Status</h2>
@@ -222,6 +234,7 @@ include __DIR__.'/../includes/header.php';
     </button>
   </div>
 </div>
+<?php endif; ?>
 
 <?php if (!$cycle): ?>
 <!-- No active cycle ──────────────────────────────────────────── -->
@@ -280,13 +293,23 @@ include __DIR__.'/../includes/header.php';
 <!-- ── Main panel ─────────────────────────────────────────────── -->
 <div class="ts-panel">
 
-  <div class="ts-panel-head">
-    <div class="ts-panel-title">
+  <div class="ts-panel-head" style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;">
+    <div class="ts-panel-title" style="margin-bottom:0;">
       All Teachers
       <span style="font-size:11px;font-weight:600;color:var(--n400);margin-left:6px;">
         <?= $submittedPct ?>% submitted
       </span>
     </div>
+    <?php if (!empty($_COORDINATOR_VIEW)): ?>
+    <button id="refreshDataBtn" class="btn btn-secondary btn-sm" onclick="refreshTeacherStatus()" style="display:inline-flex;align-items:center;gap:6px;flex-shrink:0;">
+      <svg id="refreshIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+      Refresh Data
+    </button>
+    <?php endif; ?>
   </div>
 
   <!-- Toolbar: search + filter tabs -->
@@ -343,49 +366,65 @@ include __DIR__.'/../includes/header.php';
   <?php endif; ?>
 
   <!-- Teacher list -->
-  <div class="ts-list">
-    <?php if (empty($pendingTeachers)): ?>
-    <div class="ts-empty">
-      <?php if ($teacherSearch !== ''): ?>
-        No teachers match "<strong><?= e($teacherSearch) ?></strong>".
-        <br><a href="<?= e(tsUrl(1, '', $tsFilter)) ?>" style="color:var(--blue);">Clear search</a>
-      <?php else: ?>
-        No teachers found<?= $tsFilter !== 'all' ? ' in this filter' : '' ?>.
-      <?php endif; ?>
-    </div>
+  <?php if (empty($pendingTeachers)): ?>
+  <div class="ts-empty">
+    <?php if ($teacherSearch !== ''): ?>
+      No teachers match "<strong><?= e($teacherSearch) ?></strong>".
+      <br><a href="<?= e(tsUrl(1, '', $tsFilter)) ?>" style="color:var(--blue);">Clear search</a>
     <?php else: ?>
-    <?php foreach ($pendingTeachers as $t):
-      $submitted  = $t['sub_status'] === 'submitted';
-      $statusClass = $submitted ? 'done' : 'pending';
-      // Initials avatar
-      $parts    = array_filter(explode(' ', trim($t['full_name'])));
-      $initials = strtoupper(substr($parts[0] ?? 'T', 0, 1) . (isset($parts[1]) ? substr($parts[1], 0, 1) : ''));
-    ?>
-    <div class="ts-row <?= $statusClass ?>">
-      <div class="ts-avatar <?= $statusClass ?>">
-        <?= e($initials) ?>
-      </div>
-      <div class="ts-info">
-        <div class="ts-name"><?= e($t['full_name']) ?></div>
-        <div class="ts-meta">
-          <?php if ($submitted): ?>
-            Submitted <?= $t['submitted_at'] ? date('M d, Y · g:i A', strtotime($t['submitted_at'])) : '' ?>
-            · <?= (int)$t['response_count'] ?> responses
-          <?php else: ?>
-            Not yet submitted
-            <?php if ($t['email']): ?>
-              · <a href="mailto:<?= e($t['email']) ?>?subject=<?= urlencode('SBM Self-Assessment Reminder') ?>&body=<?= urlencode("Dear {$t['full_name']},\n\nThis is a reminder to please submit your SBM Self-Assessment at your earliest convenience.\n\nThank you.") ?>">Send reminder</a>
-            <?php endif; ?>
-          <?php endif; ?>
-        </div>
-      </div>
-      <span class="ts-badge <?= $statusClass ?>">
-        <?= $submitted ? 'Done' : 'Pending' ?>
-      </span>
-    </div>
-    <?php endforeach; ?>
+      No teachers found<?= $tsFilter !== 'all' ? ' in this filter' : '' ?>.
     <?php endif; ?>
   </div>
+  <?php else: ?>
+  <div style="padding:0 20px 10px;overflow-x:auto;width:100%;box-sizing:border-box;">
+    <table class="ts-table" style="min-width:100%;">
+      <thead>
+        <tr>
+          <th>Teacher</th>
+          <th>Department</th>
+          <th>Submitted On</th>
+          <th class="ts-th-status">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($pendingTeachers as $t):
+          $submitted  = $t['sub_status'] === 'submitted';
+          $statusClass = $submitted ? 'done' : 'pending';
+          // Initials avatar
+          $parts    = array_filter(explode(' ', trim($t['full_name'])));
+          $initials = strtoupper(substr($parts[0] ?? 'T', 0, 1) . (isset($parts[1]) ? substr($parts[1], 0, 1) : ''));
+        ?>
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div class="ts-avatar <?= $statusClass ?>"><?= e($initials) ?></div>
+              <div class="ts-name"><?= e($t['full_name']) ?></div>
+            </div>
+          </td>
+          <td class="ts-td-sub">
+            <?= e($t['department'] ?? '—') ?>
+          </td>
+          <td class="ts-td-sub">
+            <?php if ($submitted): ?>
+              <?= $t['submitted_at'] ? date('M d, Y · g:i A', strtotime($t['submitted_at'])) : '—' ?>
+            <?php else: ?>
+              Not yet submitted
+              <?php if ($t['email']): ?>
+                · <a href="mailto:<?= e($t['email']) ?>?subject=<?= urlencode('SBM Self-Assessment Reminder') ?>&body=<?= urlencode("Dear {$t['full_name']},\n\nThis is a reminder to please submit your SBM Self-Assessment at your earliest convenience.\n\nThank you.") ?>">Send reminder</a>
+              <?php endif; ?>
+            <?php endif; ?>
+          </td>
+          <td class="ts-td-status">
+            <span class="ts-badge <?= $statusClass ?>">
+              <?= $submitted ? 'Done' : 'Pending' ?>
+            </span>
+          </td>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+  <?php endif; ?>
 
   <!-- Pagination -->
   <?php

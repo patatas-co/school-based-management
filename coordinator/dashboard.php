@@ -309,10 +309,7 @@ include __DIR__ . '/../includes/header.php';
 <style>
   /* ── HERO (mirrors school_head hero) ── */
   .coord-hero {
-    background:
-      linear-gradient(to right, rgba(8, 26, 8, 0.8) 0%, rgba(8, 26, 8, 0.4) 50%, rgba(8, 26, 8, 0.1) 100%),
-      url('<?= e(baseUrl()) ?>/assets/cover.png') center/cover no-repeat;
-    background-color: #081a08;
+    background: #0d1f0f;
     border-radius: var(--radius-lg);
     padding: 28px 32px;
     color: #fff;
@@ -2160,7 +2157,7 @@ include __DIR__ . '/../includes/header.php';
 
  <!-- Charts row -->
   <div class="grid2" style="margin-bottom:18px;align-items:start;grid-template-columns:1fr 1fr;">
-    <div class="chart-card" style="display:flex;flex-direction:column;height:480px;min-width:0;">
+    <div class="chart-card" style="display:flex;flex-direction:column;height:535px;min-width:0;">
       <div class="chart-card-head">
         <span class="chart-card-title">Dimension Score Comparison</span>
       </div>

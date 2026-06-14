@@ -26,18 +26,6 @@ if (!$cycleCheck) {
     $activePage = 'self_assessment.php';
     include __DIR__ . '/../includes/header.php';
     ?>
-    <div class="page-head">
-        <div class="page-head-text">
-            <h2>SBM Self-Assessment</h2>
-            <p>Dasmariñas Integrated High School &nbsp;·&nbsp; SY
-                <?php
-                $stSyLbl = $db->prepare("SELECT label FROM school_years WHERE sy_id=? LIMIT 1");
-                $stSyLbl->execute([$syId]);
-                echo e($stSyLbl->fetchColumn() ?: '—');
-                ?>
-            </p>
-        </div>
-    </div>
     <div class="card">
         <div class="card-body" style="text-align:center;padding:70px 20px;">
             <div style="width:72px;height:72px;border-radius:50%;background:var(--amber-bg);
@@ -75,12 +63,6 @@ if ($cycleCheck && in_array($cycleCheck['status'], ['completed', 'finalized', 'v
     $stSyLbl->execute([$syId]);
     $syLabel = $stSyLbl->fetchColumn() ?: '—';
     ?>
-    <div class="page-head">
-        <div class="page-head-text">
-            <h2>SBM Self-Assessment</h2>
-            <p>Dasmariñas Integrated High School &nbsp;·&nbsp; SY <?= e($syLabel) ?></p>
-        </div>
-    </div>
     <div class="card">
         <div class="card-body" style="text-align:center;padding:80px 20px;">
             <div style="width:80px;height:80px;border-radius:50%;background:#DCFCE7;
@@ -540,14 +522,6 @@ include __DIR__ . '/../includes/header.php';
         animation: prog-complete .7s ease-out forwards;
     }
 </style>
-
-<!-- ── PAGE HEAD ── -->
-<div class="page-head">
-    <div class="page-head-text">
-        <h2>SBM Self-Assessment</h2>
-        <p><?= e($school['school_name'] ?? '') ?> &nbsp;·&nbsp; SY <?= e($sy['label'] ?? '—') ?></p>
-    </div>
-</div>
 
 <!-- ── NOTICE ── -->
 <div class="alert alert-info" style="margin-bottom:16px;">

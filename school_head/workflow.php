@@ -449,15 +449,7 @@ include __DIR__ . '/../includes/header.php';
 </style>
 
 <!-- PAGE HEADER -->
-<div class="ph2" style="margin-bottom:20px;">
-  <div class="ph2-left">
-    <div class="ph2-eyebrow">SBM Process</div>
-    <div class="ph2-title">Workflow & Timeline</div>
-    <div class="ph2-sub">
-      SBM 3-Step Cycle — DepEd Order No. 007, s. 2024
-      <?php if ($currentSY): ?>&nbsp;·&nbsp; SY <?= e($currentSY['label']) ?><?php endif; ?>
-    </div>
-  </div>
+<div class="ph2" style="margin-bottom:20px;justify-content:flex-end;">
   <div class="ph2-right">
     <div class="p-select" id="wfSySelect" style="width:160px;">
       <input type="hidden" name="sy_id" value="<?= $syId ?>">

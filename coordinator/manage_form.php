@@ -471,32 +471,24 @@ include __DIR__ . '/../includes/header.php';
 </div>
 <?php endif; ?>
 
-<div class="ph2" style="margin-bottom:18px;">
-    <div>
-        <div class="ph2-eyebrow">Form Management</div>
-        <div class="ph2-title">SBM Assessment Form</div>
-        <div class="ph2-sub">Edit dimensions and indicators. Publish creates a new version — old data is never lost.</div>
-    </div>
-    <div class="ph2-right">
-        <button class="btn btn-secondary" id="btnPreviewActive" onclick="previewVersion(<?= $activeVersion ? $activeVersion['version_id'] : 0 ?>)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            Preview Active
-        </button>
-        <button class="btn btn-primary" onclick="startEdit()" id="btnStartEdit">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Edit Form
-        </button>
-    </div>
-</div>
-
 <div class="mf-layout">
 
     <!-- ── LEFT: Version History ─────────────────────────── -->
     <div class="mf-sidebar">
         <div class="card">
-            <div class="card-head">
+            <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
                 <span class="card-title">Version History</span>
                 <span style="font-size:11.5px;color:var(--n-400);"><?= count($versions) ?> version(s)</span>
+            </div>
+            <div class="card-body" style="padding:12px 12px 0;display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-secondary btn-sm" id="btnPreviewActive" onclick="previewVersion(<?= $activeVersion ? $activeVersion['version_id'] : 0 ?>)" style="flex:1;justify-content:center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    Preview Active
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="startEdit()" id="btnStartEdit" style="flex:1;justify-content:center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit Form
+                </button>
             </div>
             <div class="card-body" style="padding:12px;">
                 <div class="mf-version-list">

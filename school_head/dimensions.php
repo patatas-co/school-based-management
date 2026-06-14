@@ -52,6 +52,7 @@ if ($cycle) {
 $pageTitle = 'SBM Dimensions'; $activePage = 'dimensions.php';
 include __DIR__.'/../includes/header.php';
 ?>
+<?php if (empty($_COORDINATOR_VIEW)): ?>
 <div class="page-head">
   <div class="page-head-text"><h2>SBM Dimensions</h2>
     <p>Performance breakdown across 6 dimensions — SY <?= e($sy['label']??'—') ?></p></div>
@@ -59,6 +60,7 @@ include __DIR__.'/../includes/header.php';
     <a href="self_assessment.php" class="btn btn-primary"><?= svgIcon('check-circle') ?> Fill Assessment</a>
   </div>
 </div>
+<?php endif; ?>
 
 <?php if ($cycle): ?>
 <div class="card mb5" style="margin-bottom:18px;">

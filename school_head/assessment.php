@@ -56,46 +56,39 @@ $activePage = 'assessment.php';
 include __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="ph2">
-  <div class="ph2-left">
-    <div class="ph2-eyebrow">Evaluation</div>
-    <div class="ph2-title">SBM Assessments</div>
-    <div class="ph2-sub">Review, validate, and manage school self-assessment submissions.</div>
+<div class="status-tabs" style="justify-content:space-between;align-items:center;">
+  <div class="flex-c" style="gap:6px;">
+    <?php
+    $statuses = ['' => 'All', 'draft' => 'Draft', 'in_progress' => 'In Progress', 'submitted' => 'Submitted', 'validated' => 'Validated', 'returned' => 'Returned'];
+    foreach ($statuses as $sv => $sl):
+      $cnt = $sv === '' ? $totalCount : ($counts[$sv] ?? 0);
+      ?>
+      <a href="assessment.php?sy=<?= $syId ?>&status=<?= $sv ?>" class="status-tab <?= $status === $sv ? 'active' : '' ?>">
+        <?= $sl ?>
+        <?php if ($cnt): ?><span class="status-tab-count"><?= $cnt ?></span><?php endif; ?>
+      </a>
+    <?php endforeach; ?>
   </div>
-  <div class="ph2-right">
-    <div class="p-select" id="asmSySelect" style="width:160px;">
-      <input type="hidden" name="sy_id" value="<?= $syId ?>">
-      <div class="p-select-trigger" onclick="togglePSelect(event, 'asmSySelect')">
-        <span class="p-select-val">
-          SY <?= e(array_column($syears, 'label', 'sy_id')[$syId] ?? 'Select SY') ?>
-        </span>
-      </div>
-      <div class="p-select-menu">
-        <?php foreach ($syears as $sy): ?>
-          <div class="p-select-item <?= $sy['sy_id'] == $syId ? 'selected' : '' ?>" 
-               onclick="location.href='assessment.php?sy=<?= $sy['sy_id'] ?>&status=<?= e($status) ?>'">
-            SY <?= e($sy['label']) ?>
-            <?php if ($sy['sy_id'] == $syId): ?>
-              <span class="p-select-check"></span>
-            <?php endif; ?>
-          </div>
-        <?php endforeach; ?>
-      </div>
+
+  <div class="p-select" id="asmSySelect" style="width:160px;">
+    <input type="hidden" name="sy_id" value="<?= $syId ?>">
+    <div class="p-select-trigger" onclick="togglePSelect(event, 'asmSySelect')">
+      <span class="p-select-val">
+        SY <?= e(array_column($syears, 'label', 'sy_id')[$syId] ?? 'Select SY') ?>
+      </span>
+    </div>
+    <div class="p-select-menu">
+      <?php foreach ($syears as $sy): ?>
+        <div class="p-select-item <?= $sy['sy_id'] == $syId ? 'selected' : '' ?>" 
+             onclick="location.href='assessment.php?sy=<?= $sy['sy_id'] ?>&status=<?= e($status) ?>'">
+          SY <?= e($sy['label']) ?>
+          <?php if ($sy['sy_id'] == $syId): ?>
+            <span class="p-select-check"></span>
+          <?php endif; ?>
+        </div>
+      <?php endforeach; ?>
     </div>
   </div>
-</div>
-
-<div class="status-tabs">
-  <?php
-  $statuses = ['' => 'All', 'draft' => 'Draft', 'in_progress' => 'In Progress', 'submitted' => 'Submitted', 'validated' => 'Validated', 'returned' => 'Returned'];
-  foreach ($statuses as $sv => $sl):
-    $cnt = $sv === '' ? $totalCount : ($counts[$sv] ?? 0);
-    ?>
-    <a href="assessment.php?sy=<?= $syId ?>&status=<?= $sv ?>" class="status-tab <?= $status === $sv ? 'active' : '' ?>">
-      <?= $sl ?>
-      <?php if ($cnt): ?><span class="status-tab-count"><?= $cnt ?></span><?php endif; ?>
-    </a>
-  <?php endforeach; ?>
 </div>
 
 <div class="card">

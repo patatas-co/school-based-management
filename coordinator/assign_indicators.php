@@ -383,21 +383,9 @@ foreach (SBM_INDICATORS as $ind) {
     }
 </style>
 
-<div class="page-head">
-    <div class="page-head-text">
-        <h2>Assign Indicators</h2>
-        <p>Assign specific SBM checklist indicators for teachers, school heads, or external stakeholders.</p>
-    </div>
-    <div class="page-head-actions">
-        <button class="btn btn-primary" onclick="openBulkModal()">
-            <?= svgIcon('users') ?> Bulk Assign Rules
-        </button>
-    </div>
-</div>
-
 <div class="card" style="padding:20px;">
     <div class="toolbar">
-        <form class="search-box" method="GET">
+        <form class="search-box" method="GET" style="flex:1;">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8" />
@@ -409,6 +397,9 @@ foreach (SBM_INDICATORS as $ind) {
         <?php if ($search !== ''): ?>
             <a href="assign_indicators.php" class="btn btn-secondary">Clear</a>
         <?php endif; ?>
+        <button class="btn btn-primary" onclick="openBulkModal()">
+            <?= svgIcon('users') ?> Bulk Assign Rules
+        </button>
     </div>
 
     <table class="teacher-table">
