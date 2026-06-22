@@ -114,10 +114,10 @@ define('SBM_NAV', [
             ]
         ],
         [
-            'Evaluation',
+            'Monitoring',
             'check-circle',
             [
-                ['Self-Assessment', 'coordinator/self_assessment.php', 'check-circle'],
+                ['Intervention Matrix', 'coordinator/self_assessment.php', 'check-circle'],
             ]
         ],
     ],

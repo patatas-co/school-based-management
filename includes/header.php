@@ -2676,10 +2676,6 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         </div>
       </div>
       <div class="topbar-right">
-        <div class="role-chip">
-          <span class="dot" style="background:<?= $__roleColor ?>;"></span>
-          <?= e($__roleLabel) ?>
-        </div>
       </div>
     </header>
 

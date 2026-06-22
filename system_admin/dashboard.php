@@ -112,8 +112,8 @@ include __DIR__ . '/../includes/header.php';
 <div class="sa-hero">
   <div class="sa-hero-bg"></div>
   <div style="position:relative; z-index:1;">
-    <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(74,222,128,.8);margin-bottom:8px;">Administration</div>
-    <div style="font-family:var(--font-display);font-size:30px;font-weight:800;line-height:1.1;">System Admin Dashboard</div>
+    <div style="font-family:var(--font-display);font-size:14px;font-weight:600;color:rgba(74,222,128,.9);margin-bottom:4px;">Welcome back,</div>
+    <div style="font-family:var(--font-display);font-size:30px;font-weight:800;line-height:1.1;"><?= e($__me['name']) ?></div>
     <div style="margin-top:8px;font-size:13px;color:rgba(255,255,255,.72);">
       <?= date('l, F j, Y') ?><?php if ($currentSY): ?> · SY <?= e($currentSY) ?><?php endif; ?>
     </div>

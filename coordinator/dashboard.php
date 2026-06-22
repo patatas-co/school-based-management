@@ -311,7 +311,7 @@ include __DIR__ . '/../includes/header.php';
   .coord-hero {
     background: #0d1f0f;
     border-radius: var(--radius-lg);
-    padding: 28px 32px;
+    padding: 28px 28px;
     color: #fff;
     margin-bottom: 24px;
     position: relative;
@@ -412,6 +412,76 @@ include __DIR__ . '/../includes/header.php';
   .hero-btn svg {
     width: 14px;
     height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* ── CHART DOWNLOAD BUTTON ── */
+  .chart-dl-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+  .chart-dl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 7px;
+    border: 1px solid var(--n-200);
+    background: #fff;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--n-500);
+    cursor: pointer;
+    transition: all 130ms;
+    white-space: nowrap;
+  }
+  .chart-dl-btn:hover {
+    background: var(--n-50);
+    border-color: var(--n-300);
+    color: var(--n-800);
+  }
+  .chart-dl-btn svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .chart-dl-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--n-200);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+    z-index: 200;
+    min-width: 130px;
+    overflow: hidden;
+  }
+  .chart-dl-menu.open { display: block; }
+  .chart-dl-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--n-700);
+    cursor: pointer;
+    transition: background 100ms;
+  }
+  .chart-dl-item:hover { background: var(--n-50); }
+  .chart-dl-item svg {
+    width: 13px;
+    height: 13px;
     stroke: currentColor;
     fill: none;
     stroke-width: 2;
@@ -1961,8 +2031,8 @@ include __DIR__ . '/../includes/header.php';
      ═══════════════════════════════════════════════════════ -->
 <div class="coord-hero">
   <div class="coord-hero-left">
-    <div class="coord-hero-eyebrow">SBM Online Monitoring System</div>
-    <div class="coord-hero-title">Coordinator Dashboard</div>
+    <div class="coord-hero-eyebrow">Welcome Back,</div>
+    <div class="coord-hero-title"><?= e($__me['name']) ?></div>
     <div class="coord-hero-sub" style="align-items:center;">
       <?= date('l, F j, Y') ?>
       <?php if ($syLabel): ?>&nbsp;·&nbsp; SY <?= e($syLabel) ?><?php endif; ?>
@@ -2123,6 +2193,22 @@ include __DIR__ . '/../includes/header.php';
     <div class="chart-card" style="margin-bottom:18px;">
       <div class="chart-card-head">
         <span class="chart-card-title">Dimension Trend — All Cycles</span>
+        <div class="chart-dl-wrap">
+          <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_anDimTrendChart')">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+          <div class="chart-dl-menu" id="dlMenu_anDimTrendChart">
+            <div class="chart-dl-item" onclick="downloadChart('anDimTrendChart','Dimension_Trend','png')">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Download PNG
+            </div>
+            <div class="chart-dl-item" onclick="downloadChart('anDimTrendChart','Dimension_Trend','pdf')">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Download PDF
+            </div>
+          </div>
+        </div>
       </div>
       <div class="chart-card-body"><canvas id="anDimTrendChart" height="90"></canvas></div>
     </div>
@@ -2148,6 +2234,22 @@ include __DIR__ . '/../includes/header.php';
             </div>
           </div>
         </div>
+        <div class="chart-dl-wrap">
+          <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_anIndTrendChart')">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+          <div class="chart-dl-menu" id="dlMenu_anIndTrendChart">
+            <div class="chart-dl-item" onclick="downloadChart('anIndTrendChart','Indicator_Trend','png')">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Download PNG
+            </div>
+            <div class="chart-dl-item" onclick="downloadChart('anIndTrendChart','Indicator_Trend','pdf')">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Download PDF
+            </div>
+          </div>
+        </div>
       </div>
       <div class="chart-card-body" style="min-height:260px;display:flex;align-items:center;justify-content:center;">
         <canvas id="anIndTrendChart" height="90"></canvas>
@@ -2160,6 +2262,22 @@ include __DIR__ . '/../includes/header.php';
     <div class="chart-card" style="display:flex;flex-direction:column;height:535px;min-width:0;">
       <div class="chart-card-head">
         <span class="chart-card-title">Dimension Score Comparison</span>
+        <div class="chart-dl-wrap">
+          <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_dimBarChart')">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+          <div class="chart-dl-menu" id="dlMenu_dimBarChart">
+            <div class="chart-dl-item" onclick="downloadChart('dimBarChart','Dimension_Score_Comparison','png')">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Download PNG
+            </div>
+            <div class="chart-dl-item" onclick="downloadChart('dimBarChart','Dimension_Score_Comparison','pdf')">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Download PDF
+            </div>
+          </div>
+        </div>
       </div>
      <div class="chart-card-body" style="flex:1;padding:8px 16px 6px;box-sizing:border-box;overflow:hidden;">
         <div style="position:relative;width:100%;height:100%;">
@@ -2186,6 +2304,22 @@ include __DIR__ . '/../includes/header.php';
     <div class="chart-card">
       <div class="chart-card-head">
         <span class="chart-card-title">Overall Score Trend</span>
+        <div class="chart-dl-wrap">
+          <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_anTrendLineChart')">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+          <div class="chart-dl-menu" id="dlMenu_anTrendLineChart">
+            <div class="chart-dl-item" onclick="downloadChart('anTrendLineChart','Overall_Score_Trend','png')">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Download PNG
+            </div>
+            <div class="chart-dl-item" onclick="downloadChart('anTrendLineChart','Overall_Score_Trend','pdf')">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Download PDF
+            </div>
+          </div>
+        </div>
       </div>
       <div class="chart-card-body" style="min-height:300px;display:flex;align-items:center;justify-content:center;">
         <?php if (count($cycleHistory) >= 1): ?>
@@ -3662,6 +3796,71 @@ function updateIndicatorTrendChart(dimId) {
   </div>
   <div class="chat-body" id="aiChatBody"></div>
 </div>
+<script>
+// ── Chart Download Helpers ──────────────────────────────────
+  function toggleChartDlMenu(e, menuId) {
+    e.stopPropagation();
+    document.querySelectorAll('.chart-dl-menu').forEach(m => {
+      if (m.id !== menuId) m.classList.remove('open');
+    });
+    document.getElementById(menuId).classList.toggle('open');
+  }
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.chart-dl-menu').forEach(m => m.classList.remove('open'));
+  });
+
+  function downloadChart(canvasId, filename, format) {
+    document.querySelectorAll('.chart-dl-menu').forEach(m => m.classList.remove('open'));
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    if (format === 'png') {
+      const offscreen = document.createElement('canvas');
+      offscreen.width = canvas.width;
+      offscreen.height = canvas.height;
+      const ctx = offscreen.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+      ctx.drawImage(canvas, 0, 0);
+      const link = document.createElement('a');
+      link.download = filename + '.png';
+      link.href = offscreen.toDataURL('image/png');
+      link.click();
+    } else if (format === 'pdf') {
+      if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = () => _doChartPdf(canvas, filename);
+        document.head.appendChild(script);
+      } else {
+        _doChartPdf(canvas, filename);
+      }
+    }
+  }
+
+  function _doChartPdf(canvas, filename) {
+    const { jsPDF } = window.jspdf || window;
+    const offscreen = document.createElement('canvas');
+    offscreen.width = canvas.width;
+    offscreen.height = canvas.height;
+    const ctx = offscreen.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+    ctx.drawImage(canvas, 0, 0);
+    const imgData = offscreen.toDataURL('image/png');
+    const pw = canvas.width, ph = canvas.height;
+    const ratio = ph / pw;
+    const pdfW = 280, pdfH = pdfW * ratio;
+    const doc = new jsPDF({ orientation: pdfH > pdfW ? 'portrait' : 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const imgW = Math.min(pdfW, pageW - 20);
+    const imgH = imgW * ratio;
+    const x = (pageW - imgW) / 2;
+    const y = (pageH - imgH) / 2;
+    doc.addImage(imgData, 'PNG', x, y, imgW, imgH);
+    doc.save(filename + '.pdf');
+  }
 </script>
 
 <?= deadlineChipCss() ?>

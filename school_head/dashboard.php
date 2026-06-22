@@ -18,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
   header('Content-Type: application/json');
   $schoolId = (int) ($_SESSION['school_id'] ?? 1);
   $syId = (int) ($_POST['sy_id'] ?? 0);
-  $dimIds = explode(',', $_POST['dimension_ids'] ?? '');
   $indIds = explode(',', $_POST['indicator_ids'] ?? '');
   $obj = $_POST['objective'] ?? '';
   $strat = $_POST['strategy'] ?? '';
@@ -463,7 +462,7 @@ include __DIR__ . '/../includes/header.php';
   /* -- HERO -- */
   .db-hero {
     border-radius: var(--radius-lg);
-    padding: 28px 32px;
+    padding: 28px 28px;
     color: #fff;
     margin-bottom: 24px;
     position: relative;
@@ -568,6 +567,31 @@ include __DIR__ . '/../includes/header.php';
     stroke-linecap: round;
     stroke-linejoin: round;
   }
+
+  /* ── CHART DOWNLOAD BUTTON ── */
+  .chart-dl-wrap { position: relative; display: inline-flex; }
+  .chart-dl-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 11px; border-radius: 7px;
+    border: 1px solid var(--n-200); background: #fff;
+    font-size: 11.5px; font-weight: 600; color: var(--n-500);
+    cursor: pointer; transition: all 130ms; white-space: nowrap;
+  }
+  .chart-dl-btn:hover { background: var(--n-50); border-color: var(--n-300); color: var(--n-800); }
+  .chart-dl-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .chart-dl-menu {
+    display: none; position: absolute; top: calc(100% + 4px); right: 0;
+    background: #fff; border: 1px solid var(--n-200); border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10); z-index: 200; min-width: 130px; overflow: hidden;
+  }
+  .chart-dl-menu.open { display: block; }
+  .chart-dl-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 14px; font-size: 12.5px; font-weight: 600;
+    color: var(--n-700); cursor: pointer; transition: background 100ms;
+  }
+  .chart-dl-item:hover { background: var(--n-50); }
+  .chart-dl-item svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
   /* -- KPI STATS -- */
   .stats-v2 {
@@ -713,31 +737,6 @@ include __DIR__ . '/../includes/header.php';
     color: var(--n-500);
     text-transform: uppercase;
     letter-spacing: .05em;
-  }
-
-  /* -- ANALYTICS INSIGHTS -- */
-  .an-insight-delta {
-    font-size: 12px;
-    font-weight: 700;
-    margin-top: 8px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    display: inline-block;
-  }
-
-  .an-insight-delta.up {
-    color: var(--brand-700, #15803d);
-    background: rgba(22, 163, 74, 0.1);
-  }
-
-  .an-insight-delta.down {
-    color: var(--red);
-    background: rgba(220, 38, 38, 0.1);
-  }
-
-  .an-insight-delta.flat {
-    color: var(--n-600);
-    background: var(--n-100);
   }
 
   /* -- DIM LIST -- */
@@ -2346,8 +2345,8 @@ include __DIR__ . '/../includes/header.php';
     <div class="db-hero-shimmer"></div>
   </div>
   <div class="db-hero-left">
-    <div class="db-hero-greeting">SBM Online Monitoring System</div>
-    <div class="db-hero-title">School Head Dashboard</div>
+    <div class="db-hero-greeting">Welcome Back,</div>
+    <div class="db-hero-title"><?= e($__me['name']) ?></div>
     <div class="db-hero-sub" style="margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
       <?= date('l, F j, Y') ?>
       &nbsp;·&nbsp; Dasmariñas Integrated High School
@@ -2507,14 +2506,14 @@ include __DIR__ . '/../includes/header.php';
       </div>
       <div class="p-select-menu">
         <div class="p-select-item <?= !$compareSyId ? 'selected' : '' ?>"
-          onclick="location.href='dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=0&view=analytics'">
+          onclick="location.href='dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=0&view=<?= $_GET['view'] ?? 'progress' ?>'">
           None
         </div>
         <?php foreach ($allSYs as $sy):
           if ($sy['sy_id'] == $selectedSyId)
             continue; ?>
           <div class="p-select-item <?= $sy['sy_id'] == $compareSyId ? 'selected' : '' ?>"
-            onclick="location.href='dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=<?= $sy['sy_id'] ?>&view=analytics'">
+            onclick="location.href='dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=<?= $sy['sy_id'] ?>&view=<?= $_GET['view'] ?? 'progress' ?>'">
             SY <?= e($sy['label']) ?>
             <?php if ($sy['sy_id'] == $compareSyId): ?>
               <span class="p-select-check"></span>
@@ -2528,7 +2527,7 @@ include __DIR__ . '/../includes/header.php';
         style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--blue-bg);color:var(--blue);">
         Comparing 2 cycles
       </span>
-      <a href="dashboard.php?sy_id=<?= $selectedSyId ?>&view=analytics" class="btn btn-ghost btn-sm">✕ Clear</a>
+      <a href="dashboard.php?sy_id=<?= $selectedSyId ?>&view=<?= $_GET['view'] ?? 'progress' ?>" class="btn btn-ghost btn-sm">Clear</a>
     <?php endif; ?>
 
     <div style="margin-left:auto; display:flex; gap:8px;">
@@ -2558,7 +2557,22 @@ include __DIR__ . '/../includes/header.php';
     <div class="chart-card" style="margin-bottom:18px;">
       <div class="chart-card-head">
         <span class="chart-card-title">Dimension Trend — All Cycles</span>
-        <button class="btn btn-ghost btn-sm" onclick="downloadChart('anDimTrendChart','dimension_trend_all_cycles')">Download</button>
+        <div class="chart-dl-wrap">
+          <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_anDimTrendChart')">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+          <div class="chart-dl-menu" id="dlMenu_anDimTrendChart">
+            <div class="chart-dl-item" onclick="downloadChartAs('anDimTrendChart','Dimension_Trend','png')">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Download PNG
+            </div>
+            <div class="chart-dl-item" onclick="downloadChartAs('anDimTrendChart','Dimension_Trend','pdf')">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Download PDF
+            </div>
+          </div>
+        </div>
       </div>
       <div class="chart-card-body" style="position:relative;height:400px;"><canvas id="anDimTrendChart"></canvas></div>
     </div>
@@ -2568,7 +2582,6 @@ include __DIR__ . '/../includes/header.php';
       <div class="chart-card-head" style="flex-wrap:wrap;gap:10px;">
         <span class="chart-card-title">Indicator Trend Analysis</span>
         <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-          <button class="btn btn-ghost btn-sm" onclick="downloadChart('anIndTrendChart','indicator_trend_analysis')">Download</button>
           <label style="font-size:12px;font-weight:600;color:var(--n-500);white-space:nowrap;">Dimension:</label>
           <div class="p-select" id="indTrendDimSelect" style="width:220px;">
             <div class="p-select-trigger" onclick="togglePSelect(event, 'indTrendDimSelect')"
@@ -2584,7 +2597,23 @@ include __DIR__ . '/../includes/header.php';
               <div class="p-select-item" onclick="indTrendSelectDim(this, 6, 'D6: Finance and Resource Management and Mobilization')">D6: Finance and Resource Management and Mobilization</div>
             </div>
           </div>
-        </div>
+          <div class="chart-dl-wrap">
+            <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_anIndTrendChart')">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download
+            </button>
+            <div class="chart-dl-menu" id="dlMenu_anIndTrendChart">
+              <div class="chart-dl-item" onclick="downloadChartAs('anIndTrendChart','Indicator_Trend','png')">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                Download PNG
+              </div>
+              <div class="chart-dl-item" onclick="downloadChartAs('anIndTrendChart','Indicator_Trend','pdf')">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Download PDF
+              </div>
+            </div>
+          </div>
+          </div>
       </div>
       <div class="chart-card-body" style="position:relative;height:400px;">
         <canvas id="anIndTrendChart"></canvas>
@@ -2597,7 +2626,22 @@ include __DIR__ . '/../includes/header.php';
     <div class="chart-card" style="display:flex;flex-direction:column;height:480px;min-width:0;">
       <div class="chart-card-head">
         <span class="chart-card-title">Dimension Score Comparison</span>
-        <button class="btn btn-ghost btn-sm" onclick="downloadChart('dimBarChart','dimension_score_comparison')">Download</button>
+        <div class="chart-dl-wrap">
+          <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_dimBarChart')">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+          <div class="chart-dl-menu" id="dlMenu_dimBarChart">
+            <div class="chart-dl-item" onclick="downloadChartAs('dimBarChart','Dimension_Score_Comparison','png')">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Download PNG
+            </div>
+            <div class="chart-dl-item" onclick="downloadChartAs('dimBarChart','Dimension_Score_Comparison','pdf')">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Download PDF
+            </div>
+          </div>
+        </div>
       </div>
       <div class="chart-card-body" style="flex:1;padding:8px 16px 6px;box-sizing:border-box;overflow:hidden;">
         <div style="position:relative;width:100%;height:100%;">
@@ -2624,8 +2668,25 @@ include __DIR__ . '/../includes/header.php';
     <div class="chart-card" style="display:flex;flex-direction:column;height:480px;min-width:0;">
       <div class="chart-card-head">
         <span class="chart-card-title">Overall Score Trend</span>
-        <button class="btn btn-ghost btn-sm" onclick="downloadChart('anTrendLineChart','overall_score_trend')">Download</button>
-        <div id="anTrendLegend" style="display:flex;gap:16px;align-items:center;font-size:12px;color:var(--n-600);"></div>
+        <div style="display:flex;align-items:center;gap:16px;margin-left:auto;">
+          <div id="anTrendLegend" style="display:flex;gap:16px;align-items:center;font-size:12px;color:var(--n-600);"></div>
+          <div class="chart-dl-wrap">
+            <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_anTrendLineChart')">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download
+            </button>
+            <div class="chart-dl-menu" id="dlMenu_anTrendLineChart">
+              <div class="chart-dl-item" onclick="downloadChartAs('anTrendLineChart','Overall_Score_Trend','png')">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                Download PNG
+              </div>
+              <div class="chart-dl-item" onclick="downloadChartAs('anTrendLineChart','Overall_Score_Trend','pdf')">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Download PDF
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="chart-card-body" style="flex:1;position:relative;padding:8px 16px 6px;box-sizing:border-box;">
         <?php if (count($cycleHistory) >= 1): ?>
@@ -2990,20 +3051,60 @@ include __DIR__ . '/../includes/header.php';
 
 
 <script>
-  function downloadChart(canvasId, filename) {
-    const c = document.getElementById(canvasId);
-    if (!c) return;
-    const tmp = document.createElement('canvas');
-    tmp.width = c.width;
-    tmp.height = c.height;
-    const ctx = tmp.getContext('2d');
+  function toggleChartDlMenu(e, menuId) {
+    e.stopPropagation();
+    document.querySelectorAll('.chart-dl-menu').forEach(m => {
+      if (m.id !== menuId) m.classList.remove('open');
+    });
+    document.getElementById(menuId).classList.toggle('open');
+  }
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.chart-dl-menu').forEach(m => m.classList.remove('open'));
+  });
+
+  function downloadChartAs(canvasId, filename, format) {
+    document.querySelectorAll('.chart-dl-menu').forEach(m => m.classList.remove('open'));
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const offscreen = document.createElement('canvas');
+    offscreen.width = canvas.width;
+    offscreen.height = canvas.height;
+    const ctx = offscreen.getContext('2d');
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, tmp.width, tmp.height);
-    ctx.drawImage(c, 0, 0);
-    const link = document.createElement('a');
-    link.download = (filename || canvasId) + '.png';
-    link.href = tmp.toDataURL('image/png');
-    link.click();
+    ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+    ctx.drawImage(canvas, 0, 0);
+    if (format === 'png') {
+      const link = document.createElement('a');
+      link.download = filename + '.png';
+      link.href = offscreen.toDataURL('image/png');
+      link.click();
+    } else if (format === 'pdf') {
+      if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = () => _doChartPdf(offscreen, filename);
+        document.head.appendChild(script);
+      } else {
+        _doChartPdf(offscreen, filename);
+      }
+    }
+  }
+
+  function _doChartPdf(offscreen, filename) {
+    const { jsPDF } = window.jspdf || window;
+    const imgData = offscreen.toDataURL('image/png');
+    const pw = offscreen.width, ph = offscreen.height;
+    const ratio = ph / pw;
+    const pdfW = 280;
+    const doc = new jsPDF({ orientation: ratio > 1 ? 'portrait' : 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const imgW = Math.min(pdfW, pageW - 20);
+    const imgH = imgW * ratio;
+    const x = (pageW - imgW) / 2;
+    const y = (pageH - imgH) / 2;
+    doc.addImage(imgData, 'PNG', x, y, imgW, imgH);
+    doc.save(filename + '.pdf');
   }
 
   // -- Dimension Bar Chart (Dimension Score Comparison) --------
@@ -3987,8 +4088,7 @@ include __DIR__ . '/../includes/header.php';
     // Attempt to get data from current session if available
     const existingMsg = document.querySelector('#aiChatBody .chat-msg.ai:last-child');
     if (existingMsg) {
-      cachedAIPlanResponse = existingMsg.innerHTML; // Note: this is already HTML, but parseAILogicToHtml expects text. 
-      // Better to check for data-raw if we add it. 
+      cachedAIPlanResponse = existingMsg.innerHTML;
       body.innerHTML = cachedAIPlanResponse;
       return;
     }

@@ -271,8 +271,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
       }
 
-      // Count SH-only indicators
-      $ph = buildInPlaceholders(TEACHER_INDICATOR_CODES);
       // SH must answer: SH_ONLY indicators + shared (teacher codes not in SH_ONLY are teacher-only)
       $shAnswerableCodes = SH_ONLY_INDICATOR_CODES;
       $ph = buildInPlaceholders($shAnswerableCodes);
@@ -343,10 +341,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       exit;
     }
 
-      // override history table removed
-
-
-  } catch (\Throwable $e) {
+      } catch (\Throwable $e) {
     echo json_encode(['ok' => false, 'msg' => 'Server error: ' . $e->getMessage()]);
   }
   exit;
@@ -415,35 +410,6 @@ function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId,
   // overall_score is only computed on submission, not during live rating
 }
 
-/**
- * Recalculates overall_score and maturity_level for the given cycle
- * from the current sbm_dimension_scores rows and writes the result
- * back into sbm_cycles. Call this whenever any dimension score changes.
- */
-function syncCycleOverallScore(PDO $db, int $cycleId): void
-{
-  $st = $db->prepare("
-    SELECT SUM(raw_score) AS total_raw, SUM(max_score) AS total_max
-    FROM sbm_dimension_scores
-    WHERE cycle_id = ?
-  ");
-  $st->execute([$cycleId]);
-  $row = $st->fetch(PDO::FETCH_ASSOC);
-
-  $totalRaw = floatval($row['total_raw'] ?? 0);
-  $totalMax = floatval($row['total_max'] ?? 0);
-
-  if ($totalMax > 0) {
-    $overall  = round(($totalRaw / $totalMax) * 100, 2);
-    $maturity = sbmMaturityLevel($overall)['label'];
-    $db->prepare("
-      UPDATE sbm_cycles
-      SET overall_score = ?, maturity_level = ?
-      WHERE cycle_id = ?
-    ")->execute([$overall, $maturity, $cycleId]);
-  }
-}
-
 // ── LOAD DATA ────────────────────────────────────────────────
 $indicators = $db->query("
     SELECT i.*, d.dimension_no, d.dimension_name, d.color_hex
@@ -482,13 +448,6 @@ $shIndicators = array_filter($indicators, fn($i) => in_array($i['indicator_code'
 $shResponded = count(array_filter($shIndicators, fn($i) => isset($responses[$i['indicator_id']])));
 $shTotal = count($shIndicators);
 
-$teacherIndicators = array_filter(
-  $indicators,
-  fn($i) =>
-  in_array($i['indicator_code'], TEACHER_INDICATOR_CODES) &&
-  !in_array($i['indicator_code'], SH_ONLY_INDICATOR_CODES)
-);
-$overridenCount = 0;
 
 $totalDone = count($responses);
 $totalCount = count($indicators);
@@ -594,7 +553,7 @@ if ($cycle) {
   }
 }
 
-$pageTitle = 'SBM Self-Assessment';
+$pageTitle = $isCoordinator ? 'Intervention Matrix' : 'SBM Self-Assessment';
 $activePage = 'self_assessment.php';
 
 // Shared indicator IDs that count as "done" via teacher ratings alone
@@ -946,6 +905,409 @@ include __DIR__ . '/../includes/header.php';
   }
 </style>
 
+<?php if ($isCoordinator): ?>
+<!-- ══════════════════════════════════════════════════════════
+     COORDINATOR VIEW — Intervention Monitoring Table
+══════════════════════════════════════════════════════════ -->
+<style>
+  .intervention-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .intervention-header h2 {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--n800);
+    margin: 0;
+  }
+  .intervention-header p {
+    font-size: 13px;
+    color: var(--n500);
+    margin: 2px 0 0;
+  }
+  .dim-intervention-block {
+    margin-bottom: 20px;
+  }
+  .dim-intervention-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: #F8FAFC;
+    border: 1px solid #E5E7EB;
+    border-bottom: 1px solid #E5E7EB;
+  }
+  .dim-intervention-title .dim-no-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+    opacity: .85;
+  }
+  .dim-intervention-title .dim-name {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #1F2937;
+    letter-spacing: .01em;
+  }
+  .dim-intervention-title .dim-label {
+    font-size: 10.5px;
+    font-weight: 500;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 1px;
+  }
+  .dim-intervention-title .dim-score-pill {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+  .dim-intervention-title .dim-ind-count {
+    font-size: 11.5px;
+    color: var(--n400);
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+  .intervention-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 0 0 var(--radius) var(--radius);
+    overflow: hidden;
+    font-size: 12.5px;
+  }
+  .intervention-table th {
+    background: #fff;
+    color: #9CA3AF;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: 6px 14px;
+    text-align: left;
+    border-bottom: 1px solid #E5E7EB;
+  }
+  .intervention-table td {
+    padding: 7px 14px;
+    border-bottom: 1px solid #E5E7EB;
+    vertical-align: middle;
+    color: #374151;
+    line-height: 1.4;
+  }
+  .intervention-table tr:last-child td {
+    border-bottom: none;
+  }
+  .intervention-table tr:hover td {
+    background: #F9FAFB;
+  }
+  .ind-code-badge {
+    display: inline-block;
+    font-family: 'Roboto Mono', 'Courier New', monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: #6B7280;
+    background: #F3F4F6;
+    border: 1px solid #E5E7EB;
+    padding: 1px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    letter-spacing: .02em;
+  }
+  .score-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .score-val {
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    min-width: 30px;
+    text-align: right;
+    color: #6B7280;
+    font-variant-numeric: tabular-nums;
+  }
+  .score-bar-bg {
+    width: 64px;
+    flex-shrink: 0;
+    height: 3px;
+    background: #E5E7EB;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    opacity: 0.85;
+  }
+  .intervention-level-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 3px 9px;
+    border-radius: 5px;
+    letter-spacing: .01em;
+  }
+  .level-critical { background: #FFF0F0; color: #C92A2A; }
+  .level-low      { background: #FFFBEB; color: #B45309; }
+  .level-good     { background: #F0FBF4; color: #1E824C; }
+  .no-cycle-notice {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--n400);
+  }
+  .no-cycle-notice svg {
+    width: 40px; height: 40px;
+    stroke: var(--n300);
+    margin-bottom: 12px;
+  }
+  .all-good-row td {
+    text-align: center;
+    color: var(--g600);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 16px 14px;
+    background: #F0FDF4;
+  }
+  .filter-bar {
+    display: flex;
+    align-items: center;
+  }
+  .seg-control {
+    display: inline-flex;
+    background: #F1F5F9;
+    border: 1px solid #E2E8F0;
+    border-radius: 7px;
+    padding: 3px;
+    gap: 1px;
+  }
+  .filter-btn {
+    padding: 4px 11px;
+    border-radius: 5px;
+    border: none;
+    background: transparent;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #64748B;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .filter-btn:hover {
+    color: #1E293B;
+    background: #E2E8F0;
+  }
+  .filter-btn.active {
+    background: #fff;
+    color: #1E293B;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1), 0 0 0 1px #E2E8F0;
+  }
+</style>
+
+<?php
+// ── Build per-indicator score from responses + teacher data ──
+// Score = SH rating if available, else teacher avg, converted to %
+$indScores = [];
+foreach ($indicators as $ind) {
+  $iid = $ind['indicator_id'];
+  $shRating   = $responses[$iid]['rating']             ?? null;
+  $tchAvg     = $teacherData[$iid]['avg_rating']       ?? null;
+
+  if ($shRating !== null) {
+    $score = round(($shRating / 4) * 100, 1);
+    $src   = 'SH';
+  } elseif ($tchAvg !== null) {
+    $score = round(($tchAvg / 4) * 100, 1);
+    $src   = 'Teacher Avg';
+  } else {
+    $score = null;
+    $src   = 'No data';
+  }
+  $indScores[$iid] = ['score' => $score, 'src' => $src, 'sh' => $shRating, 'tch' => $tchAvg];
+}
+
+// ── Dimension-level score (avg of its indicators that have scores) ──
+$dimScores = [];
+foreach ($grouped as $dimNo => $inds) {
+  $scored = array_filter(array_map(fn($i) => $indScores[$i['indicator_id']]['score'], $inds), fn($s) => $s !== null);
+  $dimScores[$dimNo] = count($scored) > 0 ? round(array_sum($scored) / count($scored), 1) : null;
+}
+
+function interventionLevel(float $pct): array {
+  if ($pct <= 50.0) return ['label' => 'Critical Intervention', 'class' => 'level-critical',  'dot' => '🔴'];
+  if ($pct <  62.5) return ['label' => 'Improvement Focus',     'class' => 'level-low',        'dot' => '🟠'];
+  return                   ['label' => 'Acceptable/Sustained',  'class' => 'level-good',       'dot' => '🟢'];
+}
+
+function scoreBarColor(float $pct): string {
+  if ($pct <= 50.0) return '#C92A2A';
+  if ($pct <  62.5) return '#D97706';
+  return '#1E824C';
+}
+
+// Tier thresholds (score %)
+define('TIER_CRITICAL_MAX', 50.0);
+define('TIER_IMPROVE_MAX',  62.5);
+?>
+
+<div class="intervention-header">
+  <div>
+    <?= $cycle ? '' : '<p><strong style="color:var(--red);">No active assessment cycle.</strong></p>' ?>
+  </div>
+  <div class="filter-bar">
+    <div class="seg-control">
+      <button class="filter-btn active" onclick="filterIntervention('all',this)">All</button>
+      <?php foreach ($grouped as $dimNo => $inds): ?>
+        <button class="filter-btn" onclick="filterIntervention(<?= $dimNo ?>,this)">D<?= $dimNo ?></button>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</div>
+
+<?php foreach ($grouped as $dimNo => $inds):
+  $dim         = $inds[0];
+  $dimScore    = $dimScores[$dimNo];
+  $dimLevel    = $dimScore !== null ? interventionLevel($dimScore) : null;
+  $dimColor    = $dim['color_hex'];
+
+  // Sort all indicators: Critical first, Improvement Focus second, Acceptable/Sustained last
+  $allInds = $inds;
+  usort($allInds, function($a, $b) use ($indScores) {
+    $sa = $indScores[$a['indicator_id']]['score'] ?? -1;
+    $sb = $indScores[$b['indicator_id']]['score'] ?? -1;
+    $ta = $sa <= TIER_CRITICAL_MAX ? 0 : ($sa < TIER_IMPROVE_MAX ? 1 : 2);
+    $tb = $sb <= TIER_CRITICAL_MAX ? 0 : ($sb < TIER_IMPROVE_MAX ? 1 : 2);
+    return $ta <=> $tb;
+  });
+
+  // Count per tier for header summary
+  $tierCounts = ['critical' => 0, 'improve' => 0, 'sustained' => 0];
+  foreach ($inds as $i) {
+    $s = $indScores[$i['indicator_id']]['score'] ?? null;
+    if ($s === null || $s <= TIER_CRITICAL_MAX)  $tierCounts['critical']++;
+    elseif ($s < TIER_IMPROVE_MAX)               $tierCounts['improve']++;
+    else                                          $tierCounts['sustained']++;
+  }
+?>
+<div class="dim-intervention-block" data-dim-filter="<?= $dimNo ?>">
+  <div class="dim-intervention-title" style="border-left: 4px solid <?= e($dimColor) ?>;">
+    <div class="dim-no-badge" style="background:<?= e($dimColor) ?>22; color:<?= e($dimColor) ?>;">
+      <?= $dimNo ?>
+    </div>
+    <div>
+      <div class="dim-label">Dimension <?= $dimNo ?></div>
+      <div class="dim-name"><?= e($dim['dimension_name']) ?></div>
+    </div>
+    <?php if ($dimScore !== null):
+      $trendIcon = $dimScore >= 62.5
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="#1E824C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="#C92A2A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>';
+      $trendColor = $dimScore >= 62.5 ? '#1E824C' : '#C92A2A';
+    ?>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:<?= $trendColor ?>;">
+        <?= $trendIcon ?> <?= $dimScore ?>%
+      </span>
+    <?php else: ?>
+      <span style="margin-left:auto;font-size:12px;color:#9CA3AF;">No data</span>
+    <?php endif; ?>
+    <span class="dim-ind-count" style="display:flex;gap:12px;align-items:center;font-size:11.5px;color:var(--n500);">
+      <?php if ($tierCounts['critical'] > 0): ?>
+        <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#C92A2A;margin-right:4px;vertical-align:middle;opacity:.7;"></span><?= $tierCounts['critical'] ?> Critical</span>
+      <?php endif; ?>
+      <?php if ($tierCounts['improve'] > 0): ?>
+        <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#D97706;margin-right:4px;vertical-align:middle;opacity:.7;"></span><?= $tierCounts['improve'] ?> Improvement</span>
+      <?php endif; ?>
+      <?php if ($tierCounts['sustained'] > 0): ?>
+        <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#1E824C;margin-right:4px;vertical-align:middle;opacity:.7;"></span><?= $tierCounts['sustained'] ?> Sustained</span>
+      <?php endif; ?>
+    </span>
+  </div>
+
+  <table class="intervention-table">
+    <thead>
+      <tr>
+        <th style="width:70px;">Code</th>
+        <th>Indicator</th>
+        <th style="width:160px;">Score</th>
+        <th style="width:100px;">Level</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php if (empty($allInds)): ?>
+        <tr class="all-good-row">
+          <td colspan="5">No indicators found for this dimension.</td>
+        </tr>
+      <?php else: ?>
+        <?php foreach ($allInds as $ind):
+          $iid   = $ind['indicator_id'];
+          $data  = $indScores[$iid];
+          $score = $data['score'];
+          $src   = $data['src'];
+          $level = $score !== null ? interventionLevel($score) : ['label'=>'No data','class'=>'level-low','dot'=>'⚪'];
+          $color = $score !== null ? scoreBarColor($score) : '#CBD5E1';
+          $pct   = $score ?? 0;
+        ?>
+        <tr>
+          <td><span class="ind-code-badge"><?= e($ind['indicator_code']) ?></span></td>
+          <td style="font-size:12px; line-height:1.5; color:#111827; font-weight:500;"><?= e($ind['indicator_text']) ?></td>
+          <td>
+            <?php if ($score !== null): ?>
+            <div class="score-bar-wrap">
+              <div class="score-bar-bg">
+                <div class="score-bar-fill" style="width:<?= $pct ?>%;background:<?= $color ?>;"></div>
+              </div>
+              <span class="score-val" style="color:<?= $color ?>;">
+                <?= $score ?>%
+                <span title="Source: <?= e($src) ?>. Note: Dashboard trend shows combined SH + Teacher average, which may differ from this single-rater score." style="cursor:help;display:inline-flex;align-items:center;margin-left:3px;vertical-align:middle;color:#9CA3AF;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </span>
+              </span>
+            </div>
+            <?php else: ?>
+              <span style="font-size:12px;color:var(--n400);">— not rated</span>
+            <?php endif; ?>
+          </td>
+          <td><span class="intervention-level-pill <?= $level['class'] ?>"><?= $level['label'] ?></span></td>
+        </tr>
+        <?php endforeach; ?>
+      <?php endif; ?>
+    </tbody>
+  </table>
+</div>
+<?php endforeach; ?>
+
+<script>
+function filterIntervention(dim, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.dim-intervention-block').forEach(block => {
+    if (dim === 'all' || parseInt(block.dataset.dimFilter) === dim) {
+      block.style.display = '';
+    } else {
+      block.style.display = 'none';
+    }
+  });
+}
+</script>
+
+<?php else: // ── non-coordinator (school head) full view ── ?>
+
 <!-- ── PAGE HEAD ──────────────────────────────────────────── -->
 <div class="page-head" style="justify-content:flex-end;margin-bottom:16px;">
   <div class="page-head-actions">
@@ -1213,8 +1575,7 @@ include __DIR__ . '/../includes/header.php';
             <?php endif; ?>
 
             <?php
-            $isCoordinatorView = ($_COORDINATOR_VIEW ?? false);
-            if ($isTeacherCard || $showTeacherInfoAlso || $isCoordinatorView):
+            if ($isTeacherCard || $showTeacherInfoAlso):
               ?>
               <!-- TEACHER INFO BOX -->
               <div class="teacher-info-box">
@@ -1240,10 +1601,10 @@ include __DIR__ . '/../includes/header.php';
                     </div>
                   <?php else: ?>
                     <div class="teacher-info-title">
-                      <?= $isTeacherCard ? 'Teacher Indicator' : ($isCoordinatorView ? 'System Oversight' : 'Teacher Indicator') ?>
+                      <?= 'Teacher Indicator' ?>
                     </div>
                     <div class="teacher-info-body">
-                      <?= $isTeacherCard || !$isCoordinatorView ? 'No teacher input yet. Teachers rate this in their portal.' : '' ?>
+                      <?= 'No teacher input yet. Teachers rate this in their portal.' ?>
                     </div>
                   <?php endif; ?>
                 </div>
@@ -1725,5 +2086,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
   </div>
 </div>
+
+<?php endif; // end non-coordinator (school head) view ?>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
