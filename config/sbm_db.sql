@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 13, 2026 at 09:17 PM
+-- Generation Time: Jun 29, 2026 at 02:41 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -1209,7 +1209,69 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (1229, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-13 18:48:40'),
 (1230, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-13 18:49:32'),
 (1231, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-13 19:02:22'),
-(1232, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-13 19:02:34');
+(1232, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-13 19:02:34'),
+(1233, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:13:17'),
+(1234, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:13:57'),
+(1235, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:14:15'),
+(1236, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:14:30'),
+(1237, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:27:21'),
+(1238, 2, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:27:35'),
+(1239, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:32:03'),
+(1240, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:43:08'),
+(1241, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:43:40'),
+(1242, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:44:27'),
+(1243, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:45:41'),
+(1244, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:47:14'),
+(1245, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:53:41'),
+(1246, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-14 05:55:54'),
+(1247, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-14 06:09:11'),
+(1248, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-14 06:09:28'),
+(1249, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-14 06:15:39'),
+(1250, 74, 'update_user', 'users', 'Updated user ID:14', '::1', '2026-06-14 06:15:54');
+INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, `ip_address`, `created_at`) VALUES
+(1251, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-14 06:16:05'),
+(1252, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-14 22:52:10'),
+(1253, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-16 01:20:04'),
+(1254, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-16 02:44:19'),
+(1255, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-19 16:48:48'),
+(1256, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-19 16:50:38'),
+(1257, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-19 17:12:44'),
+(1258, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-20 02:05:12'),
+(1259, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-20 14:10:36'),
+(1260, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-20 14:18:55'),
+(1261, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-20 14:19:05'),
+(1262, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-20 14:25:20'),
+(1263, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-20 14:47:07'),
+(1264, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-21 09:07:57'),
+(1265, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-21 11:10:08'),
+(1266, 74, 'create_department', 'departments', 'Created: Filipino Department', '::1', '2026-06-21 11:10:26'),
+(1267, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-21 11:11:05'),
+(1268, 74, 'update_user', 'users', 'Updated user ID:46', '::1', '2026-06-21 11:11:27'),
+(1269, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-21 11:11:39'),
+(1270, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-21 11:12:01'),
+(1271, 74, 'update_department', 'departments', 'Updated department: Filipino Department ΓåÆ Filipino', '::1', '2026-06-21 11:14:19'),
+(1272, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-21 11:14:29'),
+(1273, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-21 11:14:41'),
+(1274, 74, 'update_department', 'departments', 'Updated department: IT Department ΓåÆ Information Technology', '::1', '2026-06-21 11:14:57'),
+(1275, 74, 'update_user', 'users', 'Updated user ID:74', '::1', '2026-06-21 11:15:20'),
+(1276, 74, 'update_user', 'users', 'Updated user ID:14', '::1', '2026-06-21 11:15:28'),
+(1277, 74, 'update_user', 'users', 'Updated user ID:14', '::1', '2026-06-21 11:16:00'),
+(1278, 74, 'create_department', 'departments', 'Created: Guidance', '::1', '2026-06-21 11:16:55'),
+(1279, 74, 'update_user', 'users', 'Updated user ID:37', '::1', '2026-06-21 11:17:09'),
+(1280, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-21 15:37:54'),
+(1281, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-21 15:38:09'),
+(1282, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-21 15:58:35'),
+(1283, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-06-21 15:59:00'),
+(1284, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-21 16:02:43'),
+(1285, 2, 'login', 'auth', 'User logged in', '::1', '2026-06-21 16:06:05'),
+(1286, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-21 16:07:37'),
+(1287, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-22 15:50:28'),
+(1288, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-22 16:25:35'),
+(1289, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-25 11:31:27'),
+(1290, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-25 11:31:45'),
+(1291, 74, 'login', 'auth', 'User logged in', '::1', '2026-06-25 11:33:11'),
+(1292, 46, 'login', 'auth', 'User logged in', '::1', '2026-06-25 11:34:04'),
+(1293, 37, 'login', 'auth', 'User logged in', '::1', '2026-06-25 11:34:25');
 
 -- --------------------------------------------------------
 
@@ -1333,7 +1395,9 @@ CREATE TABLE `departments` (
 
 INSERT INTO `departments` (`department_id`, `school_id`, `name`, `description`, `created_at`) VALUES
 (1, 1, 'English', NULL, '2026-06-07 19:43:18'),
-(2, 1, 'IT Department', NULL, '2026-06-07 19:51:01');
+(2, 1, 'Information Technology', NULL, '2026-06-07 19:51:01'),
+(3, 1, 'Filipino', NULL, '2026-06-21 19:10:26'),
+(4, 1, 'Guidance', NULL, '2026-06-21 19:16:55');
 
 -- --------------------------------------------------------
 
@@ -1604,8 +1668,7 @@ CREATE TABLE `response_attachments` (
 --
 
 INSERT INTO `response_attachments` (`attachment_id`, `version`, `parent_attachment_id`, `cycle_id`, `indicator_id`, `school_id`, `uploaded_by`, `uploader_role`, `category`, `is_current_version`, `original_name`, `stored_name`, `file_size`, `mime_type`, `uploaded_at`, `deleted_at`, `deleted_by`, `replace_reason`) VALUES
-(6, 1, NULL, 15, 1, 1, 37, 'school_head', 'other', 0, 'Screenshot 2026-06-11 200859.png', '15c2fd9a45e2a5860c49a0a8d6062fe8.png', 187091, 'image/png', '2026-06-11 20:13:50', '2026-06-11 20:13:56', 37, NULL),
-(7, 1, NULL, 18, 1, 1, 15, 'teacher', 'other', 1, 'DO_s2012_83_copy.pdf', '15b8812bf37e856e8640a3b9e52f2206.pdf', 1715208, 'application/pdf', '2026-06-14 00:59:01', NULL, NULL, NULL);
+(6, 1, NULL, 15, 1, 1, 37, 'school_head', 'other', 0, 'Screenshot 2026-06-11 200859.png', '15c2fd9a45e2a5860c49a0a8d6062fe8.png', 187091, 'image/png', '2026-06-11 20:13:50', '2026-06-11 20:13:56', 37, NULL);
 
 -- --------------------------------------------------------
 
@@ -1674,8 +1737,7 @@ CREATE TABLE `sbm_cycles` (
 INSERT INTO `sbm_cycles` (`cycle_id`, `sy_id`, `school_id`, `status`, `overall_score`, `maturity_level`, `started_at`, `submitted_at`, `validated_at`, `validated_by`, `validator_remarks`, `consolidation_confirmed`, `consolidation_confirmed_by`, `consolidation_confirmed_at`, `finalized_at`, `returned_at`, `returned_by`, `return_remarks`, `created_at`, `stakeholder_access_start`, `stakeholder_access_end`, `auto_deactivated_at`, `auto_deactivated_by`) VALUES
 (15, 17, 1, 'finalized', 70.83, 'Maturing', '2026-06-11 19:53:43', '2026-06-11 23:21:39', '2026-06-11 23:21:59', 37, '', 0, NULL, NULL, '2026-06-11 23:22:13', NULL, NULL, NULL, '2026-06-11 11:53:43', NULL, NULL, NULL, NULL),
 (16, 18, 1, 'finalized', 71.43, 'Maturing', '2026-06-11 23:25:13', '2026-06-11 23:42:06', '2026-06-11 23:42:11', 37, '', 0, NULL, NULL, '2026-06-11 23:42:34', NULL, NULL, NULL, '2026-06-11 15:25:13', NULL, NULL, NULL, NULL),
-(17, 19, 1, 'finalized', 60.12, 'Developing', '2026-06-11 23:53:41', '2026-06-11 23:58:55', '2026-06-11 23:59:04', 37, '', 0, NULL, NULL, '2026-06-11 23:59:14', NULL, NULL, NULL, '2026-06-11 15:53:41', NULL, NULL, NULL, NULL),
-(18, 20, 1, 'in_progress', NULL, NULL, '2026-06-14 00:57:58', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-13 16:57:58', NULL, NULL, NULL, NULL);
+(17, 19, 1, 'finalized', 60.12, 'Developing', '2026-06-11 23:53:41', '2026-06-11 23:58:55', '2026-06-11 23:59:04', 37, '', 0, NULL, NULL, '2026-06-11 23:59:14', NULL, NULL, NULL, '2026-06-11 15:53:41', NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -1744,13 +1806,7 @@ INSERT INTO `sbm_dimension_scores` (`score_id`, `cycle_id`, `school_id`, `dimens
 (550, 17, 1, 3, 10.00, 16.00, 62.50, '2026-06-11 15:58:54'),
 (551, 17, 1, 4, 14.00, 24.00, 58.33, '2026-06-11 15:58:54'),
 (552, 17, 1, 5, 19.00, 28.00, 67.86, '2026-06-11 15:58:55'),
-(553, 17, 1, 6, 17.00, 28.00, 60.71, '2026-06-11 15:58:55'),
-(604, 18, 1, 1, 16.00, 32.00, 50.00, '2026-06-13 19:15:45'),
-(605, 18, 1, 2, 0.00, 0.00, 0.00, '2026-06-13 19:11:50'),
-(606, 18, 1, 3, 0.00, 0.00, 0.00, '2026-06-13 16:57:58'),
-(607, 18, 1, 4, 0.00, 0.00, 0.00, '2026-06-13 16:57:58'),
-(608, 18, 1, 5, 0.00, 0.00, 0.00, '2026-06-13 16:57:58'),
-(609, 18, 1, 6, 0.00, 0.00, 0.00, '2026-06-13 16:57:58');
+(553, 17, 1, 6, 17.00, 28.00, 60.71, '2026-06-11 15:58:55');
 
 -- --------------------------------------------------------
 
@@ -1814,7 +1870,7 @@ INSERT INTO `sbm_indicators` (`indicator_id`, `dimension_id`, `indicator_code`, 
 (38, 6, '6.3', 'The school has a functional library.', 'Library inventory, acquisition records, utilization logs', 38, 1, 1),
 (39, 6, '6.4', 'The school has functional water, electricity, and internet facilities.', 'Utility bills, repair records, functionality assessment', 39, 1, 1),
 (40, 6, '6.5', 'The school has a functional computer laboratory/classroom.', 'Lab inventory, equipment condition report, utilization records', 40, 1, 1),
-(41, 6, '6.6', 'The school achieves a 75–100% utilization rate of its Maintenance and Other Operating Expenses (MOOE).', 'MOOE liquidation reports, utilization matrix, COB vs. actual', 41, 1, 1),
+(41, 6, '6.6', 'The school achieves a 75ΓÇô100% utilization rate of its Maintenance and Other Operating Expenses (MOOE).', 'MOOE liquidation reports, utilization matrix, COB vs. actual', 41, 1, 1),
 (42, 6, '6.7', 'The school liquidates 100% of its utilized MOOE.', 'Liquidation reports, submission acknowledgments, COA records', 42, 1, 1);
 
 -- --------------------------------------------------------
@@ -1964,15 +2020,7 @@ INSERT INTO `sbm_responses` (`response_id`, `cycle_id`, `indicator_id`, `school_
 (428, 17, 39, 1, 2, '', 37, '2026-06-11 15:58:45'),
 (429, 17, 40, 1, 3, '', 37, '2026-06-11 15:58:47'),
 (430, 17, 41, 1, 2, '', 37, '2026-06-11 15:58:48'),
-(431, 17, 42, 1, 3, '', 37, '2026-06-11 15:58:50'),
-(466, 18, 1, 1, 2, '', 37, '2026-06-13 19:15:45'),
-(467, 18, 2, 1, 2, '', 37, '2026-06-13 19:14:55'),
-(468, 18, 3, 1, 2, '', 37, '2026-06-13 19:14:57'),
-(469, 18, 4, 1, 2, '', 37, '2026-06-13 19:14:58'),
-(470, 18, 5, 1, 2, '', 37, '2026-06-13 19:15:00'),
-(471, 18, 6, 1, 2, '', 37, '2026-06-13 19:15:01'),
-(472, 18, 7, 1, 2, '', 37, '2026-06-13 19:15:03'),
-(473, 18, 8, 1, 2, '', 37, '2026-06-13 19:15:06');
+(431, 17, 42, 1, 3, '', 37, '2026-06-11 15:58:50');
 
 -- --------------------------------------------------------
 
@@ -2017,7 +2065,7 @@ CREATE TABLE `schools` (
 --
 
 INSERT INTO `schools` (`school_id`, `school_name`, `division_name`, `school_id_deped`, `address`, `classification`, `school_head_name`, `contact_no`, `email`, `total_enrollment`, `total_teachers`, `created_at`) VALUES
-(1, 'Dasmariñas Integrated High School', 'Cavite Division', '301143', 'Dasmariñas City, Cavite', 'JHS', 'Ryza Evangelio', '', 'dihs.edu.ph', 2500, 5, '2026-03-11 16:18:36');
+(1, 'Dasmari├▒as Integrated High School', 'Cavite Division', '301143', 'Dasmari├▒as City, Cavite', 'JHS', 'Ryza Evangelio', '', 'dihs.edu.ph', 2500, 5, '2026-03-11 16:18:36');
 
 -- --------------------------------------------------------
 
@@ -2065,8 +2113,7 @@ CREATE TABLE `school_years` (
 INSERT INTO `school_years` (`sy_id`, `label`, `is_current`, `date_start`, `date_end`) VALUES
 (17, '2025-2026', 0, '2024-07-29', '2025-04-15'),
 (18, '2026-2027', 0, '2026-07-08', '2027-04-08'),
-(19, '2027-2028', 0, '2027-06-07', '2028-03-17'),
-(20, '2028-2029', 1, '2028-06-08', '2029-04-29');
+(19, '2027-2028', 1, '2027-06-07', '2028-03-17');
 
 -- --------------------------------------------------------
 
@@ -2503,28 +2550,7 @@ INSERT INTO `teacher_responses` (`tr_id`, `cycle_id`, `indicator_id`, `school_id
 (1505, 17, 35, 1, 14, 3, '', 'submitted', NULL, '2026-06-11 15:57:17', '2026-06-11 15:57:24'),
 (1506, 17, 38, 1, 14, 2, '', 'submitted', NULL, '2026-06-11 15:57:19', '2026-06-11 15:57:24'),
 (1507, 17, 39, 1, 14, 3, '', 'submitted', NULL, '2026-06-11 15:57:20', '2026-06-11 15:57:24'),
-(1508, 17, 40, 1, 14, 3, '', 'submitted', NULL, '2026-06-11 15:57:22', '2026-06-11 15:57:24'),
-(1509, 18, 1, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:09', '2026-06-13 16:59:13'),
-(1510, 18, 2, 1, 15, 2, '', 'submitted', NULL, '2026-06-13 16:58:11', '2026-06-13 16:59:13'),
-(1511, 18, 4, 1, 15, 2, '', 'submitted', NULL, '2026-06-13 16:58:12', '2026-06-13 16:59:13'),
-(1512, 18, 5, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:14', '2026-06-13 16:59:13'),
-(1513, 18, 6, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:16', '2026-06-13 16:59:13'),
-(1514, 18, 7, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:18', '2026-06-13 16:59:13'),
-(1515, 18, 9, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:20', '2026-06-13 16:59:13'),
-(1516, 18, 10, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:22', '2026-06-13 16:59:13'),
-(1517, 18, 11, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:23', '2026-06-13 16:59:13'),
-(1518, 18, 12, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:24', '2026-06-13 16:59:13'),
-(1519, 18, 17, 1, 15, 2, '', 'submitted', NULL, '2026-06-13 16:58:26', '2026-06-13 16:59:13'),
-(1520, 18, 21, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:28', '2026-06-13 16:59:13'),
-(1521, 18, 29, 1, 15, 2, '', 'submitted', NULL, '2026-06-13 16:58:29', '2026-06-13 16:59:13'),
-(1522, 18, 31, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:32', '2026-06-13 16:59:13'),
-(1523, 18, 32, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:33', '2026-06-13 16:59:13'),
-(1524, 18, 33, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:36', '2026-06-13 16:59:13'),
-(1525, 18, 34, 1, 15, 2, '', 'submitted', NULL, '2026-06-13 16:58:37', '2026-06-13 16:59:13'),
-(1526, 18, 35, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:39', '2026-06-13 16:59:13'),
-(1527, 18, 38, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:41', '2026-06-13 16:59:13'),
-(1528, 18, 39, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:42', '2026-06-13 16:59:13'),
-(1529, 18, 40, 1, 15, 3, '', 'submitted', NULL, '2026-06-13 16:58:44', '2026-06-13 16:59:13');
+(1508, 17, 40, 1, 14, 3, '', 'submitted', NULL, '2026-06-11 15:57:22', '2026-06-11 15:57:24');
 
 -- --------------------------------------------------------
 
@@ -2562,8 +2588,7 @@ INSERT INTO `teacher_submissions` (`submission_id`, `cycle_id`, `school_id`, `sy
 (58, 17, 1, 19, 2, 'submitted', '2026-06-11 23:55:26', 22),
 (59, 17, 1, 19, 12, 'submitted', '2026-06-11 23:56:09', 21),
 (60, 17, 1, 19, 13, 'submitted', '2026-06-11 23:56:47', 21),
-(61, 17, 1, 19, 14, 'submitted', '2026-06-11 23:57:24', 21),
-(62, 18, 1, 20, 15, 'submitted', '2026-06-14 00:59:13', 21);
+(61, 17, 1, 19, 14, 'submitted', '2026-06-11 23:57:24', 21);
 
 -- --------------------------------------------------------
 
@@ -2598,14 +2623,14 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `employee_id`, `department`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`, `contact_number`, `profile_picture`) VALUES
-(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, NULL, '2026-06-14 01:33:21', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, NULL, '2026-06-11 23:55:36', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, NULL, '2026-06-11 23:56:15', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, NULL, '2026-06-11 23:56:53', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, 'English', '2026-06-22 00:06:05', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, 'English', '2026-06-11 23:55:36', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-06-11 23:56:15', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-06-11 23:56:53', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL),
 (15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-06-14 00:58:05', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza M. Evangelio', 'school_head', 'active', 1, NULL, NULL, '2026-06-14 03:02:34', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg'),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, NULL, '2026-06-14 02:48:40', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
-(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'IT Department', '2026-06-14 03:02:22', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL);
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-06-25 19:34:25', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg'),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-06-25 19:34:04', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
+(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-06-25 19:33:11', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -3023,7 +3048,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1233;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1294;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`
@@ -3059,7 +3084,7 @@ ALTER TABLE `cycle_stage_gates`
 -- AUTO_INCREMENT for table `departments`
 --
 ALTER TABLE `departments`
-  MODIFY `department_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `department_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `email_logs`
