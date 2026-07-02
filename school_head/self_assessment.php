@@ -1366,8 +1366,8 @@ function filterIntervention(dim, btn) {
   </div>
 <?php else: ?>
 
-  <!-- ── STICKY DIMENSION TABS ─────────────────────────────── -->
-  <div id="dimTabs" style="display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;
+  <!-- ── STICKY DIMENSION STEP PROGRESS ────────────────────── -->
+  <div id="dimTabs" style="display:flex;gap:6px;margin-bottom:18px;
             position:sticky;top:60px;z-index:40;
             background:var(--n50);padding:8px 0;">
     <?php foreach ($grouped as $dimNo => $inds): ?>
@@ -1376,15 +1376,17 @@ function filterIntervention(dim, btn) {
       $dimTotal = count($inds);
       $dimFull = $dimDone === $dimTotal;
       ?>
-      <a href="#dim<?= $dimNo ?>" id="dimTab<?= $dimNo ?>" data-done="<?= $dimDone ?>" data-total="<?= $dimTotal ?>" style="display:inline-flex;align-items:center;gap:5px;
-            padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;
-            background:<?= $dimFull ? 'var(--g600)' : 'var(--white)' ?>;
-            color:<?= $dimFull ? '#fff' : 'var(--n600)' ?>;
-            border:1px solid <?= $dimFull ? 'var(--g600)' : 'var(--n200)' ?>;
-            text-decoration:none;
-            transition:background .3s,color .3s,border-color .3s;">
-        D<?= $dimNo ?>
-        <span id="dimTabCount<?= $dimNo ?>" style="opacity:.7;">(<?= $dimDone ?>/<?= $dimTotal ?>)</span>
+      <a href="#dim<?= $dimNo ?>" id="dimTab<?= $dimNo ?>" data-done="<?= $dimDone ?>" data-total="<?= $dimTotal ?>"
+            style="flex:1;min-width:0;text-decoration:none;display:flex;flex-direction:column;gap:6px;">
+        <div id="dimBar<?= $dimNo ?>" style="height:4px;border-radius:2px;
+              background:<?= $dimFull ? 'var(--n900)' : 'var(--n200)' ?>;
+              transition:background .3s;"></div>
+        <div id="dimLabel<?= $dimNo ?>" style="font-size:12px;font-weight:700;
+              color:<?= $dimFull ? 'var(--n900)' : 'var(--n400)' ?>;
+              transition:color .3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          D<?= $dimNo ?>
+          <span id="dimTabCount<?= $dimNo ?>" style="font-weight:500;opacity:.7;">(<?= $dimDone ?>/<?= $dimTotal ?>)</span>
+        </div>
       </a>
     <?php endforeach; ?>
   </div>
@@ -1746,16 +1748,14 @@ function filterIntervention(dim, btn) {
       }
 
       if (tabCount) tabCount.textContent = `(${ratedVisible}/${totalVisible})`;
-      if (tab) {
-        if (leftVisible === 0) {
-          tab.style.background = 'var(--g600)';
-          tab.style.color = '#fff';
-          tab.style.borderColor = 'var(--g600)';
-        } else {
-          tab.style.background = 'var(--white)';
-          tab.style.color = 'var(--n600)';
-          tab.style.borderColor = 'var(--n200)';
-        }
+      const bar = document.getElementById('dimBar' + dimNo);
+      const label = document.getElementById('dimLabel' + dimNo);
+      if (leftVisible === 0) {
+        if (bar) bar.style.background = 'var(--n900)';
+        if (label) label.style.color = 'var(--n900)';
+      } else {
+        if (bar) bar.style.background = 'var(--n200)';
+        if (label) label.style.color = 'var(--n400)';
       }
     }
 
@@ -1907,8 +1907,10 @@ function filterIntervention(dim, btn) {
     const done = ratedCards.length;
     const total = allCards.length;
 
-    const tab = document.getElementById('dimTab' + dimNo);
-    if (tab) { tab.style.background = 'var(--white)'; tab.style.color = 'var(--n600)'; tab.style.borderColor = 'var(--n200)'; }
+    const dimBarReset = document.getElementById('dimBar' + dimNo);
+    if (dimBarReset) dimBarReset.style.background = 'var(--n200)';
+    const dimLabelReset = document.getElementById('dimLabel' + dimNo);
+    if (dimLabelReset) dimLabelReset.style.color = 'var(--n400)';
     const tabCount = document.getElementById('dimTabCount' + dimNo);
     if (tabCount) tabCount.textContent = `(${done}/${total})`;
     const subtitle = document.getElementById('dimSubtitle' + dimNo);
