@@ -91,6 +91,12 @@ define('SBM_NAV', [
                 ['Workflow Overview', 'school_head/workflow.php', 'trending-up'],
             ]
         ],
+        [
+            'Interventions',
+            'target',
+            [
+            ]
+        ],
     ],
 
     ROLE_COORDINATOR => [
