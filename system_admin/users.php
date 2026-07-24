@@ -2319,54 +2319,12 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
 </script>
 
 <script>
-  const userStatusStyles = {
-    active: { label: 'Active', background: '#DCFCE7', color: '#16A34A' },
-    inactive: { label: 'Inactive', background: 'var(--n-100)', color: 'var(--n-500)' },
-    suspended: { label: 'Suspended', background: 'var(--red-bg)', color: 'var(--red)' }
-  };
-
-  function setUserRowStatus(row, status) {
-    if (!row) return;
-    row.dataset.userStatus = status;
-
-    const pill = row.querySelector('.user-status-pill');
-    const style = userStatusStyles[status] || userStatusStyles.inactive;
-    if (pill) {
-      pill.textContent = style.label;
-      pill.style.background = style.background;
-      pill.style.color = style.color;
-    }
-
-    const toggleBtn = row.querySelector('.user-status-toggle');
-    if (toggleBtn) {
-      toggleBtn.dataset.currentStatus = status;
-      if (status === 'active') {
-        toggleBtn.className = 'btn btn-warning btn-sm user-status-toggle';
-        toggleBtn.title = 'Deactivate account';
-        toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
-      } else {
-        toggleBtn.className = 'btn btn-success btn-sm user-status-toggle';
-        toggleBtn.title = 'Reactivate account';
-        toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>`;
-      }
-    }
-  }
-
   function closeRowMenus() {
     document.querySelectorAll('.row-menu.open').forEach(menu => {
       menu.classList.remove('open');
       const btn = menu.querySelector('.row-menu-btn');
       if (btn) btn.setAttribute('aria-expanded', 'false');
     });
-  }
-
-  function toggleRowMenu(btn) {
-    const menu = btn.closest('.row-menu');
-    const shouldOpen = !menu.classList.contains('open');
-    closeRowMenus();
-    if (!shouldOpen) return;
-    menu.classList.add('open');
-    btn.setAttribute('aria-expanded', 'true');
   }
 
   async function createUser() {
@@ -3039,8 +2997,6 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
       toast(r.msg || 'Failed to archive.', 'err');
     }
   }
-
-  function setPStatus(val) {}
 
   (function () {
     const input = document.getElementById('liveSearch');

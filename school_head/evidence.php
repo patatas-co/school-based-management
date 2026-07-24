@@ -105,11 +105,6 @@ $activePage = 'evidence.php';
 include __DIR__ . '/../includes/header.php';
 
 // ── Helper: build current URL with replaced sy_id ──
-function syFilterUrl(int $syId): string {
-    $params = $_GET;
-    $params['sy_id'] = $syId;
-    return '?' . http_build_query($params);
-}
 
 function formatFileSize(int $bytes): string
 {

@@ -454,10 +454,6 @@ define('SH_RATEABLE_CODES', array_unique(array_merge(
 )));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function sbmRatingLabel(int $r): string
-{
-    return SBM_RATINGS[$r]['label'] ?? '—';
-}
 
 function sbmMaturityLevel(float $pct): array
 {

@@ -2816,7 +2816,6 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         })();
 
         // ── User popup ──
-        function toggleUserMenu() { document.getElementById('userPopup')?.classList.toggle('open'); }
 
         async function openProfileModal() {
           const overlay = document.getElementById('profileModalOverlay');

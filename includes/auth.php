@@ -249,18 +249,6 @@ function verifyCsrf(): void
     }
 }
 
-function sbmRatingBadge(int $r): string
-{
-    $map = [
-        1 => ['Not yet Manifested', '#FEE2E2', '#DC2626', '#FECACA'],
-        2 => ['Rarely Manifested', '#FEF3C7', '#D97706', '#FDE68A'],
-        3 => ['Frequently Manifested', '#DBEAFE', '#2563EB', '#BFDBFE'],
-        4 => ['Always manifested', '#DCFCE7', '#16A34A', '#BBF7D0'],
-    ];
-    [$l, $bg, $c, $br] = $map[$r] ?? ['—', '#F3F4F6', '#6B7280', '#E5E7EB'];
-    return "<span style=\"display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;background:$bg;color:$c;border:1px solid $br;\">$l</span>";
-}
-
 function computeMaturity(float $pct): string
 {
     if ($pct >= 87.5)
