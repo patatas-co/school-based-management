@@ -542,26 +542,28 @@ include __DIR__ . '/../includes/header.php';
 
 
 
-<!-- ── STICKY DIMENSION TABS ── -->
-<div style="display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;
+<!-- ── STICKY DIMENSION STEP PROGRESS ────────────────────── -->
+<div id="dimTabs" style="display:flex;gap:6px;margin-bottom:18px;
             position:sticky;top:60px;z-index:40;
             background:var(--n50);padding:8px 0;">
-    <?php foreach ($grouped as $dimNo => $inds):
-        $dimDone = count(array_filter($inds, fn($i) => isset($responses[$i['indicator_id']])));
-        $dimTotal = count($inds);
-        $dimFull = $dimDone === $dimTotal;
-        ?>
-        <a href="#dim<?= $dimNo ?>" id="dimTab<?= $dimNo ?>" data-done="<?= $dimDone ?>" data-total="<?= $dimTotal ?>"
-            style="display:inline-flex;align-items:center;gap:5px;
-              padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;
-              background:<?= $dimFull ? 'var(--g600)' : 'var(--white)' ?>;
-              color:<?= $dimFull ? '#fff' : 'var(--n600)' ?>;
-              border:1px solid <?= $dimFull ? 'var(--g600)' : 'var(--n200)' ?>;
-              text-decoration:none;
-              transition:background .3s,color .3s,border-color .3s;">
-            D<?= $dimNo ?>
-            <span id="dimTabCount<?= $dimNo ?>" style="opacity:.7;">(<?= $dimDone ?>/<?= $dimTotal ?>)</span>
-        </a>
+    <?php foreach ($grouped as $dimNo => $inds): ?>
+      <?php
+      $dimDone = count(array_filter($inds, fn($i) => isset($responses[$i['indicator_id']])));
+      $dimTotal = count($inds);
+      $dimFull = $dimDone === $dimTotal;
+      ?>
+      <a href="#dim<?= $dimNo ?>" id="dimTab<?= $dimNo ?>" data-done="<?= $dimDone ?>" data-total="<?= $dimTotal ?>"
+            style="flex:1;min-width:0;text-decoration:none;display:flex;flex-direction:column;gap:6px;">
+        <div id="dimBar<?= $dimNo ?>" style="height:4px;border-radius:2px;
+              background:<?= $dimFull ? 'var(--n900)' : 'var(--n200)' ?>;
+              transition:background .3s;"></div>
+        <div id="dimLabel<?= $dimNo ?>" style="font-size:12px;font-weight:700;
+              color:<?= $dimFull ? 'var(--n900)' : 'var(--n400)' ?>;
+              transition:color .3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          D<?= $dimNo ?>
+          <span id="dimTabCount<?= $dimNo ?>" style="font-weight:500;opacity:.7;">(<?= $dimDone ?>/<?= $dimTotal ?>)</span>
+        </div>
+      </a>
     <?php endforeach; ?>
 </div>
 
@@ -789,15 +791,13 @@ include __DIR__ . '/../includes/header.php';
         const subtitle = document.getElementById('dimSubtitle' + dimNo);
         if (subtitle) subtitle.textContent = `${done}/${total} indicators rated`;
 
-        // Flash green on complete
-        const tab = document.getElementById('dimTab' + dimNo);
+        // Mark complete (dark bar, no green flash)
+        const bar = document.getElementById('dimBar' + dimNo);
+        const label = document.getElementById('dimLabel' + dimNo);
         const leftBadge = document.getElementById('dimLeft' + dimNo);
         if (done === total) {
-            if (tab) {
-                tab.style.background = 'var(--g600)';
-                tab.style.color = '#fff';
-                tab.style.borderColor = 'var(--g600)';
-            }
+            if (bar) bar.style.background = 'var(--n900)';
+            if (label) label.style.color = 'var(--n900)';
             if (leftBadge) {
                 leftBadge.textContent = 'Complete';
                 leftBadge.style.color = '#16A34A';
@@ -805,6 +805,9 @@ include __DIR__ . '/../includes/header.php';
                 leftBadge.style.border = '1px solid #86EFAC';
                 leftBadge.style.fontWeight = '700';
             }
+        } else {
+            if (bar) bar.style.background = 'var(--n200)';
+            if (label) label.style.color = 'var(--n400)';
         }
     }
 
@@ -950,11 +953,12 @@ include __DIR__ . '/../includes/header.php';
         }
     })();
 
-    async function submitMyAssessment() {
-        if (!confirm(
-            'Submit your assessment to the School Head?\n\n' +
-            'Once submitted, you will not be able to edit your responses.'
-        )) return;
+    async function submitMyAssessment(force = false) {
+        if (!force) {
+            openModal('mSubmitAssessment');
+            return;
+        }
+        closeModal('mSubmitAssessment');
 
         const btn = document.getElementById('submitBtn');
         if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
@@ -973,5 +977,37 @@ include __DIR__ . '/../includes/header.php';
         }
     }
 </script>
+
+<div class="overlay" id="mSubmitAssessment">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-head">
+      <span class="modal-title">
+        Confirm Submission
+      </span>
+      <button class="modal-close" onclick="closeModal('mSubmitAssessment')">
+        <?= svgIcon('x') ?>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px; font-weight:600; color:var(--n900); line-height:1.4; margin-bottom:16px;">
+        Submit your assessment to the School Head?
+      </p>
+      <div style="display:flex;align-items:center;gap:8px;color:var(--n500);font-size:13px;">
+        <?= svgIcon('info') ?>
+        <span>
+          Once submitted, you will not be able to edit your responses.
+        </span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mSubmitAssessment')">
+        Cancel
+      </button>
+      <button class="btn btn-primary" id="btnConfirmSubmit" type="button" onclick="submitMyAssessment(true)">
+        Yes, Submit
+      </button>
+    </div>
+  </div>
+</div>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

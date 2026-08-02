@@ -1460,6 +1460,28 @@ function filterIntervention(dim, btn) {
 </script>
 
 <?php else: // ── non-coordinator (school head) full view ── ?>
+<?php
+// ── Build per-indicator / per-dimension scores for real-time % display ──
+$indScores = [];
+foreach ($indicators as $ind) {
+  $iid = $ind['indicator_id'];
+  $shRating = $responses[$iid]['rating'] ?? null;
+  $tchAvg   = $teacherData[$iid]['avg_rating'] ?? null;
+  if ($shRating !== null) {
+    $score = round(($shRating / 4) * 100, 1);
+  } elseif ($tchAvg !== null) {
+    $score = round(($tchAvg / 4) * 100, 1);
+  } else {
+    $score = null;
+  }
+  $indScores[$iid] = ['score' => $score];
+}
+$dimScores = [];
+foreach ($grouped as $dimNo => $inds) {
+  $scored = array_filter(array_map(fn($i) => $indScores[$i['indicator_id']]['score'], $inds), fn($s) => $s !== null);
+  $dimScores[$dimNo] = count($scored) > 0 ? round(array_sum($scored) / count($scored), 1) : null;
+}
+?>
 
 <!-- ── PAGE HEAD ──────────────────────────────────────────── -->
 <div class="page-head" style="justify-content:flex-end;margin-bottom:16px;">
@@ -1475,9 +1497,7 @@ function filterIntervention(dim, btn) {
         </button>
       <?php endif; ?>
     <?php elseif (!$isLocked): ?>
-      <button class="btn btn-primary" onclick="submitAssessment()">
-        <?= svgIcon('check') ?> Submit Assessment
-      </button>
+      <!-- top Submit Assessment button removed; bottom button remains -->
     <?php else: ?>
       <span class="pill pill-<?= e($cycle['status']) ?>" style="font-size:13px;padding:6px 14px;">
         <?= ucfirst(str_replace('_', ' ', $cycle['status'])) ?>
@@ -1525,7 +1545,7 @@ function filterIntervention(dim, btn) {
             background:var(--n50);padding:8px 0;">
     <?php foreach ($grouped as $dimNo => $inds): ?>
       <?php
-      $dimDone = count(array_filter($inds, fn($i) => isset($responses[$i['indicator_id']]) || isset($sharedDone[$i['indicator_id']])));
+      $dimDone = count(array_filter($inds, fn($i) => isset($responses[$i['indicator_id']]) || (isTeacherHandled($i['indicator_code'] ?? '') && isset($sharedDone[$i['indicator_id']]))));
       $dimTotal = count($inds);
       $dimFull = $dimDone === $dimTotal;
       ?>
@@ -1548,7 +1568,7 @@ function filterIntervention(dim, btn) {
   <?php foreach ($grouped as $dimNo => $inds): ?>
     <?php
     $dim = $inds[0];
-    $dimDone = count(array_filter($inds, fn($i) => isset($responses[$i['indicator_id']]) || isset($sharedDone[$i['indicator_id']])));
+    $dimDone = count(array_filter($inds, fn($i) => isset($responses[$i['indicator_id']]) || (isTeacherHandled($i['indicator_code'] ?? '') && isset($sharedDone[$i['indicator_id']]))));
     $allDone = $dimDone === count($inds);
     $dimShCount = count(array_filter($inds, fn($i) => !in_array($i['indicator_code'], TEACHER_INDICATOR_CODES)));
     $dimTchCount = count($inds) - $dimShCount;
@@ -1576,19 +1596,7 @@ function filterIntervention(dim, btn) {
         </div>
 
         <div style="font-size:13px;font-weight:700;color:<?= e($dim['color_hex']) ?>;margin-right:6px;">
-          <?php
-          $ds = $cycle ? $db->prepare("
-            SELECT percentage FROM sbm_dimension_scores ds
-            JOIN sbm_dimensions d ON ds.dimension_id=d.dimension_id
-            WHERE ds.cycle_id=? AND d.dimension_no=?
-        ") : null;
-          if ($ds) {
-            $ds->execute([$cycle['cycle_id'], $dimNo]);
-            $pctRow = $ds->fetchColumn();
-            echo $pctRow ? number_format($pctRow, 1) . '%' : '—';
-          } else
-            echo '—';
-          ?>
+          <?= $dimScores[$dimNo] !== null ? number_format($dimScores[$dimNo], 1) . '%' : '—' ?>
         </div>
 
         <?php if ($allDone): ?>
@@ -1923,37 +1931,7 @@ function filterIntervention(dim, btn) {
         leftBadge.style.borderColor = '#86EFAC';
       }
 
-      // Auto-collapse this dimension once every indicator is answered,
-      // then smoothly scroll to the first indicator of the next dimension.
-      const dimBody = document.getElementById('dimBody' + dimNo);
-      const dimChevron = document.getElementById('dimChevron' + dimNo);
-      if (dimBody && !dimBody.classList.contains('collapsed')) {
-        setTimeout(() => {
-          dimBody.classList.add('collapsed');
-          if (dimChevron) dimChevron.style.transform = 'rotate(-90deg)';
-
-          // Wait for the collapse transition to finish, then move to the next dimension
-          setTimeout(() => {
-            const nextDimNo = parseInt(dimNo) + 1;
-            const nextDimWrap = document.getElementById('dim' + nextDimNo);
-            if (!nextDimWrap) return; // last dimension — nothing more to open
-
-            const nextDimBody = document.getElementById('dimBody' + nextDimNo);
-            const nextDimChevron = document.getElementById('dimChevron' + nextDimNo);
-            if (nextDimBody && nextDimBody.classList.contains('collapsed')) {
-              nextDimBody.classList.remove('collapsed');
-              if (nextDimChevron) nextDimChevron.style.transform = 'rotate(0deg)';
-            }
-
-            const firstIndicator = nextDimWrap.querySelector('.indicator-row');
-            if (firstIndicator) {
-              firstIndicator.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            } else {
-              nextDimWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }, 380);
-        }, 500);
-      }
+     // Auto-collapse removed per request — dimension stays open when complete.
     }
   }
 
@@ -2082,32 +2060,8 @@ function filterIntervention(dim, btn) {
 
 
 
-    // Update dim tab ONCE
-    const allCards = dimWrap.querySelectorAll('.indicator-row');
-    const ratedCards = dimWrap.querySelectorAll('.indicator-row.rated');
-    const done = ratedCards.length;
-    const total = allCards.length;
-
-    const dimBarReset = document.getElementById('dimBar' + dimNo);
-    if (dimBarReset) dimBarReset.style.background = 'var(--n200)';
-    const dimLabelReset = document.getElementById('dimLabel' + dimNo);
-    if (dimLabelReset) dimLabelReset.style.color = 'var(--n400)';
-    const tabCount = document.getElementById('dimTabCount' + dimNo);
-    if (tabCount) tabCount.textContent = `(${done}/${total})`;
-    const subtitle = document.getElementById('dimSubtitle' + dimNo);
-    if (subtitle) subtitle.textContent = `${done}/${total} indicators rated`;
-    const leftBadge = document.getElementById('dimLeft' + dimNo);
-    if (leftBadge) {
-      leftBadge.textContent = `${total - done} left`;
-      leftBadge.style.color = 'var(--n500)';
-      leftBadge.style.background = 'var(--n100)';
-      leftBadge.style.border = '';
-      leftBadge.style.fontWeight = '600';
-    }
-    const clearDimBtn = document.getElementById('clearDimBtn' + dimNo);
-    if (clearDimBtn) clearDimBtn.style.display = 'none';
-
     toast(`All ratings cleared for Dimension ${dimNo}.`, 'ok');
+    setTimeout(() => location.reload(), 700);
   }
 
 
@@ -2165,24 +2119,29 @@ function filterIntervention(dim, btn) {
 
   // ── Submit ─────────────────────────────────────────────────
   async function submitAssessment(force = false) {
-    if (!force && !confirm('Submit your SBM Self-Assessment to the SDO?\nYou will not be able to edit after submission.')) return;
+    if (!force) {
+      openModal('mSubmitAssessmentSH');
+      return;
+    }
+    closeModal('mSubmitAssessmentSH');
+
     const r = await apiPost('self_assessment.php', { action: 'submit', force_submit: force ? '1' : '' });
 
     // Fix A: soft teacher warning — offer to submit anyway
     if (!r.ok && r.warn_teachers) {
-      const go = confirm(
-        `⚠️ Teacher Submissions Incomplete\n\n` +
-        `${r.submitted} of ${r.total} teachers have submitted.\n` +
-        `${r.pending} teacher(s) still pending.\n\n` +
-        `Submit anyway? Teacher averages will be based on responses received so far.\n\n` +
-        `Click OK to submit anyway, or Cancel to wait.`
-      );
-      if (go) submitAssessment(true); // force
+      document.getElementById('teacherWarnText').textContent =
+        `${r.submitted} of ${r.total} teachers have submitted. ${r.pending} teacher(s) still pending.`;
+      openModal('mTeacherWarning');
       return;
     }
 
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) setTimeout(() => location.reload(), 1200);
+  }
+
+  async function forceSubmitAssessment() {
+    closeModal('mTeacherWarning');
+    submitAssessment(true);
   }
 
   // ── Restore last filter on page load ──────────────────────
@@ -2237,6 +2196,68 @@ function filterIntervention(dim, btn) {
 </script>
 
 <!-- Start Assessment Modal -->
+<div class="overlay" id="mSubmitAssessmentSH">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-head">
+      <span class="modal-title">
+        Confirm Submission
+      </span>
+      <button class="modal-close" onclick="closeModal('mSubmitAssessmentSH')">
+        <?= svgIcon('x') ?>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:17px; font-weight:600; color:var(--n900); line-height:1.4; margin-bottom:16px;">
+        Submit your SBM Self-Assessment to the SDO?
+      </p>
+      <div style="display:flex;align-items:center;gap:8px;color:var(--n500);font-size:13px;">
+        <?= svgIcon('info') ?>
+        <span>
+          You will not be able to edit after submission.
+        </span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mSubmitAssessmentSH')">
+        Cancel
+      </button>
+      <button class="btn btn-primary" type="button" onclick="submitAssessment(true)">
+        Yes, Submit
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="mTeacherWarning">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-head">
+      <span class="modal-title">
+        Teacher Submissions Incomplete
+      </span>
+      <button class="modal-close" onclick="closeModal('mTeacherWarning')">
+        <?= svgIcon('x') ?>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-warning" style="margin-bottom:16px;">
+        <?= svgIcon('alert-circle') ?>
+        <span id="teacherWarnText"></span>
+      </div>
+      <p style="font-size:14px; color:var(--n600); line-height:1.5;">
+        Submit anyway? Teacher averages will be based on responses received so far.
+      </p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mTeacherWarning')">
+        Wait
+      </button>
+      <button class="btn btn-primary" type="button" onclick="forceSubmitAssessment()">
+        Submit Anyway
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="mStartAssessment">
   <div class="modal" style="max-width:540px;">
     <div class="modal-head">

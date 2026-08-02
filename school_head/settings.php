@@ -374,6 +374,30 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <!-- Maturity Bands Modal -->
+<div class="overlay" id="mSetCurrentSY">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-head">
+      <span class="modal-title">
+        Set Current School Year
+      </span>
+      <button class="modal-close" onclick="closeModal('mSetCurrentSY')">
+        <?= svgIcon('x') ?>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p id="setCurrentSYText" style="font-size:14.5px; color:var(--n700); line-height:1.5;"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mSetCurrentSY')">
+        Cancel
+      </button>
+      <button class="btn btn-primary" type="button" onclick="confirmSetCurrentSY()">
+        Yes, Set Current
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="mMaturity">
   <div class="modal" style="max-width:600px;">
     <div class="modal-head">
@@ -509,8 +533,14 @@ include __DIR__ . '/../includes/header.php';
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) setTimeout(() => location.reload(), 800);
   }
-  async function setCurrentSY(id, label) {
-    if (!confirm(`Set "${label}" as the current school year?`)) return;
+  function setCurrentSY(id, label) {
+    document.getElementById('mSetCurrentSY').dataset.id = id;
+    document.getElementById('setCurrentSYText').textContent = `Set "${label}" as the current school year?`;
+    openModal('mSetCurrentSY');
+  }
+  async function confirmSetCurrentSY() {
+    const id = document.getElementById('mSetCurrentSY').dataset.id;
+    closeModal('mSetCurrentSY');
     const r = await apiPost('settings.php', { action: 'set_current_sy', id });
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) setTimeout(() => location.reload(), 800);

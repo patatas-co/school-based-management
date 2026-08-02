@@ -152,8 +152,7 @@ $anDimAvgQ = $db->prepare("
            SUM(ds.max_score)           AS sum_max
     FROM sbm_dimensions d
     LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
-    LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id
-    WHERE c.sy_id = ? AND c.school_id = ?
+    LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
     GROUP BY d.dimension_id ORDER BY d.dimension_no
 ");
 $anDimAvgQ->execute([$syId, $schoolId]);
@@ -167,8 +166,7 @@ foreach ($compareSyIds as $cmpSyId) {
            ROUND(AVG(ds.percentage),1) AS avg_pct
     FROM sbm_dimensions d
     LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
-    LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id
-    WHERE c.sy_id = ? AND c.school_id = ?
+    LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
     GROUP BY d.dimension_id ORDER BY d.dimension_no
   ");
   $cmpQ->execute([$cmpSyId, $schoolId]);
@@ -3465,18 +3463,27 @@ updateTrendRangeUI();
     }
   })();
 
-  async function validateAndCompleteCycle(cycleId) {
-  const remarks = prompt('Optional validation remarks for the School Head:');
-  if (remarks === null) return;
+  function validateAndCompleteCycle(cycleId) {
+  document.getElementById('validateCycleModal').dataset.cycleId = cycleId;
+  document.getElementById('validateRemarksInput').value = '';
+  document.getElementById('validateCycleModal').style.display = 'flex';
+}
 
-  if (!confirm('Validate this assessment and complete the cycle? The assessment is already locked and cannot be edited after validation.')) {
-    return;
-  }
+  function closeValidateCycleModal() {
+  document.getElementById('validateCycleModal').style.display = 'none';
+}
+
+  async function confirmValidateCycle() {
+  const modal = document.getElementById('validateCycleModal');
+  const cycleId = modal.dataset.cycleId;
+  const remarks = document.getElementById('validateRemarksInput').value.trim();
+
+  closeValidateCycleModal();
 
   const response = await apiPost('../school_head/workflow.php', {
     action: 'validate_cycle',
     cycle_id: cycleId,
-    remarks: remarks.trim()
+    remarks: remarks
   });
 
   toast(response.msg, response.ok ? 'ok' : 'err');
@@ -3876,6 +3883,30 @@ updateTrendRangeUI();
 </div>
 
 <!-- View SH Improvement Plan Modal -->
+<div id="validateCycleModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)closeValidateCycleModal()">
+  <div style="background:#fff;border-radius:14px;max-width:480px;width:90%;box-shadow:0 20px 50px rgba(0,0,0,.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--n-200,#E2E8F0);">
+      <span style="font-size:16px;font-weight:700;color:var(--n-900,#0F172A);">Validate & Complete Cycle</span>
+      <button onclick="closeValidateCycleModal()" style="background:none;border:none;cursor:pointer;color:var(--n-500,#64748B);">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div style="padding:22px;">
+      <p style="font-size:14px;color:var(--n-700,#334155);line-height:1.5;margin-bottom:16px;">
+        This will lock the assessment and complete the cycle. It cannot be edited after validation.
+      </p>
+      <label style="font-size:12.5px;font-weight:600;color:var(--n-600,#475569);display:block;margin-bottom:6px;">
+        Optional validation remarks for the School Head
+      </label>
+      <textarea id="validateRemarksInput" rows="3" placeholder="Add any remarks…" style="width:100%;border:1px solid var(--n-200,#E2E8F0);border-radius:8px;padding:10px 12px;font-size:13.5px;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--n-200,#E2E8F0);">
+      <button class="btn btn-secondary" onclick="closeValidateCycleModal()">Cancel</button>
+      <button class="btn btn-success" onclick="confirmValidateCycle()">Validate & Complete</button>
+    </div>
+  </div>
+</div>
+
 <div id="shImprovementPlanModal" class="ip-view-modal" onclick="if(event.target===this)closeSHIpModal()">
   <div class="ip-view-content">
 

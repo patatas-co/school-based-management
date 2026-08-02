@@ -79,8 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
         SELECT d.dimension_no, d.dimension_name, ROUND(AVG(ds.percentage), 1) as avg_pct
         FROM sbm_dimensions d
         LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
-        LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id
-        WHERE c.sy_id = ? AND c.school_id = ?
+        LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
         GROUP BY d.dimension_id ORDER BY d.dimension_no
     ");
   $dimQ->execute([$syId, $schoolId]);
@@ -292,8 +291,7 @@ $anDimAvgQ = $db->prepare("
            SUM(ds.max_score)           AS sum_max
     FROM sbm_dimensions d
     LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
-    LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id
-    WHERE c.sy_id = ? AND c.school_id = ?
+    LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
     GROUP BY d.dimension_id ORDER BY d.dimension_no
 ");
 $anDimAvgQ->execute([$selectedSyId, $mySchoolId]);
@@ -321,8 +319,7 @@ if ($compareSyId && $compareSyId !== $selectedSyId) {
                ROUND(AVG(ds.percentage),1) AS avg_pct
         FROM sbm_dimensions d
         LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
-        LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id
-        WHERE c.sy_id = ? AND c.school_id = ?
+        LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
         GROUP BY d.dimension_id ORDER BY d.dimension_no
     ");
   $cmpQ->execute([$compareSyId, $mySchoolId]);
