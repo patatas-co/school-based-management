@@ -523,6 +523,36 @@ include __DIR__ . '/../includes/header.php';
     }
 </style>
 
+<?php
+$subCheck = $db->prepare("
+    SELECT status, submitted_at 
+    FROM teacher_submissions 
+    WHERE cycle_id=? AND teacher_id=?
+");
+$subCheck->execute([isset($cycle['cycle_id']) ? $cycle['cycle_id'] : 0, $uid]);
+$mySubmission = $subCheck->fetch();
+$iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
+?>
+
+<?php if ($iSubmitted): ?>
+  <div style="text-align:center;padding:60px 20px;">
+    <div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;background:var(--g50);border:2px solid var(--g200);margin-bottom:20px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:30px;height:30px;">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+        <polyline points="22 4 12 14.01 9 11.01" />
+      </svg>
+    </div>
+    <div style="font-size:20px;font-weight:700;color:var(--n900);margin-bottom:8px;">
+      Thank you for completing your assessment!
+    </div>
+    <div style="font-size:14px;color:var(--n500);max-width:420px;margin:0 auto;">
+      Your responses have been recorded and submitted on
+      <?= date('F d, Y g:i A', strtotime($mySubmission['submitted_at'])) ?>.
+      The SBM Coordinator will review and consolidate all inputs.
+    </div>
+  </div>
+<?php else: ?>
+
 <!-- ── NOTICE ── -->
 <div class="alert alert-info" style="margin-bottom:16px;">
     <?= svgIcon('info') ?>
@@ -678,41 +708,7 @@ include __DIR__ . '/../includes/header.php';
 
 <!-- ── BOTTOM SUBMIT ── -->
 <div style="text-align:center;padding:24px 0 32px;">
-    <?php
-    // Check if already submitted
-    $subCheck = $db->prepare("
-        SELECT status, submitted_at 
-        FROM teacher_submissions 
-        WHERE cycle_id=? AND teacher_id=?
-    ");
-    $subCheck->execute([isset($cycle['cycle_id']) ? $cycle['cycle_id'] : 0, $uid]);
-    $mySubmission = $subCheck->fetch();
-    ?>
-
-    <?php if ($mySubmission && $mySubmission['status'] === 'submitted'): ?>
-        <div style="display:inline-flex;align-items:center;gap:10px;
-                padding:14px 24px;border-radius:10px;
-                background:var(--g50);border:1.5px solid var(--g200);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round"
-                stroke-linejoin="round" style="width:20px;height:20px;flex-shrink:0;">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-            <div style="text-align:left;">
-                <div style="font-size:14px;font-weight:700;color:var(--g700);">
-                    Assessment Submitted
-                </div>
-                <div style="font-size:12px;color:var(--n500);margin-top:2px;">
-                    Submitted on
-                    <?= date(
-                        'F d, Y g:i A',
-                        strtotime($mySubmission['submitted_at'])
-                    ) ?>
-                </div>
-            </div>
-        </div>
-
-    <?php elseif (!$isLocked): ?>
+    <?php if (!$isLocked): ?>
         <button class="btn btn-primary" style="padding:12px 36px;font-size:15px;" id="submitBtn"
             onclick="submitMyAssessment()">
             <?= svgIcon('check') ?> Submit to School Head
@@ -733,6 +729,8 @@ include __DIR__ . '/../includes/header.php';
         </p>
     <?php endif; ?>
 </div>
+
+<?php endif; // end $iSubmitted check ?>
 
 <script>
     // ── State ──────────────────────────────────────────────────

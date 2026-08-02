@@ -2465,7 +2465,7 @@ include __DIR__ . '/../includes/header.php';
   <div class="card" style="margin-bottom:20px;">
     <div class="card-head">
       <span class="card-title">Assessment Pipeline</span>
-      <a href="assessment.php" class="btn btn-ghost btn-sm">View all →</a>
+      <a href="assessment.php" class="btn btn-ghost btn-sm">View all </a>
     </div>
     <div class="card-body" style="padding:8px 0;">
       <div class="pipeline">

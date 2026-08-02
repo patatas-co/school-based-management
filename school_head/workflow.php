@@ -511,8 +511,6 @@ $currentStageIdx = array_search($currentCycleStatus, $SH_STAGE_ORDER);
   <div class="card" style="margin-bottom:20px;">
     <div class="card-head">
       <span class="card-title">Assessment Cycle Progress</span>
-      <span style="font-size:12px;color:var(--n500);">Cycle ID #<?= $cycle['cycle_id'] ?> · SY
-        <?= e($currentSY['label'] ?? '') ?></span>
     </div>
     <div class="card-body" style="padding:20px 16px 16px;">
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px;">
@@ -834,41 +832,6 @@ $pillMap = [
   <?php endforeach; ?>
 
 <?php endif; ?>
-
-<!-- DepEd Reference Box -->
-<div
-  style="margin-top:28px;padding:18px 20px;background:var(--n50);border:1px solid var(--n200);border-radius:var(--radius-lg);">
-  <div
-    style="font-size:12px;font-weight:700;color:var(--n400);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">
-    DepEd Order Reference
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
-    <div>
-      <div style="font-size:11.5px;font-weight:700;color:var(--n600);margin-bottom:4px;">Policy Basis</div>
-      <div style="font-size:13px;color:var(--n800);">DepEd Order No. 007, s. 2024</div>
-    </div>
-    <div>
-      <div style="font-size:11.5px;font-weight:700;color:var(--n600);margin-bottom:4px;">Framework</div>
-      <div style="font-size:13px;color:var(--n800);">School-Based Management (SBM)</div>
-    </div>
-    <div>
-      <div style="font-size:11.5px;font-weight:700;color:var(--n600);margin-bottom:4px;">Rating Scale</div>
-      <div style="font-size:13px;color:var(--n800);">4 Degrees of Manifestation (1–4)</div>
-    </div>
-    <div>
-      <div style="font-size:11.5px;font-weight:700;color:var(--n600);margin-bottom:4px;">Maturity Levels</div>
-      <div style="font-size:13px;color:var(--n800);">Developing · Maturing · Advanced</div>
-    </div>
-    <div>
-      <div style="font-size:11.5px;font-weight:700;color:var(--n600);margin-bottom:4px;">Dimensions</div>
-      <div style="font-size:13px;color:var(--n800);">6 SBM Dimensions assessed annually</div>
-    </div>
-    <div>
-      <div style="font-size:11.5px;font-weight:700;color:var(--n600);margin-bottom:4px;">School</div>
-      <div style="font-size:13px;color:var(--n800);">Dasmariñas Integrated High School</div>
-    </div>
-  </div>
-</div>
 
 <!-- ── CONFIGURE CYCLE SCHEDULE MODAL ───────────────────── -->
 <div class="overlay" id="mConfigure">

@@ -482,6 +482,15 @@ function handleWorkflowPost(PDO $db): void
         exit;
     }
 
+    // Safety net: (re)compute maturity_level from overall_score in case it
+    // was never set at submission time.
+    $scoreRow = $db->prepare("SELECT overall_score FROM sbm_cycles WHERE cycle_id = ?");
+    $scoreRow->execute([$cycleId]);
+    $overallScore = $scoreRow->fetchColumn();
+    $maturityLevel = ($overallScore !== false && $overallScore !== null)
+        ? computeMaturity((float) $overallScore)
+        : null;
+
     $db->beginTransaction();
     try {
         $db->prepare("
@@ -489,9 +498,10 @@ function handleWorkflowPost(PDO $db): void
             SET status = 'validated',
                 validated_at = NOW(),
                 validated_by = ?,
-                validator_remarks = ?
+                validator_remarks = ?,
+                maturity_level = COALESCE(maturity_level, ?)
             WHERE cycle_id = ?
-        ")->execute([$actorId, $remarks, $cycleId]);
+        ")->execute([$actorId, $remarks, $maturityLevel, $cycleId]);
 
         logCycleStage(
             $db,

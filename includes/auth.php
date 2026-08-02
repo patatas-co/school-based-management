@@ -254,8 +254,12 @@ function verifyCsrf(): void
 function computeMaturity(float $pct): string
 {
     // DepEd Part VI bands (avg/4×100): 0–37.49% Developing, 37.5–62.49% Maturing, 62.5%+ Advanced
+    // NOTE: store the raw label only ("Advanced") — "(Accredited)" is a
+    // display-only suffix used in some UI text, not a value other code
+    // matches against (pill CSS classes, ORDER BY FIELD(), etc. expect
+    // the bare label).
     if ($pct >= 62.5)
-        return 'Advanced (Accredited)';
+        return 'Advanced';
     if ($pct >= 37.5)
         return 'Maturing';
     return 'Developing';
