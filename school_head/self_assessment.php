@@ -23,6 +23,40 @@ if (!$syId) {
   exit;
 }
 
+// ── SELF-ASSESSMENT PHASE WINDOW (from sbm_workflow_phases, phase_no=1) ──
+function getSelfAssessmentWindow(PDO $db, int $syId): array
+{
+  $ph = $db->prepare("SELECT date_start, date_end FROM sbm_workflow_phases WHERE sy_id=? AND phase_no=1 AND is_active=1");
+  $ph->execute([$syId]);
+  $row = $ph->fetch();
+  return ['start' => $row['date_start'] ?? null, 'end' => $row['date_end'] ?? null];
+}
+
+function isWithinAssessmentWindow(array $window): bool
+{
+  $today = date('Y-m-d');
+  if ($window['start'] && $today < $window['start']) return false;
+  if ($window['end'] && $today > $window['end']) return false;
+  return true;
+}
+
+function assessmentWindowMessage(array $window): string
+{
+  if (!$window['start'] && !$window['end']) {
+    return 'The Self-Assessment schedule has not been configured yet.';
+  }
+  $today = date('Y-m-d');
+  if ($window['start'] && $today < $window['start']) {
+    return 'The Self-Assessment phase opens on ' . date('M d, Y', strtotime($window['start'])) . '.';
+  }
+  if ($window['end'] && $today > $window['end']) {
+    return 'The Self-Assessment phase closed on ' . date('M d, Y', strtotime($window['end'])) . '.';
+  }
+  return 'The Self-Assessment phase is not currently open.';
+}
+
+$assessmentWindow = getSelfAssessmentWindow($db, $syId);
+
 // ── AJAX HANDLERS ────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   ob_start();
@@ -35,6 +69,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       // Check if user has permission to start assessment
       if (!hasAccess('start_assessment')) {
         echo json_encode(['ok' => false, 'msg' => 'Access denied. Only School Head can start assessments.']);
+        exit;
+      }
+
+      if (!isWithinAssessmentWindow($assessmentWindow)) {
+        echo json_encode(['ok' => false, 'msg' => assessmentWindowMessage($assessmentWindow)]);
         exit;
       }
 
@@ -70,6 +109,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       // SBM Coordinator is view-only — cannot submit ratings
       if ($_SESSION['role'] === 'sbm_coordinator') {
         echo json_encode(['ok' => false, 'msg' => 'SBM Coordinators can view but not modify assessments.']);
+        exit;
+      }
+
+      if (!isWithinAssessmentWindow($assessmentWindow)) {
+        echo json_encode(['ok' => false, 'msg' => assessmentWindowMessage($assessmentWindow)]);
         exit;
       }
 
@@ -155,6 +199,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
       }
 
+      if (!isWithinAssessmentWindow($assessmentWindow)) {
+        echo json_encode(['ok' => false, 'msg' => assessmentWindowMessage($assessmentWindow)]);
+        exit;
+      }
+
       $indicatorId = (int) $_POST['indicator_id'];
 
       $chk = $db->prepare("SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?");
@@ -186,6 +235,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     if ($_POST['action'] === 'clear_dimension') {
+      if (!isWithinAssessmentWindow($assessmentWindow)) {
+        echo json_encode(['ok' => false, 'msg' => assessmentWindowMessage($assessmentWindow)]);
+        exit;
+      }
+
       $dimId = (int) $_POST['dimension_id'];
 
       $cycleRow = $db->prepare("SELECT cycle_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?");
@@ -240,6 +294,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     if ($_POST['action'] === 'submit') {
+      if (!isWithinAssessmentWindow($assessmentWindow)) {
+        echo json_encode(['ok' => false, 'msg' => assessmentWindowMessage($assessmentWindow)]);
+        exit;
+      }
+
       $forceSubmit = !empty($_POST['force_submit']);
       $cyc = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
       $cyc->execute([$schoolId, $syId]);
@@ -373,24 +432,82 @@ function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId,
   $rawTotal = 0;
   $maxTotal = 0;
 
-  foreach ($inds as $ind) {
+  // Each evaluator group has equal weight:
+  // School Head rating, teacher-group average, external-group average.
+  $teacherCodes = array_merge(
+    TEACHER_ONLY_CODES,
+    SH_TEACHER_CODES,
+    SH_TCH_EXT_CODES,
+    TCH_EXT_CODES
+  );
 
-    if (isTeacherHandled($ind['indicator_code'])) {
-      $avg = $db->prepare("SELECT AVG(rating) FROM teacher_responses WHERE cycle_id=? AND indicator_id=?");
-      $avg->execute([$cycleId, $ind['indicator_id']]);
-      $avgVal = $avg->fetchColumn();
-      if ($avgVal !== null) {
-        $rawTotal += floatval($avgVal);
-        $maxTotal += 4;
+  $externalCodes = array_merge(
+    SH_EXT_CODES,
+    SH_TCH_EXT_CODES,
+    TCH_EXT_CODES
+  );
+
+  $shRatingStmt = $db->prepare(
+    "SELECT rating
+     FROM sbm_responses
+     WHERE cycle_id=? AND indicator_id=? AND school_id=?"
+  );
+
+  $teacherAverageStmt = $db->prepare(
+    "SELECT AVG(rating)
+     FROM teacher_responses
+     WHERE cycle_id=? AND indicator_id=?"
+  );
+
+  $externalAverageStmt = $db->prepare(
+    "SELECT AVG(rating)
+     FROM stakeholder_responses
+     WHERE cycle_id=? AND indicator_id=?"
+  );
+
+  foreach ($inds as $ind) {
+    $code = $ind['indicator_code'];
+    $ratings = [];
+
+    // Teacher-only and Teacher+External indicators have no School Head rating.
+    $needsSchoolHead = !in_array($code, TEACHER_ONLY_CODES, true)
+      && !in_array($code, TCH_EXT_CODES, true);
+
+    $needsTeachers = in_array($code, $teacherCodes, true);
+    $needsExternal = in_array($code, $externalCodes, true);
+
+    if ($needsSchoolHead) {
+      $shRatingStmt->execute([$cycleId, $ind['indicator_id'], $schoolId]);
+      $shRating = $shRatingStmt->fetchColumn();
+
+      if ($shRating !== false && $shRating !== null) {
+        $ratings[] = (float) $shRating;
       }
-    } else {
-      $shResp = $db->prepare("SELECT rating FROM sbm_responses WHERE cycle_id=? AND indicator_id=? AND school_id=?");
-      $shResp->execute([$cycleId, $ind['indicator_id'], $schoolId]);
-      $rating = $shResp->fetchColumn();
-      if ($rating !== false) {
-        $rawTotal += (int) $rating;
-        $maxTotal += 4;
+    }
+
+    if ($needsTeachers) {
+      $teacherAverageStmt->execute([$cycleId, $ind['indicator_id']]);
+      $teacherAverage = $teacherAverageStmt->fetchColumn();
+
+      if ($teacherAverage !== false && $teacherAverage !== null) {
+        $ratings[] = (float) $teacherAverage;
       }
+    }
+
+    if ($needsExternal) {
+      $externalAverageStmt->execute([$cycleId, $ind['indicator_id']]);
+      $externalAverage = $externalAverageStmt->fetchColumn();
+
+      if ($externalAverage !== false && $externalAverage !== null) {
+        $ratings[] = (float) $externalAverage;
+      }
+    }
+
+    // Provisional: average only the evaluator groups that have submitted.
+    // Final validation should require all required evaluator groups.
+    if ($ratings) {
+      $rawTotal += array_sum($ratings) / count($ratings);
+      $maxTotal += 4;
     }
   }
 
@@ -422,6 +539,34 @@ $indicators = $db->query("
 $cycle = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
 $cycle->execute([$schoolId, $syId]);
 $cycle = $cycle->fetch();
+
+// ── AUTO-START: create the cycle the moment today enters the Self-Assessment window ──
+if (!$cycle && isWithinAssessmentWindow($assessmentWindow) && $assessmentWindow['start']) {
+  try {
+    $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")
+      ->execute([$syId, $schoolId]);
+    $newCycleId = $db->lastInsertId();
+    $dimIds = $db->query("SELECT dimension_id FROM sbm_dimensions")->fetchAll(PDO::FETCH_COLUMN);
+    foreach ($dimIds as $dId) {
+      $db->prepare("INSERT IGNORE INTO sbm_dimension_scores (cycle_id, school_id, dimension_id, raw_score, max_score, percentage) VALUES (?, ?, ?, 0, 0, 0)")
+        ->execute([$newCycleId, $schoolId, $dId]);
+    }
+    logActivity('start_assessment', 'self_assessment', "Auto-started SBM assessment cycle (Self-Assessment window opened).");
+
+    $cycle = $db->prepare("SELECT * FROM sbm_cycles WHERE cycle_id=?");
+    $cycle->execute([$newCycleId]);
+    $cycle = $cycle->fetch();
+  } catch (\PDOException $e) {
+    // Race condition guard: another request may have just created it
+    if ($e->getCode() === '23000') {
+      $cycle = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+      $cycle->execute([$schoolId, $syId]);
+      $cycle = $cycle->fetch();
+    } else {
+      throw $e;
+    }
+  }
+}
 
 $responses = [];
 if ($cycle) {
@@ -612,10 +757,18 @@ include __DIR__ . '/../includes/header.php';
   .dim-body {
     padding-top: 8px;
     margin-bottom: 20px;
+    max-height: 6000px;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-height .35s ease, opacity .3s ease, margin-bottom .35s ease, padding-top .35s ease;
   }
 
   .dim-body.collapsed {
-    display: none;
+    max-height: 0;
+    opacity: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    overflow: hidden;
   }
 
   .dim-wrap {
@@ -1639,6 +1792,7 @@ function filterIntervention(dim, btn) {
 <script>
   // ── State ──────────────────────────────────────────────────
   let currentRatings = <?= json_encode(array_map(fn($r) => $r['rating'], $responses)) ?>;
+  let currentFilter = 'all'; // 'all' | 'sh' | 'teacher' — no active toggle UI yet, defaults to showing everything
 
   const TEACHER_ONLY_CODES_JS = new Set(<?= json_encode(TEACHER_ONLY_CODES) ?>);
   const TCH_EXT_CODES_JS = new Set(<?= json_encode(TCH_EXT_CODES) ?>);
@@ -1759,19 +1913,46 @@ function filterIntervention(dim, btn) {
       }
     }
 
-    // Flash tab green when dimension completes
-    if (tab && ratedVisible === totalVisible) {
-      tab.style.background = 'var(--g600)';
-      tab.style.color = '#fff';
-      tab.style.borderColor = 'var(--g600)';
-
-      // Update dim header badge
+    // Update dim header "Complete" badge (dimHeader section, not the top step bar)
+    if (ratedVisible === totalVisible) {
       const leftBadge = document.getElementById('dimLeft' + dimNo);
       if (leftBadge) {
         leftBadge.textContent = 'Complete';
         leftBadge.style.color = '#16A34A';
         leftBadge.style.background = '#DCFCE7';
         leftBadge.style.borderColor = '#86EFAC';
+      }
+
+      // Auto-collapse this dimension once every indicator is answered,
+      // then smoothly scroll to the first indicator of the next dimension.
+      const dimBody = document.getElementById('dimBody' + dimNo);
+      const dimChevron = document.getElementById('dimChevron' + dimNo);
+      if (dimBody && !dimBody.classList.contains('collapsed')) {
+        setTimeout(() => {
+          dimBody.classList.add('collapsed');
+          if (dimChevron) dimChevron.style.transform = 'rotate(-90deg)';
+
+          // Wait for the collapse transition to finish, then move to the next dimension
+          setTimeout(() => {
+            const nextDimNo = parseInt(dimNo) + 1;
+            const nextDimWrap = document.getElementById('dim' + nextDimNo);
+            if (!nextDimWrap) return; // last dimension — nothing more to open
+
+            const nextDimBody = document.getElementById('dimBody' + nextDimNo);
+            const nextDimChevron = document.getElementById('dimChevron' + nextDimNo);
+            if (nextDimBody && nextDimBody.classList.contains('collapsed')) {
+              nextDimBody.classList.remove('collapsed');
+              if (nextDimChevron) nextDimChevron.style.transform = 'rotate(0deg)';
+            }
+
+            const firstIndicator = nextDimWrap.querySelector('.indicator-row');
+            if (firstIndicator) {
+              firstIndicator.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+              nextDimWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 380);
+        }, 500);
       }
     }
   }

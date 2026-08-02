@@ -48,7 +48,7 @@ if (!$reportData): ?>
         $mat = sbmMaturityLevel(floatval($reportData['overall_score'])); ?>
         <div
           style="margin-top:12px;display:inline-flex;padding:6px 18px;border-radius:999px;background:<?= $mat['bg'] ?>;color:<?= $mat['color'] ?>;font-weight:700;font-size:14px;">
-          Maturity Level: <?= e($reportData['maturity_level']) ?>
+          Maturity Level: <?= e($mat['label']) ?>
         </div>
       <?php endif; ?>
     </div>

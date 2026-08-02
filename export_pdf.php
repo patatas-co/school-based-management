@@ -142,9 +142,10 @@ $ratingBgs = [
 ];
 
 function getMaturityLabel(float $pct): array {
-    if ($pct >= 87.5) return ['label' => 'Advanced',   'color' => '#16A34A', 'bg' => '#DCFCE7'];
-    if ($pct >= 62.5) return ['label' => 'Maturing',   'color' => '#2563EB', 'bg' => '#DBEAFE'];
-    return              ['label' => 'Developing', 'color' => '#D97706', 'bg' => '#FEF3C7'];
+    // DepEd Part VI bands (avg/4×100): 0–37.49% Developing, 37.5–62.49% Maturing, 62.5%+ Advanced
+    if ($pct >= 62.5) return ['label' => 'Advanced (Accredited)', 'color' => '#16A34A', 'bg' => '#DCFCE7'];
+    if ($pct >= 37.5) return ['label' => 'Maturing',              'color' => '#2563EB', 'bg' => '#DBEAFE'];
+    return              ['label' => 'Developing',            'color' => '#D97706', 'bg' => '#FEF3C7'];
 }
 
 $overallMat = getMaturityLabel((float)($cycle['overall_score'] ?? 0));

@@ -11,10 +11,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   header('Content-Type: application/json');
   verifyCsrf();
   if ($_POST['action'] === 'validate') {
-    $db->prepare("UPDATE sbm_cycles SET status='validated',validated_by=?,validated_at=NOW(),validator_remarks=? WHERE cycle_id=?")
-      ->execute([$_SESSION['user_id'], trim($_POST['remarks']), (int) $_POST['cycle_id']]);
-    logActivity('validate_assessment', 'assessment', 'Validated cycle ID:' . $_POST['cycle_id']);
-    echo json_encode(['ok' => true, 'msg' => 'Assessment validated.']);
+    // Validation is exclusive to the SBM Coordinator's dashboard now
+    // (see coordinator/workflow_actions.php → validate_cycle).
+    http_response_code(403);
+    echo json_encode(['ok' => false, 'msg' => 'Only the SBM Coordinator can validate an assessment.']);
     exit;
   }
   if ($_POST['action'] === 'return') {
@@ -155,12 +155,6 @@ include __DIR__ . '/../includes/header.php';
               <div class="flex-c" style="gap:5px;">
                 <a href="view_assessment.php?id=<?= $c['cycle_id'] ?>"
                   class="btn btn-secondary btn-sm"><?= svgIcon('eye') ?> View</a>
-                <?php if ($c['status'] === 'submitted'): ?>
-                  <button class="btn btn-success btn-sm"
-                    onclick="validateCycle(<?= $c['cycle_id'] ?>,'validate')"><?= svgIcon('check') ?> Validate</button>
-                  <button class="btn btn-danger btn-sm"
-                    onclick="validateCycle(<?= $c['cycle_id'] ?>,'return')"><?= svgIcon('x') ?></button>
-                <?php endif; ?>
               </div>
             </td>
           </tr>

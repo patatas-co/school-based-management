@@ -336,12 +336,16 @@ define('SBM_RATINGS', [
     4 => ['label' => 'Always manifested', 'short' => 'AM', 'color' => '#16A34A', 'bg' => '#DCFCE7'],
 ]);
 
-// ── Maturity levels (RM No. 53 s. 2021) ──────────────────────────────────────
-// Level I Developing: 0–62.49% | Level II Maturing: 62.5–87.49% | Level III Advanced: 87.5–100%
+// ── Maturity levels (DepEd Part VI — Level of Practice) ─────────────────────
+// Based on raw average score scale: 0.5–1.4 = Developing, 1.5–2.4 = Maturing, 2.5–3.5 = Advanced
+// Converted to percentage (avg / 4 × 100): cutoffs at 37.5% and 62.5%
+// Level I  Developing:          0% – 37.49%  (avg 0 – 1.4)
+// Level II Maturing:           37.5% – 62.49% (avg 1.5 – 2.4)
+// Level III Advanced (Accredited): 62.5% – 100%  (avg 2.5 – 4.0)
 define('SBM_MATURITY', [
-    ['min' => 0.0,  'max' => 62.49,  'level' => 1, 'label' => 'Developing', 'color' => '#D97706', 'bg' => '#FEF3C7'],
-    ['min' => 62.5, 'max' => 87.49,  'level' => 2, 'label' => 'Maturing',   'color' => '#2563EB', 'bg' => '#DBEAFE'],
-    ['min' => 87.5, 'max' => 100.0,  'level' => 3, 'label' => 'Advanced',   'color' => '#16A34A', 'bg' => '#DCFCE7'],
+    ['min' => 0.0,  'max' => 37.49, 'level' => 1, 'label' => 'Developing',           'color' => '#D97706', 'bg' => '#FEF3C7'],
+    ['min' => 37.5, 'max' => 62.49, 'level' => 2, 'label' => 'Maturing',             'color' => '#2563EB', 'bg' => '#DBEAFE'],
+    ['min' => 62.5, 'max' => 100.0, 'level' => 3, 'label' => 'Advanced (Accredited)', 'color' => '#16A34A', 'bg' => '#DCFCE7'],
 ]);
 
 // ════════════════════════════════════════════════════════════════════════════

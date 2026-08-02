@@ -1279,6 +1279,13 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       border-color: var(--brand-200);
     }
 
+    /* Covers "Advanced (Accredited)" label from DepEd Part VI scoring */
+    [class*="pill-Advanced"] {
+      background: var(--brand-100);
+      color: var(--brand-700);
+      border-color: var(--brand-200);
+    }
+
     .pill-general {
       background: var(--brand-100);
       color: var(--brand-700);
@@ -3103,9 +3110,15 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
         function sbmMaturityBadge(level) {
           if (level === 'Beginning') level = 'Developing';
-          const map = { 'Developing': ['#FEF3C7', '#D97706', '#FDE68A'], 'Maturing': ['#DBEAFE', '#2563EB', '#BFDBFE'], 'Advanced': ['#DCFCE7', '#16A34A', '#BBF7D0'] };
-          const [bg, c, br] = map[level] || ['#F3F4F6', '#6B7280', '#E5E7EB'];
-          return `<span class="pill" style="background:${bg};color:${c};border-color:${br};">${level}</span>`;
+          let key = (level && level.indexOf('Advanced') !== -1) ? 'Advanced (Accredited)' : level;
+          const map = {
+            'Developing': ['#FEF3C7', '#D97706', '#FDE68A'],
+            'Maturing': ['#DBEAFE', '#2563EB', '#BFDBFE'],
+            'Advanced': ['#DCFCE7', '#16A34A', '#BBF7D0'],
+            'Advanced (Accredited)': ['#DCFCE7', '#16A34A', '#BBF7D0']
+          };
+          const [bg, c, br] = map[key] || ['#FEF3C7', '#D97706', '#FDE68A'];
+          return `<span class="pill" style="background:${bg};color:${c};border-color:${br};font-weight:700;">${level}</span>`;
         }
       </script>
 

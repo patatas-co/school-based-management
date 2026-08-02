@@ -165,9 +165,9 @@ $syears = $db->query("SELECT * FROM school_years ORDER BY sy_id DESC")->fetchAll
 // Load saved maturity bands (fall back to DepEd defaults if not yet configured)
 $maturityRow = $db->query("SELECT setting_value FROM system_settings WHERE setting_key='sbm_maturity_bands' LIMIT 1")->fetchColumn();
 $maturityBands = $maturityRow ? json_decode($maturityRow, true) : [
-    ['min'=>0.0,  'max'=>62.49,  'level'=>1, 'label'=>'Developing', 'color'=>'#D97706', 'bg'=>'#FEF3C7'],
-    ['min'=>62.5, 'max'=>87.49,  'level'=>2, 'label'=>'Maturing',   'color'=>'#2563EB', 'bg'=>'#DBEAFE'],
-    ['min'=>87.5, 'max'=>100.0,  'level'=>3, 'label'=>'Advanced',   'color'=>'#16A34A', 'bg'=>'#DCFCE7'],
+    ['min'=>0.0,  'max'=>37.49, 'level'=>1, 'label'=>'Developing',           'color'=>'#D97706', 'bg'=>'#FEF3C7'],
+    ['min'=>37.5, 'max'=>62.49, 'level'=>2, 'label'=>'Maturing',             'color'=>'#2563EB', 'bg'=>'#DBEAFE'],
+    ['min'=>62.5, 'max'=>100.0, 'level'=>3, 'label'=>'Advanced (Accredited)', 'color'=>'#16A34A', 'bg'=>'#DCFCE7'],
 ];
 
 $userCount = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();

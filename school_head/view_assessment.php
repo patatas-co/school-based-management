@@ -257,7 +257,7 @@ include __DIR__ . '/../includes/header.php';
             style="background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.2);">
             <?= svgIcon('download') ?> Dimension PDF
         </a>
-        <?php if ($cycle['status'] === 'submitted'): ?>
+        <?php if ($cycle['status'] === 'submitted' && ($_SESSION['role'] ?? '') === 'sbm_coordinator'): ?>
             <button class="btn btn-sm" style="background: #16A34A; color: #fff; border: none;"
                 onclick="validateCycle(<?= $cycleId ?>, 'validate')">
                 <?= svgIcon('check') ?> Validate

@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
   // 4. History Trend
   $histQ = $db->prepare("
         SELECT overall_score FROM sbm_cycles 
-        WHERE school_id = ? AND status='validated' AND sy_id != ? 
+        WHERE school_id = ? AND status IN ('validated','finalized','completed') AND sy_id != ? 
         ORDER BY created_at DESC LIMIT 3
     ");
   $histQ->execute([$schoolId, $syId]);
@@ -135,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
   // 5. Get Real Overall Score & Maturity
   $scoreQ = $db->prepare("
         SELECT overall_score, maturity_level FROM sbm_cycles 
-        WHERE school_id = ? AND sy_id = ? AND status='validated'
+        WHERE school_id = ? AND sy_id = ? AND status IN ('validated','finalized','completed')
         ORDER BY created_at DESC LIMIT 1
     ");
   $scoreQ->execute([$schoolId, $syId]);
@@ -188,11 +188,11 @@ $stTotalCycles = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE sy_id = ? A
 $stTotalCycles->execute([$selectedSyId, $mySchoolId]);
 $totalCycles = (int) $stTotalCycles->fetchColumn();
 
-$stSubmitted = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE sy_id = ? AND school_id = ? AND status IN('submitted','validated')");
+$stSubmitted = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE sy_id = ? AND school_id = ? AND status IN('submitted','validated','finalized','completed')");
 $stSubmitted->execute([$selectedSyId, $mySchoolId]);
 $submitted = (int) $stSubmitted->fetchColumn();
 
-$stValidated = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE sy_id = ? AND school_id = ? AND status='validated'");
+$stValidated = $db->prepare("SELECT COUNT(*) FROM sbm_cycles WHERE sy_id = ? AND school_id = ? AND status IN('validated','finalized','completed')");
 $stValidated->execute([$selectedSyId, $mySchoolId]);
 $validated = (int) $stValidated->fetchColumn();
 
@@ -228,19 +228,25 @@ $stRecent = $db->prepare("
 $stRecent->execute([$selectedSyId]);
 $recentCycles = $stRecent->fetchAll();
 
-// -- Dimension scores (SY-scoped — subquery ensures only scores from selected SY cycles)
+// -- Dimension scores (SY-scoped — only from VALIDATED cycles where every
+//    active teacher has submitted. Prevents leaking in-progress/partial scores.)
 $stDimScores = $db->prepare("
   SELECT d.dimension_id, d.dimension_no, d.dimension_name, d.color_hex,
          ROUND(AVG(ds.percentage), 1) avg_pct
   FROM sbm_dimensions d
   LEFT JOIN sbm_dimension_scores ds
     ON d.dimension_id = ds.dimension_id
-    AND ds.cycle_id IN (SELECT cycle_id FROM sbm_cycles WHERE sy_id = ?)
+    AND ds.cycle_id IN (
+      SELECT c.cycle_id FROM sbm_cycles c
+      WHERE c.sy_id = ?
+        AND c.status IN ('validated','finalized','completed')
+    )
   GROUP BY d.dimension_id
   ORDER BY d.dimension_no
 ");
 $stDimScores->execute([$selectedSyId]);
 $dimScores = $stDimScores->fetchAll();
+$hasValidatedDimScores = !empty(array_filter($dimScores, fn($d) => $d['avg_pct'] !== null));
 
 // -- Recent activity (global — not SY-scoped) ------------------
 $recentActivity = $db->query("
@@ -2556,7 +2562,31 @@ include __DIR__ . '/../includes/header.php';
   <?php if (count($trendSYLabels) >= 2): ?>
     <div class="chart-card" style="margin-bottom:18px;">
       <div class="chart-card-head">
-        <span class="chart-card-title">Dimension Trend — All Cycles</span>
+  <span class="chart-card-title">Dimension Trend</span>
+
+  <div class="trend-range-controls" style="margin-left:auto;display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+    <label for="anTrendWindowSize" style="font-size:12px;font-weight:600;color:var(--n-500);">Cycles:</label>
+
+    <select id="anTrendWindowSize" onchange="setTrendWindowSize(this.value)"
+      style="height:32px;padding:0 26px 0 9px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+      <option value="5">Latest 5</option>
+      <option value="10" selected>Latest 10</option>
+      <option value="0">All cycles</option>
+    </select>
+
+    <button type="button" id="anTrendOlderBtn" onclick="moveTrendWindow(-1)"
+      class="chart-dl-btn" style="padding:5px 9px;" aria-label="Show older cycles">
+      Older
+    </button>
+
+    <span id="anTrendRangeSummary"
+      style="min-width:132px;text-align:center;font-size:11.5px;color:var(--n-500);font-weight:600;"></span>
+
+    <button type="button" id="anTrendNewerBtn" onclick="moveTrendWindow(1)"
+      class="chart-dl-btn" style="padding:5px 9px;" aria-label="Show newer cycles">
+      Newer
+    </button>
+  </div>
         <div class="chart-dl-wrap">
           <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_anDimTrendChart')">
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -2645,7 +2675,7 @@ include __DIR__ . '/../includes/header.php';
       </div>
       <div class="chart-card-body" style="flex:1;padding:8px 16px 6px;box-sizing:border-box;overflow:hidden;">
         <div style="position:relative;width:100%;height:100%;">
-          <?php if ($dimScores): ?>
+          <?php if ($hasValidatedDimScores): ?>
             <div id="dimBarChartInner" style="position:relative;height:100%;min-width:100%;">
               <canvas id="dimBarChart"></canvas>
             </div>
@@ -2659,7 +2689,7 @@ include __DIR__ . '/../includes/header.php';
                 <line x1="6" y1="20" x2="6" y2="14" />
               </svg>
               <div style="font-size:13px;font-weight:600;color:var(--n-400);">Chart data unavailable</div>
-              <div style="font-size:12px;color:var(--n-400);">Scores will appear once evaluations begin.</div>
+              <div style="font-size:12px;color:var(--n-400);">Scores will appear once the assessment is fully validated.</div>
             </div>
           <?php endif; ?>
         </div>
@@ -2688,11 +2718,11 @@ include __DIR__ . '/../includes/header.php';
           </div>
         </div>
       </div>
-      <div class="chart-card-body" style="flex:1;position:relative;padding:8px 16px 6px;box-sizing:border-box;">
+      <div class="chart-card-body" style="flex:1;position:relative;padding:8px 16px 6px;box-sizing:border-box;<?= count($cycleHistory) >= 1 ? '' : 'display:flex;align-items:center;justify-content:center;' ?>">
         <?php if (count($cycleHistory) >= 1): ?>
           <canvas id="anTrendLineChart"></canvas>
         <?php else: ?>
-          <p style="color:var(--n-400);font-size:13px;text-align:center;">Not enough cycles to show a trend.</p>
+          <p style="color:var(--n-400);font-size:13px;text-align:center;margin:0;">Not enough cycles to show a trend.</p>
         <?php endif; ?>
       </div>
     </div>
@@ -2975,7 +3005,7 @@ include __DIR__ . '/../includes/header.php';
       <?php
       // Use dynamic maturity based on the calculated overall score to ensure consistency
       $curMaturity = $anAvgOverall !== null ? computeMaturity($anAvgOverall) : ($currCycle['maturity_level'] ?? null);
-      $anMatColors = ['Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
+      $anMatColors = ['Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A', 'Advanced (Accredited)' => '#16A34A'];
       ?>
       <div class="an-insight-val" style="font-size:18px;color:<?= $curMaturity ? 'var(--n-900)' : 'var(--n-400)' ?>;">
         <?= $curMaturity ?? '—' ?>
@@ -3494,7 +3524,7 @@ include __DIR__ . '/../includes/header.php';
         const insightBody = insightEl.querySelector('.chart-card-body');
         const trendDir = slope > 0.5 ? 'upward' : (slope < -0.5 ? 'downward' : 'stable');
         const trendLabel = slope > 0.5 ? 'Scores are improving' : (slope < -0.5 ? 'Scores are declining' : 'Scores are steady');
-        const matLevel = predictionValue >= 87.5 ? 'Advanced' : (predictionValue >= 62.5 ? 'Maturing' : 'Developing');
+        const matLevel = predictionValue >= 62.5 ? 'Advanced (Accredited)' : (predictionValue >= 37.5 ? 'Maturing' : 'Developing');
         const confidenceLabel = rSquared >= 0.7 ? 'High confidence' : (rSquared >= 0.4 ? 'Moderate confidence' : 'Low confidence');
         const changePerCycle = Math.abs(slope).toFixed(1);
         const changeDir = slope > 0 ? 'up' : (slope < 0 ? 'down' : 'unchanged');
@@ -3520,29 +3550,7 @@ include __DIR__ . '/../includes/header.php';
     }
 
     // -- Dimension trend lines --------------------------------
-    const dimTrendEl = document.getElementById('anDimTrendChart');
-    if (dimTrendEl && anTrendSYLabels.length >= 2) {
-      const dimTrendDatasets = anDimMeta.map(dm => {
-        const data = anTrendSYLabels.map(lbl => anTrendByDim[dm.no]?.[lbl] ?? null);
-        return {
-          label: 'D' + dm.no + ': ' + dm.name,
-          data, borderColor: dm.color, backgroundColor: dm.color + '22',
-          pointBackgroundColor: dm.color, pointRadius: 0, pointHoverRadius: 0, borderWidth: 2, tension: 0,
-        };
-      });
-      new Chart(dimTrendEl, {
-        type: 'line',
-        data: { labels: anTrendSYLabels, datasets: dimTrendDatasets },
-        options: {
-          scales: {
-            y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
-            x: { ticks: { font: { size: 11, weight: '600' } }, grid: { display: false } }
-          },
-          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, usePointStyle: true, pointStyle: 'line', pointStyleWidth: 24 } } },
-          responsive: true, maintainAspectRatio: false,
-        }
-      });
-    }
+    renderDimensionTrendChart();
 
     // -- Indicator Trend chart (initial load) -----------------
     if (document.getElementById('anIndTrendChart')) {
@@ -3604,6 +3612,133 @@ include __DIR__ . '/../includes/header.php';
   ];
 
   let anIndTrendChartInstance = null;
+let anDimTrendChartInstance = null;
+let anSelectedTrendDim = 1;
+let anTrendWindowSize = 10;
+let anTrendStart = Math.max(0, anTrendSYLabels.length - anTrendWindowSize);
+
+function getTrendWindow() {
+  const total = anTrendSYLabels.length;
+  const size = anTrendWindowSize === 0
+    ? total
+    : Math.min(anTrendWindowSize, total);
+
+  const maxStart = Math.max(0, total - size);
+  anTrendStart = Math.min(Math.max(0, anTrendStart), maxStart);
+
+  return {
+    total,
+    size,
+    start: anTrendStart,
+    end: anTrendStart + size,
+    labels: anTrendSYLabels.slice(anTrendStart, anTrendStart + size)
+  };
+}
+
+function updateTrendRangeUI() {
+  const { total, size, start, end } = getTrendWindow();
+
+  const summary = document.getElementById('anTrendRangeSummary');
+  const older = document.getElementById('anTrendOlderBtn');
+  const newer = document.getElementById('anTrendNewerBtn');
+
+  if (summary) {
+    summary.textContent = total ? `Showing ${start + 1}–${end} of ${total}` : '';
+  }
+
+  if (older) older.disabled = size === total || start === 0;
+  if (newer) newer.disabled = size === total || end >= total;
+}
+
+function setTrendWindowSize(value) {
+  anTrendWindowSize = parseInt(value, 10);
+
+  const size = anTrendWindowSize === 0
+    ? anTrendSYLabels.length
+    : Math.min(anTrendWindowSize, anTrendSYLabels.length);
+
+  anTrendStart = Math.max(0, anTrendSYLabels.length - size);
+
+  renderDimensionTrendChart();
+  updateIndicatorTrendChart(anSelectedTrendDim);
+}
+
+function moveTrendWindow(direction) {
+  const { size } = getTrendWindow();
+
+  anTrendStart += direction * size;
+  getTrendWindow();
+
+  renderDimensionTrendChart();
+  updateIndicatorTrendChart(anSelectedTrendDim);
+}
+
+function renderDimensionTrendChart() {
+  const canvas = document.getElementById('anDimTrendChart');
+  if (!canvas || anTrendSYLabels.length < 2) return;
+
+  const { labels } = getTrendWindow();
+
+  const datasets = anDimMeta.map(dm => ({
+    label: 'D' + dm.no + ': ' + dm.name,
+    data: labels.map(label => anTrendByDim[dm.no]?.[label] ?? null),
+    borderColor: dm.color,
+    backgroundColor: dm.color + '22',
+    pointBackgroundColor: dm.color,
+    pointRadius: labels.length > 1 ? 2 : 3,
+    pointHoverRadius: 5,
+    borderWidth: 2,
+    tension: 0,
+    spanGaps: true
+  }));
+
+  if (anDimTrendChartInstance) {
+    anDimTrendChartInstance.destroy();
+  }
+
+  anDimTrendChartInstance = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      scales: {
+        y: {
+          min: 0,
+          max: 100,
+          ticks: {
+            callback: value => value + '%',
+            font: { size: 11 }
+          },
+          grid: { color: '#F3F4F6' }
+        },
+        x: {
+          ticks: {
+            autoSkip: true,
+            maxTicksLimit: 10,
+            font: { size: 11, weight: '600' }
+          },
+          grid: { display: false }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            font: { size: 11 },
+            padding: 10,
+            usePointStyle: true,
+            pointStyle: 'line',
+            pointStyleWidth: 24
+          }
+        }
+      },
+      responsive: true,
+maintainAspectRatio: true,
+aspectRatio: 3.5
+    }
+  });
+
+  updateTrendRangeUI();
+}
 
   function indTrendSelectDim(el, val, label) {
     event.stopPropagation();
@@ -3612,7 +3747,8 @@ include __DIR__ . '/../includes/header.php';
     el.classList.add('selected');
     const wrap = document.getElementById('indTrendDimSelect');
     if (wrap) wrap.classList.remove('open');
-    updateIndicatorTrendChart(val);
+    anSelectedTrendDim = val;
+updateIndicatorTrendChart(val);
   }
 
   function updateIndicatorTrendChart(dimId) {
@@ -3620,7 +3756,8 @@ include __DIR__ . '/../includes/header.php';
     const el = document.getElementById('anIndTrendChart');
     if (!el) return;
 
-    const syLabels = anIndTrendData.syLabels;
+    const syLabels = getTrendWindow().labels;
+updateTrendRangeUI();
     const byDim    = anIndTrendData.byDim[dimId] || {};
     const codes    = Object.keys(byDim);
 

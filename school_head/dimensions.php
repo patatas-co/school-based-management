@@ -70,7 +70,11 @@ include __DIR__.'/../includes/header.php';
         <div style="font-size:11.5px;color:var(--n500);margin-bottom:2px;">Overall SBM Score</div>
         <div style="font-size:28px;font-weight:800;color:var(--g600);"><?= number_format($cycle['overall_score']??0,1) ?>%</div>
       </div>
-      <div><?= sbmMaturityBadge($cycle['maturity_level']??'Developing') ?></div>
+      <div><?php 
+        $overallScore = (float)($cycle['overall_score'] ?? 0);
+        $overallMat = sbmMaturityLevel($overallScore);
+        echo sbmMaturityBadge(!empty($cycle['maturity_level']) ? $cycle['maturity_level'] : $overallMat['label']);
+      ?></div>
       <div><span class="pill pill-<?= e($cycle['status']) ?>"><?= ucfirst(str_replace('_',' ',$cycle['status'])) ?></span></div>
     </div>
   </div>

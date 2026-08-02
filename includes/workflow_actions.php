@@ -454,15 +454,36 @@ function handleWorkflowPost(PDO $db): void
 
     // ── Validate and finalize cycle ───────────────────────────
     if ($action === 'validate_cycle') {
-        $cycleId = (int) ($_POST['cycle_id'] ?? 0);
-        $remarks = trim($_POST['remarks'] ?? '');
-        $actorId = (int) ($_SESSION['user_id'] ?? 0);
+    if (($_SESSION['role'] ?? '') !== 'sbm_coordinator') {
+        echo json_encode(['ok' => false, 'msg' => 'Only the SBM Coordinator can validate an assessment.']);
+        exit;
+    }
 
-        if (!$cycleId) {
-            echo json_encode(['ok' => false, 'msg' => 'Missing cycle_id.']);
-            exit;
-        }
+    $cycleId = (int) ($_POST['cycle_id'] ?? 0);
+    $remarks = trim($_POST['remarks'] ?? '');
+    $actorId = (int) ($_SESSION['user_id'] ?? 0);
 
+    $cycleQuery = $db->prepare("
+        SELECT cycle_id, status
+        FROM sbm_cycles
+        WHERE cycle_id = ? AND school_id = ?
+        LIMIT 1
+    ");
+    $cycleQuery->execute([$cycleId, SCHOOL_ID]);
+    $cycle = $cycleQuery->fetch();
+
+    if (!$cycle) {
+        echo json_encode(['ok' => false, 'msg' => 'Assessment cycle not found.']);
+        exit;
+    }
+
+    if ($cycle['status'] !== 'submitted') {
+        echo json_encode(['ok' => false, 'msg' => 'Only a submitted assessment can be validated.']);
+        exit;
+    }
+
+    $db->beginTransaction();
+    try {
         $db->prepare("
             UPDATE sbm_cycles
             SET status = 'validated',
@@ -472,10 +493,41 @@ function handleWorkflowPost(PDO $db): void
             WHERE cycle_id = ?
         ")->execute([$actorId, $remarks, $cycleId]);
 
-        logCycleStage($db, $cycleId, 'submitted', 'validated', $actorId, $remarks ?: 'Validated by coordinator.');
-        echo json_encode(['ok' => true, 'msg' => 'Assessment validated successfully.']);
+        logCycleStage(
+            $db,
+            $cycleId,
+            'submitted',
+            'validated',
+            $actorId,
+            $remarks ?: 'Validated by coordinator.'
+        );
+
+        // Chain straight into finalize — there's no real-world case where a
+        // coordinator validates now but wants to finalize later, so we do
+        // both transitions in one click instead of leaving the cycle
+        // sitting in an easy-to-forget intermediate "validated" state.
+        $db->prepare("
+            UPDATE sbm_cycles
+            SET status = 'finalized',
+                finalized_at = NOW()
+            WHERE cycle_id = ?
+        ")->execute([$cycleId]);
+
+        logCycleStage($db, $cycleId, 'validated', 'finalized', $actorId, 'Cycle locked and archived.');
+
+        $db->commit();
+    } catch (Exception $e) {
+        $db->rollBack();
+        echo json_encode(['ok' => false, 'msg' => 'Validation failed, nothing was changed. Please try again.']);
         exit;
     }
+
+    echo json_encode([
+        'ok' => true,
+        'msg' => 'Assessment validated and finalized. The cycle is now complete and locked.'
+    ]);
+    exit;
+}
 
     // ── Finalize cycle (lock it permanently) ──────────────────
     if ($action === 'finalize_cycle') {

@@ -797,19 +797,19 @@ function buildStructuredRecommendations(
 
     // ── Dimension-Level Recommendations ───────────────────────
     $lines[] = "\n📐 DIMENSION-LEVEL PRIORITY ACTIONS";
-    $weakOnly = array_filter($weakestDims, fn($d) => $d['score'] < 87.5);
+    $weakOnly = array_filter($weakestDims, fn($d) => $d['score'] < 62.5);
     foreach (array_slice($weakOnly, 0, 4) as $dim) {
         $pct     = $dim['score'];
         $dimMat  = $dim['maturity'];
         $dimName = $dim['dimension_name'];
         $gap     = $dim['gap_from_avg'];
         $lines[] = "\n  $dimName ($pct% — $dimMat):";
-        if ($pct < 62.5) {
+        if ($pct < 37.5) {
             $lines[] = "  → This dimension is in the Developing level. Prioritize this in the SIP";
             $lines[] = "    as a High Priority action. SDO technical assistance is advised.";
-        } elseif ($pct < 87.5) {
+        } elseif ($pct < 62.5) {
             $lines[] = "  → Good progress noted. Focus on the remaining weak indicators to reach the";
-            $lines[] = "    Advanced level. Current gap from average: {$gap}%.";
+            $lines[] = "    Advanced (Accredited) level. Current gap from average: {$gap}%.";
         }
     }
 
@@ -848,13 +848,13 @@ function buildStructuredRecommendations(
     return implode("\n", $lines);
 }
 
-/**
- * Get maturity label from percentage.
- */
 function getMaturityLabel(float $pct): string
 {
-    if ($pct >= 87.5) return 'Advanced';
-    if ($pct >= 62.5) return 'Maturing';
+    // DepEd Part VI — Level of Practice scoring (raw avg / 4 × 100)
+    // 0–37.49% = Developing (avg 0–1.4), 37.5–62.49% = Maturing (avg 1.5–2.4),
+    // 62.5%+ = Advanced (Accredited) (avg 2.5–4.0)
+    if ($pct >= 62.5) return 'Advanced (Accredited)';
+    if ($pct >= 37.5) return 'Maturing';
     return 'Developing';
 }
 

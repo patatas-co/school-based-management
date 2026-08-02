@@ -216,15 +216,17 @@ function formatActivityAction(string $action): string
 function sbmMaturityBadge(string $level): string
 {
     $map = [
-        'Developing' => ['#FEF3C7', '#D97706', '#FDE68A'],
-        'Maturing' => ['#DBEAFE', '#2563EB', '#BFDBFE'],
-        'Advanced' => ['#DCFCE7', '#16A34A', '#BBF7D0'],
+        'Developing'            => ['#FEF3C7', '#D97706', '#FDE68A'],
+        'Maturing'              => ['#DBEAFE', '#2563EB', '#BFDBFE'],
+        'Advanced'              => ['#DCFCE7', '#16A34A', '#BBF7D0'],
+        'Advanced (Accredited)' => ['#DCFCE7', '#16A34A', '#BBF7D0'],
     ];
     if ($level === 'Beginning') {
         $level = 'Developing';
     }
-    [$bg, $c, $br] = $map[$level] ?? ['#FEF3C7', '#D97706', '#FDE68A'];
-    return "<span style=\"display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;background:$bg;color:$c;border:1px solid $br;\">$level</span>";
+    $key = (strpos($level, 'Advanced') !== false) ? 'Advanced (Accredited)' : $level;
+    [$bg, $c, $br] = $map[$key] ?? ['#FEF3C7', '#D97706', '#FDE68A'];
+    return "<span style=\"display:inline-block;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:700;background:$bg;color:$c;border:1px solid $br;\">$level</span>";
 }
 
 function csrfToken(): string
@@ -251,9 +253,10 @@ function verifyCsrf(): void
 
 function computeMaturity(float $pct): string
 {
-    if ($pct >= 87.5)
-        return 'Advanced';
+    // DepEd Part VI bands (avg/4×100): 0–37.49% Developing, 37.5–62.49% Maturing, 62.5%+ Advanced
     if ($pct >= 62.5)
+        return 'Advanced (Accredited)';
+    if ($pct >= 37.5)
         return 'Maturing';
     return 'Developing';
 }

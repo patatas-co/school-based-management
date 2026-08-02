@@ -103,6 +103,11 @@ if ($cycle) {
 $submittedTeachers = count(array_filter($teacherList, fn($t) => $t['sub_status'] === 'submitted'));
 $totalTeachers = count($teacherList);
 
+// Only surface dimension scores once the cycle is validated AND every
+// active teacher has submitted — prevents showing partial/in-progress scores.
+$allTeachersSubmitted = ($totalTeachers === 0 || $submittedTeachers === $totalTeachers);
+$hasValidatedDimScores = $cycle && in_array($cycle['status'] ?? '', ['submitted', 'validated', 'finalized', 'completed']) && !empty($dimScores);
+
 // AI Recommendations
 $recommendations = [];
 $shPlanCount = 0;
@@ -126,7 +131,7 @@ if ($cycle) {
 // ── Deadline awareness ────────────────────────────────────────
 $deadlineInfo = $syId ? getDeadlineInfo($db, $syId) : null;
 
-$isLocked = $cycle && in_array($cycle['status'], ['submitted', 'validated']);
+$isLocked = $cycle && in_array($cycle['status'], ['submitted', 'validated', 'finalized', 'completed']);
 $hasScore = $cycle && $cycle['overall_score'];
 $mat = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : null;
 
@@ -2060,6 +2065,7 @@ include __DIR__ . '/../includes/header.php';
     $offset = $circumference - ($progress / 100) * $circumference;
     $strokeColor = $progress >= 100 ? '#4ADE80' : ($progress >= 50 ? '#60A5FA' : '#FCD34D');
     ?>
+    <?php if ($allTeachersSubmitted): ?>
     <div class="hero-ring-wrap" style="filter:drop-shadow(0 0 10px rgba(74,222,128,0.40));">
       <svg class="hero-ring-svg" viewBox="0 0 86 86">
         <circle class="hero-ring-track" cx="43" cy="43" r="37" />
@@ -2071,6 +2077,17 @@ include __DIR__ . '/../includes/header.php';
         <div class="hero-ring-label">done</div>
       </div>
     </div>
+    <?php else: ?>
+    <div class="hero-ring-wrap hero-ring-pending" title="<?= $submittedTeachers ?>/<?= $totalTeachers ?> evaluators submitted">
+      <svg class="hero-ring-svg" viewBox="0 0 86 86">
+        <circle class="hero-ring-track" cx="43" cy="43" r="37" />
+      </svg>
+      <div class="hero-ring-center">
+        <div class="hero-ring-pct" style="font-size:14px;"><?= $submittedTeachers ?>/<?= $totalTeachers ?></div>
+        <div class="hero-ring-label">pending</div>
+      </div>
+    </div>
+    <?php endif; ?>
 
     <?php if ($hasScore): ?>
       <div class="hero-score-chip">
@@ -2124,7 +2141,33 @@ include __DIR__ . '/../includes/header.php';
         </div>
       </div>
     </div>
-  </div>
+    </div>
+
+  <?php if ($cycle && $cycle['status'] === 'submitted'): ?>
+    <div class="card" style="margin-bottom:20px;border:1px solid var(--blue-200);background:var(--blue-50);">
+      <div class="card-body" style="padding:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:220px;">
+          <div style="font-size:14px;font-weight:800;color:var(--n-800);">Assessment Ready for Review</div>
+          <div style="font-size:12.5px;color:var(--n-600);margin-top:3px;">
+            The School Head has submitted the assessment. Review the scores and validate to complete and lock this cycle.
+          </div>
+        </div>
+
+        <button class="btn btn-success" onclick="validateAndCompleteCycle(<?= (int) $cycle['cycle_id'] ?>)">
+          <?= svgIcon('check-circle') ?> Validate & Complete Cycle
+        </button>
+      </div>
+    </div>
+  <?php elseif ($cycle && in_array($cycle['status'], ['validated', 'finalized', 'completed'])): ?>
+    <div class="card" style="margin-bottom:20px;border:1px solid var(--green-200);background:var(--green-50);">
+      <div class="card-body" style="padding:16px;">
+        <div style="font-size:14px;font-weight:800;color:var(--green-700);">Assessment Validated & Locked</div>
+        <div style="font-size:12.5px;color:var(--green-700);margin-top:3px;">
+          This assessment cycle is complete. No further edits are allowed.
+        </div>
+      </div>
+    </div>
+  <?php endif; ?>
 
   <!-- Filter bar -->
   <div class="an-filter-bar">
@@ -2192,7 +2235,31 @@ include __DIR__ . '/../includes/header.php';
   <?php if (count($trendSYLabels) >= 2): ?>
     <div class="chart-card" style="margin-bottom:18px;">
       <div class="chart-card-head">
-        <span class="chart-card-title">Dimension Trend — All Cycles</span>
+  <span class="chart-card-title">Dimension Trend</span>
+
+  <div class="trend-range-controls" style="margin-left:auto;display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+    <label for="anTrendWindowSize" style="font-size:12px;font-weight:600;color:var(--n-500);">Cycles:</label>
+
+    <select id="anTrendWindowSize" onchange="setTrendWindowSize(this.value)"
+      style="height:32px;padding:0 26px 0 9px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+      <option value="5">Latest 5</option>
+      <option value="10" selected>Latest 10</option>
+      <option value="0">All cycles</option>
+    </select>
+
+    <button type="button" id="anTrendOlderBtn" onclick="moveTrendWindow(-1)"
+      class="chart-dl-btn" style="padding:5px 9px;" aria-label="Show older cycles">
+      Older
+    </button>
+
+    <span id="anTrendRangeSummary"
+      style="min-width:132px;text-align:center;font-size:11.5px;color:var(--n-500);font-weight:600;"></span>
+
+    <button type="button" id="anTrendNewerBtn" onclick="moveTrendWindow(1)"
+      class="chart-dl-btn" style="padding:5px 9px;" aria-label="Show newer cycles">
+      Newer
+    </button>
+  </div>
         <div class="chart-dl-wrap">
           <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_anDimTrendChart')">
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -2281,7 +2348,7 @@ include __DIR__ . '/../includes/header.php';
       </div>
      <div class="chart-card-body" style="flex:1;padding:8px 16px 6px;box-sizing:border-box;overflow:hidden;">
         <div style="position:relative;width:100%;height:100%;">
-          <?php if ($dimScores): ?>
+          <?php if ($hasValidatedDimScores): ?>
             <div id="dimBarChartInner" style="position:relative;height:100%;min-width:100%;">
               <canvas id="dimBarChart"></canvas>
             </div>
@@ -2295,15 +2362,15 @@ include __DIR__ . '/../includes/header.php';
                 <line x1="6" y1="20" x2="6" y2="14" />
               </svg>
               <div style="font-size:13px;font-weight:600;color:var(--n-400);">Chart data unavailable</div>
-              <div style="font-size:12px;color:var(--n-400);">Scores will appear once evaluations begin.</div>
+              <div style="font-size:12px;color:var(--n-400);">Scores will appear once the assessment is fully validated.</div>
             </div>
           <?php endif; ?>
         </div>
       </div>
     </div>
-    <div class="chart-card">
-      <div class="chart-card-head">
-        <span class="chart-card-title">Overall Score Trend</span>
+    <div class="chart-card" style="display:flex;flex-direction:column;height:535px;min-width:0;">
+  <div class="chart-card-head">
+    <span class="chart-card-title">Overall Score Trend</span>
         <div class="chart-dl-wrap">
           <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_anTrendLineChart')">
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -2321,13 +2388,17 @@ include __DIR__ . '/../includes/header.php';
           </div>
         </div>
       </div>
-      <div class="chart-card-body" style="min-height:300px;display:flex;align-items:center;justify-content:center;">
-        <?php if (count($cycleHistory) >= 1): ?>
-          <canvas id="anTrendLineChart"></canvas>
-        <?php else: ?>
-          <p style="text-align:center;color:var(--n-400);font-size:13px;">Not enough cycles for a trend.</p>
-        <?php endif; ?>
-      </div>
+      <div class="chart-card-body" style="flex:1;padding:8px 16px 6px;box-sizing:border-box;overflow:hidden;">
+  <?php if (count($cycleHistory) >= 1): ?>
+    <div style="position:relative;width:100%;height:100%;">
+      <canvas id="anTrendLineChart"></canvas>
+    </div>
+  <?php else: ?>
+    <div style="height:100%;display:flex;align-items:center;justify-content:center;">
+      <p style="text-align:center;color:var(--n-400);font-size:13px;">Not enough cycles for a trend.</p>
+    </div>
+  <?php endif; ?>
+</div>
     </div>
   </div>
 
@@ -2495,7 +2566,7 @@ include __DIR__ . '/../includes/header.php';
     <div style="display:flex;flex-direction:column;gap:18px;min-width:0;">
 
       <!-- Validated card -->
-      <?php if ($cycle && $cycle['status'] === 'validated'): ?>
+      <?php if ($cycle && in_array($cycle['status'], ['validated', 'finalized', 'completed'])): ?>
         <div class="card" style="border:1.5px solid var(--brand-500);">
           <div class="card-body" style="padding:14px 16px;background:var(--brand-50);">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -2554,7 +2625,7 @@ include __DIR__ . '/../includes/header.php';
       <?php
       // Use dynamic maturity based on the calculated overall score to ensure consistency
       $curMaturity = $anAvgOverall !== null ? computeMaturity($anAvgOverall) : ($currCycle['maturity_level'] ?? null);
-      $anMatColors = ['Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A'];
+      $anMatColors = ['Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A', 'Advanced (Accredited)' => '#16A34A'];
       ?>
       <div class="an-insight-val" style="font-size:18px;color:<?= $curMaturity ? 'var(--n-900)' : 'var(--n-400)' ?>;">
         <?= $curMaturity ?? '—' ?>
@@ -3099,35 +3170,14 @@ include __DIR__ . '/../includes/header.php';
             x: { ticks: { font: { size: 11, weight: '600' } }, grid: { display: false } }
           },
           plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' Score: ' + ctx.raw + '%' } } },
-          responsive: true, maintainAspectRatio: true, aspectRatio: 1.5,
+          responsive: true,
+          maintainAspectRatio: false,
         }
       });
     }
 
     // Dimension trend lines
-    const dimTrendEl = document.getElementById('anDimTrendChart');
-    if (dimTrendEl && anTrendSYLabels.length >= 2) {
-      const dimTrendDatasets = anDimMeta.map(dm => {
-        const data = anTrendSYLabels.map(lbl => anTrendByDim[dm.no]?.[lbl] ?? null);
-        return {
-          label: 'D' + dm.no + ': ' + dm.name,
-          data, borderColor: dm.color, backgroundColor: dm.color + '22',
-          pointBackgroundColor: dm.color, pointRadius: 0, pointHoverRadius: 0, borderWidth: 2, tension: 0,
-        };
-      });
-      new Chart(dimTrendEl, {
-        type: 'line',
-        data: { labels: anTrendSYLabels, datasets: dimTrendDatasets },
-        options: {
-          scales: {
-            y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
-            x: { ticks: { font: { size: 11, weight: '600' } }, grid: { display: false } }
-          },
-          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, usePointStyle: true, pointStyle: 'line', pointStyleWidth: 24 } } },
-          responsive: true, maintainAspectRatio: true,
-        }
-      });
-    }
+    renderDimensionTrendChart();
 
     // Indicator Trend chart (initial load)
     if (document.getElementById('anIndTrendChart')) {
@@ -3184,19 +3234,148 @@ include __DIR__ . '/../includes/header.php';
   ];
 
   let anIndTrendChartInstance = null;
+let anDimTrendChartInstance = null;
+let anSelectedTrendDim = 1;
+let anTrendWindowSize = 10;
+let anTrendStart = Math.max(0, anTrendSYLabels.length - anTrendWindowSize);
+
+function getTrendWindow() {
+  const total = anTrendSYLabels.length;
+  const size = anTrendWindowSize === 0
+    ? total
+    : Math.min(anTrendWindowSize, total);
+
+  const maxStart = Math.max(0, total - size);
+  anTrendStart = Math.min(Math.max(0, anTrendStart), maxStart);
+
+  return {
+    total,
+    size,
+    start: anTrendStart,
+    end: anTrendStart + size,
+    labels: anTrendSYLabels.slice(anTrendStart, anTrendStart + size)
+  };
+}
+
+function updateTrendRangeUI() {
+  const { total, size, start, end } = getTrendWindow();
+
+  const summary = document.getElementById('anTrendRangeSummary');
+  const older = document.getElementById('anTrendOlderBtn');
+  const newer = document.getElementById('anTrendNewerBtn');
+
+  if (summary) {
+    summary.textContent = total ? `Showing ${start + 1}–${end} of ${total}` : '';
+  }
+
+  if (older) older.disabled = size === total || start === 0;
+  if (newer) newer.disabled = size === total || end >= total;
+}
+
+function setTrendWindowSize(value) {
+  anTrendWindowSize = parseInt(value, 10);
+
+  const size = anTrendWindowSize === 0
+    ? anTrendSYLabels.length
+    : Math.min(anTrendWindowSize, anTrendSYLabels.length);
+
+  anTrendStart = Math.max(0, anTrendSYLabels.length - size);
+
+  renderDimensionTrendChart();
+  updateIndicatorTrendChart(anSelectedTrendDim);
+}
+
+function moveTrendWindow(direction) {
+  const { size } = getTrendWindow();
+
+  anTrendStart += direction * size;
+  getTrendWindow();
+
+  renderDimensionTrendChart();
+  updateIndicatorTrendChart(anSelectedTrendDim);
+}
+
+function renderDimensionTrendChart() {
+  const canvas = document.getElementById('anDimTrendChart');
+  if (!canvas || anTrendSYLabels.length < 2) return;
+
+  const { labels } = getTrendWindow();
+
+  const datasets = anDimMeta.map(dm => ({
+    label: 'D' + dm.no + ': ' + dm.name,
+    data: labels.map(label => anTrendByDim[dm.no]?.[label] ?? null),
+    borderColor: dm.color,
+    backgroundColor: dm.color + '22',
+    pointBackgroundColor: dm.color,
+    pointRadius: labels.length > 1 ? 2 : 3,
+    pointHoverRadius: 5,
+    borderWidth: 2,
+    tension: 0,
+    spanGaps: true
+  }));
+
+  if (anDimTrendChartInstance) {
+    anDimTrendChartInstance.destroy();
+  }
+
+  anDimTrendChartInstance = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      scales: {
+        y: {
+          min: 0,
+          max: 100,
+          ticks: {
+            callback: value => value + '%',
+            font: { size: 11 }
+          },
+          grid: { color: '#F3F4F6' }
+        },
+        x: {
+          ticks: {
+            autoSkip: true,
+            maxTicksLimit: 10,
+            font: { size: 11, weight: '600' }
+          },
+          grid: { display: false }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            font: { size: 11 },
+            padding: 10,
+            usePointStyle: true,
+            pointStyle: 'line',
+            pointStyleWidth: 24
+          }
+        }
+      },
+      responsive: true,
+maintainAspectRatio: true,
+aspectRatio: 3.5
+    }
+  });
+
+  updateTrendRangeUI();
+}
 
   function indTrendSelectDim(el, val, label) {
   document.querySelector('#indTrendDimSelect .p-select-val').textContent = label;
   document.querySelectorAll('#indTrendDimSelect .p-select-item').forEach(i => i.classList.remove('selected'));
   el.classList.add('selected');
-  updateIndicatorTrendChart(val);
+  anSelectedTrendDim = val;
+updateIndicatorTrendChart(val);
 }
 function updateIndicatorTrendChart(dimId) {
     dimId = parseInt(dimId);
     const el = document.getElementById('anIndTrendChart');
     if (!el) return;
 
-    const syLabels = anIndTrendData.syLabels;
+    const syLabels = getTrendWindow().labels;
+updateTrendRangeUI();
     const byDim    = anIndTrendData.byDim[dimId] || {};
     const codes    = Object.keys(byDim);
 
@@ -3286,15 +3465,26 @@ function updateIndicatorTrendChart(dimId) {
     }
   })();
 
-  async function doFinalizeCycle(cycleId) {
-    if (!confirm('Finalize and permanently lock this cycle? No further edits will be possible.')) return;
-    const r = await apiPost('../school_head/workflow.php', {
-      action: 'finalize_cycle',
-      cycle_id: cycleId
-    });
-    toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) setTimeout(() => location.reload(), 800);
+  async function validateAndCompleteCycle(cycleId) {
+  const remarks = prompt('Optional validation remarks for the School Head:');
+  if (remarks === null) return;
+
+  if (!confirm('Validate this assessment and complete the cycle? The assessment is already locked and cannot be edited after validation.')) {
+    return;
   }
+
+  const response = await apiPost('../school_head/workflow.php', {
+    action: 'validate_cycle',
+    cycle_id: cycleId,
+    remarks: remarks.trim()
+  });
+
+  toast(response.msg, response.ok ? 'ok' : 'err');
+
+  if (response.ok) {
+    setTimeout(() => location.reload(), 800);
+  }
+}
 
   // ── SCHOOL HEAD IMPROVEMENT PLAN LOGIC ──────────────────────
   let _shIpPlans = []; // store fetched plans for client-side filtering
