@@ -95,6 +95,7 @@ define('SBM_NAV', [
             'Interventions',
             'target',
             [
+                ['AI Suggestion Planning', 'school_head/ai_suggestion_planning.php', 'target'],
             ]
         ],
     ],
