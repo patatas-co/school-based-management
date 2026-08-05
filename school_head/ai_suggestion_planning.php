@@ -140,43 +140,212 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
   exit;
 }
 
+// ── IMPROVEMENT PLAN WORKFLOW CONSTANTS ─────────────────────────
+// Allowed workflow_status values. Kept as plain strings (not a DB ENUM)
+// so future statuses (pending_review, returned, approved) are just new
+// values here + in the Coordinator UI — no schema migration needed.
+define('IP_STATUS_DRAFT', 'draft');
+define('IP_STATUS_SUBMITTED', 'submitted');
+// Future (not implemented yet): IP_STATUS_PENDING_REVIEW, IP_STATUS_RETURNED, IP_STATUS_APPROVED
+
+/**
+ * Resolves the active cycle_id for a given school + SY.
+ * Centralized here so every handler below scopes to the same cycle.
+ */
+function ipResolveCycleId(PDO $db, int $schoolId, int $syId): ?int
+{
+  $cQ = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id = ? AND sy_id = ? ORDER BY created_at DESC LIMIT 1");
+  $cQ->execute([$schoolId, $syId]);
+  $cycleId = $cQ->fetchColumn();
+  return $cycleId ? (int) $cycleId : null;
+}
+
+/**
+ * True if this cycle already has a submitted batch — blocks new drafts
+ * and edits/deletes per the "one-and-done per SY" rule (until a future
+ * "returned for revision" status re-opens it).
+ */
+function ipCycleIsSubmitted(PDO $db, int $cycleId): bool
+{
+  $q = $db->prepare("SELECT COUNT(*) FROM improvement_plans WHERE cycle_id = ? AND workflow_status = ?");
+  $q->execute([$cycleId, IP_STATUS_SUBMITTED]);
+  return ((int) $q->fetchColumn()) > 0;
+}
+
 // ── SAVE IMPROVEMENT PLAN AJAX HANDLER (moved from school_head/dashboard.php) ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_improvement_plan') {
   header('Content-Type: application/json');
   $schoolIdIp = (int) ($_SESSION['school_id'] ?? 1);
   $syIdIp = (int) ($_POST['sy_id'] ?? 0);
   $indIds = explode(',', $_POST['indicator_ids'] ?? '');
-  $obj = $_POST['objective'] ?? '';
-  $strat = $_POST['strategy'] ?? '';
-  $person = $_POST['person_responsible'] ?? '';
+  $obj = trim($_POST['objective'] ?? '');
+  $strat = trim($_POST['strategy'] ?? '');
+  $person = trim($_POST['person_responsible'] ?? '');
   $target = $_POST['target_date'] ?? null;
-  $res = $_POST['resources_needed'] ?? '';
-  $output = $_POST['expected_output'] ?? '';
+  $res = trim($_POST['resources_needed'] ?? '');
+  $output = trim($_POST['expected_output'] ?? '');
   $priority = $_POST['priority_level'] ?? 'Medium';
 
-  $cQ = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id = ? AND sy_id = ? ORDER BY created_at DESC LIMIT 1");
-  $cQ->execute([$schoolIdIp, $syIdIp]);
-  $cycleIdIp = $cQ->fetchColumn();
+  if ($obj === '' || $strat === '') {
+    echo json_encode(['success' => false, 'message' => 'Objective and Strategy are required.']);
+    exit;
+  }
+  if (!in_array($priority, ['High', 'Medium', 'Low'], true)) {
+    $priority = 'Medium';
+  }
 
+  $cycleIdIp = ipResolveCycleId($db, $schoolIdIp, $syIdIp);
   if (!$cycleIdIp) {
     echo json_encode(['success' => false, 'message' => 'No assessment cycle found for this year. Please create one first.']);
     exit;
   }
 
-  try {
-    $ins = $db->prepare("INSERT INTO improvement_plans (school_id, cycle_id, dimension_id, indicator_id, priority_level, objective, strategy, person_responsible, target_date, resources_needed, expected_output, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+  // ── One-and-done guard: can't add drafts to an already-submitted batch ──
+  if (ipCycleIsSubmitted($db, $cycleIdIp)) {
+    echo json_encode(['success' => false, 'message' => 'Improvement plans for this school year have already been submitted and can no longer be edited.']);
+    exit;
+  }
 
+  $db->beginTransaction();
+  try {
+    $ins = $db->prepare("INSERT INTO improvement_plans (school_id, cycle_id, dimension_id, indicator_id, priority_level, objective, strategy, person_responsible, target_date, resources_needed, expected_output, workflow_status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+    $inserted = 0;
     foreach ($indIds as $indId) {
       if (!$indId)
         continue;
       $dimQ = $db->prepare("SELECT dimension_id FROM sbm_indicators WHERE indicator_id = ?");
       $dimQ->execute([$indId]);
       $dId = $dimQ->fetchColumn();
+      if (!$dId) continue;
 
-      $ins->execute([$schoolIdIp, $cycleIdIp, $dId, $indId, $priority, $obj, $strat, $person, $target ?: null, $res, $output, $currentUserId]);
+      $ins->execute([$schoolIdIp, $cycleIdIp, $dId, $indId, $priority, $obj, $strat, $person ?: null, $target ?: null, $res ?: null, $output ?: null, IP_STATUS_DRAFT, $currentUserId]);
+      $inserted++;
     }
+
+    if ($inserted === 0) {
+      $db->rollBack();
+      echo json_encode(['success' => false, 'message' => 'Please select at least one indicator.']);
+      exit;
+    }
+
+    $db->commit();
     echo json_encode(['success' => true]);
   } catch (Exception $e) {
+    if ($db->inTransaction()) $db->rollBack();
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+  }
+  exit;
+}
+
+// ── UPDATE IMPROVEMENT PLAN (draft-only) ────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_improvement_plan') {
+  header('Content-Type: application/json');
+  $schoolIdIp = (int) ($_SESSION['school_id'] ?? 1);
+  $planId = (int) ($_POST['plan_id'] ?? 0);
+  $obj = trim($_POST['objective'] ?? '');
+  $strat = trim($_POST['strategy'] ?? '');
+  $person = trim($_POST['person_responsible'] ?? '');
+  $target = $_POST['target_date'] ?? null;
+  $res = trim($_POST['resources_needed'] ?? '');
+  $output = trim($_POST['expected_output'] ?? '');
+  $priority = $_POST['priority_level'] ?? 'Medium';
+
+  if (!$planId) {
+    echo json_encode(['success' => false, 'message' => 'Invalid plan.']);
+    exit;
+  }
+  if ($obj === '' || $strat === '') {
+    echo json_encode(['success' => false, 'message' => 'Objective and Strategy are required.']);
+    exit;
+  }
+  if (!in_array($priority, ['High', 'Medium', 'Low'], true)) {
+    $priority = 'Medium';
+  }
+
+  // Ownership + status guard: must belong to this school AND still be a draft.
+  $chk = $db->prepare("SELECT plan_id FROM improvement_plans WHERE plan_id = ? AND school_id = ? AND workflow_status = ?");
+  $chk->execute([$planId, $schoolIdIp, IP_STATUS_DRAFT]);
+  if (!$chk->fetchColumn()) {
+    echo json_encode(['success' => false, 'message' => 'This plan can no longer be edited.']);
+    exit;
+  }
+
+  try {
+    $upd = $db->prepare("UPDATE improvement_plans SET priority_level = ?, objective = ?, strategy = ?, person_responsible = ?, target_date = ?, resources_needed = ?, expected_output = ? WHERE plan_id = ?");
+    $upd->execute([$priority, $obj, $strat, $person ?: null, $target ?: null, $res ?: null, $output ?: null, $planId]);
+    echo json_encode(['success' => true]);
+  } catch (Exception $e) {
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+  }
+  exit;
+}
+
+// ── DELETE IMPROVEMENT PLAN (draft-only) ────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_improvement_plan') {
+  header('Content-Type: application/json');
+  $schoolIdIp = (int) ($_SESSION['school_id'] ?? 1);
+  $planId = (int) ($_POST['plan_id'] ?? 0);
+
+  if (!$planId) {
+    echo json_encode(['success' => false, 'message' => 'Invalid plan.']);
+    exit;
+  }
+
+  $chk = $db->prepare("SELECT plan_id FROM improvement_plans WHERE plan_id = ? AND school_id = ? AND workflow_status = ?");
+  $chk->execute([$planId, $schoolIdIp, IP_STATUS_DRAFT]);
+  if (!$chk->fetchColumn()) {
+    echo json_encode(['success' => false, 'message' => 'This plan can no longer be deleted.']);
+    exit;
+  }
+
+  try {
+    $del = $db->prepare("DELETE FROM improvement_plans WHERE plan_id = ?");
+    $del->execute([$planId]);
+    echo json_encode(['success' => true]);
+  } catch (Exception $e) {
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+  }
+  exit;
+}
+
+// ── SUBMIT IMPROVEMENT PLANS (bulk: all drafts for this SY's cycle) ──
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submit_improvement_plans') {
+  header('Content-Type: application/json');
+  $schoolIdIp = (int) ($_SESSION['school_id'] ?? 1);
+  $syIdIp = (int) ($_POST['sy_id'] ?? 0);
+
+  $cycleIdIp = ipResolveCycleId($db, $schoolIdIp, $syIdIp);
+  if (!$cycleIdIp) {
+    echo json_encode(['success' => false, 'message' => 'No assessment cycle found for this year.']);
+    exit;
+  }
+
+  if (ipCycleIsSubmitted($db, $cycleIdIp)) {
+    echo json_encode(['success' => false, 'message' => 'These improvement plans have already been submitted.']);
+    exit;
+  }
+
+  $db->beginTransaction();
+  try {
+    // Lock the draft rows for this cycle to prevent a double-submit race.
+    $lockQ = $db->prepare("SELECT plan_id FROM improvement_plans WHERE cycle_id = ? AND workflow_status = ? FOR UPDATE");
+    $lockQ->execute([$cycleIdIp, IP_STATUS_DRAFT]);
+    $draftIds = $lockQ->fetchAll(PDO::FETCH_COLUMN);
+
+    if (empty($draftIds)) {
+      $db->rollBack();
+      echo json_encode(['success' => false, 'message' => 'There are no draft improvement plans to submit.']);
+      exit;
+    }
+
+    $upd = $db->prepare("UPDATE improvement_plans SET workflow_status = ?, submitted_by = ?, submitted_at = UTC_TIMESTAMP() WHERE cycle_id = ? AND workflow_status = ?");
+    $upd->execute([IP_STATUS_SUBMITTED, $currentUserId, $cycleIdIp, IP_STATUS_DRAFT]);
+
+    $db->commit();
+    echo json_encode(['success' => true, 'count' => count($draftIds)]);
+  } catch (Exception $e) {
+    if ($db->inTransaction()) $db->rollBack();
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
   }
   exit;
@@ -238,6 +407,38 @@ $mat           = $overallScore !== null ? sbmMaturityLevel(floatval($overallScor
 $generatedAt   = $cycle['updated_at'] ?? $cycle['created_at'] ?? null;
 $syLabel       = $cycle['sy_label'] ?? '—';
 $aiUsageStatus = aiUsageGetStatus($db, $currentUserId);
+
+// ── Improvement Plans for this SY's cycle ───────────────────────
+$currentCycleId = $cycle['cycle_id'] ?? null;
+$planList = [];
+if ($currentCycleId) {
+    $planQ = $db->prepare("
+        SELECT ip.*, d.dimension_no, d.dimension_name, d.color_hex,
+               i.indicator_code, i.indicator_text,
+               u.full_name AS submitted_by_name
+        FROM improvement_plans ip
+        JOIN sbm_dimensions d ON ip.dimension_id = d.dimension_id
+        LEFT JOIN sbm_indicators i ON ip.indicator_id = i.indicator_id
+        LEFT JOIN users u ON ip.submitted_by = u.user_id
+        WHERE ip.cycle_id = ?
+        ORDER BY FIELD(ip.priority_level,'High','Medium','Low'), ip.created_at
+    ");
+    $planQ->execute([$currentCycleId]);
+    $planList = $planQ->fetchAll();
+}
+
+$isSubmitted     = false;
+$submittedByName = null;
+$submittedAt     = null;
+foreach ($planList as $p) {
+    if ($p['workflow_status'] === IP_STATUS_SUBMITTED) {
+        $isSubmitted     = true;
+        $submittedByName = $p['submitted_by_name'] ?? 'School Head';
+        $submittedAt     = $p['submitted_at'];
+        break; // one-and-done: all rows in a submitted batch share the same submitted_by/at
+    }
+}
+$draftCount = count(array_filter($planList, fn($p) => $p['workflow_status'] === IP_STATUS_DRAFT));
 
 $pageTitle = 'AI Suggestion Planning'; $activePage = 'ai_suggestion_planning.php';
 include __DIR__.'/../includes/header.php';
@@ -301,20 +502,215 @@ include __DIR__.'/../includes/header.php';
   <div id="aiUsageMsg" style="display:none;padding:10px 28px 18px 28px;font-size:12.5px;color:var(--red);"></div>
 </div>
 
-<div class="card" style="margin-bottom:18px;">
-  <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;">
-    <span class="card-title">Improvement Plans</span>
-    <button class="btn btn-primary" onclick="manuallyAddImprovementPlan()">
-      <svg style="width:16px;height:16px;vertical-align:-3px;margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="16" />
-        <line x1="8" y1="12" x2="16" y2="12" />
-      </svg>
-      Add Improvement Plan
-    </button>
-  </div>
+<?php if ($isSubmitted): ?>
+<div class="card" style="margin-bottom:18px;border-color:var(--green-200, #bbf7d0);background:var(--green-50, #f0fdf4);">
   <div class="card-body" style="padding:20px 24px;">
-    <p style="font-size:13px;color:var(--n-500);">Use the AI suggestions above as a starting point, then log a formal improvement plan here — dimension, indicator, objective, strategy, and target date.</p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <span style="font-size:20px;line-height:1;">✅</span>
+      <span style="font-size:15px;font-weight:700;color:var(--n-900);">Improvement Plans Successfully Submitted</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
+      <div>
+        <div style="font-size:12px;color:var(--n-500);margin-bottom:4px;">Status</div>
+        <div style="font-size:14px;font-weight:700;color:var(--green-700, #15803d);">Submitted</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--n-500);margin-bottom:4px;">Submitted By</div>
+        <div style="font-size:14px;font-weight:700;color:var(--n-900);"><?= e($submittedByName ?? 'School Head') ?></div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--n-500);margin-bottom:4px;">Submitted On</div>
+        <div style="font-size:14px;font-weight:700;color:var(--n-900);">
+          <?= $submittedAt ? date('F j, Y', strtotime($submittedAt)) . '<br>' . date('g:i A', strtotime($submittedAt)) : '—' ?>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
+<div class="card" style="margin-bottom:18px;">
+  <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <span class="card-title">Improvement Plans<?= $isSubmitted ? ' <span style="font-weight:600;font-size:11.5px;color:var(--n-500);">(read-only — submitted)</span>' : '' ?></span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <?php if (!$isSubmitted): ?>
+        <?php if ($draftCount > 0): ?>
+          <button class="btn btn-secondary" onclick="openSubmitConfirm()">Submit Improvement Plans</button>
+        <?php endif; ?>
+        <button class="btn btn-primary" onclick="manuallyAddImprovementPlan()">
+          <svg style="width:16px;height:16px;vertical-align:-3px;margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="16" />
+            <line x1="8" y1="12" x2="16" y2="12" />
+          </svg>
+          Add Improvement Plan
+        </button>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <?php if (empty($planList)): ?>
+    <div class="card-body" style="padding:20px 24px;">
+      <p style="font-size:13px;color:var(--n-500);">Use the AI suggestions above as a starting point, then log a formal improvement plan here — dimension, indicator, objective, strategy, and target date.</p>
+    </div>
+  <?php else: ?>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:70px;">Dimension</th>
+            <th style="width:90px;">Indicator</th>
+            <th>Objective</th>
+            <th style="width:90px;">Priority</th>
+            <th style="width:110px;">Target Date</th>
+            <th style="width:100px;">Status</th>
+            <th style="width:150px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($planList as $p): ?>
+            <tr>
+              <td><strong style="font-size:12px;color:<?= e($p['color_hex'] ?? 'var(--n-600)') ?>;">D<?= (int)$p['dimension_no'] ?></strong></td>
+              <td style="font-size:12px;color:var(--n-600);"><?= e($p['indicator_code'] ?? '—') ?></td>
+              <td style="font-size:12.5px;line-height:1.5;"><?= e($p['objective']) ?></td>
+              <td>
+                <span style="display:inline-flex;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;
+                  background:<?= $p['priority_level']==='High' ? '#fee2e2' : ($p['priority_level']==='Low' ? '#f1f5f9' : '#fef3c7') ?>;
+                  color:<?= $p['priority_level']==='High' ? '#dc2626' : ($p['priority_level']==='Low' ? '#64748b' : '#b45309') ?>;">
+                  <?= e($p['priority_level']) ?>
+                </span>
+              </td>
+              <td style="font-size:12.5px;color:var(--n-600);"><?= $p['target_date'] ? date('M j, Y', strtotime($p['target_date'])) : '—' ?></td>
+              <td>
+                <span style="display:inline-flex;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;
+                  background:<?= $p['workflow_status']===IP_STATUS_SUBMITTED ? '#dcfce7' : '#f1f5f9' ?>;
+                  color:<?= $p['workflow_status']===IP_STATUS_SUBMITTED ? '#15803d' : '#64748b' ?>;">
+                  <?= e(ucfirst($p['workflow_status'])) ?>
+                </span>
+              </td>
+              <td>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;white-space:nowrap;">
+                  <button class="ip-icon-btn" title="Preview" onclick='openViewPlan(<?= json_encode($p, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <?php if (!$isSubmitted): ?>
+                    <button class="ip-icon-btn" title="Edit" onclick='openEditPlan(<?= json_encode($p, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="ip-icon-btn ip-icon-btn-danger" title="Delete" onclick="deletePlan(<?= (int)$p['plan_id'] ?>)">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                  <?php endif; ?>
+                </div>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  <?php endif; ?>
+</div>
+
+<!-- ── SUBMIT CONFIRMATION MODAL ── -->
+<div id="submitConfirmModal" class="modal-overlay">
+  <div class="modal-content" style="width:440px;">
+    <div class="modal-form-side">
+      <div class="modal-header">
+        <div class="modal-title">Submit Improvement Plans?</div>
+        <button class="btn btn-ghost" style="padding:4px;" onclick="closeSubmitConfirm()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13.5px;color:var(--n-700);line-height:1.6;">
+          After submission, your improvement plans will be finalized and cannot be edited unless they are returned for revision in the future.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <div style="flex:1"></div>
+        <button class="btn-secondary" onclick="closeSubmitConfirm()">Cancel</button>
+        <button class="btn-primary" id="confirmSubmitBtn" onclick="confirmSubmitPlans()">Submit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── EDIT IMPROVEMENT PLAN MODAL ── -->
+<div id="editPlanModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-form-side">
+      <div class="modal-header">
+        <div class="modal-title">Edit Improvement Plan</div>
+        <button class="btn btn-ghost" style="padding:4px;" onclick="closeEditPlanModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="editPlanForm">
+          <input type="hidden" id="editPlanId">
+          <div class="form-group">
+            <label>Dimension / Indicator</label>
+            <div id="editPlanBadge" style="font-size:12.5px;color:var(--n-600);padding:8px 12px;background:var(--n-50);border-radius:8px;"></div>
+          </div>
+          <div class="grid2">
+            <div class="form-group">
+              <label>Priority</label>
+              <select id="editPriorityLevel" class="form-control">
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Target Date</label>
+              <input type="date" id="editTargetDate" class="form-control">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Objective</label>
+            <textarea id="editObjective" class="form-control" rows="2" required></textarea>
+          </div>
+          <div class="form-group">
+            <label>Strategy</label>
+            <textarea id="editStrategy" class="form-control" rows="2" required></textarea>
+          </div>
+          <div class="form-group">
+            <label>Person Responsible</label>
+            <input type="text" id="editPersonResponsible" class="form-control">
+          </div>
+          <div class="grid2">
+            <div class="form-group">
+              <label>Resources Needed</label>
+              <textarea id="editResourcesNeeded" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Expected Output</label>
+              <textarea id="editExpectedOutput" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <div style="flex:1"></div>
+        <button class="btn-secondary" onclick="closeEditPlanModal()">Cancel</button>
+        <button class="btn-primary" onclick="saveEditPlan(event)">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── VIEW (PREVIEW) IMPROVEMENT PLAN MODAL — read-only ── -->
+<div id="viewPlanModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-form-side">
+      <div class="modal-header">
+        <div class="modal-title">Improvement Plan</div>
+        <button class="btn btn-ghost" style="padding:4px;" onclick="closeViewPlanModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="viewPlanBody" style="font-size:13.5px;line-height:1.7;color:var(--n-800);">
+        <!-- Populated via JS -->
+      </div>
+      <div class="modal-footer">
+        <div style="flex:1"></div>
+        <button class="btn-secondary" onclick="closeViewPlanModal()">Close</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -474,6 +870,31 @@ include __DIR__.'/../includes/header.php';
   color: var(--n-700);
 }
 
+.ip-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--n-200);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--n-600);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ip-icon-btn:hover {
+  background: var(--n-50);
+  color: var(--n-900);
+  border-color: var(--n-300);
+}
+.ip-icon-btn-danger:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
 /* ── Improvement Plan Modal (moved from dashboard.php) ── */
 .modal-overlay {
   position: fixed;
@@ -543,13 +964,13 @@ include __DIR__.'/../includes/header.php';
   gap: 10px;
 }
 
-#improvementPlanModal .form-group {
+.modal-content .form-group {
   margin-bottom: 16px;
   position: relative;
   overflow: visible !important;
 }
 
-#improvementPlanModal .form-group label {
+.modal-content .form-group label {
   display: block;
   font-size: 12.5px;
   font-weight: 600;
@@ -557,7 +978,7 @@ include __DIR__.'/../includes/header.php';
   margin-bottom: 6px;
 }
 
-#improvementPlanModal .form-control {
+.modal-content .form-control {
   width: 100%;
   padding: 8px 12px;
   border-radius: 8px;
@@ -565,19 +986,22 @@ include __DIR__.'/../includes/header.php';
   font-size: 13.5px;
   outline: none;
   transition: border-color 0.2s;
+  box-sizing: border-box;
+  font-family: inherit;
+  resize: vertical;
 }
 
-#improvementPlanModal .form-control:focus {
+.modal-content .form-control:focus {
   border-color: var(--n-600);
 }
 
-#improvementPlanModal .grid2 {
+.modal-content .grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
 
-#improvementPlanModal .btn-primary {
+.modal-content .btn-primary {
   background: var(--n-900);
   color: #fff;
   border: none;
@@ -587,7 +1011,7 @@ include __DIR__.'/../includes/header.php';
   cursor: pointer;
 }
 
-#improvementPlanModal .btn-secondary {
+.modal-content .btn-secondary {
   background: #fff;
   border: 1px solid var(--n-300);
   color: var(--n-700);
@@ -1012,6 +1436,165 @@ async function saveImprovementPlan(e) {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Save Improvement Plan';
+  }
+}
+
+// ── SUBMIT CONFIRMATION ──────────────────────────────────────────
+function openSubmitConfirm() {
+  document.getElementById('submitConfirmModal').style.display = 'flex';
+}
+
+function closeSubmitConfirm() {
+  document.getElementById('submitConfirmModal').style.display = 'none';
+}
+
+async function confirmSubmitPlans() {
+  const btn = document.getElementById('confirmSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  const formData = new FormData();
+  formData.append('action', 'submit_improvement_plans');
+  formData.append('sy_id', '<?= $syId ?>');
+
+  try {
+    const res = await fetch(window.location.href, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      closeSubmitConfirm();
+      location.reload();
+    } else {
+      alert('Error: ' + data.message);
+      btn.disabled = false;
+      btn.textContent = 'Submit';
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Network error. Failed to submit.');
+    btn.disabled = false;
+    btn.textContent = 'Submit';
+  }
+}
+
+// ── EDIT IMPROVEMENT PLAN ────────────────────────────────────────
+function openEditPlan(plan) {
+  document.getElementById('editPlanId').value = plan.plan_id;
+  document.getElementById('editPlanBadge').textContent =
+    'D' + plan.dimension_no + ' — ' + plan.dimension_name +
+    (plan.indicator_code ? ' · ' + plan.indicator_code : '');
+  document.getElementById('editPriorityLevel').value = plan.priority_level || 'Medium';
+  document.getElementById('editTargetDate').value = plan.target_date || '';
+  document.getElementById('editObjective').value = plan.objective || '';
+  document.getElementById('editStrategy').value = plan.strategy || '';
+  document.getElementById('editPersonResponsible').value = plan.person_responsible || '';
+  document.getElementById('editResourcesNeeded').value = plan.resources_needed || '';
+  document.getElementById('editExpectedOutput').value = plan.expected_output || '';
+  document.getElementById('editPlanModal').style.display = 'flex';
+}
+
+function closeEditPlanModal() {
+  document.getElementById('editPlanModal').style.display = 'none';
+  document.getElementById('editPlanForm').reset();
+}
+
+async function saveEditPlan(e) {
+  if (e) e.preventDefault();
+  const form = document.getElementById('editPlanForm');
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('action', 'update_improvement_plan');
+  formData.append('plan_id', document.getElementById('editPlanId').value);
+  formData.append('priority_level', document.getElementById('editPriorityLevel').value);
+  formData.append('target_date', document.getElementById('editTargetDate').value);
+  formData.append('objective', document.getElementById('editObjective').value);
+  formData.append('strategy', document.getElementById('editStrategy').value);
+  formData.append('person_responsible', document.getElementById('editPersonResponsible').value);
+  formData.append('resources_needed', document.getElementById('editResourcesNeeded').value);
+  formData.append('expected_output', document.getElementById('editExpectedOutput').value);
+
+  const btn = e.target;
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const res = await fetch(window.location.href, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      closeEditPlanModal();
+      location.reload();
+    } else {
+      alert('Error: ' + data.message);
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Network error. Failed to save.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
+// ── VIEW (PREVIEW) IMPROVEMENT PLAN — read-only ─────────────────
+function ipEscape(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function ipViewRow(label, value) {
+  return `<div style="margin-bottom:14px;">
+    <div style="font-size:11.5px;font-weight:600;color:var(--n-500);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">${label}</div>
+    <div>${value || '<span style="color:var(--n-400);">—</span>'}</div>
+  </div>`;
+}
+
+function openViewPlan(plan) {
+  const dimLabel = 'D' + plan.dimension_no + ' — ' + plan.dimension_name + (plan.indicator_code ? ' · ' + plan.indicator_code : '');
+  const targetDate = plan.target_date
+    ? new Date(plan.target_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
+
+  document.getElementById('viewPlanBody').innerHTML =
+    ipViewRow('Dimension / Indicator', ipEscape(dimLabel)) +
+    ipViewRow('Priority', ipEscape(plan.priority_level)) +
+    ipViewRow('Target Date', targetDate ? ipEscape(targetDate) : null) +
+    ipViewRow('Objective', ipEscape(plan.objective)) +
+    ipViewRow('Strategy', ipEscape(plan.strategy)) +
+    ipViewRow('Person Responsible', ipEscape(plan.person_responsible)) +
+    ipViewRow('Resources Needed', ipEscape(plan.resources_needed)) +
+    ipViewRow('Expected Output', ipEscape(plan.expected_output)) +
+    ipViewRow('Status', ipEscape(plan.workflow_status ? plan.workflow_status.charAt(0).toUpperCase() + plan.workflow_status.slice(1) : null));
+
+  document.getElementById('viewPlanModal').style.display = 'flex';
+}
+
+function closeViewPlanModal() {
+  document.getElementById('viewPlanModal').style.display = 'none';
+}
+
+// ── DELETE IMPROVEMENT PLAN ──────────────────────────────────────
+async function deletePlan(planId) {
+  if (!confirm('Delete this improvement plan? This cannot be undone.')) return;
+
+  const formData = new FormData();
+  formData.append('action', 'delete_improvement_plan');
+  formData.append('plan_id', planId);
+
+  try {
+    const res = await fetch(window.location.href, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Error: ' + data.message);
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Network error. Failed to delete.');
   }
 }
 
