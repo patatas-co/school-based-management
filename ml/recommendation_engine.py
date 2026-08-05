@@ -134,7 +134,7 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     - Do NOT use rigid section headers like "[Assessment Overview]" or "[Priority Recommendations]".
     - Do NOT number your recommendations (1. 2. 3.). Use bold topic headers and bullets instead.
     - Weave indicator codes naturally into sentences (e.g. "For indicator 2.1, consider...").
-    - End with a brief closing line and a question inviting the School Head to ask for more detail.
+    - End with a brief closing statement summarizing the single biggest priority. Do NOT end with a question.
     - The tone should be warm, professional, and direct — not bureaucratic or robotic.
 
     Here is an example of the EXACT style to follow:
@@ -151,7 +151,7 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     - Convene or reactivate the Child Protection Committee within the next 6 weeks.
     - Ensure the committee has clear terms of reference and a reporting pathway for incidents.
 
-    The single biggest factor in early SBM improvement is **consistent focus on a few priorities** — everything else becomes easier from there. Would you like more specific guidance on any of these areas?
+    The single biggest factor in early SBM improvement is **consistent focus on a few priorities** — everything else becomes easier from there.
 
     END OF EXAMPLE. Now generate advice for this school:
 
@@ -174,7 +174,7 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     Urgent issues: {"YES" if urgent else "None"}
 
     Remember: natural conversational prose, bold topic headers, bullet points for actions,
-    short paragraphs, closing question. Reference DepEd Order No. 007, s. 2024 where relevant.
+    short paragraphs, closing statement (not a question). Reference DepEd Order No. 007, s. 2024 where relevant.
     Do NOT use numbered lists. Do NOT use section headers in brackets.
     """).strip()
 

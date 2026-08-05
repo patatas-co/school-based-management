@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 02, 2026 at 06:34 PM
+-- Generation Time: Aug 05, 2026 at 03:13 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -1489,7 +1489,53 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (1508, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-02 14:36:48'),
 (1509, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-02 16:23:11'),
 (1510, 15, 'login', 'auth', 'User logged in', '::1', '2026-08-02 16:23:21'),
-(1511, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-02 16:25:18');
+(1511, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-02 16:25:18'),
+(1512, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:21:46'),
+(1513, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:22:09'),
+(1514, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:34:22'),
+(1515, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:34:38'),
+(1516, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:34:59'),
+(1517, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:35:25'),
+(1518, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-08-03 14:35:33'),
+(1519, 15, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:35:40'),
+(1520, 15, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 15 submitted for cycle 28', '::1', '2026-08-03 14:36:13'),
+(1521, 2, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:36:21'),
+(1522, 2, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 2 submitted for cycle 28', '::1', '2026-08-03 14:36:51'),
+(1523, 12, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:37:00'),
+(1524, 12, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 12 submitted for cycle 28', '::1', '2026-08-03 14:37:27'),
+(1525, 13, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:37:43'),
+(1526, 13, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 13 submitted for cycle 28', '::1', '2026-08-03 14:38:21'),
+(1527, 14, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:38:28'),
+(1528, 14, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 14 submitted for cycle 28', '::1', '2026-08-03 14:39:01'),
+(1529, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:39:11'),
+(1530, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:39:17'),
+(1531, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:39:24'),
+(1532, 37, 'submit_assessment', 'self_assessment', 'Submitted SBM assessment cycle 28', '::1', '2026-08-03 14:40:34'),
+(1533, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:40:51'),
+(1534, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:41:34'),
+(1535, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-04 11:04:22'),
+(1536, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-05 00:44:16');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `ai_suggestion_usage`
+--
+
+CREATE TABLE `ai_suggestion_usage` (
+  `user_id` int(11) NOT NULL,
+  `usage_count` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  `last_generated_at` datetime DEFAULT NULL,
+  `last_recommendation` mediumtext DEFAULT NULL,
+  `reset_date` date NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `ai_suggestion_usage`
+--
+
+INSERT INTO `ai_suggestion_usage` (`user_id`, `usage_count`, `last_generated_at`, `last_recommendation`, `reset_date`) VALUES
+(37, 3, '2026-08-04 11:47:03', 'Given your school\'s current SBM score and historical trend, it\'s clear that **strengthening leadership** is crucial. For indicator 3.1, developing a strategic plan is key, and according to DepEd Order No. 007, s. 2024, this plan should be aligned with the school\'s vision and mission. \n- Consider revising your strategic plan to include specific, measurable goals and objectives.\n- Ensure that all stakeholders are involved in the planning process to foster ownership and commitment.\n\n**Improving curriculum and teaching quality** is also essential, as your score in this dimension is 67.3%. For indicator 1.8, engaging local industries can help strengthen your TLE-TVL course offerings. \n- Reach out to local businesses and organizations to explore potential partnerships and collaborations.\n- Consider conducting a needs assessment to identify areas where industry partnerships can enhance your curriculum.\n\n**Enhancing the learning environment** is another area of focus, with a score of 67.6%. Indicator 6.4 highlights the need for functional water, electricity, and internet facilities. \n- Conduct a thorough assessment of your school\'s infrastructure to identify areas for improvement.\n- Develop a plan to upgrade or maintain your facilities, ensuring that they support effective teaching and learning.\n\n**Building a functional School Governance Council (SGC)** is vital, as indicated by the emerging rating for indicator 4.2. \n- Review the composition and roles of your SGC to ensure it is representative and effective.\n- Provide training and support to SGC members to enhance their capacity to govern and make informed decisions.\n\nThe single biggest factor in improving your school\'s SBM score is **focusing on leadership development and strategic planning**, as this will have a ripple effect on all other dimensions and indicators.', '2026-08-04');
 
 -- --------------------------------------------------------
 
@@ -1538,7 +1584,9 @@ INSERT INTO `cycle_audit_log` (`log_id`, `cycle_id`, `stage_from`, `stage_to`, `
 (16, 26, 'submitted', 'validated', 46, 'Validated by coordinator.', '2026-08-02 13:48:53'),
 (17, 26, 'validated', 'finalized', 46, 'Cycle locked and archived.', '2026-08-02 13:48:53'),
 (18, 27, 'submitted', 'validated', 46, 'Validated by coordinator.', '2026-08-02 22:10:38'),
-(19, 27, 'validated', 'finalized', 46, 'Cycle locked and archived.', '2026-08-02 22:10:38');
+(19, 27, 'validated', 'finalized', 46, 'Cycle locked and archived.', '2026-08-02 22:10:38'),
+(20, 28, 'submitted', 'validated', 46, 'Validated by coordinator.', '2026-08-03 22:41:00'),
+(21, 28, 'validated', 'finalized', 46, 'Cycle locked and archived.', '2026-08-03 22:41:00');
 
 -- --------------------------------------------------------
 
@@ -1931,7 +1979,8 @@ CREATE TABLE `sbm_cycles` (
 
 INSERT INTO `sbm_cycles` (`cycle_id`, `sy_id`, `school_id`, `status`, `overall_score`, `maturity_level`, `started_at`, `submitted_at`, `validated_at`, `validated_by`, `validator_remarks`, `consolidation_confirmed`, `consolidation_confirmed_by`, `consolidation_confirmed_at`, `finalized_at`, `returned_at`, `returned_by`, `return_remarks`, `created_at`, `stakeholder_access_start`, `stakeholder_access_end`, `auto_deactivated_at`, `auto_deactivated_by`) VALUES
 (26, 25, 1, 'finalized', 61.37, 'Maturing', '2026-08-02 11:55:12', '2026-08-02 13:44:45', '2026-08-02 13:48:53', 46, '', 0, NULL, NULL, '2026-08-02 13:48:53', NULL, NULL, NULL, '2026-08-02 03:55:12', NULL, NULL, NULL, NULL),
-(27, 26, 1, 'finalized', 70.60, 'Advanced', '2026-08-02 21:48:41', '2026-08-02 22:10:04', '2026-08-02 22:10:38', 46, '', 0, NULL, NULL, '2026-08-02 22:10:38', NULL, NULL, NULL, '2026-08-02 13:48:41', NULL, NULL, NULL, NULL);
+(27, 26, 1, 'finalized', 70.60, 'Advanced', '2026-08-02 21:48:41', '2026-08-02 22:10:04', '2026-08-02 22:10:38', 46, '', 0, NULL, NULL, '2026-08-02 22:10:38', NULL, NULL, NULL, '2026-08-02 13:48:41', NULL, NULL, NULL, NULL),
+(28, 27, 1, 'finalized', 70.00, '', '2026-08-03 22:35:33', '2026-08-03 22:40:34', '2026-08-03 22:41:00', 46, '', 0, NULL, NULL, '2026-08-03 22:41:00', NULL, NULL, NULL, '2026-08-03 14:35:33', NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -1994,7 +2043,13 @@ INSERT INTO `sbm_dimension_scores` (`score_id`, `cycle_id`, `school_id`, `dimens
 (1228, 27, 1, 3, 10.10, 16.00, 63.13, '2026-08-02 14:10:04'),
 (1229, 27, 1, 4, 18.00, 24.00, 75.00, '2026-08-02 14:10:04'),
 (1230, 27, 1, 5, 18.30, 28.00, 65.36, '2026-08-02 14:10:04'),
-(1231, 27, 1, 6, 20.40, 28.00, 72.86, '2026-08-02 14:10:04');
+(1231, 27, 1, 6, 20.40, 28.00, 72.86, '2026-08-02 14:10:04'),
+(1279, 28, 1, 1, 22.20, 32.00, 69.38, '2026-08-03 14:40:34'),
+(1280, 28, 1, 2, 30.10, 40.00, 75.25, '2026-08-03 14:40:34'),
+(1281, 28, 1, 3, 10.50, 16.00, 65.63, '2026-08-03 14:40:34'),
+(1282, 28, 1, 4, 15.00, 24.00, 62.50, '2026-08-03 14:40:34'),
+(1283, 28, 1, 5, 18.80, 28.00, 67.14, '2026-08-03 14:40:34'),
+(1284, 28, 1, 6, 21.00, 28.00, 75.00, '2026-08-03 14:40:34');
 
 -- --------------------------------------------------------
 
@@ -2165,7 +2220,49 @@ INSERT INTO `sbm_responses` (`response_id`, `cycle_id`, `indicator_id`, `school_
 (943, 27, 39, 1, 2, '', 37, '2026-08-02 14:09:41'),
 (944, 27, 40, 1, 3, '', 37, '2026-08-02 14:09:42'),
 (945, 27, 41, 1, 3, '', 37, '2026-08-02 14:09:44'),
-(946, 27, 42, 1, 2, '', 37, '2026-08-02 14:09:46');
+(946, 27, 42, 1, 2, '', 37, '2026-08-02 14:09:46'),
+(947, 28, 1, 1, 3, '', 37, '2026-08-03 14:39:27'),
+(948, 28, 2, 1, 2, '', 37, '2026-08-03 14:39:28'),
+(949, 28, 3, 1, 3, '', 37, '2026-08-03 14:39:30'),
+(950, 28, 4, 1, 3, '', 37, '2026-08-03 14:39:32'),
+(951, 28, 5, 1, 4, '', 37, '2026-08-03 14:39:33'),
+(952, 28, 6, 1, 3, '', 37, '2026-08-03 14:39:35'),
+(953, 28, 7, 1, 2, '', 37, '2026-08-03 14:39:37'),
+(954, 28, 8, 1, 2, '', 37, '2026-08-03 14:39:38'),
+(955, 28, 9, 1, 3, '', 37, '2026-08-03 14:39:39'),
+(956, 28, 10, 1, 3, '', 37, '2026-08-03 14:39:41'),
+(957, 28, 11, 1, 2, '', 37, '2026-08-03 14:39:42'),
+(958, 28, 12, 1, 3, '', 37, '2026-08-03 14:39:44'),
+(959, 28, 13, 1, 4, '', 37, '2026-08-03 14:39:45'),
+(960, 28, 14, 1, 3, '', 37, '2026-08-03 14:39:47'),
+(961, 28, 15, 1, 3, '', 37, '2026-08-03 14:39:48'),
+(962, 28, 16, 1, 2, '', 37, '2026-08-03 14:39:49'),
+(963, 28, 17, 1, 3, '', 37, '2026-08-03 14:39:50'),
+(964, 28, 18, 1, 4, '', 37, '2026-08-03 14:39:52'),
+(965, 28, 19, 1, 2, '', 37, '2026-08-03 14:39:55'),
+(966, 28, 20, 1, 3, '', 37, '2026-08-03 14:39:56'),
+(967, 28, 21, 1, 3, '', 37, '2026-08-03 14:39:57'),
+(968, 28, 22, 1, 2, '', 37, '2026-08-03 14:40:00'),
+(969, 28, 23, 1, 2, '', 37, '2026-08-03 14:40:01'),
+(970, 28, 24, 1, 2, '', 37, '2026-08-03 14:40:03'),
+(971, 28, 25, 1, 3, '', 37, '2026-08-03 14:40:04'),
+(972, 28, 26, 1, 3, '', 37, '2026-08-03 14:40:05'),
+(973, 28, 27, 1, 3, '', 37, '2026-08-03 14:40:07'),
+(974, 28, 28, 1, 2, '', 37, '2026-08-03 14:40:08'),
+(975, 28, 29, 1, 4, '', 37, '2026-08-03 14:40:11'),
+(976, 28, 30, 1, 2, '', 37, '2026-08-03 14:40:12'),
+(977, 28, 31, 1, 2, '', 37, '2026-08-03 14:40:14'),
+(978, 28, 32, 1, 3, '', 37, '2026-08-03 14:40:15'),
+(979, 28, 33, 1, 3, '', 37, '2026-08-03 14:40:17'),
+(980, 28, 34, 1, 2, '', 37, '2026-08-03 14:40:19'),
+(981, 28, 35, 1, 2, '', 37, '2026-08-03 14:40:20'),
+(982, 28, 36, 1, 4, '', 37, '2026-08-03 14:40:22'),
+(983, 28, 37, 1, 4, '', 37, '2026-08-03 14:40:24'),
+(984, 28, 38, 1, 3, '', 37, '2026-08-03 14:40:25'),
+(985, 28, 39, 1, 2, '', 37, '2026-08-03 14:40:27'),
+(986, 28, 40, 1, 3, '', 37, '2026-08-03 14:40:29'),
+(987, 28, 41, 1, 3, '', 37, '2026-08-03 14:40:31'),
+(988, 28, 42, 1, 2, '', 37, '2026-08-03 14:40:32');
 
 -- --------------------------------------------------------
 
@@ -2257,8 +2354,8 @@ CREATE TABLE `school_years` (
 
 INSERT INTO `school_years` (`sy_id`, `label`, `is_current`, `date_start`, `date_end`) VALUES
 (25, '2023-2024', 0, '2023-08-29', '2024-05-31'),
-(26, '2024-2025', 1, '2024-07-29', '2025-04-15'),
-(27, '2025-2026', 0, '2025-06-16', '2026-03-31'),
+(26, '2024-2025', 0, '2024-07-29', '2025-04-15'),
+(27, '2025-2026', 1, '2025-06-16', '2026-03-31'),
 (28, '2026-2027', 0, '2026-06-08', '2027-04-08');
 
 -- --------------------------------------------------------
@@ -2588,7 +2685,112 @@ INSERT INTO `teacher_responses` (`tr_id`, `cycle_id`, `indicator_id`, `school_id
 (2396, 27, 35, 1, 14, 3, '', 'submitted', NULL, '2026-08-02 14:08:02', '2026-08-02 14:08:10'),
 (2398, 27, 38, 1, 14, 3, '', 'submitted', NULL, '2026-08-02 14:08:05', '2026-08-02 14:08:10'),
 (2399, 27, 39, 1, 14, 3, '', 'submitted', NULL, '2026-08-02 14:08:06', '2026-08-02 14:08:10'),
-(2400, 27, 40, 1, 14, 3, '', 'submitted', NULL, '2026-08-02 14:08:07', '2026-08-02 14:08:10');
+(2400, 27, 40, 1, 14, 3, '', 'submitted', NULL, '2026-08-02 14:08:07', '2026-08-02 14:08:10'),
+(2401, 28, 1, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:35:43', '2026-08-03 14:36:13'),
+(2402, 28, 2, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:35:44', '2026-08-03 14:36:13'),
+(2403, 28, 4, 1, 15, 2, '', 'submitted', NULL, '2026-08-03 14:35:45', '2026-08-03 14:36:13'),
+(2404, 28, 5, 1, 15, 2, '', 'submitted', NULL, '2026-08-03 14:35:47', '2026-08-03 14:36:13'),
+(2405, 28, 6, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:35:48', '2026-08-03 14:36:13'),
+(2406, 28, 7, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:35:50', '2026-08-03 14:36:13'),
+(2407, 28, 9, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:35:51', '2026-08-03 14:36:13'),
+(2408, 28, 10, 1, 15, 2, '', 'submitted', NULL, '2026-08-03 14:35:53', '2026-08-03 14:36:13'),
+(2409, 28, 11, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:35:54', '2026-08-03 14:36:13'),
+(2410, 28, 12, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:35:56', '2026-08-03 14:36:13'),
+(2411, 28, 17, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:35:57', '2026-08-03 14:36:13'),
+(2412, 28, 21, 1, 15, 4, '', 'submitted', NULL, '2026-08-03 14:35:58', '2026-08-03 14:36:13'),
+(2413, 28, 29, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:36:00', '2026-08-03 14:36:13'),
+(2414, 28, 31, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:36:01', '2026-08-03 14:36:13'),
+(2415, 28, 32, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:36:02', '2026-08-03 14:36:13'),
+(2416, 28, 33, 1, 15, 2, '', 'submitted', NULL, '2026-08-03 14:36:03', '2026-08-03 14:36:13'),
+(2417, 28, 34, 1, 15, 4, '', 'submitted', NULL, '2026-08-03 14:36:05', '2026-08-03 14:36:13'),
+(2418, 28, 35, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:36:06', '2026-08-03 14:36:13'),
+(2419, 28, 38, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:36:07', '2026-08-03 14:36:13'),
+(2420, 28, 39, 1, 15, 2, '', 'submitted', NULL, '2026-08-03 14:36:08', '2026-08-03 14:36:13'),
+(2421, 28, 40, 1, 15, 3, '', 'submitted', NULL, '2026-08-03 14:36:09', '2026-08-03 14:36:13'),
+(2422, 28, 1, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:24', '2026-08-03 14:36:51'),
+(2423, 28, 2, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:25', '2026-08-03 14:36:51'),
+(2424, 28, 4, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:26', '2026-08-03 14:36:51'),
+(2425, 28, 5, 1, 2, 2, '', 'submitted', NULL, '2026-08-03 14:36:27', '2026-08-03 14:36:51'),
+(2426, 28, 6, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:28', '2026-08-03 14:36:51'),
+(2427, 28, 7, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:30', '2026-08-03 14:36:51'),
+(2428, 28, 9, 1, 2, 2, '', 'submitted', NULL, '2026-08-03 14:36:31', '2026-08-03 14:36:51'),
+(2429, 28, 10, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:32', '2026-08-03 14:36:51'),
+(2430, 28, 11, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:33', '2026-08-03 14:36:51'),
+(2431, 28, 12, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:34', '2026-08-03 14:36:51'),
+(2432, 28, 17, 1, 2, 2, '', 'submitted', NULL, '2026-08-03 14:36:36', '2026-08-03 14:36:51'),
+(2433, 28, 21, 1, 2, 4, '', 'submitted', NULL, '2026-08-03 14:36:37', '2026-08-03 14:36:51'),
+(2434, 28, 29, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:39', '2026-08-03 14:36:51'),
+(2435, 28, 31, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:40', '2026-08-03 14:36:51'),
+(2436, 28, 32, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:41', '2026-08-03 14:36:51'),
+(2437, 28, 33, 1, 2, 2, '', 'submitted', NULL, '2026-08-03 14:36:43', '2026-08-03 14:36:51'),
+(2438, 28, 34, 1, 2, 4, '', 'submitted', NULL, '2026-08-03 14:36:44', '2026-08-03 14:36:51'),
+(2439, 28, 35, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:45', '2026-08-03 14:36:51'),
+(2440, 28, 38, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:46', '2026-08-03 14:36:51'),
+(2441, 28, 39, 1, 2, 2, '', 'submitted', NULL, '2026-08-03 14:36:48', '2026-08-03 14:36:51'),
+(2442, 28, 40, 1, 2, 3, '', 'submitted', NULL, '2026-08-03 14:36:49', '2026-08-03 14:36:51'),
+(2443, 28, 1, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:02', '2026-08-03 14:37:27'),
+(2444, 28, 2, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:03', '2026-08-03 14:37:27'),
+(2445, 28, 4, 1, 12, 2, '', 'submitted', NULL, '2026-08-03 14:37:04', '2026-08-03 14:37:27'),
+(2446, 28, 5, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:06', '2026-08-03 14:37:27'),
+(2447, 28, 6, 1, 12, 4, '', 'submitted', NULL, '2026-08-03 14:37:07', '2026-08-03 14:37:27'),
+(2448, 28, 7, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:08', '2026-08-03 14:37:27'),
+(2449, 28, 9, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:09', '2026-08-03 14:37:27'),
+(2450, 28, 10, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:10', '2026-08-03 14:37:27'),
+(2451, 28, 11, 1, 12, 4, '', 'submitted', NULL, '2026-08-03 14:37:11', '2026-08-03 14:37:27'),
+(2452, 28, 12, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:12', '2026-08-03 14:37:27'),
+(2453, 28, 17, 1, 12, 2, '', 'submitted', NULL, '2026-08-03 14:37:13', '2026-08-03 14:37:27'),
+(2454, 28, 21, 1, 12, 4, '', 'submitted', NULL, '2026-08-03 14:37:15', '2026-08-03 14:37:27'),
+(2455, 28, 29, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:16', '2026-08-03 14:37:27'),
+(2456, 28, 31, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:17', '2026-08-03 14:37:27'),
+(2457, 28, 32, 1, 12, 2, '', 'submitted', NULL, '2026-08-03 14:37:18', '2026-08-03 14:37:27'),
+(2458, 28, 33, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:19', '2026-08-03 14:37:27'),
+(2459, 28, 34, 1, 12, 4, '', 'submitted', NULL, '2026-08-03 14:37:21', '2026-08-03 14:37:27'),
+(2460, 28, 35, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:22', '2026-08-03 14:37:27'),
+(2461, 28, 38, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:23', '2026-08-03 14:37:27'),
+(2462, 28, 39, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:24', '2026-08-03 14:37:27'),
+(2463, 28, 40, 1, 12, 3, '', 'submitted', NULL, '2026-08-03 14:37:25', '2026-08-03 14:37:27'),
+(2464, 28, 1, 1, 13, 3, '', 'submitted', NULL, '2026-08-03 14:37:46', '2026-08-03 14:38:21'),
+(2465, 28, 2, 1, 13, 3, '', 'submitted', NULL, '2026-08-03 14:37:55', '2026-08-03 14:38:21'),
+(2466, 28, 4, 1, 13, 2, '', 'submitted', NULL, '2026-08-03 14:37:56', '2026-08-03 14:38:21'),
+(2467, 28, 5, 1, 13, 3, '', 'submitted', NULL, '2026-08-03 14:37:58', '2026-08-03 14:38:21'),
+(2468, 28, 6, 1, 13, 4, '', 'submitted', NULL, '2026-08-03 14:37:59', '2026-08-03 14:38:21'),
+(2469, 28, 7, 1, 13, 3, '', 'submitted', NULL, '2026-08-03 14:38:00', '2026-08-03 14:38:21'),
+(2470, 28, 9, 1, 13, 3, '', 'submitted', NULL, '2026-08-03 14:38:01', '2026-08-03 14:38:21'),
+(2471, 28, 10, 1, 13, 3, '', 'submitted', NULL, '2026-08-03 14:38:02', '2026-08-03 14:38:21'),
+(2472, 28, 11, 1, 13, 3, '', 'submitted', NULL, '2026-08-03 14:38:04', '2026-08-03 14:38:21'),
+(2473, 28, 12, 1, 13, 4, '', 'submitted', NULL, '2026-08-03 14:38:05', '2026-08-03 14:38:21'),
+(2474, 28, 17, 1, 13, 3, '', 'submitted', NULL, '2026-08-03 14:38:06', '2026-08-03 14:38:21'),
+(2475, 28, 21, 1, 13, 4, '', 'submitted', NULL, '2026-08-03 14:38:07', '2026-08-03 14:38:21'),
+(2476, 28, 29, 1, 13, 3, '', 'submitted', NULL, '2026-08-03 14:38:08', '2026-08-03 14:38:21'),
+(2477, 28, 31, 1, 13, 3, '', 'submitted', NULL, '2026-08-03 14:38:10', '2026-08-03 14:38:21'),
+(2478, 28, 32, 1, 13, 3, '', 'submitted', NULL, '2026-08-03 14:38:11', '2026-08-03 14:38:21'),
+(2479, 28, 33, 1, 13, 2, '', 'submitted', NULL, '2026-08-03 14:38:12', '2026-08-03 14:38:21'),
+(2480, 28, 34, 1, 13, 3, '', 'submitted', NULL, '2026-08-03 14:38:14', '2026-08-03 14:38:21'),
+(2481, 28, 35, 1, 13, 2, '', 'submitted', NULL, '2026-08-03 14:38:15', '2026-08-03 14:38:21'),
+(2482, 28, 38, 1, 13, 2, '', 'submitted', NULL, '2026-08-03 14:38:16', '2026-08-03 14:38:21'),
+(2483, 28, 39, 1, 13, 2, '', 'submitted', NULL, '2026-08-03 14:38:18', '2026-08-03 14:38:21'),
+(2484, 28, 40, 1, 13, 3, '', 'submitted', NULL, '2026-08-03 14:38:19', '2026-08-03 14:38:21'),
+(2485, 28, 1, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:30', '2026-08-03 14:39:01'),
+(2486, 28, 2, 1, 14, 2, '', 'submitted', NULL, '2026-08-03 14:38:32', '2026-08-03 14:39:01'),
+(2487, 28, 4, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:33', '2026-08-03 14:39:01'),
+(2488, 28, 5, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:34', '2026-08-03 14:39:01'),
+(2489, 28, 6, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:35', '2026-08-03 14:39:01'),
+(2490, 28, 7, 1, 14, 4, '', 'submitted', NULL, '2026-08-03 14:38:36', '2026-08-03 14:39:01'),
+(2491, 28, 9, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:38', '2026-08-03 14:39:01'),
+(2492, 28, 10, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:39', '2026-08-03 14:39:01'),
+(2493, 28, 11, 1, 14, 2, '', 'submitted', NULL, '2026-08-03 14:38:40', '2026-08-03 14:39:01'),
+(2494, 28, 12, 1, 14, 2, '', 'submitted', NULL, '2026-08-03 14:38:41', '2026-08-03 14:39:01'),
+(2495, 28, 17, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:42', '2026-08-03 14:39:01'),
+(2496, 28, 21, 1, 14, 4, '', 'submitted', NULL, '2026-08-03 14:38:43', '2026-08-03 14:39:01'),
+(2498, 28, 29, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:45', '2026-08-03 14:39:01'),
+(2499, 28, 31, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:49', '2026-08-03 14:39:01'),
+(2500, 28, 32, 1, 14, 2, '', 'submitted', NULL, '2026-08-03 14:38:50', '2026-08-03 14:39:01'),
+(2501, 28, 33, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:52', '2026-08-03 14:39:01'),
+(2502, 28, 34, 1, 14, 4, '', 'submitted', NULL, '2026-08-03 14:38:53', '2026-08-03 14:39:01'),
+(2503, 28, 35, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:54', '2026-08-03 14:39:01'),
+(2504, 28, 38, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:56', '2026-08-03 14:39:01'),
+(2505, 28, 39, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:57', '2026-08-03 14:39:01'),
+(2506, 28, 40, 1, 14, 2, '', 'submitted', NULL, '2026-08-03 14:38:58', '2026-08-03 14:39:01');
 
 -- --------------------------------------------------------
 
@@ -2621,7 +2823,12 @@ INSERT INTO `teacher_submissions` (`submission_id`, `cycle_id`, `school_id`, `sy
 (99, 27, 1, 26, 2, 'submitted', '2026-08-02 22:06:03', 21),
 (100, 27, 1, 26, 12, 'submitted', '2026-08-02 22:06:49', 21),
 (101, 27, 1, 26, 13, 'submitted', '2026-08-02 22:07:31', 21),
-(102, 27, 1, 26, 14, 'submitted', '2026-08-02 22:08:10', 21);
+(102, 27, 1, 26, 14, 'submitted', '2026-08-02 22:08:10', 21),
+(103, 28, 1, 27, 15, 'submitted', '2026-08-03 22:36:13', 21),
+(104, 28, 1, 27, 2, 'submitted', '2026-08-03 22:36:51', 21),
+(105, 28, 1, 27, 12, 'submitted', '2026-08-03 22:37:27', 21),
+(106, 28, 1, 27, 13, 'submitted', '2026-08-03 22:38:21', 21),
+(107, 28, 1, 27, 14, 'submitted', '2026-08-03 22:39:01', 21);
 
 -- --------------------------------------------------------
 
@@ -2656,14 +2863,14 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `employee_id`, `department`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`, `contact_number`, `profile_picture`) VALUES
-(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, 'English', '2026-08-02 22:05:32', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, 'English', '2026-08-02 22:06:17', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-08-02 22:06:58', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-08-02 22:07:37', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 00:23:21', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-08-03 00:25:18', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg'),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-03 00:23:11', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
-(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-08-02 22:25:02', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL);
+(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 22:36:21', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 22:37:00', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 22:37:43', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-08-03 22:38:28', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 22:35:40', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-08-05 08:44:16', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg'),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-03 22:40:51', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
+(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-08-03 22:34:59', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -2753,6 +2960,12 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 ALTER TABLE `activity_log`
   ADD PRIMARY KEY (`log_id`),
   ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `ai_suggestion_usage`
+--
+ALTER TABLE `ai_suggestion_usage`
+  ADD PRIMARY KEY (`user_id`);
 
 --
 -- Indexes for table `analytics_snapshots`
@@ -3082,7 +3295,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1512;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1537;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`
@@ -3094,7 +3307,7 @@ ALTER TABLE `analytics_snapshots`
 -- AUTO_INCREMENT for table `cycle_audit_log`
 --
 ALTER TABLE `cycle_audit_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `cycle_evaluators`
@@ -3202,7 +3415,7 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `sbm_cycles`
 --
 ALTER TABLE `sbm_cycles`
-  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT for table `sbm_dimensions`
@@ -3214,7 +3427,7 @@ ALTER TABLE `sbm_dimensions`
 -- AUTO_INCREMENT for table `sbm_dimension_scores`
 --
 ALTER TABLE `sbm_dimension_scores`
-  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1279;
+  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1333;
 
 --
 -- AUTO_INCREMENT for table `sbm_indicators`
@@ -3226,7 +3439,7 @@ ALTER TABLE `sbm_indicators`
 -- AUTO_INCREMENT for table `sbm_responses`
 --
 ALTER TABLE `sbm_responses`
-  MODIFY `response_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=947;
+  MODIFY `response_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=989;
 
 --
 -- AUTO_INCREMENT for table `sbm_workflow_phases`
@@ -3280,13 +3493,13 @@ ALTER TABLE `teacher_indicator_assignments`
 -- AUTO_INCREMENT for table `teacher_responses`
 --
 ALTER TABLE `teacher_responses`
-  MODIFY `tr_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2401;
+  MODIFY `tr_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2507;
 
 --
 -- AUTO_INCREMENT for table `teacher_submissions`
 --
 ALTER TABLE `teacher_submissions`
-  MODIFY `submission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=103;
+  MODIFY `submission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=108;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -3315,6 +3528,12 @@ ALTER TABLE `workflow_milestones`
 --
 ALTER TABLE `activity_log`
   ADD CONSTRAINT `activity_log_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `ai_suggestion_usage`
+--
+ALTER TABLE `ai_suggestion_usage`
+  ADD CONSTRAINT `fk_ai_usage_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `analytics_snapshots`
