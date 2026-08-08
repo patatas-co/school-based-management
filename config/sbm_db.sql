@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 05, 2026 at 03:13 AM
+-- Generation Time: Aug 08, 2026 at 02:08 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -1514,7 +1514,31 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (1533, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:40:51'),
 (1534, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-03 14:41:34'),
 (1535, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-04 11:04:22'),
-(1536, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-05 00:44:16');
+(1536, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-05 00:44:16'),
+(1537, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-07 12:50:40'),
+(1538, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:01:13'),
+(1539, 74, 'toggle_user_status', 'users', 'User ID 14 status changed to inactive', '::1', '2026-08-07 13:01:35'),
+(1540, 74, 'toggle_user_status', 'users', 'User ID 14 status changed to active', '::1', '2026-08-07 13:01:49'),
+(1541, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:04:44'),
+(1542, 74, 'toggle_user_status', 'users', 'User ID 14 status changed to inactive', '::1', '2026-08-07 13:05:07'),
+(1543, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:05:26'),
+(1544, 74, 'toggle_user_status', 'users', 'User ID 14 status changed to active', '::1', '2026-08-07 13:05:31'),
+(1545, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:07:41'),
+(1546, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:14:15'),
+(1547, 74, 'toggle_user_status', 'users', 'User ID 14 status changed to inactive', '::1', '2026-08-07 13:15:00'),
+(1548, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:15:21'),
+(1549, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:17:55'),
+(1550, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:25:56'),
+(1551, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:28:12'),
+(1552, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:28:22'),
+(1553, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:29:03'),
+(1554, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:31:07'),
+(1555, 74, 'toggle_user_status', 'users', 'User ID 14 status changed to active', '::1', '2026-08-07 13:31:13'),
+(1556, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:31:21'),
+(1557, 15, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:33:27'),
+(1558, 12, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:33:38'),
+(1559, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:33:57'),
+(1560, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-07 23:39:24');
 
 -- --------------------------------------------------------
 
@@ -1535,7 +1559,7 @@ CREATE TABLE `ai_suggestion_usage` (
 --
 
 INSERT INTO `ai_suggestion_usage` (`user_id`, `usage_count`, `last_generated_at`, `last_recommendation`, `reset_date`) VALUES
-(37, 3, '2026-08-04 11:47:03', 'Given your school\'s current SBM score and historical trend, it\'s clear that **strengthening leadership** is crucial. For indicator 3.1, developing a strategic plan is key, and according to DepEd Order No. 007, s. 2024, this plan should be aligned with the school\'s vision and mission. \n- Consider revising your strategic plan to include specific, measurable goals and objectives.\n- Ensure that all stakeholders are involved in the planning process to foster ownership and commitment.\n\n**Improving curriculum and teaching quality** is also essential, as your score in this dimension is 67.3%. For indicator 1.8, engaging local industries can help strengthen your TLE-TVL course offerings. \n- Reach out to local businesses and organizations to explore potential partnerships and collaborations.\n- Consider conducting a needs assessment to identify areas where industry partnerships can enhance your curriculum.\n\n**Enhancing the learning environment** is another area of focus, with a score of 67.6%. Indicator 6.4 highlights the need for functional water, electricity, and internet facilities. \n- Conduct a thorough assessment of your school\'s infrastructure to identify areas for improvement.\n- Develop a plan to upgrade or maintain your facilities, ensuring that they support effective teaching and learning.\n\n**Building a functional School Governance Council (SGC)** is vital, as indicated by the emerging rating for indicator 4.2. \n- Review the composition and roles of your SGC to ensure it is representative and effective.\n- Provide training and support to SGC members to enhance their capacity to govern and make informed decisions.\n\nThe single biggest factor in improving your school\'s SBM score is **focusing on leadership development and strategic planning**, as this will have a ripple effect on all other dimensions and indicators.', '2026-08-04');
+(37, 1, '2026-08-07 13:23:03', 'Here are some targeted suggestions based on your school\'s current SBM data:\n\n**Strengthen curriculum delivery** Your scores in Curriculum and Teaching suggest room to grow in instructional delivery, particularly in addressing the needs of diverse learners. For indicator 6.7, consider improving your school\'s liquidation process to achieve a higher rating.\n\n* Review and refine your school\'s MOOE utilization and liquidation procedures to ensure timely and accurate reporting.\n* Provide training for staff on proper liquidation and reporting procedures, as outlined in DepEd Order No. 007, s. 2024.\n\n**Improve stakeholder engagement** The school\'s average rating of satisfactory from internal and external stakeholders (indicator 4.6) indicates a need to enhance communication and collaboration. This is crucial in building a strong school community.\n\n* Establish regular stakeholder feedback mechanisms, such as surveys or focus groups, to gather insights and concerns.\n* Foster partnerships with local industries to strengthen TLE-TVL course offerings, as suggested by indicator 1.8, to provide students with relevant and industry-aligned skills.\n\n**Enhance leadership and governance** The school\'s Leadership dimension score of 61.7% highlights the need to strengthen leadership and governance structures. A functional School Governance Council (SGC) is essential in driving school improvement.\n\n* Reactivate and strengthen the School Governance Council (SGC) to ensure it is functional and effective in supporting school decision-making.\n* Develop a strategic plan with a clear implementation roadmap, as indicated by indicator 3.1, to guide school improvement efforts.\n\n**Develop innovative frontline services** The school\'s rating of 2 in innovating frontline services (indicator 3.4) suggests an opportunity to enhance service delivery and responsiveness to stakeholders. This can be achieved by leveraging technology and streamlining processes.\n\n* Explore innovative solutions, such as online platforms or mobile applications, to improve communication and service delivery to stakeholders.\n* Review and refine school processes to reduce bureaucracy and enhance responsiveness to stakeholder needs.\n\nThe single biggest factor in improving your school\'s SBM score is **focusing on strengthening leadership and governance**, which will have a ripple effect on other areas, including curriculum delivery and stakeholder engagement.', '2026-08-07');
 
 -- --------------------------------------------------------
 
@@ -1769,10 +1793,21 @@ CREATE TABLE `improvement_plans` (
   `resources_needed` text DEFAULT NULL,
   `expected_output` text DEFAULT NULL,
   `status` enum('planned','ongoing','completed','cancelled') DEFAULT 'planned',
+  `workflow_status` varchar(30) NOT NULL DEFAULT 'draft',
   `remarks` text DEFAULT NULL,
   `created_by` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `submitted_by` int(11) DEFAULT NULL,
+  `submitted_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `improvement_plans`
+--
+
+INSERT INTO `improvement_plans` (`plan_id`, `school_id`, `cycle_id`, `dimension_id`, `indicator_id`, `priority_level`, `objective`, `strategy`, `person_responsible`, `target_date`, `resources_needed`, `expected_output`, `status`, `workflow_status`, `remarks`, `created_by`, `submitted_by`, `submitted_at`, `created_at`, `updated_at`) VALUES
+(60, 1, 28, 3, 19, 'Medium', 'The school aims to develop and implement a revised strategic plan that aligns with its vision and mission, and includes specific, measurable goals and objectives, by the end of the next academic year. This plan will be formulated through a collaborative process involving all stakeholders, ensuring ownership and commitment to its implementation and attainment of its objectives.', 'The school will revise its strategic plan to include specific, measurable goals and objectives that align with its vision and mission, as mandated by DepEd Order No. 007, s. 2024. This revision process will be inclusive, engaging all stakeholders to foster ownership and commitment, and will be led by the School Head in collaboration with the school\'s planning team. The revised strategic plan will be finalized and disseminated to all stakeholders within a specified timeframe to ensure a unified direction for the school.', 'SBM Coordinator', '2026-08-25', 'collaboration with other stakeholders', NULL, 'planned', 'draft', NULL, 37, NULL, NULL, '2026-08-05 03:37:15', '2026-08-05 03:37:15');
 
 -- --------------------------------------------------------
 
@@ -1787,6 +1822,27 @@ CREATE TABLE `indicator_evidence_requirements` (
   `allowed_categories` varchar(200) DEFAULT 'photo,document,report,certificate,record,other',
   `notes` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `ip_field_usage`
+--
+
+CREATE TABLE `ip_field_usage` (
+  `user_id` int(11) NOT NULL,
+  `field_type` enum('objective','strategy') NOT NULL,
+  `usage_count` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  `reset_date` date NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `ip_field_usage`
+--
+
+INSERT INTO `ip_field_usage` (`user_id`, `field_type`, `usage_count`, `reset_date`) VALUES
+(37, 'objective', 1, '2026-08-07'),
+(37, 'strategy', 1, '2026-08-07');
 
 -- --------------------------------------------------------
 
@@ -2864,13 +2920,13 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `employee_id`, `department`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`, `contact_number`, `profile_picture`) VALUES
 (2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 22:36:21', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 22:37:00', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, 'English', '2026-08-07 21:33:38', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL),
 (13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 22:37:43', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL),
 (14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-08-03 22:38:28', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 22:35:40', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-08-05 08:44:16', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg'),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-03 22:40:51', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
-(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-08-03 22:34:59', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL);
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-07 21:33:27', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-08-07 21:28:22', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg'),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-08 07:39:24', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
+(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-08-07 21:31:07', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -3056,7 +3112,9 @@ ALTER TABLE `improvement_plans`
   ADD KEY `cycle_id` (`cycle_id`),
   ADD KEY `dimension_id` (`dimension_id`),
   ADD KEY `improvement_plans_ibfk_4` (`indicator_id`),
-  ADD KEY `improvement_plans_ibfk_5` (`created_by`);
+  ADD KEY `improvement_plans_ibfk_5` (`created_by`),
+  ADD KEY `idx_workflow_status` (`workflow_status`),
+  ADD KEY `improvement_plans_ibfk_6` (`submitted_by`);
 
 --
 -- Indexes for table `indicator_evidence_requirements`
@@ -3064,6 +3122,12 @@ ALTER TABLE `improvement_plans`
 ALTER TABLE `indicator_evidence_requirements`
   ADD PRIMARY KEY (`req_id`),
   ADD UNIQUE KEY `indicator_id` (`indicator_id`);
+
+--
+-- Indexes for table `ip_field_usage`
+--
+ALTER TABLE `ip_field_usage`
+  ADD PRIMARY KEY (`user_id`,`field_type`);
 
 --
 -- Indexes for table `ml_comment_analysis`
@@ -3295,7 +3359,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1537;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1561;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`
@@ -3349,7 +3413,7 @@ ALTER TABLE `evidence_audit_log`
 -- AUTO_INCREMENT for table `form_versions`
 --
 ALTER TABLE `form_versions`
-  MODIFY `version_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `version_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `grading_periods`
@@ -3361,7 +3425,7 @@ ALTER TABLE `grading_periods`
 -- AUTO_INCREMENT for table `improvement_plans`
 --
 ALTER TABLE `improvement_plans`
-  MODIFY `plan_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
+  MODIFY `plan_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
 -- AUTO_INCREMENT for table `indicator_evidence_requirements`
@@ -3421,7 +3485,7 @@ ALTER TABLE `sbm_cycles`
 -- AUTO_INCREMENT for table `sbm_dimensions`
 --
 ALTER TABLE `sbm_dimensions`
-  MODIFY `dimension_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `dimension_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `sbm_dimension_scores`
@@ -3585,13 +3649,20 @@ ALTER TABLE `improvement_plans`
   ADD CONSTRAINT `improvement_plans_ibfk_2` FOREIGN KEY (`cycle_id`) REFERENCES `sbm_cycles` (`cycle_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `improvement_plans_ibfk_3` FOREIGN KEY (`dimension_id`) REFERENCES `sbm_dimensions` (`dimension_id`),
   ADD CONSTRAINT `improvement_plans_ibfk_4` FOREIGN KEY (`indicator_id`) REFERENCES `sbm_indicators` (`indicator_id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `improvement_plans_ibfk_5` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`);
+  ADD CONSTRAINT `improvement_plans_ibfk_5` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
+  ADD CONSTRAINT `improvement_plans_ibfk_6` FOREIGN KEY (`submitted_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `indicator_evidence_requirements`
 --
 ALTER TABLE `indicator_evidence_requirements`
   ADD CONSTRAINT `ier_ibfk_1` FOREIGN KEY (`indicator_id`) REFERENCES `sbm_indicators` (`indicator_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `ip_field_usage`
+--
+ALTER TABLE `ip_field_usage`
+  ADD CONSTRAINT `fk_ip_field_usage_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `ml_comment_analysis`

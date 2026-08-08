@@ -16,6 +16,7 @@ define('MAX_RATING', 4);
 
 $schoolId = SCHOOL_ID; // Always DIHS
 $syId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
+$activeFormVersionId = (int) $db->query("SELECT version_id FROM form_versions WHERE is_active=1 LIMIT 1")->fetchColumn();
 
 if (!$syId) {
   echo '<div class="alert alert-danger">No active school year configured. Contact the administrator.</div>';
@@ -336,9 +337,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $shOnlyStmt = $db->prepare("
     SELECT COUNT(*) FROM sbm_indicators
     WHERE is_active = 1
+      AND form_version_id = ?
       AND indicator_code IN ($ph)
 ");
-      $shOnlyStmt->execute($shAnswerableCodes);
+      $shOnlyStmt->execute(array_merge([$activeFormVersionId], $shAnswerableCodes));
       $expected = (int) $shOnlyStmt->fetchColumn();
 
       $shDoneStmt = $db->prepare("
@@ -528,13 +530,16 @@ function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId,
 }
 
 // ── LOAD DATA ────────────────────────────────────────────────
-$indicators = $db->query("
+$indicatorsStmt = $db->prepare("
     SELECT i.*, d.dimension_no, d.dimension_name, d.color_hex
     FROM sbm_indicators i
     JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
     WHERE i.is_active = 1
+      AND i.form_version_id = ?
     ORDER BY d.dimension_no, i.sort_order
-")->fetchAll();
+");
+$indicatorsStmt->execute([$activeFormVersionId]);
+$indicators = $indicatorsStmt->fetchAll();
 
 $cycle = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
 $cycle->execute([$schoolId, $syId]);

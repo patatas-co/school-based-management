@@ -11,6 +11,9 @@ $schoolId = $_SESSION['school_id'] ?? 0;
 $syId = $db->query(
     "SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1"
 )->fetchColumn();
+$activeFormVersionId = (int) $db->query(
+    "SELECT version_id FROM form_versions WHERE is_active=1 LIMIT 1"
+)->fetchColumn();
 
 if (!$schoolId || !$syId) {
     echo '<div class="alert alert-danger">
@@ -339,10 +342,11 @@ $indicators = $db->prepare("
     FROM sbm_indicators i
     JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
     WHERE i.is_active = 1
+      AND i.form_version_id = ?
       AND i.indicator_code IN ($placeholders)
     ORDER BY d.dimension_no, i.sort_order
 ");
-$indicators->execute(STAKEHOLDER_INDICATOR_CODES);
+$indicators->execute(array_merge([$activeFormVersionId], STAKEHOLDER_INDICATOR_CODES));
 $indicators = $indicators->fetchAll();
 
 $cycle = $db->prepare(

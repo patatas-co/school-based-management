@@ -227,6 +227,91 @@ def _call_groq(prompt: str) -> str:
     return response.choices[0].message.content.strip()
 
 
+def _build_ip_field_prompt(field_type: str, indicator_code: str, indicator_text: str,
+                            dimension_name: str, snippet: str) -> str:
+    """
+    Builds a focused prompt that turns ONE already-generated AI recommendation
+    snippet into an Objective or Strategy for a School Improvement Plan.
+    Uses ONLY the matched snippet as context — never the full article, and
+    never another indicator's content.
+    """
+    if field_type == "objective":
+        task = (
+            "Write ONE concise, measurable, professional objective statement for "
+            "a School Improvement Plan describing WHAT the school aims to achieve. "
+            "Return only the objective text (1-2 sentences) — no bullet points, "
+            "headers, or preamble."
+        )
+    else:
+        task = (
+            "Write a formal implementation strategy describing HOW the objective "
+            "will be achieved. Return 1-3 concise sentences of prose — no bullet "
+            "points, headers, or preamble — suitable for a School Improvement Plan."
+        )
+
+    prompt = textwrap.dedent(f"""
+    You are an SBM improvement specialist for Philippine public schools.
+
+    A School Head selected this indicator for a School Improvement Plan:
+    Dimension: {dimension_name}
+    Indicator: [{indicator_code}] {indicator_text}
+
+    Below is the ONLY relevant recommendation already shown to the School Head.
+    Use ONLY this content as context. Do not reference any other dimension or
+    indicator, and do not introduce issues not mentioned below.
+
+    ---
+    {snippet}
+    ---
+
+    Task: {task}
+    """).strip()
+
+    return prompt
+
+
+def generate_ip_field(
+    field_type: str,
+    indicator_code: str,
+    indicator_text: str,
+    dimension_name: str,
+    snippet: str,
+    backend: str = "groq",
+) -> dict:
+    """
+    Entry point for the Add Improvement Plan modal's "Generate Objective" /
+    "Generate Strategy" buttons. Turns a single matched AI-suggestion snippet
+    into a ready-to-edit Objective or Strategy.
+    """
+    prompt = _build_ip_field_prompt(field_type, indicator_code, indicator_text, dimension_name, snippet)
+    error  = None
+    text   = ""
+
+    try:
+        if backend == "ollama":
+            text = _call_ollama(prompt)
+        elif backend == "openai":
+            text = _call_openai(prompt)
+        else:
+            text = _call_groq(prompt)
+            backend = "groq"
+    except Exception as e:
+        import logging
+        import traceback
+        tb = traceback.format_exc()
+        logging.error(f"Error generating IP field ({field_type}): {e}\n{tb}")
+        print(f"[ML ERROR] generate_ip_field {backend} failed: {e}\n{tb}", flush=True)
+        error = str(e)
+        text = ""
+
+    return {
+        "text": text.strip(),
+        "backend_used": backend,
+        "error": error,
+        "field_type": field_type,
+    }
+
+
 def _rule_based_fallback(analysis: dict) -> str:
     """
     Year 1 fallback: assembles recommendations from templates

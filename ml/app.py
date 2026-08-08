@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from comment_analyzer      import batch_analyze, analyze_comment
 from score_analyzer        import full_analysis
-from recommendation_engine import generate_recommendations
+from recommendation_engine import generate_recommendations, generate_ip_field
 
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env", override=True)
@@ -69,6 +69,22 @@ def recommend():
         school_name = data.get("school_name", "School"),
         sy_label    = data.get("sy_label", "2024-2025"),
         backend     = LLM_BACKEND,
+    )
+    return jsonify(result)
+
+
+@app.route("/api/generate_ip_field", methods=["POST"])
+def generate_ip_field_route():
+    if not auth(request):
+        return jsonify({"error": "unauthorized"}), 401
+    data   = request.get_json(force=True)
+    result = generate_ip_field(
+        field_type      = data.get("field_type", ""),
+        indicator_code  = data.get("indicator_code", ""),
+        indicator_text  = data.get("indicator_text", ""),
+        dimension_name  = data.get("dimension_name", ""),
+        snippet         = data.get("snippet", ""),
+        backend         = LLM_BACKEND,
     )
     return jsonify(result)
 

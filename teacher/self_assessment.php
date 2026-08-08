@@ -9,6 +9,7 @@ $db = getDB();
 $uid = $_SESSION['user_id'];
 $schoolId = SCHOOL_ID; // Always DIHS — single school system
 $syId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
+$activeFormVersionId = (int) $db->query("SELECT version_id FROM form_versions WHERE is_active=1 LIMIT 1")->fetchColumn();
 
 if (!$syId) {
     echo '<div class="alert alert-danger">No active school year. Contact the administrator.</div>';
@@ -295,10 +296,11 @@ if (empty($assignedCodes)) {
         FROM sbm_indicators i
         JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
         WHERE i.is_active = 1
+          AND i.form_version_id = ?
           AND i.indicator_code IN ($placeholders)
         ORDER BY d.dimension_no, i.sort_order
     ");
-    $indicators->execute(array_values($assignedCodes));
+    $indicators->execute(array_merge([$activeFormVersionId], array_values($assignedCodes)));
     $indicators = $indicators->fetchAll();
 }
 

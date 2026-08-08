@@ -140,6 +140,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
   exit;
 }
 
+// ── IP FIELD USAGE STATUS (read-only, restores button/label state on load) ──
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_ip_field_usage_status') {
+  header('Content-Type: application/json');
+  echo json_encode([
+    'objective' => ipFieldUsageGetStatus($db, $currentUserId, 'objective'),
+    'strategy'  => ipFieldUsageGetStatus($db, $currentUserId, 'strategy'),
+  ]);
+  exit;
+}
+
+// ── GENERATE OBJECTIVE/STRATEGY FROM A MATCHED AI RECOMMENDATION ──
+// Only ever receives the single matched snippet (extracted client-side
+// from the already-displayed AI Suggestions text) — never the full article.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'generate_ip_field') {
+  header('Content-Type: application/json');
+
+  $fieldType     = $_POST['field_type'] ?? '';
+  $indicatorCode = trim($_POST['indicator_code'] ?? '');
+  $indicatorText = trim($_POST['indicator_text'] ?? '');
+  $dimensionName = trim($_POST['dimension_name'] ?? '');
+  $snippet       = trim($_POST['snippet'] ?? '');
+
+  if (!in_array($fieldType, ['objective', 'strategy'], true)) {
+    echo json_encode(['success' => false, 'message' => 'Invalid field type.']);
+    exit;
+  }
+  if ($snippet === '' || $indicatorCode === '') {
+    echo json_encode(['success' => false, 'message' => 'No matching AI suggestion found for this indicator.']);
+    exit;
+  }
+
+  // ── Enforce the 3-per-field daily limit BEFORE calling the ML service ──
+  $ipUsageCheck = ipFieldUsageCheckAndConsume($db, $currentUserId, $fieldType);
+  if (!$ipUsageCheck['allowed']) {
+    http_response_code(429);
+    echo json_encode([
+      'success' => false,
+      'message' => $ipUsageCheck['message'],
+      'remaining' => $ipUsageCheck['remaining'],
+      'limit' => $ipUsageCheck['limit'],
+    ]);
+    exit;
+  }
+
+  require_once __DIR__ . '/../includes/ml_service.php';
+
+  $payload = [
+    'field_type'     => $fieldType,
+    'indicator_code' => $indicatorCode,
+    'indicator_text' => $indicatorText,
+    'dimension_name' => $dimensionName,
+    'snippet'        => $snippet,
+  ];
+
+  $response = ml_post('/api/generate_ip_field', $payload);
+
+  if (!$response || empty($response['text'])) {
+    echo json_encode([
+      'success' => false,
+      'message' => 'Could not generate content. Please try again.',
+      'remaining' => $ipUsageCheck['remaining'],
+      'limit' => $ipUsageCheck['limit'],
+    ]);
+    exit;
+  }
+
+  echo json_encode([
+    'success' => true,
+    'text' => $response['text'],
+    'remaining' => $ipUsageCheck['remaining'],
+    'limit' => $ipUsageCheck['limit'],
+  ]);
+  exit;
+}
+
 // ── IMPROVEMENT PLAN WORKFLOW CONSTANTS ─────────────────────────
 // Allowed workflow_status values. Kept as plain strings (not a DB ENUM)
 // so future statuses (pending_review, returned, approved) are just new
@@ -440,11 +515,33 @@ foreach ($planList as $p) {
 }
 $draftCount = count(array_filter($planList, fn($p) => $p['workflow_status'] === IP_STATUS_DRAFT));
 
+// ── History of past improvement plans (shown when the new SY has no cycle/data yet) ──
+$historyPlans = [];
+if (!$cycle && $schoolId) {
+    $histQ = $db->prepare("
+        SELECT ip.*, d.dimension_no, d.dimension_name, d.color_hex,
+               i.indicator_code, i.indicator_text,
+               u.full_name AS submitted_by_name,
+               sy.label AS sy_label
+        FROM improvement_plans ip
+        JOIN sbm_cycles c        ON ip.cycle_id = c.cycle_id
+        JOIN school_years sy     ON c.sy_id = sy.sy_id
+        JOIN sbm_dimensions d    ON ip.dimension_id = d.dimension_id
+        LEFT JOIN sbm_indicators i ON ip.indicator_id = i.indicator_id
+        LEFT JOIN users u        ON ip.submitted_by = u.user_id
+        WHERE ip.school_id = ?
+        ORDER BY sy.sy_id DESC, FIELD(ip.priority_level,'High','Medium','Low'), ip.created_at DESC
+    ");
+    $histQ->execute([$schoolId]);
+    $historyPlans = $histQ->fetchAll();
+}
+
 $pageTitle = 'AI Suggestion Planning'; $activePage = 'ai_suggestion_planning.php';
 include __DIR__.'/../includes/header.php';
 ?>
 <div class="page-head"></div>
 
+<?php if ($cycle): ?>
 <div class="card" style="margin-bottom:18px;">
   <div class="card-body" style="padding:20px 24px;">
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;">
@@ -610,6 +707,74 @@ include __DIR__.'/../includes/header.php';
     </div>
   <?php endif; ?>
 </div>
+<?php else: ?>
+
+<div class="card" style="margin-bottom:18px;">
+  <div class="card-body" style="padding:20px 24px;">
+    <p style="font-size:13px;color:var(--n-500);">
+      A new school year has started and no self-assessment cycle has begun yet. Once the cycle is underway, AI suggestions and the improvement plan tools will appear here. In the meantime, you can review your school's past improvement plans below.
+    </p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:18px;">
+  <div class="card-head">
+    <span class="card-title">Improvement Plan History</span>
+  </div>
+  <?php if (empty($historyPlans)): ?>
+    <div class="card-body" style="padding:20px 24px;">
+      <p style="font-size:13px;color:var(--n-500);">No past improvement plans found for this school.</p>
+    </div>
+  <?php else: ?>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:80px;">School Year</th>
+            <th style="width:70px;">Dimension</th>
+            <th style="width:90px;">Indicator</th>
+            <th>Objective</th>
+            <th style="width:90px;">Priority</th>
+            <th style="width:110px;">Target Date</th>
+            <th style="width:100px;">Status</th>
+            <th style="width:70px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($historyPlans as $p): ?>
+            <tr>
+              <td style="font-size:12px;color:var(--n-600);">SY <?= e($p['sy_label']) ?></td>
+              <td><strong style="font-size:12px;color:<?= e($p['color_hex'] ?? 'var(--n-600)') ?>;">D<?= (int)$p['dimension_no'] ?></strong></td>
+              <td style="font-size:12px;color:var(--n-600);"><?= e($p['indicator_code'] ?? '—') ?></td>
+              <td style="font-size:12.5px;line-height:1.5;"><?= e($p['objective']) ?></td>
+              <td>
+                <span style="display:inline-flex;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;
+                  background:<?= $p['priority_level']==='High' ? '#fee2e2' : ($p['priority_level']==='Low' ? '#f1f5f9' : '#fef3c7') ?>;
+                  color:<?= $p['priority_level']==='High' ? '#dc2626' : ($p['priority_level']==='Low' ? '#64748b' : '#b45309') ?>;">
+                  <?= e($p['priority_level']) ?>
+                </span>
+              </td>
+              <td style="font-size:12.5px;color:var(--n-600);"><?= $p['target_date'] ? date('M j, Y', strtotime($p['target_date'])) : '—' ?></td>
+              <td>
+                <span style="display:inline-flex;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;
+                  background:<?= $p['workflow_status']===IP_STATUS_SUBMITTED ? '#dcfce7' : '#f1f5f9' ?>;
+                  color:<?= $p['workflow_status']===IP_STATUS_SUBMITTED ? '#15803d' : '#64748b' ?>;">
+                  <?= e(ucfirst($p['workflow_status'])) ?>
+                </span>
+              </td>
+              <td>
+                <button class="ip-icon-btn" title="Preview" onclick='openViewPlan(<?= json_encode($p, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <!-- ── SUBMIT CONFIRMATION MODAL ── -->
 <div id="submitConfirmModal" class="modal-overlay">
@@ -664,11 +829,11 @@ include __DIR__.'/../includes/header.php';
           </div>
           <div class="form-group">
             <label>Objective</label>
-            <textarea id="editObjective" class="form-control" rows="2" required></textarea>
+            <textarea id="editObjective" class="form-control autosize" rows="2" required></textarea>
           </div>
           <div class="form-group">
             <label>Strategy</label>
-            <textarea id="editStrategy" class="form-control" rows="2" required></textarea>
+            <textarea id="editStrategy" class="form-control autosize" rows="2" required></textarea>
           </div>
           <div class="form-group">
             <label>Person Responsible</label>
@@ -766,14 +931,22 @@ include __DIR__.'/../includes/header.php';
             </div>
           </div>
           <div class="form-group">
-            <label>Objective</label>
-            <textarea name="objective" class="form-control" rows="2" placeholder="What do you want to achieve?"
+            <div class="field-header">
+              <label>Objective</label>
+              <button type="button" class="ai-suggest-link" id="genObjectiveBtn" onclick="generateIpField('objective')" disabled>Suggest</button>
+            </div>
+            <textarea name="objective" class="form-control autosize" rows="2" placeholder="What do you want to achieve?"
               required></textarea>
+            <div class="ai-field-status" id="objectiveAiStatus"></div>
           </div>
           <div class="form-group">
-            <label>Strategy</label>
-            <textarea name="strategy" class="form-control" rows="2" placeholder="How will you achieve it?"
+            <div class="field-header">
+              <label>Strategy</label>
+              <button type="button" class="ai-suggest-link" id="genStrategyBtn" onclick="generateIpField('strategy')" disabled>Suggest</button>
+            </div>
+            <textarea name="strategy" class="form-control autosize" rows="2" placeholder="How will you achieve it?"
               required></textarea>
+            <div class="ai-field-status" id="strategyAiStatus"></div>
           </div>
           <div class="form-group">
             <label>Person Responsible</label>
@@ -793,7 +966,7 @@ include __DIR__.'/../includes/header.php';
         </form>
       </div>
       <div class="modal-footer">
-        <div style="flex:1"></div>
+        <div class="ip-ai-usage-note" id="ipAiUsageNote" style="flex:1"></div>
         <button class="btn-secondary" onclick="closeImprovementPlanModal()">Cancel</button>
         <button class="btn-primary" onclick="saveImprovementPlan(event)">Save Improvement Plan</button>
       </div>
@@ -895,6 +1068,45 @@ include __DIR__.'/../includes/header.php';
   border-color: #fecaca;
 }
 
+.field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.field-header label {
+  margin-bottom: 0 !important;
+}
+.ai-suggest-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #6B7280;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
+}
+.ai-suggest-link:hover:not(:disabled) {
+  color: var(--green-700, #15803d);
+}
+.ai-suggest-link:disabled {
+  color: var(--n-300, #cbd5e1);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+.ai-field-status {
+  font-size: 11px;
+  color: #dc2626;
+  margin-top: 4px;
+  min-height: 0;
+}
+.ip-ai-usage-note {
+  font-size: 11px;
+  color: var(--n-400, #94a3b8);
+}
+
 /* ── Improvement Plan Modal (moved from dashboard.php) ── */
 .modal-overlay {
   position: fixed;
@@ -993,6 +1205,11 @@ include __DIR__.'/../includes/header.php';
 
 .modal-content .form-control:focus {
   border-color: var(--n-600);
+}
+
+.modal-content textarea.form-control.autosize {
+  resize: none;
+  overflow: hidden;
 }
 
 .modal-content .grid2 {
@@ -1212,12 +1429,182 @@ function parseAILogicToHtml(text) {
   return finalHtml;
 }
 
+// ── AUTO-GROW TEXTAREAS (Objective / Strategy) ────────────────────
+function autoGrowTextarea(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+function wireAutoGrow(el) {
+  if (!el || el.dataset.autoGrowWired) return;
+  el.dataset.autoGrowWired = '1';
+  el.addEventListener('input', () => autoGrowTextarea(el));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.modal-content textarea.autosize').forEach(el => {
+    wireAutoGrow(el);
+  });
+});
+
 function stripTrailingQuestion(text) {
   const lines = text.split('\n');
   while (lines.length && /\?\s*$/.test(lines[lines.length - 1].trim())) {
     lines.pop();
   }
   return lines.join('\n').trim();
+}
+
+// ── IMPROVEMENT PLAN: AI-ASSISTED OBJECTIVE/STRATEGY ─────────────
+// Holds the raw AI Suggestions text (not the HTML) so we can extract
+// the exact section that matches the selected indicator.
+let currentAiRawText = '';
+
+/** Splits the raw AI text into blocks at each bold header, then returns
+ *  the ONE block that mentions the given indicator code — or null. */
+function extractIndicatorSnippet(rawText, indicatorCode) {
+  if (!rawText || !indicatorCode) return null;
+
+  const lines = rawText.split('\n');
+  const blocks = [];
+  let current = [];
+
+  lines.forEach(line => {
+    const isHeader = /^\*\*(.+?)\*\*/.test(line.trim());
+    if (isHeader && current.length) {
+      blocks.push(current.join('\n'));
+      current = [line];
+    } else {
+      current.push(line);
+    }
+  });
+  if (current.length) blocks.push(current.join('\n'));
+
+  const escaped = indicatorCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const codeRegex = new RegExp('\\b' + escaped + '\\b');
+
+  const match = blocks.find(b => codeRegex.test(b));
+  return match ? match.trim() : null;
+}
+
+/** Returns { indicator_id, indicator_code, indicator_text, dimension_name }
+ *  only when exactly ONE indicator is currently selected. */
+function getSelectedIndicatorMeta() {
+  const ids = (document.getElementById('indIdsInput').value || '').split(',').filter(Boolean);
+  if (ids.length !== 1) return null;
+  return weakIndicatorsBase.find(wi => String(wi.indicator_id) === ids[0]) || null;
+}
+
+// ── IP FIELD (Objective/Strategy) usage state — 3 generations each per day ──
+const ipFieldLimit = 3;
+let ipFieldRemaining = { objective: ipFieldLimit, strategy: ipFieldLimit };
+
+function ipFieldLimitReached(fieldType) {
+  return ipFieldRemaining[fieldType] <= 0;
+}
+
+async function initIpFieldUsageState() {
+  const formData = new FormData();
+  formData.append('action', 'get_ip_field_usage_status');
+
+  try {
+    const res = await fetch(window.location.href, { method: 'POST', body: formData });
+    const data = await res.json();
+    ipFieldRemaining.objective = data.objective?.remaining ?? ipFieldLimit;
+    ipFieldRemaining.strategy = data.strategy?.remaining ?? ipFieldLimit;
+    updateAiFieldButtons();
+  } catch (err) {
+    console.error('Failed to load IP field usage status', err);
+  }
+}
+document.addEventListener('DOMContentLoaded', initIpFieldUsageState);
+
+/** Enables/disables the header "💡 Suggest" links based on selection
+ *  AND remaining daily quota (3 objective / 3 strategy). Also refreshes
+ *  the single usage note shown near the modal footer. */
+function updateAiFieldButtons() {
+  const dimSelected = !!(document.getElementById('dimIdsInput').value);
+  const ids = (document.getElementById('indIdsInput').value || '').split(',').filter(Boolean);
+  const meta = getSelectedIndicatorMeta();
+
+  const objBtn = document.getElementById('genObjectiveBtn');
+  const stratBtn = document.getElementById('genStrategyBtn');
+  const selectionReady = dimSelected && ids.length === 1 && !!meta;
+
+  let hint = '';
+  if (!dimSelected || ids.length === 0) {
+    hint = 'Select a Dimension and Indicator to enable AI suggestions.';
+  } else if (ids.length > 1) {
+    hint = 'Select a single Indicator to use AI suggestions.';
+  }
+
+  objBtn.disabled = !selectionReady || ipFieldLimitReached('objective');
+  stratBtn.disabled = !selectionReady || ipFieldLimitReached('strategy');
+
+  objBtn.title = !selectionReady ? hint : (ipFieldLimitReached('objective') ? "Today's objective-suggestion limit reached." : '');
+  stratBtn.title = !selectionReady ? hint : (ipFieldLimitReached('strategy') ? "Today's strategy-suggestion limit reached." : '');
+
+  updateIpAiUsageNote();
+}
+
+function updateIpAiUsageNote() {
+  const note = document.getElementById('ipAiUsageNote');
+  if (!note) return;
+  note.textContent =
+    'AI suggestions left today — Objective: ' + ipFieldRemaining.objective + '/' + ipFieldLimit +
+    ' · Strategy: ' + ipFieldRemaining.strategy + '/' + ipFieldLimit;
+}
+
+async function generateIpField(fieldType) {
+  const meta = getSelectedIndicatorMeta();
+  if (!meta) return;
+
+  const btn = document.getElementById(fieldType === 'objective' ? 'genObjectiveBtn' : 'genStrategyBtn');
+  const statusEl = document.getElementById(fieldType + 'AiStatus');
+  const textarea = document.querySelector(`#improvementPlanForm textarea[name="${fieldType}"]`);
+
+  const snippet = extractIndicatorSnippet(currentAiRawText, meta.indicator_code);
+  if (!snippet) {
+    statusEl.textContent = 'No AI suggestion found for this indicator yet — generate AI Suggestions above first.';
+    return;
+  }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  statusEl.textContent = '';
+
+  const formData = new FormData();
+  formData.append('action', 'generate_ip_field');
+  formData.append('field_type', fieldType);
+  formData.append('indicator_code', meta.indicator_code);
+  formData.append('indicator_text', meta.indicator_text);
+  formData.append('dimension_name', meta.dimension_name);
+  formData.append('snippet', snippet);
+
+  try {
+    const res = await fetch(window.location.href, { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (typeof data.remaining === 'number') {
+      ipFieldRemaining[fieldType] = data.remaining;
+    }
+
+    if (data.success && data.text) {
+      textarea.value = data.text.trim();
+      autoGrowTextarea(textarea);
+    } else {
+      statusEl.textContent = data.message || 'Could not generate content. Please try again.';
+    }
+    updateAiFieldButtons();
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = 'Network error. Please try again.';
+  } finally {
+    btn.textContent = originalLabel;
+    updateAiFieldButtons();
+  }
 }
 
 // ── IMPROVEMENT PLAN: TAG MULTI-SELECT COMPONENT (moved from dashboard.php) ──
@@ -1388,13 +1775,16 @@ document.addEventListener('DOMContentLoaded', () => {
         label: wi.indicator_code
       }));
     if (indTagControl) indTagControl.setOptions(filteredIndicators);
+    updateAiFieldButtons();
   });
 
-  indTagControl = initTagSelect('ind', []);
+  indTagControl = initTagSelect('ind', [], () => updateAiFieldButtons());
 });
 
 function manuallyAddImprovementPlan() {
   document.getElementById('improvementPlanModal').style.display = 'flex';
+  autoGrowTextarea(document.querySelector('#improvementPlanForm textarea[name="objective"]'));
+  autoGrowTextarea(document.querySelector('#improvementPlanForm textarea[name="strategy"]'));
 }
 
 function closeImprovementPlanModal() {
@@ -1402,6 +1792,8 @@ function closeImprovementPlanModal() {
   if (dimTagControl) dimTagControl.reset();
   if (indTagControl) indTagControl.reset();
   document.getElementById('improvementPlanForm').reset();
+  document.querySelectorAll('#improvementPlanForm textarea.autosize').forEach(el => { el.style.height = ''; });
+  updateAiFieldButtons();
 }
 
 async function saveImprovementPlan(e) {
@@ -1490,6 +1882,8 @@ function openEditPlan(plan) {
   document.getElementById('editResourcesNeeded').value = plan.resources_needed || '';
   document.getElementById('editExpectedOutput').value = plan.expected_output || '';
   document.getElementById('editPlanModal').style.display = 'flex';
+  autoGrowTextarea(document.getElementById('editObjective'));
+  autoGrowTextarea(document.getElementById('editStrategy'));
 }
 
 function closeEditPlanModal() {
@@ -1649,6 +2043,7 @@ function startAiCooldown(seconds) {
 function renderStoredRecommendation(recs, lastGeneratedAtUtc) {
   const body = document.getElementById('aiSuggestBody');
   const cleaned = stripTrailingQuestion(recs);
+  currentAiRawText = cleaned;
   body.innerHTML = cleaned
     ? parseAILogicToHtml(cleaned)
     : '<p style="font-size:13px;color:var(--n-500);">Your performance is currently optimal with no critical gaps detected.</p>';
@@ -1728,6 +2123,7 @@ async function loadAISuggestionsPlan() {
     }
 
     const recs = stripTrailingQuestion(data.recommendations || '');
+    currentAiRawText = recs;
     body.innerHTML = recs
       ? parseAILogicToHtml(recs)
       : '<p style="font-size:13px;color:var(--n-500);">Your performance is currently optimal with no critical gaps detected.</p>';
