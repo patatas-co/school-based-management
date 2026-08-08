@@ -509,6 +509,115 @@ include __DIR__ . '/../includes/header.php';
 }
 .mf-warning svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; margin-top: 1px; }
 
+/* ── IMPORT FROM DOCUMENT ── */
+.mf-import-desc {
+    font-size: 13px;
+    color: var(--n-500);
+    line-height: 1.6;
+    margin-bottom: 16px;
+}
+
+.mf-import-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
+    padding: 28px 20px;
+    border: 1.5px dashed var(--n-300);
+    border-radius: 10px;
+    background: var(--n-50);
+    cursor: pointer;
+    transition: all 140ms;
+}
+.mf-import-dropzone:hover,
+.mf-import-dropzone.drag-over {
+    border-color: var(--brand-500);
+    background: var(--brand-50);
+}
+.mf-import-dropzone svg {
+    width: 26px;
+    height: 26px;
+    stroke: var(--n-400);
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.mf-import-dropzone.drag-over svg { stroke: var(--brand-600); }
+.mf-import-dz-title { font-size: 13px; font-weight: 600; color: var(--n-700); }
+.mf-import-dz-sub { font-size: 11.5px; color: var(--n-400); }
+
+.mf-import-file-chip {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 9px 12px;
+    border: 1.5px solid var(--n-200);
+    border-radius: 8px;
+    background: #fff;
+}
+.mf-import-file-chip.show { display: flex; }
+.mf-import-file-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    background: var(--brand-100);
+    color: var(--brand-700);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.mf-import-file-icon svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mf-import-file-info { flex: 1; min-width: 0; }
+.mf-import-file-name { font-size: 12.5px; font-weight: 600; color: var(--n-800); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mf-import-file-size { font-size: 11px; color: var(--n-400); margin-top: 1px; }
+.mf-import-file-remove {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--n-400);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 120ms;
+}
+.mf-import-file-remove:hover { background: var(--n-100); color: var(--n-700); }
+.mf-import-file-remove svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+
+.mf-import-status {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+.mf-import-status.show { display: flex; }
+.mf-import-status.loading { background: var(--n-50); color: var(--n-600); border: 1px solid var(--n-200); }
+.mf-import-status.error   { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
+.mf-import-status.success { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
+
+.mf-import-spinner {
+    width: 13px;
+    height: 13px;
+    border: 2px solid var(--n-300);
+    border-top-color: var(--brand-600);
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: mf-spin 700ms linear infinite;
+}
+@keyframes mf-spin { to { transform: rotate(360deg); } }
+
 @media (max-width: 900px) {
     .mf-layout { grid-template-columns: 1fr; }
     .mf-sidebar { position: static; }
@@ -726,17 +835,39 @@ include __DIR__ . '/../includes/header.php';
 <!-- ── IMPORT FROM DOCUMENT MODAL ── -->
 <div class="overlay" id="mImport" onclick="if(event.target===this)closeModal('mImport')">
     <div class="modal" style="max-width:480px;" onclick="event.stopPropagation()">
-        <div class="modal-header">
-            <div class="modal-title">Import Form from Document</div>
-            <button class="modal-close" onclick="closeModal('mImport')">&times;</button>
+        <div class="modal-head">
+            <span class="modal-title">Import Form from Document</span>
+            <button class="modal-close" onclick="closeModal('mImport')">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
         </div>
         <div class="modal-body" style="padding:20px 24px;">
-            <p style="font-size:13px;color:var(--n-500);margin-bottom:14px;">
+            <p class="mf-import-desc">
                 Upload a PDF or DOCX containing the SBM assessment form (dimensions, indicators, and MOVs).
                 AI will extract the content into an editable draft — nothing is published until you review and click "Publish New Version".
             </p>
-            <input type="file" id="importFileInput" accept=".pdf,.docx,.doc" style="width:100%;font-size:13px;">
-            <div id="importStatusMsg" style="display:none;margin-top:12px;font-size:12.5px;"></div>
+
+            <div class="mf-import-dropzone" id="importDropzone" onclick="document.getElementById('importFileInput').click()">
+                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <div class="mf-import-dz-title">Click to browse, or drag a file here</div>
+                <div class="mf-import-dz-sub">PDF or DOCX · up to 15MB</div>
+            </div>
+            <input type="file" id="importFileInput" accept=".pdf,.docx,.doc" style="display:none;">
+
+            <div class="mf-import-file-chip" id="importFileChip">
+                <div class="mf-import-file-icon">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div class="mf-import-file-info">
+                    <div class="mf-import-file-name" id="importFileName">—</div>
+                    <div class="mf-import-file-size" id="importFileSize">—</div>
+                </div>
+                <button type="button" class="mf-import-file-remove" onclick="clearImportFile(event)" title="Remove">
+                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="mf-import-status" id="importStatusMsg"></div>
         </div>
         <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:10px;padding:14px 24px;">
             <button class="btn btn-secondary btn-sm" onclick="closeModal('mImport')">Cancel</button>
@@ -895,30 +1026,77 @@ function cancelEdit() {
 
 // ── IMPORT FROM DOCUMENT ────────────────────────────────────────
 function openImportModal() {
-    document.getElementById('importFileInput').value = '';
-    const msg = document.getElementById('importStatusMsg');
-    msg.style.display = 'none';
-    msg.textContent = '';
+    clearImportFile();
+    setImportStatus(null);
     document.getElementById('mImport').classList.add('open');
 }
 
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function showImportFile(file) {
+    document.getElementById('importDropzone').style.display = 'none';
+    document.getElementById('importFileChip').classList.add('show');
+    document.getElementById('importFileName').textContent = file.name;
+    document.getElementById('importFileSize').textContent = formatFileSize(file.size);
+}
+
+function clearImportFile(e) {
+    if (e) e.stopPropagation();
+    document.getElementById('importFileInput').value = '';
+    document.getElementById('importDropzone').style.display = '';
+    document.getElementById('importFileChip').classList.remove('show');
+    setImportStatus(null);
+}
+
+function setImportStatus(state, message) {
+    const msg = document.getElementById('importStatusMsg');
+    msg.classList.remove('show', 'loading', 'error', 'success');
+    if (!state) { msg.innerHTML = ''; return; }
+    msg.classList.add('show', state);
+    msg.innerHTML = state === 'loading'
+        ? `<span class="mf-import-spinner"></span><span>${message}</span>`
+        : `<span>${message}</span>`;
+}
+
+(function initImportDropzone() {
+    const dz = document.getElementById('importDropzone');
+    const input = document.getElementById('importFileInput');
+    if (!dz || !input) return;
+
+    input.addEventListener('change', () => {
+        if (input.files.length) showImportFile(input.files[0]);
+    });
+
+    ['dragenter', 'dragover'].forEach(evt => {
+        dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.add('drag-over'); });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+        dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.remove('drag-over'); });
+    });
+    dz.addEventListener('drop', e => {
+        if (e.dataTransfer.files.length) {
+            input.files = e.dataTransfer.files;
+            showImportFile(input.files[0]);
+        }
+    });
+})();
+
 async function runDocumentImport() {
     const fileInput = document.getElementById('importFileInput');
-    const msg = document.getElementById('importStatusMsg');
     const btn = document.getElementById('btnRunImport');
 
     if (!fileInput.files.length) {
-        msg.style.display = '';
-        msg.style.color = 'var(--red, #dc2626)';
-        msg.textContent = 'Please choose a PDF or DOCX file first.';
+        setImportStatus('error', 'Please choose a PDF or DOCX file first.');
         return;
     }
 
     btn.disabled = true;
     btn.textContent = 'Extracting…';
-    msg.style.display = '';
-    msg.style.color = 'var(--n-500)';
-    msg.textContent = 'Reading document and extracting form structure — this may take up to 30 seconds…';
+    setImportStatus('loading', 'Reading document and extracting form structure — this may take up to 30 seconds…');
 
     const fd = new FormData();
     fd.append('action', 'import_document');
@@ -933,10 +1111,11 @@ async function runDocumentImport() {
         btn.textContent = 'Extract & Preview';
 
         if (!data.ok) {
-            msg.style.color = 'var(--red, #dc2626)';
-            msg.textContent = data.msg || 'Import failed.';
+            setImportStatus('error', data.msg || 'Import failed.');
             return;
         }
+
+        setImportStatus('success', 'Extracted successfully. Opening draft…');
 
         // Normalize AI output into the editor's expected shape, then open Edit Mode.
         _isEditing = true;
@@ -962,8 +1141,7 @@ async function runDocumentImport() {
     } catch (err) {
         btn.disabled = false;
         btn.textContent = 'Extract & Preview';
-        msg.style.color = 'var(--red, #dc2626)';
-        msg.textContent = 'Something went wrong reaching the server. Please try again.';
+        setImportStatus('error', 'Something went wrong reaching the server. Please try again.');
     }
 }
 
