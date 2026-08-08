@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from comment_analyzer      import batch_analyze, analyze_comment
 from score_analyzer        import full_analysis
-from recommendation_engine import generate_recommendations, generate_ip_field
+from recommendation_engine import generate_recommendations, generate_ip_field, extract_form_from_document
 
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env", override=True)
@@ -85,6 +85,18 @@ def generate_ip_field_route():
         dimension_name  = data.get("dimension_name", ""),
         snippet         = data.get("snippet", ""),
         backend         = LLM_BACKEND,
+    )
+    return jsonify(result)
+
+
+@app.route("/api/parse_form_document", methods=["POST"])
+def parse_form_document():
+    if not auth(request):
+        return jsonify({"error": "unauthorized"}), 401
+    data   = request.get_json(force=True)
+    result = extract_form_from_document(
+        raw_text = data.get("text", ""),
+        backend  = LLM_BACKEND,
     )
     return jsonify(result)
 

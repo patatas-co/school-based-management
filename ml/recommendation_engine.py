@@ -227,6 +227,135 @@ def _call_groq(prompt: str) -> str:
     return response.choices[0].message.content.strip()
 
 
+def _build_form_extraction_prompt(raw_text: str) -> str:
+    """
+    Builds a prompt instructing the LLM to convert raw extracted document
+    text (from a PDF/DOCX SBM assessment form) into strict structured JSON
+    matching the SBM form editor's shape.
+    """
+    # Guard against oversized documents blowing the context window.
+    max_chars = 24000
+    if len(raw_text) > max_chars:
+        raw_text = raw_text[:max_chars]
+
+    prompt = textwrap.dedent(f"""
+    You are extracting structured data from a Philippine DepEd School-Based
+    Management (SBM) self-assessment form document. The document lists
+    dimensions (e.g. "Dimension 1: Curriculum and Teaching"), each containing
+    numbered indicators (e.g. "1.1", "1.2") with descriptive text, and each
+    indicator usually has a "Means of Verification" (MOV) reference — the
+    documents/evidence needed to prove the indicator (may be labeled "MOV:",
+    "Means of Verification:", "Evidence:", or similar).
+
+    Return ONLY valid JSON (no markdown fences, no commentary, no preamble)
+    in EXACTLY this shape:
+
+    {{
+      "dimensions": [
+        {{
+          "dimension_no": 1,
+          "dimension_name": "Curriculum and Teaching",
+          "indicators": [
+            {{
+              "indicator_text": "Grade 3 learners achieve the proficiency level for each cluster of early language, literacy, and numeracy skill.",
+              "mov_guide": "MPS/proficiency data, class records, early language and literacy assessment results"
+            }}
+          ]
+        }}
+      ]
+    }}
+
+    Rules:
+    - dimension_no must be a sequential integer starting at 1, in the order dimensions appear in the document.
+    - Preserve the original wording of indicator_text and mov_guide as closely as possible — do not paraphrase or summarize.
+    - If an indicator has no explicit MOV in the document, set mov_guide to an empty string "".
+    - Do not invent dimensions or indicators that are not present in the document.
+    - Do not include indicator numbering/codes (like "1.1") inside indicator_text — that is derived separately.
+    - If the document is not a recognizable SBM assessment form (no dimensions/indicators found), return {{"dimensions": []}}.
+
+    Document text:
+    ---
+    {raw_text}
+    ---
+
+    Return ONLY the JSON object described above.
+    """).strip()
+
+    return prompt
+
+
+def extract_form_from_document(raw_text: str, backend: str = "groq") -> dict:
+    """
+    Entry point for the "Import from Document" feature in Manage Form.
+    Sends extracted document text to the LLM and parses its JSON response
+    into the dimensions/indicators structure used by the form editor.
+    """
+    prompt = _build_form_extraction_prompt(raw_text)
+    error  = None
+    parsed = {"dimensions": []}
+
+    try:
+        if backend == "ollama":
+            text = _call_ollama(prompt)
+        elif backend == "openai":
+            text = _call_openai(prompt)
+        else:
+            text = _call_groq_json(prompt)
+            backend = "groq"
+
+        # Strip markdown code fences if the model added them anyway.
+        cleaned = text.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.strip("`")
+            if cleaned.lower().startswith("json"):
+                cleaned = cleaned[4:]
+        cleaned = cleaned.strip()
+
+        parsed = json.loads(cleaned)
+        if not isinstance(parsed, dict) or "dimensions" not in parsed:
+            raise ValueError("Response JSON missing 'dimensions' key.")
+
+    except Exception as e:
+        import logging
+        import traceback
+        tb = traceback.format_exc()
+        logging.error(f"Error extracting form from document ({backend}): {e}\n{tb}")
+        print(f"[ML ERROR] extract_form_from_document {backend} failed: {e}\n{tb}", flush=True)
+        error = str(e)
+        parsed = {"dimensions": []}
+
+    return {
+        "dimensions": parsed.get("dimensions", []),
+        "backend_used": backend,
+        "error": error,
+    }
+
+
+def _call_groq_json(prompt: str) -> str:
+    """Call Groq with JSON mode enabled and a much larger token budget —
+    used for form-extraction, which can require a long structured response."""
+    from openai import OpenAI
+
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY is missing. Set it in the ML service environment.")
+
+    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://api.groq.com/openai/v1"
+    )
+    response = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+        max_tokens=8000,
+        response_format={"type": "json_object"},
+    )
+    return response.choices[0].message.content.strip()
+
+
 def _build_ip_field_prompt(field_type: str, indicator_code: str, indicator_text: str,
                             dimension_name: str, snippet: str) -> str:
     """

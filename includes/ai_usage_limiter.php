@@ -13,6 +13,10 @@ define('AI_USAGE_COOLDOWN_SECONDS', 20);
 // field type gets its own daily quota (3 + 3, not a shared pool of 3).
 define('AI_IP_FIELD_DAILY_LIMIT', 3);
 
+// Separate daily quota for the "Import from Document" feature in Manage Form —
+// each import costs one LLM call over a potentially large document.
+define('DOC_IMPORT_DAILY_LIMIT', 10);
+
 /**
  * Read-only status check (no locking, no mutation). Used to restore
  * button/timer state on page load without consuming a generation.
@@ -95,6 +99,60 @@ function ipFieldUsageGetStatus(PDO $db, int $userId, string $fieldType): array
         'remaining' => max(0, AI_IP_FIELD_DAILY_LIMIT - $used),
         'limit' => AI_IP_FIELD_DAILY_LIMIT,
     ];
+}
+
+/**
+ * Atomically validates + consumes one document import for this user
+ * (shared with no other quota — its own row keyed by user_id only,
+ * reusing the ip_field_usage table with a fixed field_type value so no
+ * new table is needed).
+ */
+function docImportCheckAndConsume(PDO $db, int $userId): array
+{
+    $todayUtc = gmdate('Y-m-d');
+
+    $db->beginTransaction();
+    try {
+        $stmt = $db->prepare("SELECT usage_count, reset_date FROM doc_import_usage WHERE user_id = ? FOR UPDATE");
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+
+        if (!$row) {
+            $ins = $db->prepare("INSERT INTO doc_import_usage (user_id, usage_count, reset_date) VALUES (?, 0, ?)");
+            $ins->execute([$userId, $todayUtc]);
+            $usageCount = 0;
+        } elseif ($row['reset_date'] !== $todayUtc) {
+            $usageCount = 0;
+        } else {
+            $usageCount = (int) $row['usage_count'];
+        }
+
+        if ($usageCount >= DOC_IMPORT_DAILY_LIMIT) {
+            $db->rollBack();
+            return [
+                'allowed' => false,
+                'reason' => 'daily_limit',
+                'message' => "You've reached today's limit for document imports ({$usageCount}/" . DOC_IMPORT_DAILY_LIMIT . ").",
+                'remaining' => 0,
+                'limit' => DOC_IMPORT_DAILY_LIMIT,
+            ];
+        }
+
+        $newCount = $usageCount + 1;
+        $upd = $db->prepare("UPDATE doc_import_usage SET usage_count = ?, reset_date = ? WHERE user_id = ?");
+        $upd->execute([$newCount, $todayUtc, $userId]);
+
+        $db->commit();
+
+        return [
+            'allowed' => true,
+            'remaining' => max(0, DOC_IMPORT_DAILY_LIMIT - $newCount),
+            'limit' => DOC_IMPORT_DAILY_LIMIT,
+        ];
+    } catch (Exception $e) {
+        if ($db->inTransaction()) $db->rollBack();
+        throw $e;
+    }
 }
 
 /**

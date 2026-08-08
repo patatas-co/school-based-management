@@ -3,6 +3,8 @@ ob_start();
 // coordinator/manage_form.php — SBM Form Version Manager
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/ai_usage_limiter.php';
+require_once __DIR__ . '/../includes/document_extract.php';
 requireRole('sbm_coordinator');
 $db = getDB();
 
@@ -28,6 +30,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $d['indicators'] = $inds->fetchAll();
         }
         echo json_encode(['ok' => true, 'dimensions' => $dims]);
+        exit;
+    }
+
+    // ── Import form from uploaded PDF/DOCX via AI extraction ──
+    if ($action === 'import_document') {
+        require_once __DIR__ . '/../includes/ml_service.php';
+        $uid = $_SESSION['user_id'];
+
+        $usage = docImportCheckAndConsume($db, $uid);
+        if (!$usage['allowed']) {
+            echo json_encode(['ok' => false, 'msg' => $usage['message']]);
+            exit;
+        }
+
+        if (empty($_FILES['import_file']) || $_FILES['import_file']['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['ok' => false, 'msg' => 'No file uploaded, or the upload failed.']);
+            exit;
+        }
+
+        $file = $_FILES['import_file'];
+        $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, ['pdf', 'docx', 'doc'])) {
+            echo json_encode(['ok' => false, 'msg' => 'Only PDF and DOCX files are supported.']);
+            exit;
+        }
+        if ($file['size'] > 15 * 1024 * 1024) { // 15MB
+            echo json_encode(['ok' => false, 'msg' => 'File is too large. Max size is 15MB.']);
+            exit;
+        }
+
+        $extracted = extractTextFromUploadedForm($file['tmp_name'], $file['name']);
+        if (!$extracted['ok']) {
+            echo json_encode(['ok' => false, 'msg' => $extracted['msg']]);
+            exit;
+        }
+
+        $mlResult = ml_post('/api/parse_form_document', ['text' => $extracted['text']]);
+
+        if (!$mlResult || !empty($mlResult['error'])) {
+            $err = $mlResult['error'] ?? 'AI service unavailable. Please try again shortly.';
+            echo json_encode(['ok' => false, 'msg' => 'Could not extract form data: ' . $err]);
+            exit;
+        }
+
+        $dimensions = $mlResult['dimensions'] ?? [];
+        if (empty($dimensions)) {
+            echo json_encode(['ok' => false, 'msg' => 'No dimensions/indicators could be recognized in this document. Please check the file and try again, or build the form manually.']);
+            exit;
+        }
+
+        logActivity('import_form_document', 'manage_form', "Imported form draft from uploaded document ($ext)");
+        echo json_encode(['ok' => true, 'dimensions' => $dimensions, 'remaining' => $usage['remaining']]);
         exit;
     }
 
@@ -485,6 +539,10 @@ include __DIR__ . '/../includes/header.php';
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     Preview Active
                 </button>
+                <button class="btn btn-secondary btn-sm" onclick="openImportModal()" id="btnImportDoc" style="flex:1;justify-content:center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Import from Document
+                </button>
                 <button class="btn btn-primary btn-sm" onclick="startEdit()" id="btnStartEdit" style="flex:1;justify-content:center;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     Edit Form
@@ -665,6 +723,28 @@ include __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
+<!-- ── IMPORT FROM DOCUMENT MODAL ── -->
+<div class="overlay" id="mImport" onclick="if(event.target===this)closeModal('mImport')">
+    <div class="modal" style="max-width:480px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title">Import Form from Document</div>
+            <button class="modal-close" onclick="closeModal('mImport')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:20px 24px;">
+            <p style="font-size:13px;color:var(--n-500);margin-bottom:14px;">
+                Upload a PDF or DOCX containing the SBM assessment form (dimensions, indicators, and MOVs).
+                AI will extract the content into an editable draft — nothing is published until you review and click "Publish New Version".
+            </p>
+            <input type="file" id="importFileInput" accept=".pdf,.docx,.doc" style="width:100%;font-size:13px;">
+            <div id="importStatusMsg" style="display:none;margin-top:12px;font-size:12.5px;"></div>
+        </div>
+        <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:10px;padding:14px 24px;">
+            <button class="btn btn-secondary btn-sm" onclick="closeModal('mImport')">Cancel</button>
+            <button class="btn btn-primary btn-sm" id="btnRunImport" onclick="runDocumentImport()">Extract & Preview</button>
+        </div>
+    </div>
+</div>
+
 <!-- ── PREVIEW MODAL ── -->
 <div class="overlay" id="mPreview" onclick="if(event.target===this)closeModal('mPreview')">
     <div class="modal" style="max-width:720px;max-height:90vh;">
@@ -811,6 +891,80 @@ function cancelEdit() {
     document.getElementById('editMode').style.display  = 'none';
     document.getElementById('publishPanel').classList.remove('open');
     document.getElementById('btnStartEdit').style.display = '';
+}
+
+// ── IMPORT FROM DOCUMENT ────────────────────────────────────────
+function openImportModal() {
+    document.getElementById('importFileInput').value = '';
+    const msg = document.getElementById('importStatusMsg');
+    msg.style.display = 'none';
+    msg.textContent = '';
+    document.getElementById('mImport').classList.add('open');
+}
+
+async function runDocumentImport() {
+    const fileInput = document.getElementById('importFileInput');
+    const msg = document.getElementById('importStatusMsg');
+    const btn = document.getElementById('btnRunImport');
+
+    if (!fileInput.files.length) {
+        msg.style.display = '';
+        msg.style.color = 'var(--red, #dc2626)';
+        msg.textContent = 'Please choose a PDF or DOCX file first.';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Extracting…';
+    msg.style.display = '';
+    msg.style.color = 'var(--n-500)';
+    msg.textContent = 'Reading document and extracting form structure — this may take up to 30 seconds…';
+
+    const fd = new FormData();
+    fd.append('action', 'import_document');
+    fd.append('import_file', fileInput.files[0]);
+    fd.append('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
+
+    try {
+        const res = await fetch('manage_form.php', { method: 'POST', body: fd });
+        const data = await res.json();
+
+        btn.disabled = false;
+        btn.textContent = 'Extract & Preview';
+
+        if (!data.ok) {
+            msg.style.color = 'var(--red, #dc2626)';
+            msg.textContent = data.msg || 'Import failed.';
+            return;
+        }
+
+        // Normalize AI output into the editor's expected shape, then open Edit Mode.
+        _isEditing = true;
+        _editData = data.dimensions.map((d, dIdx) => ({
+            dimension_no: dIdx + 1,
+            dimension_name: d.dimension_name || `Dimension ${dIdx + 1}`,
+            color_hex: DIM_COLORS[dIdx % DIM_COLORS.length],
+            icon: 'layers',
+            indicators: (d.indicators || []).map(i => ({
+                indicator_text: i.indicator_text || '',
+                mov_guide: i.mov_guide || ''
+            }))
+        }));
+
+        closeModal('mImport');
+        toast('Document imported. Review the draft below, then Publish New Version.', 'ok');
+
+        document.getElementById('viewMode').style.display = 'none';
+        document.getElementById('editMode').style.display  = '';
+        document.getElementById('publishPanel').classList.add('open');
+        document.getElementById('btnStartEdit').style.display = 'none';
+        renderEditForm();
+    } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Extract & Preview';
+        msg.style.color = 'var(--red, #dc2626)';
+        msg.textContent = 'Something went wrong reaching the server. Please try again.';
+    }
 }
 
 // ── RENDER EDIT FORM ──────────────────────────────────────────
