@@ -239,8 +239,10 @@ $deadlineInfo = $selectedSyId ? getDeadlineInfo($db, $selectedSyId) : null;
 // ANALYTICS DATA (loaded upfront for inline toggle)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-// -- Comparison SY --------------------------------------------â”€
-$compareSyId = (int) ($_GET['compare_sy'] ?? 0);
+// -- Comparison SY(s) — up to 2 extra cycles (3 total with Primary) --
+$compareSyIds = array_values(array_unique(array_filter(array_map('intval', explode(',', $_GET['compare_sy'] ?? '')), fn($v) => $v > 0 && $v !== $selectedSyId)));
+$compareSyIds = array_slice($compareSyIds, 0, 2);
+$compareSyId = $compareSyIds[0] ?? 0;
 
 // -- Analytics dimension averages ------------------------------
 $anDimAvgQ = $db->prepare("
@@ -271,10 +273,10 @@ if ($minDimVal < 1000) {
   }
 }
 
-// -- Comparison SY dimension averages --------------------------
-$anDimAvgsCompare = [];
-if ($compareSyId && $compareSyId !== $selectedSyId) {
- $cmpQ = $db->prepare("
+// -- Comparison SY dimension averages (supports multiple compare cycles) --
+$anDimAvgsCompareList = [];
+foreach ($compareSyIds as $cmpSyId) {
+  $cmpQ = $db->prepare("
         SELECT d.dimension_no, d.dimension_name, d.color_hex,
                ROUND(AVG(ds.percentage),1) AS avg_pct
         FROM sbm_dimensions d
@@ -283,9 +285,14 @@ if ($compareSyId && $compareSyId !== $selectedSyId) {
         WHERE d.form_version_id = ?
         GROUP BY d.dimension_id ORDER BY d.dimension_no
     ");
-  $cmpQ->execute([$compareSyId, $mySchoolId, $activeFormVersionId]);
-  $anDimAvgsCompare = $cmpQ->fetchAll();
+  $cmpQ->execute([$cmpSyId, $mySchoolId, $activeFormVersionId]);
+  $anDimAvgsCompareList[] = [
+    'sy_id' => $cmpSyId,
+    'label' => array_column($allSYs, 'label', 'sy_id')[$cmpSyId] ?? '',
+    'data' => $cmpQ->fetchAll(),
+  ];
 }
+$anDimAvgsCompare = $anDimAvgsCompareList[0]['data'] ?? [];
 
 // -- Assessment history (all cycles) --------------------------â”€
 $historyQ = $db->prepare("
@@ -2460,38 +2467,49 @@ include __DIR__ . '/../includes/header.php';
     </span>
     <div style="width:1px;height:18px;background:var(--n-200);margin:0 4px;"></div>
     <label>Compare with:</label>
-    <div class="p-select" id="anCompareSelect" style="width:160px;">
-      <input type="hidden" name="compare_sy_id" value="<?= $compareSyId ?>">
-      <div class="p-select-trigger" onclick="togglePSelect(event, 'anCompareSelect')"
-        style="padding: 5px 12px; font-size: 12.5px; min-height: 32px;">
-        <span class="p-select-val">
-          <?= $compareSyId ? 'SY ' . e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') : 'None' ?>
+    <?php
+      $anCompareView = $_GET['view'] ?? 'progress';
+      $atCompareLimit = count($compareSyIds) >= 2;
+    ?>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <?php foreach ($compareSyIds as $cid):
+        $cLabel = array_column($allSYs, 'label', 'sy_id')[$cid] ?? '';
+        $removeParam = implode(',', array_values(array_diff($compareSyIds, [$cid])));
+      ?>
+        <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:4px 6px 4px 12px;border-radius:999px;background:var(--blue-bg);color:var(--blue);">
+          <?= e($cLabel) ?>
+          <a href="dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=<?= $removeParam ?>&view=<?= $anCompareView ?>"
+            style="display:flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.08);color:inherit;font-size:10px;line-height:1;text-decoration:none;"
+            title="Remove SY <?= e($cLabel) ?> from comparison">✕</a>
         </span>
-      </div>
-      <div class="p-select-menu">
-        <div class="p-select-item <?= !$compareSyId ? 'selected' : '' ?>"
-          onclick="location.href='dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=0&view=<?= $_GET['view'] ?? 'progress' ?>'">
-          None
-        </div>
-        <?php foreach ($allSYs as $sy):
-          if ($sy['sy_id'] == $selectedSyId)
-            continue; ?>
-          <div class="p-select-item <?= $sy['sy_id'] == $compareSyId ? 'selected' : '' ?>"
-            onclick="location.href='dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=<?= $sy['sy_id'] ?>&view=<?= $_GET['view'] ?? 'progress' ?>'">
-            SY <?= e($sy['label']) ?>
-            <?php if ($sy['sy_id'] == $compareSyId): ?>
-              <span class="p-select-check"></span>
-            <?php endif; ?>
+      <?php endforeach; ?>
+
+      <?php if (!$atCompareLimit): ?>
+        <div class="p-select" id="anCompareAddSelect" style="width:auto;">
+          <div class="p-select-trigger" onclick="togglePSelect(event, 'anCompareAddSelect')"
+            style="padding:4px 12px;font-size:12px;font-weight:600;min-height:28px;border-style:dashed;color:var(--n-500);">
+            <span class="p-select-val">+ Add comparison year</span>
           </div>
-        <?php endforeach; ?>
-      </div>
+          <div class="p-select-menu">
+            <?php foreach ($allSYs as $sy):
+              if ($sy['sy_id'] == $selectedSyId || in_array($sy['sy_id'], $compareSyIds))
+                continue;
+              $newParam = implode(',', array_merge($compareSyIds, [$sy['sy_id']]));
+            ?>
+              <div class="p-select-item" onclick="location.href='dashboard.php?sy_id=<?= $selectedSyId ?>&compare_sy=<?= $newParam ?>&view=<?= $anCompareView ?>'">
+                SY <?= e($sy['label']) ?>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
     </div>
-    <?php if ($compareSyId): ?>
+    <?php if (!empty($compareSyIds)): ?>
       <span
-        style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--blue-bg);color:var(--blue);">
-        Comparing 2 cycles
+        style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--n-100);color:var(--n-600);">
+        Comparing <?= count($compareSyIds) + 1 ?> cycles
       </span>
-      <a href="dashboard.php?sy_id=<?= $selectedSyId ?>&view=<?= $_GET['view'] ?? 'progress' ?>" class="btn btn-ghost btn-sm">Clear</a>
+      <a href="dashboard.php?sy_id=<?= $selectedSyId ?>&view=<?= $anCompareView ?>" class="btn btn-ghost btn-sm">✕ Clear</a>
     <?php endif; ?>
 
     </div>
@@ -2689,7 +2707,7 @@ include __DIR__ . '/../includes/header.php';
     <button class="an-tab-btn active" onclick="anSwitchTab(this,'anTabHistory')">Cycle History</button>
     <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabWeak')">Weak This Cycle</button>
     <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabConsistent')">Consistently Weak</button>
-    <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
+    <?php if (!empty($compareSyIds) && !empty($anDimAvgsCompareList)): ?>
       <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabCompare')">Side-by-Side</button>
     <?php endif; ?>
   </div>
@@ -2852,13 +2870,13 @@ include __DIR__ . '/../includes/header.php';
   </div>
 
   <!-- TAB: Side-by-Side Comparison -->
-  <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
+  <?php if (!empty($compareSyIds) && !empty($anDimAvgsCompareList)): ?>
     <div class="an-tab-panel" id="anTabCompare">
       <div class="card" style="margin-bottom:18px;">
         <div class="card-head">
           <span class="card-title">Side-by-Side Dimension Comparison</span>
           <span style="font-size:12px;color:var(--n-400);">SY <?= e($selectedSYLabel) ?> vs SY
-            <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></span>
+            <?= e(implode(' vs SY ', array_column($anDimAvgsCompareList, 'label'))) ?></span>
         </div>
         <div class="tbl-wrap">
           <table class="tbl-enhanced">
@@ -2866,18 +2884,17 @@ include __DIR__ . '/../includes/header.php';
               <tr>
                 <th>Dimension</th>
                 <th>SY <?= e($selectedSYLabel) ?></th>
-                <th>SY <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></th>
-                <th>Change</th>
+                <?php foreach ($anDimAvgsCompareList as $cmp): ?>
+                  <th>SY <?= e($cmp['label']) ?></th>
+                  <th>Change</th>
+                <?php endforeach; ?>
               </tr>
             </thead>
             <tbody>
               <?php
-              $cmpByDim = array_column($anDimAvgsCompare, null, 'dimension_no');
+              $cmpByDims = array_map(fn($c) => array_column($c['data'], null, 'dimension_no'), $anDimAvgsCompareList);
               foreach ($anDimAvgs as $d):
                 $curr = floatval($d['avg_pct'] ?? 0);
-                $prev = floatval($cmpByDim[$d['dimension_no']]['avg_pct'] ?? 0);
-                $chg = round($curr - $prev, 1);
-                $chgC = $chg > 0 ? '#16A34A' : ($chg < 0 ? '#DC2626' : '#9CA3AF');
                 ?>
                 <tr>
                   <td>
@@ -2898,6 +2915,11 @@ include __DIR__ . '/../includes/header.php';
                       <strong style="font-size:13px;color:<?= e($d['color_hex']) ?>;"><?= $curr ?>%</strong>
                     </div>
                   </td>
+                  <?php foreach ($cmpByDims as $cmpByDim):
+                    $prev = floatval($cmpByDim[$d['dimension_no']]['avg_pct'] ?? 0);
+                    $chg = round($curr - $prev, 1);
+                    $chgC = $chg > 0 ? '#16A34A' : ($chg < 0 ? '#DC2626' : '#9CA3AF');
+                  ?>
                   <td>
                     <?php if ($prev > 0): ?>
                       <div style="display:flex;align-items:center;gap:6px;">
@@ -2910,9 +2932,10 @@ include __DIR__ . '/../includes/header.php';
                   </td>
                   <td>
                     <span style="font-size:13px;font-weight:700;color:<?= $chgC ?>;">
-                      <?= $chg > 0 ? '▲ +' : ($chg < 0 ? '▼ ' : '') ?>     <?= abs($chg) ?>%
+                      <?= $chg > 0 ? '▲ +' : ($chg < 0 ? '▼ ' : '') ?><?= abs($chg) ?>%
                     </span>
                   </td>
+                  <?php endforeach; ?>
                 </tr>
               <?php endforeach; ?>
             </tbody>
@@ -3085,8 +3108,10 @@ include __DIR__ . '/../includes/header.php';
   const dimValues = <?= json_encode(array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $dimScores)) ?>;
   const dimColors = <?= json_encode(array_map(fn($d) => $d['color_hex'] ?? '#4ADE80', $dimScores)) ?>;
   const anCurrSyLabel = <?= json_encode($selectedSYLabel) ?>;
-  const anCompareSyLabel = <?= json_encode(!empty($anDimAvgsCompare) ? (array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') : '') ?>;
-  const anDimValCmpForBar = <?= json_encode(!empty($anDimAvgsCompare) ? array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $anDimAvgsCompare) : []) ?>;
+  const anDimValCmpList = <?= json_encode(array_map(fn($c) => [
+    'label' => $c['label'],
+    'values' => array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $c['data'])
+  ], $anDimAvgsCompareList)) ?>;
 
   const dimBarEl = document.getElementById('dimBarChart');
   if (dimBarEl && dimValues.length > 0) {
@@ -3101,20 +3126,23 @@ include __DIR__ . '/../includes/header.php';
       barPercentage: 0.55,
       categoryPercentage: 0.8
     }];
-    if (anDimValCmpForBar.length && anDimValCmpForBar.some(v => v > 0)) {
+    const cmpDashPatterns = [[4, 4], [2, 2]];
+    const cmpOpacities = ['20', '14'];
+    anDimValCmpList.forEach((cmp, idx) => {
+      if (!cmp.values.length || !cmp.values.some(v => v > 0)) return;
       dimBarDatasets.push({
-        label: 'SY ' + anCompareSyLabel,
-        data: anDimValCmpForBar,
-        backgroundColor: dimColors.map(c => c + '20'),
+        label: 'SY ' + cmp.label,
+        data: cmp.values,
+        backgroundColor: dimColors.map(c => c + (cmpOpacities[idx] || '0E')),
         borderColor: dimColors.map(c => c + '99'),
         borderWidth: 2,
         borderRadius: 6,
         borderSkipped: 'start',
-        borderDash: [4, 4],
+        borderDash: cmpDashPatterns[idx] || [1, 3],
         barPercentage: 0.55,
         categoryPercentage: 0.8
       });
-    }
+    });
 
     const validVals = dimValues.filter(v => v !== null && v !== undefined);
     const dimAverage = validVals.length ? (validVals.reduce((a, b) => a + b, 0) / validVals.length) : null;
@@ -3279,7 +3307,6 @@ include __DIR__ . '/../includes/header.php';
   const anDimLabels = <?= json_encode(array_map(fn($d) => 'D' . $d['dimension_no'], $anDimAvgs)) ?>;
   const anDimColors = <?= json_encode(array_column($anDimAvgs, 'color_hex')) ?>;
   const anDimValues = <?= json_encode(array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $anDimAvgs)) ?>;
-  const anDimValCmp = <?= json_encode(!empty($anDimAvgsCompare) ? array_map(fn($d) => $d['avg_pct'] !== null ? floatval($d['avg_pct']) : null, $anDimAvgsCompare) : []) ?>;
   const anRadarNames = <?= json_encode(array_map(fn($d) => 'D' . $d['dimension_no'] . ': ' . $d['dimension_name'], $anDimAvgs)) ?>;
   const anCycleLabels = <?= json_encode(array_column($cycleHistory, 'sy_label')) ?>;
   const anCycleScores = <?= json_encode(array_map(fn($c) => floatval($c['overall_score']), $cycleHistory)) ?>;
@@ -3298,16 +3325,20 @@ include __DIR__ . '/../includes/header.php';
         pointBackgroundColor: anDimColors,
         pointRadius: 0, borderWidth: 2,
       }];
-      if (anDimValCmp.length && anDimValCmp.some(v => v > 0)) {
+      const radarCmpColors = ['#2563EB', '#DC2626'];
+      const radarCmpDash = [[4, 4], [2, 2]];
+      anDimValCmpList.forEach((cmp, idx) => {
+        if (!cmp.values.length || !cmp.values.some(v => v > 0)) return;
+        const c = radarCmpColors[idx] || '#6B7280';
         radarDatasets.push({
-          label: 'SY ' + anCompareSyLabel,
-          data: anDimValCmp,
-          backgroundColor: 'rgba(37,99,235,.10)',
-          borderColor: '#2563EB',
-          pointBackgroundColor: '#2563EB',
-          pointRadius: 4, borderWidth: 2, borderDash: [4, 4],
+          label: 'SY ' + cmp.label,
+          data: cmp.values,
+          backgroundColor: c + '10',
+          borderColor: c,
+          pointBackgroundColor: c,
+          pointRadius: 4, borderWidth: 2, borderDash: radarCmpDash[idx] || [1, 3],
         });
-      }
+      });
       new Chart(document.getElementById('anRadarChart'), {
         type: 'radar',
         data: { labels: anDimLabels, datasets: radarDatasets },

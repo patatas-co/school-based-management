@@ -144,7 +144,7 @@ $mat = $hasScore ? sbmMaturityLevel(floatval($cycle['overall_score'])) : null;
 
 // Comparison SY
 $compareSyIds = array_values(array_unique(array_filter(array_map('intval', explode(',', $_GET['compare_sy'] ?? '')), fn($v) => $v > 0 && $v !== $syId)));
-$compareSyIds = array_slice($compareSyIds, 0, 3); // up to 3 extra cycles (4 total)
+$compareSyIds = array_slice($compareSyIds, 0, 2); // max 2 extra cycles = 3 total (Primary + 2)
 $compareSyId = $compareSyIds[0] ?? 0;
 
 // Analytics dimension averages
@@ -2178,37 +2178,43 @@ include __DIR__ . '/../includes/header.php';
     <span style="font-size:13px;font-weight:700;color:var(--n-900);"><?= e($syLabel) ?></span>
     <div style="width:1px;height:18px;background:var(--n-200);margin:0 4px;"></div>
     <label>Compare with:</label>
-    <div class="p-select" id="anCompareSelect2" style="width:200px;">
-      <div class="p-select-trigger" onclick="togglePSelect(event, 'anCompareSelect2')"
-        style="padding:5px 12px;font-size:12.5px;min-height:32px;">
-        <span class="p-select-val"><?= !empty($compareSyIds) ? 'SY ' . implode(', SY ', array_map(fn($id) => e(array_column($allSYs, 'label', 'sy_id')[$id] ?? ''), $compareSyIds)) : 'None' ?></span>
-      </div>
-      <div class="p-select-menu">
-        <div class="p-select-item <?= empty($compareSyIds) ? 'selected' : '' ?>"
-          onclick="location.href='dashboard.php?compare_sy=&view=progress'">None</div>
-        <?php foreach ($allSYs as $sy):
-          if ($sy['sy_id'] == $syId)
-            continue;
-          $isSelected = in_array($sy['sy_id'], $compareSyIds);
-          if ($isSelected) {
-            $newIds = array_values(array_diff($compareSyIds, [$sy['sy_id']]));
-          } else {
-            $newIds = array_merge($compareSyIds, [$sy['sy_id']]);
-            $newIds = array_slice($newIds, -3); // keep max 3
-          }
-          $newParam = implode(',', $newIds);
-        ?>
-          <div class="p-select-item <?= $isSelected ? 'selected' : '' ?>"
-            onclick="location.href='dashboard.php?compare_sy=<?= $newParam ?>&view=progress'">
-            SY <?= e($sy['label']) ?><?php if ($isSelected): ?><span
-                class="p-select-check"></span><?php endif; ?>
+    <?php $atCompareLimit = count($compareSyIds) >= 2; ?>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <?php foreach ($compareSyIds as $cid):
+        $cLabel = array_column($allSYs, 'label', 'sy_id')[$cid] ?? '';
+        $removeParam = implode(',', array_values(array_diff($compareSyIds, [$cid])));
+      ?>
+        <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:4px 6px 4px 12px;border-radius:999px;background:var(--blue-bg);color:var(--blue);">
+          <?= e($cLabel) ?>
+          <a href="dashboard.php?compare_sy=<?= $removeParam ?>&view=progress"
+            style="display:flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.08);color:inherit;font-size:10px;line-height:1;text-decoration:none;"
+            title="Remove SY <?= e($cLabel) ?> from comparison">✕</a>
+        </span>
+      <?php endforeach; ?>
+
+      <?php if (!$atCompareLimit): ?>
+        <div class="p-select" id="anCompareAddSelect" style="width:auto;">
+          <div class="p-select-trigger" onclick="togglePSelect(event, 'anCompareAddSelect')"
+            style="padding:4px 12px;font-size:12px;font-weight:600;min-height:28px;border-style:dashed;color:var(--n-500);">
+            <span class="p-select-val">+ Add comparison year</span>
           </div>
-        <?php endforeach; ?>
-      </div>
+          <div class="p-select-menu">
+            <?php foreach ($allSYs as $sy):
+              if ($sy['sy_id'] == $syId || in_array($sy['sy_id'], $compareSyIds))
+                continue;
+              $newParam = implode(',', array_merge($compareSyIds, [$sy['sy_id']]));
+            ?>
+              <div class="p-select-item" onclick="location.href='dashboard.php?compare_sy=<?= $newParam ?>&view=progress'">
+                SY <?= e($sy['label']) ?>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
     </div>
     <?php if (!empty($compareSyIds)): ?>
       <span
-        style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--blue-bg);color:var(--blue);">Comparing
+        style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--n-100);color:var(--n-600);">Comparing
         <?= count($compareSyIds) + 1 ?> cycles</span>
       <a href="dashboard.php?view=progress" class="btn btn-ghost btn-sm">✕ Clear</a>
     <?php endif; ?>
@@ -2423,7 +2429,7 @@ include __DIR__ . '/../includes/header.php';
         <button class="an-tab-btn active" id="progressTabBtn0" onclick="switchProgressTab(0)">Cycle History</button>
         <button class="an-tab-btn" id="progressTabBtn1" onclick="switchProgressTab(1)">Weak This Cycle</button>
         <button class="an-tab-btn" id="progressTabBtn2" onclick="switchProgressTab(2)">Consistently Weak</button>
-        <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
+        <?php if (!empty($compareSyIds) && !empty($anDimAvgsCompareList)): ?>
         <button class="an-tab-btn" id="progressTabBtn3" onclick="switchProgressTab(3)">Side-by-Side</button>
         <?php endif; ?>
       </div>
@@ -2521,7 +2527,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
 
     <!-- Panel 3: Side-by-Side -->
-    <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
+    <?php if (!empty($compareSyIds) && !empty($anDimAvgsCompareList)): ?>
     <div id="progressPanelInner3" style="display:none;">
       <div class="tbl-wrap">
         <table class="tbl-enhanced">
@@ -2529,24 +2535,29 @@ include __DIR__ . '/../includes/header.php';
             <tr>
               <th>Dimension</th>
               <th>SY <?= e($syLabel) ?></th>
-              <th>SY <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></th>
-              <th>Change</th>
+              <?php foreach ($anDimAvgsCompareList as $cmp): ?>
+                <th>SY <?= e($cmp['label']) ?></th>
+                <th>Change</th>
+              <?php endforeach; ?>
             </tr>
           </thead>
           <tbody>
             <?php
-            $cmpMap = array_column($anDimAvgsCompare, 'avg_pct', 'dimension_no');
+            $cmpMaps = array_map(fn($c) => array_column($c['data'], 'avg_pct', 'dimension_no'), $anDimAvgsCompareList);
             foreach ($anDimAvgs as $dim):
               $cur = $dim['avg_pct'] !== null ? floatval($dim['avg_pct']) : null;
-              $cmp = isset($cmpMap[$dim['dimension_no']]) ? floatval($cmpMap[$dim['dimension_no']]) : null;
-              $chg = ($cur !== null && $cmp !== null) ? round($cur - $cmp, 1) : null;
-              $chgC = $chg === null ? 'var(--n-400)' : ($chg > 0 ? 'var(--brand-600)' : ($chg < 0 ? 'var(--red)' : 'var(--n-400)'));
             ?>
             <tr>
               <td style="font-weight:600;">D<?= $dim['dimension_no'] ?>: <?= e($dim['dimension_name']) ?></td>
               <td><?= $cur !== null ? $cur . '%' : '—' ?></td>
-              <td><?= $cmp !== null ? $cmp . '%' : '—' ?></td>
-              <td><span style="font-size:13px;font-weight:700;color:<?= $chgC ?>;"><?= $chg !== null ? ($chg > 0 ? '▲ +' : ($chg < 0 ? '▼ ' : '')) . abs($chg) . '%' : '—' ?></span></td>
+              <?php foreach ($cmpMaps as $cmpMap):
+                $cmp = isset($cmpMap[$dim['dimension_no']]) ? floatval($cmpMap[$dim['dimension_no']]) : null;
+                $chg = ($cur !== null && $cmp !== null) ? round($cur - $cmp, 1) : null;
+                $chgC = $chg === null ? 'var(--n-400)' : ($chg > 0 ? 'var(--brand-600)' : ($chg < 0 ? 'var(--red)' : 'var(--n-400)'));
+              ?>
+                <td><?= $cmp !== null ? $cmp . '%' : '—' ?></td>
+                <td><span style="font-size:13px;font-weight:700;color:<?= $chgC ?>;"><?= $chg !== null ? ($chg > 0 ? '▲ +' : ($chg < 0 ? '▼ ' : '')) . abs($chg) . '%' : '—' ?></span></td>
+              <?php endforeach; ?>
             </tr>
             <?php endforeach; ?>
           </tbody>
@@ -2798,13 +2809,13 @@ include __DIR__ . '/../includes/header.php';
   </div>
 
   <!-- TAB: Side-by-Side Comparison -->
-  <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
+  <?php if (!empty($compareSyIds) && !empty($anDimAvgsCompareList)): ?>
     <div class="an-tab-panel" id="anTabCompare">
       <div class="card" style="margin-bottom:18px;">
         <div class="card-head">
           <span class="card-title">Side-by-Side Dimension Comparison</span>
           <span style="font-size:12px;color:var(--n-400);">SY <?= e($syLabel) ?> vs SY
-            <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></span>
+            <?= e(implode(' vs SY ', array_column($anDimAvgsCompareList, 'label'))) ?></span>
         </div>
         <div class="tbl-wrap">
           <table class="tbl-enhanced">
@@ -2812,18 +2823,17 @@ include __DIR__ . '/../includes/header.php';
               <tr>
                 <th>Dimension</th>
                 <th>SY <?= e($syLabel) ?></th>
-                <th>SY <?= e(array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') ?></th>
-                <th>Change</th>
+                <?php foreach ($anDimAvgsCompareList as $cmp): ?>
+                  <th>SY <?= e($cmp['label']) ?></th>
+                  <th>Change</th>
+                <?php endforeach; ?>
               </tr>
             </thead>
             <tbody>
               <?php
-              $cmpByDim = array_column($anDimAvgsCompare, null, 'dimension_no');
+              $cmpByDims = array_map(fn($c) => array_column($c['data'], null, 'dimension_no'), $anDimAvgsCompareList);
               foreach ($anDimAvgs as $d):
                 $curr = floatval($d['avg_pct'] ?? 0);
-                $prev = floatval($cmpByDim[$d['dimension_no']]['avg_pct'] ?? 0);
-                $chg = round($curr - $prev, 1);
-                $chgC = $chg > 0 ? '#16A34A' : ($chg < 0 ? '#DC2626' : '#9CA3AF');
                 ?>
                 <tr>
                   <td>
@@ -2844,6 +2854,11 @@ include __DIR__ . '/../includes/header.php';
                       <strong style="font-size:13px;color:<?= e($d['color_hex']) ?>;"><?= $curr ?>%</strong>
                     </div>
                   </td>
+                  <?php foreach ($cmpByDims as $cmpByDim):
+                    $prev = floatval($cmpByDim[$d['dimension_no']]['avg_pct'] ?? 0);
+                    $chg = round($curr - $prev, 1);
+                    $chgC = $chg > 0 ? '#16A34A' : ($chg < 0 ? '#DC2626' : '#9CA3AF');
+                  ?>
                   <td>
                     <?php if ($prev > 0): ?>
                       <div style="display:flex;align-items:center;gap:6px;">
@@ -2856,9 +2871,10 @@ include __DIR__ . '/../includes/header.php';
                   </td>
                   <td>
                     <span style="font-size:13px;font-weight:700;color:<?= $chgC ?>;">
-                      <?= $chg > 0 ? '▲ +' : ($chg < 0 ? '▼ ' : '') ?>     <?= abs($chg) ?>%
+                      <?= $chg > 0 ? '▲ +' : ($chg < 0 ? '▼ ' : '') ?><?= abs($chg) ?>%
                     </span>
                   </td>
+                  <?php endforeach; ?>
                 </tr>
               <?php endforeach; ?>
             </tbody>
@@ -3134,18 +3150,22 @@ include __DIR__ . '/../includes/header.php';
         pointRadius: 0,
         borderWidth: 2,
       }];
-      if (anDimValCmp.length && anDimValCmp.some(v => v > 0)) {
+      const radarCmpColors = ['#2563EB', '#DC2626'];
+      const radarCmpDash = [[4, 4], [2, 2]];
+      anDimValCmpList.forEach((cmp, idx) => {
+        if (!cmp.values.length || !cmp.values.some(v => v > 0)) return;
+        const c = radarCmpColors[idx] || '#6B7280';
         radarDatasets.push({
-          label: 'SY ' + anCompareSyLabel,
-          data: anDimValCmp,
-          backgroundColor: 'rgba(37,99,235,.10)',
-          borderColor: '#2563EB',
-          pointBackgroundColor: '#2563EB',
+          label: 'SY ' + cmp.label,
+          data: cmp.values,
+          backgroundColor: c + '10',
+          borderColor: c,
+          pointBackgroundColor: c,
           pointRadius: 4,
           borderWidth: 2,
-          borderDash: [4, 4],
+          borderDash: radarCmpDash[idx] || [1, 3],
         });
-      }
+      });
       new Chart(document.getElementById('anRadarChart'), {
         type: 'radar',
         data: { labels: anDimLabels, datasets: radarDatasets },
