@@ -68,7 +68,10 @@ if ($cycle) {
   $dimScores = $st->fetchAll();
 }
 
-$totalIndicators = $db->query("SELECT COUNT(*) FROM sbm_indicators WHERE is_active=1")->fetchColumn();
+$activeFormVersionId = (int) $db->query("SELECT version_id FROM form_versions WHERE is_active=1 LIMIT 1")->fetchColumn();
+$totalIndStmt = $db->prepare("SELECT COUNT(*) FROM sbm_indicators WHERE is_active=1 AND form_version_id=?");
+$totalIndStmt->execute([$activeFormVersionId]);
+$totalIndicators = $totalIndStmt->fetchColumn();
 $totalResponded = 0;
 if ($cycle) {
   $t = $db->prepare("
@@ -153,9 +156,10 @@ $anDimAvgQ = $db->prepare("
     FROM sbm_dimensions d
     LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
     LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
+    WHERE d.form_version_id = ?
     GROUP BY d.dimension_id ORDER BY d.dimension_no
 ");
-$anDimAvgQ->execute([$syId, $schoolId]);
+$anDimAvgQ->execute([$syId, $schoolId, $activeFormVersionId]);
 $anDimAvgs = $anDimAvgQ->fetchAll();
 
 // Comparison SY dimension averages (supports multiple compare cycles)
@@ -167,9 +171,10 @@ foreach ($compareSyIds as $cmpSyId) {
     FROM sbm_dimensions d
     LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
     LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
+    WHERE d.form_version_id = ?
     GROUP BY d.dimension_id ORDER BY d.dimension_no
   ");
-  $cmpQ->execute([$cmpSyId, $schoolId]);
+  $cmpQ->execute([$cmpSyId, $schoolId, $activeFormVersionId]);
   $anDimAvgsCompareList[] = [
     'sy_id' => $cmpSyId,
     'label' => array_column($allSYs, 'label', 'sy_id')[$cmpSyId] ?? '',
@@ -2275,7 +2280,13 @@ include __DIR__ . '/../includes/header.php';
           </div>
         </div>
       </div>
-      <div class="chart-card-body"><canvas id="anDimTrendChart" height="90"></canvas></div>
+      <div class="chart-card-body" style="position:relative;height:380px;padding:0;display:flex;flex-direction:column;">
+        <div id="dimTrendScrollWrap" style="overflow-x:auto;overflow-y:hidden;width:100%;flex:1;padding:16px 16px 0;box-sizing:border-box;">
+          <div id="dimTrendChartInner" style="position:relative;height:100%;min-width:100%;">
+            <canvas id="anDimTrendChart"></canvas>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Indicator Trend Analysis -->
@@ -2316,8 +2327,12 @@ include __DIR__ . '/../includes/header.php';
           </div>
         </div>
       </div>
-      <div class="chart-card-body" style="min-height:260px;display:flex;align-items:center;justify-content:center;">
-        <canvas id="anIndTrendChart" height="90"></canvas>
+      <div class="chart-card-body" style="position:relative;height:380px;padding:0;display:flex;flex-direction:column;">
+        <div id="indTrendScrollWrap" style="overflow-x:auto;overflow-y:hidden;width:100%;flex:1;padding:16px 16px 0;box-sizing:border-box;">
+          <div id="indTrendChartInner" style="position:relative;height:100%;min-width:100%;">
+            <canvas id="anIndTrendChart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
   <?php endif; ?>
@@ -3283,6 +3298,18 @@ function setTrendWindowSize(value) {
   updateIndicatorTrendChart(anSelectedTrendDim);
 }
 
+// Keep both trend charts sized to their container as the viewport changes,
+// so they only switch to horizontal scrolling when the current cycle
+// window truly no longer fits.
+let _trendResizeTimer = null;
+window.addEventListener('resize', function () {
+  clearTimeout(_trendResizeTimer);
+  _trendResizeTimer = setTimeout(function () {
+    renderDimensionTrendChart();
+    updateIndicatorTrendChart(anSelectedTrendDim);
+  }, 150);
+});
+
 function moveTrendWindow(direction) {
   const { size } = getTrendWindow();
 
@@ -3293,11 +3320,38 @@ function moveTrendWindow(direction) {
   updateIndicatorTrendChart(anSelectedTrendDim);
 }
 
+// Minimum pixel width per cycle so labels/points stay legible. When the
+// currently-selected window of cycles needs more than this exceeds the
+// container's available width, the wrapper's overflow-x:auto kicks in and
+// shows a scrollbar instead of squeezing everything to fit.
+const TREND_PX_PER_CYCLE = 70;
+
+// Sizes the chart's inner wrapper div so a cycle window that's too wide for
+// the container gets a horizontal scrollbar instead of cramming all points
+// into one width. We only ever set the WIDTH of this inner div — Chart.js
+// (with responsive:true) owns the canvas itself and manages its own
+// resolution/DPR scaling against it.
+function sizeTrendInner(innerEl, wrapperEl, pointCount) {
+  const wrapper = wrapperEl || innerEl.parentElement;
+  const cs = window.getComputedStyle(wrapper);
+  const hPad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  const availableWidth = (wrapper.clientWidth || 600) - hPad;
+
+  // Fit the container first; only grow past it (triggering the wrapper's
+  // overflow-x:auto scrollbar) once the cycle window actually needs more
+  // room than the container can comfortably show.
+  const neededWidth = Math.max(availableWidth, pointCount * TREND_PX_PER_CYCLE);
+  innerEl.style.width = neededWidth + 'px';
+}
+
 function renderDimensionTrendChart() {
   const canvas = document.getElementById('anDimTrendChart');
   if (!canvas || anTrendSYLabels.length < 2) return;
 
   const { labels } = getTrendWindow();
+  const wrapperEl = document.getElementById('dimTrendScrollWrap');
+  const innerEl   = document.getElementById('dimTrendChartInner');
+  sizeTrendInner(innerEl, wrapperEl, labels.length);
 
   const datasets = anDimMeta.map(dm => ({
     label: 'D' + dm.no + ': ' + dm.name,
@@ -3332,8 +3386,7 @@ function renderDimensionTrendChart() {
         },
         x: {
           ticks: {
-            autoSkip: true,
-            maxTicksLimit: 10,
+            autoSkip: false,
             font: { size: 11, weight: '600' }
           },
           grid: { display: false }
@@ -3352,8 +3405,7 @@ function renderDimensionTrendChart() {
         }
       },
       responsive: true,
-maintainAspectRatio: true,
-aspectRatio: 3.5
+      maintainAspectRatio: false
     }
   });
 
@@ -3395,6 +3447,9 @@ updateTrendRangeUI();
       el.parentNode.replaceChild(newCanvas, el);
     }
     const canvas = document.getElementById('anIndTrendChart');
+    const indWrapperEl = document.getElementById('indTrendScrollWrap');
+    const indInnerEl   = document.getElementById('indTrendChartInner');
+    sizeTrendInner(indInnerEl, indWrapperEl, syLabels.length);
 
     const datasets = codes.map((code, i) => {
       const data = syLabels.map(lbl => byDim[code][lbl] ?? null);
@@ -3448,7 +3503,7 @@ updateTrendRangeUI();
           }
         },
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         animation: { duration: 400, easing: 'easeInOutQuart' },
       }
     });

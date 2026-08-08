@@ -14,7 +14,10 @@ if ($schoolId) {
     $st->execute([$schoolId,$syId]); $cycle = $st->fetch();
 }
 
-$dimensions = $db->query("SELECT * FROM sbm_dimensions ORDER BY dimension_no")->fetchAll();
+$activeFormVersionId = (int) $db->query("SELECT version_id FROM form_versions WHERE is_active=1 LIMIT 1")->fetchColumn();
+$dimStmt = $db->prepare("SELECT * FROM sbm_dimensions WHERE form_version_id=? ORDER BY dimension_no");
+$dimStmt->execute([$activeFormVersionId]);
+$dimensions = $dimStmt->fetchAll();
 $dimScores = [];
 if ($cycle) {
     $st = $db->prepare("SELECT ds.*,d.dimension_name,d.dimension_no,d.color_hex,d.indicator_count FROM sbm_dimension_scores ds JOIN sbm_dimensions d ON ds.dimension_id=d.dimension_id WHERE ds.cycle_id=? ORDER BY d.dimension_no");

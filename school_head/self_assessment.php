@@ -91,8 +91,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       try {
         $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")->execute([$syId, $schoolId]);
         $newCycleId = $db->lastInsertId();
-        // Initialize dimension scores
-        $dimIds = $db->query("SELECT dimension_id FROM sbm_dimensions")->fetchAll(PDO::FETCH_COLUMN);
+        // Initialize dimension scores (active form version only)
+        $dimIdsStmt = $db->prepare("SELECT dimension_id FROM sbm_dimensions WHERE form_version_id=?");
+        $dimIdsStmt->execute([$activeFormVersionId]);
+        $dimIds = $dimIdsStmt->fetchAll(PDO::FETCH_COLUMN);
         foreach ($dimIds as $dId) {
           $db->prepare("INSERT IGNORE INTO sbm_dimension_scores (cycle_id, school_id, dimension_id, raw_score, max_score, percentage) VALUES (?, ?, ?, 0, 0, 0)")
             ->execute([$newCycleId, $schoolId, $dId]);
@@ -145,8 +147,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         try {
           $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")->execute([$syId, $schoolId]);
           $cycleId = $db->lastInsertId();
-          // Initialize dimension scores
-          $dimIds = $db->query("SELECT dimension_id FROM sbm_dimensions")->fetchAll(PDO::FETCH_COLUMN);
+          // Initialize dimension scores (active form version only)
+          $dimIdsStmt = $db->prepare("SELECT dimension_id FROM sbm_dimensions WHERE form_version_id=?");
+          $dimIdsStmt->execute([$activeFormVersionId]);
+          $dimIds = $dimIdsStmt->fetchAll(PDO::FETCH_COLUMN);
           foreach ($dimIds as $dId) {
             $db->prepare("INSERT IGNORE INTO sbm_dimension_scores (cycle_id, school_id, dimension_id, raw_score, max_score, percentage) VALUES (?, ?, ?, 0, 0, 0)")
               ->execute([$cycleId, $schoolId, $dId]);
@@ -361,8 +365,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
       }
 
-      // Recompute all dimensions before finalizing score
-      $allDims = $db->query("SELECT dimension_id FROM sbm_dimensions WHERE 1")->fetchAll(PDO::FETCH_COLUMN);
+      // Recompute all dimensions before finalizing score (active form version only)
+      $allDimsStmt = $db->prepare("SELECT dimension_id FROM sbm_dimensions WHERE form_version_id=?");
+      $allDimsStmt->execute([$activeFormVersionId]);
+      $allDims = $allDimsStmt->fetchAll(PDO::FETCH_COLUMN);
       foreach ($allDims as $dimId) {
         $anyInd = $db->prepare("SELECT indicator_id FROM sbm_indicators WHERE dimension_id=? AND is_active=1 LIMIT 1");
         $anyInd->execute([$dimId]);
@@ -551,7 +557,9 @@ if (!$cycle && isWithinAssessmentWindow($assessmentWindow) && $assessmentWindow[
     $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")
       ->execute([$syId, $schoolId]);
     $newCycleId = $db->lastInsertId();
-    $dimIds = $db->query("SELECT dimension_id FROM sbm_dimensions")->fetchAll(PDO::FETCH_COLUMN);
+    $dimIdsStmt = $db->prepare("SELECT dimension_id FROM sbm_dimensions WHERE form_version_id=?");
+    $dimIdsStmt->execute([$activeFormVersionId]);
+    $dimIds = $dimIdsStmt->fetchAll(PDO::FETCH_COLUMN);
     foreach ($dimIds as $dId) {
       $db->prepare("INSERT IGNORE INTO sbm_dimension_scores (cycle_id, school_id, dimension_id, raw_score, max_score, percentage) VALUES (?, ?, ?, 0, 0, 0)")
         ->execute([$newCycleId, $schoolId, $dId]);

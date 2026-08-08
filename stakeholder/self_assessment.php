@@ -180,8 +180,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     exit;
                 }
 
-                // Initialize dimension scores
-                $dimIds = $db->query("SELECT dimension_id FROM sbm_dimensions")->fetchAll(PDO::FETCH_COLUMN);
+                // Initialize dimension scores (active form version only)
+                $dimIdsStmt = $db->prepare("SELECT dimension_id FROM sbm_dimensions WHERE form_version_id=?");
+                $dimIdsStmt->execute([$activeFormVersionId]);
+                $dimIds = $dimIdsStmt->fetchAll(PDO::FETCH_COLUMN);
                 foreach ($dimIds as $dId) {
                     $st = $db->prepare("INSERT IGNORE INTO sbm_dimension_scores (cycle_id, school_id, dimension_id, raw_score, max_score, percentage) VALUES (?, ?, ?, 0, 0, 0)");
                     $st->execute([$cycleId, $schoolId, $dId]);

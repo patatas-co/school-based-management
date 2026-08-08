@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 08, 2026 at 02:08 AM
+-- Generation Time: Aug 08, 2026 at 04:10 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -1538,7 +1538,40 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (1557, 15, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:33:27'),
 (1558, 12, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:33:38'),
 (1559, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-07 13:33:57'),
-(1560, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-07 23:39:24');
+(1560, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-07 23:39:24'),
+(1561, 46, 'publish_form_version', 'manage_form', 'Published form version 2 (ID: 5)', '::1', '2026-08-08 00:11:37'),
+(1562, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-08 00:11:54'),
+(1563, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-08 00:12:05'),
+(1564, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-08 00:12:18'),
+(1565, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 00:21:24'),
+(1566, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-08 00:28:06'),
+(1567, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:06:09'),
+(1568, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:06:42'),
+(1569, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-08-08 01:06:49'),
+(1570, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:06:59'),
+(1571, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:07:28'),
+(1572, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:08:45'),
+(1573, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:09:37'),
+(1574, 15, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:12:06'),
+(1575, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:13:33'),
+(1576, 46, 'publish_form_version', 'manage_form', 'Published form version 3 (ID: 6)', '::1', '2026-08-08 01:13:48'),
+(1577, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:13:59'),
+(1578, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:14:19'),
+(1579, 2, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:14:25'),
+(1580, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:14:37'),
+(1581, 46, 'publish_form_version', 'manage_form', 'Published form version 4 (ID: 7)', '::1', '2026-08-08 01:14:55'),
+(1582, 46, 'revert_form_version', 'manage_form', 'Reverted active form to version ID 1', '::1', '2026-08-08 01:15:50'),
+(1583, 46, 'import_form_document', 'manage_form', 'Imported form draft from uploaded document (docx)', '::1', '2026-08-08 01:57:38'),
+(1584, 46, 'publish_form_version', 'manage_form', 'Published form version 2 (ID: 8)', '::1', '2026-08-08 01:58:05'),
+(1585, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:58:22'),
+(1586, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 01:58:34'),
+(1587, 46, 'revert_form_version', 'manage_form', 'Reverted active form to version ID 1', '::1', '2026-08-08 01:59:53'),
+(1588, 46, 'import_form_document', 'manage_form', 'Imported form draft from uploaded document (docx)', '::1', '2026-08-08 02:01:08'),
+(1589, 46, 'publish_form_version', 'manage_form', 'Published form version 2 (ID: 9)', '::1', '2026-08-08 02:01:13'),
+(1590, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-08 02:01:26'),
+(1591, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 02:04:28'),
+(1592, 46, 'revert_form_version', 'manage_form', 'Reverted active form to version ID 1', '::1', '2026-08-08 02:05:22'),
+(1593, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 09:45:57');
 
 -- --------------------------------------------------------
 
@@ -1693,6 +1726,25 @@ INSERT INTO `departments` (`department_id`, `school_id`, `name`, `description`, 
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `doc_import_usage`
+--
+
+CREATE TABLE `doc_import_usage` (
+  `user_id` int(11) NOT NULL,
+  `usage_count` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  `reset_date` date NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `doc_import_usage`
+--
+
+INSERT INTO `doc_import_usage` (`user_id`, `usage_count`, `reset_date`) VALUES
+(46, 4, '2026-08-08');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `email_logs`
 --
 
@@ -1842,7 +1894,8 @@ CREATE TABLE `ip_field_usage` (
 
 INSERT INTO `ip_field_usage` (`user_id`, `field_type`, `usage_count`, `reset_date`) VALUES
 (37, 'objective', 1, '2026-08-07'),
-(37, 'strategy', 1, '2026-08-07');
+(37, 'strategy', 1, '2026-08-07'),
+(46, '', 0, '2026-08-08');
 
 -- --------------------------------------------------------
 
@@ -2036,7 +2089,8 @@ CREATE TABLE `sbm_cycles` (
 INSERT INTO `sbm_cycles` (`cycle_id`, `sy_id`, `school_id`, `status`, `overall_score`, `maturity_level`, `started_at`, `submitted_at`, `validated_at`, `validated_by`, `validator_remarks`, `consolidation_confirmed`, `consolidation_confirmed_by`, `consolidation_confirmed_at`, `finalized_at`, `returned_at`, `returned_by`, `return_remarks`, `created_at`, `stakeholder_access_start`, `stakeholder_access_end`, `auto_deactivated_at`, `auto_deactivated_by`) VALUES
 (26, 25, 1, 'finalized', 61.37, 'Maturing', '2026-08-02 11:55:12', '2026-08-02 13:44:45', '2026-08-02 13:48:53', 46, '', 0, NULL, NULL, '2026-08-02 13:48:53', NULL, NULL, NULL, '2026-08-02 03:55:12', NULL, NULL, NULL, NULL),
 (27, 26, 1, 'finalized', 70.60, 'Advanced', '2026-08-02 21:48:41', '2026-08-02 22:10:04', '2026-08-02 22:10:38', 46, '', 0, NULL, NULL, '2026-08-02 22:10:38', NULL, NULL, NULL, '2026-08-02 13:48:41', NULL, NULL, NULL, NULL),
-(28, 27, 1, 'finalized', 70.00, '', '2026-08-03 22:35:33', '2026-08-03 22:40:34', '2026-08-03 22:41:00', 46, '', 0, NULL, NULL, '2026-08-03 22:41:00', NULL, NULL, NULL, '2026-08-03 14:35:33', NULL, NULL, NULL, NULL);
+(28, 27, 1, 'finalized', 70.00, '', '2026-08-03 22:35:33', '2026-08-03 22:40:34', '2026-08-03 22:41:00', 46, '', 0, NULL, NULL, '2026-08-03 22:41:00', NULL, NULL, NULL, '2026-08-03 14:35:33', NULL, NULL, NULL, NULL),
+(29, 28, 1, 'in_progress', NULL, NULL, '2026-08-08 09:06:49', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-08 01:06:49', NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -2105,7 +2159,13 @@ INSERT INTO `sbm_dimension_scores` (`score_id`, `cycle_id`, `school_id`, `dimens
 (1281, 28, 1, 3, 10.50, 16.00, 65.63, '2026-08-03 14:40:34'),
 (1282, 28, 1, 4, 15.00, 24.00, 62.50, '2026-08-03 14:40:34'),
 (1283, 28, 1, 5, 18.80, 28.00, 67.14, '2026-08-03 14:40:34'),
-(1284, 28, 1, 6, 21.00, 28.00, 75.00, '2026-08-03 14:40:34');
+(1284, 28, 1, 6, 21.00, 28.00, 75.00, '2026-08-03 14:40:34'),
+(1333, 29, 1, 1, 0.00, 0.00, 0.00, '2026-08-08 01:06:49'),
+(1335, 29, 1, 2, 0.00, 0.00, 0.00, '2026-08-08 01:06:49'),
+(1337, 29, 1, 3, 0.00, 0.00, 0.00, '2026-08-08 01:06:49'),
+(1339, 29, 1, 4, 0.00, 0.00, 0.00, '2026-08-08 01:06:49'),
+(1341, 29, 1, 5, 0.00, 0.00, 0.00, '2026-08-08 01:06:49'),
+(1343, 29, 1, 6, 0.00, 0.00, 0.00, '2026-08-08 01:06:49');
 
 -- --------------------------------------------------------
 
@@ -2411,8 +2471,8 @@ CREATE TABLE `school_years` (
 INSERT INTO `school_years` (`sy_id`, `label`, `is_current`, `date_start`, `date_end`) VALUES
 (25, '2023-2024', 0, '2023-08-29', '2024-05-31'),
 (26, '2024-2025', 0, '2024-07-29', '2025-04-15'),
-(27, '2025-2026', 1, '2025-06-16', '2026-03-31'),
-(28, '2026-2027', 0, '2026-06-08', '2027-04-08');
+(27, '2025-2026', 0, '2025-06-16', '2026-03-31'),
+(28, '2026-2027', 1, '2026-06-08', '2027-04-08');
 
 -- --------------------------------------------------------
 
@@ -2919,14 +2979,14 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `employee_id`, `department`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`, `contact_number`, `profile_picture`) VALUES
-(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 22:36:21', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, 'English', '2026-08-08 09:14:25', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL),
 (12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, 'English', '2026-08-07 21:33:38', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL),
 (13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 22:37:43', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL),
 (14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-08-03 22:38:28', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-07 21:33:27', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-08-07 21:28:22', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg'),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-08 07:39:24', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
-(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-08-07 21:31:07', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL);
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-08 09:12:06', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-08-08 10:01:26', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg'),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-08 17:45:57', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
+(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-08-08 08:12:05', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -3074,6 +3134,12 @@ ALTER TABLE `departments`
   ADD UNIQUE KEY `uq_dept_school` (`school_id`,`name`);
 
 --
+-- Indexes for table `doc_import_usage`
+--
+ALTER TABLE `doc_import_usage`
+  ADD PRIMARY KEY (`user_id`);
+
+--
 -- Indexes for table `email_logs`
 --
 ALTER TABLE `email_logs`
@@ -3200,7 +3266,7 @@ ALTER TABLE `sbm_cycles`
 --
 ALTER TABLE `sbm_dimensions`
   ADD PRIMARY KEY (`dimension_id`),
-  ADD UNIQUE KEY `dimension_no` (`dimension_no`);
+  ADD UNIQUE KEY `dimension_no` (`dimension_no`,`form_version_id`);
 
 --
 -- Indexes for table `sbm_dimension_scores`
@@ -3217,7 +3283,7 @@ ALTER TABLE `sbm_dimension_scores`
 --
 ALTER TABLE `sbm_indicators`
   ADD PRIMARY KEY (`indicator_id`),
-  ADD UNIQUE KEY `indicator_code` (`indicator_code`),
+  ADD UNIQUE KEY `indicator_code` (`indicator_code`,`form_version_id`),
   ADD KEY `dimension_id` (`dimension_id`);
 
 --
@@ -3359,7 +3425,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1561;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1594;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`
@@ -3413,7 +3479,7 @@ ALTER TABLE `evidence_audit_log`
 -- AUTO_INCREMENT for table `form_versions`
 --
 ALTER TABLE `form_versions`
-  MODIFY `version_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `version_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `grading_periods`
@@ -3479,25 +3545,25 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `sbm_cycles`
 --
 ALTER TABLE `sbm_cycles`
-  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT for table `sbm_dimensions`
 --
 ALTER TABLE `sbm_dimensions`
-  MODIFY `dimension_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `dimension_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- AUTO_INCREMENT for table `sbm_dimension_scores`
 --
 ALTER TABLE `sbm_dimension_scores`
-  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1333;
+  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1345;
 
 --
 -- AUTO_INCREMENT for table `sbm_indicators`
 --
 ALTER TABLE `sbm_indicators`
-  MODIFY `indicator_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `indicator_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=254;
 
 --
 -- AUTO_INCREMENT for table `sbm_responses`
@@ -3628,6 +3694,12 @@ ALTER TABLE `cycle_evaluators`
 ALTER TABLE `cycle_stage_gates`
   ADD CONSTRAINT `csg_ibfk_1` FOREIGN KEY (`cycle_id`) REFERENCES `sbm_cycles` (`cycle_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `csg_ibfk_2` FOREIGN KEY (`checked_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `doc_import_usage`
+--
+ALTER TABLE `doc_import_usage`
+  ADD CONSTRAINT `fk_doc_import_usage_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `email_logs`

@@ -23,11 +23,12 @@ if ($schoolId && $sy) {
   $cycle = $st->fetch();
 }
 
-// Dimension scores
+// Dimension scores (active form version only)
 $dimScores = [];
 if ($cycle) {
-  $st = $db->prepare("SELECT d.dimension_name, d.dimension_no, d.color_hex, COALESCE(ds.percentage, 0) as percentage FROM sbm_dimensions d LEFT JOIN sbm_dimension_scores ds ON d.dimension_id=ds.dimension_id AND ds.cycle_id=? ORDER BY d.dimension_no");
-  $st->execute([$cycle['cycle_id']]);
+  $activeFormVersionId = (int) $db->query("SELECT version_id FROM form_versions WHERE is_active=1 LIMIT 1")->fetchColumn();
+  $st = $db->prepare("SELECT d.dimension_name, d.dimension_no, d.color_hex, COALESCE(ds.percentage, 0) as percentage FROM sbm_dimensions d LEFT JOIN sbm_dimension_scores ds ON d.dimension_id=ds.dimension_id AND ds.cycle_id=? WHERE d.form_version_id=? ORDER BY d.dimension_no");
+  $st->execute([$cycle['cycle_id'], $activeFormVersionId]);
   $dimScores = $st->fetchAll();
 }
 

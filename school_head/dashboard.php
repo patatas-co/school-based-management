@@ -12,6 +12,7 @@ $db = getDB();
 $allSYs = $db->query("SELECT * FROM school_years ORDER BY label DESC")->fetchAll();
 $currentSYRow = $db->query("SELECT * FROM school_years WHERE is_current=1 LIMIT 1")->fetch();
 $myId = (int) ($_SESSION['user_id'] ?? 0);
+$activeFormVersionId = (int) $db->query("SELECT version_id FROM form_versions WHERE is_active=1 LIMIT 1")->fetchColumn();
 
 // ── NEW: AI ASSISTANT AJAX HANDLER (GROQ) ─────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_ai_suggestions') {
@@ -36,9 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
         FROM sbm_dimensions d
         LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
         LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
+        WHERE d.form_version_id = ?
         GROUP BY d.dimension_id ORDER BY d.dimension_no
     ");
-  $dimQ->execute([$syId, $schoolId]);
+  $dimQ->execute([$syId, $schoolId, $activeFormVersionId]);
   $dimScores = [];
   foreach ($dimQ->fetchAll() as $row) {
     $dimScores[] = [
@@ -196,10 +198,11 @@ $stDimScores = $db->prepare("
       WHERE c.sy_id = ?
         AND c.status IN ('validated','finalized','completed')
     )
+  WHERE d.form_version_id = ?
   GROUP BY d.dimension_id
   ORDER BY d.dimension_no
 ");
-$stDimScores->execute([$selectedSyId]);
+$stDimScores->execute([$selectedSyId, $activeFormVersionId]);
 $dimScores = $stDimScores->fetchAll();
 $hasValidatedDimScores = !empty(array_filter($dimScores, fn($d) => $d['avg_pct'] !== null));
 
@@ -248,9 +251,10 @@ $anDimAvgQ = $db->prepare("
     FROM sbm_dimensions d
     LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
     LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
+    WHERE d.form_version_id = ?
     GROUP BY d.dimension_id ORDER BY d.dimension_no
 ");
-$anDimAvgQ->execute([$selectedSyId, $mySchoolId]);
+$anDimAvgQ->execute([$selectedSyId, $mySchoolId, $activeFormVersionId]);
 $anDimAvgs = $anDimAvgQ->fetchAll();
 
 // -- Identify the lowest dimension(s) --
@@ -270,15 +274,16 @@ if ($minDimVal < 1000) {
 // -- Comparison SY dimension averages --------------------------
 $anDimAvgsCompare = [];
 if ($compareSyId && $compareSyId !== $selectedSyId) {
-  $cmpQ = $db->prepare("
+ $cmpQ = $db->prepare("
         SELECT d.dimension_no, d.dimension_name, d.color_hex,
                ROUND(AVG(ds.percentage),1) AS avg_pct
         FROM sbm_dimensions d
         LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
         LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
+        WHERE d.form_version_id = ?
         GROUP BY d.dimension_id ORDER BY d.dimension_no
     ");
-  $cmpQ->execute([$compareSyId, $mySchoolId]);
+  $cmpQ->execute([$compareSyId, $mySchoolId, $activeFormVersionId]);
   $anDimAvgsCompare = $cmpQ->fetchAll();
 }
 
@@ -2511,19 +2516,7 @@ include __DIR__ . '/../includes/header.php';
       <option value="0">All cycles</option>
     </select>
 
-    <button type="button" id="anTrendOlderBtn" onclick="moveTrendWindow(-1)"
-      class="chart-dl-btn" style="padding:5px 9px;" aria-label="Show older cycles">
-      Older
-    </button>
-
-    <span id="anTrendRangeSummary"
-      style="min-width:132px;text-align:center;font-size:11.5px;color:var(--n-500);font-weight:600;"></span>
-
-    <button type="button" id="anTrendNewerBtn" onclick="moveTrendWindow(1)"
-      class="chart-dl-btn" style="padding:5px 9px;" aria-label="Show newer cycles">
-      Newer
-    </button>
-  </div>
+    </div>
         <div class="chart-dl-wrap">
           <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_anDimTrendChart')">
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -2541,7 +2534,14 @@ include __DIR__ . '/../includes/header.php';
           </div>
         </div>
       </div>
-      <div class="chart-card-body" style="position:relative;height:400px;"><canvas id="anDimTrendChart"></canvas></div>
+      <div class="chart-card-body" style="position:relative;height:400px;padding:0;display:flex;flex-direction:column;">
+        <div id="dimTrendScrollWrap" style="overflow-x:auto;overflow-y:hidden;width:100%;flex:1;padding:16px 16px 0;box-sizing:border-box;">
+          <div id="dimTrendChartInner" style="position:relative;height:100%;min-width:100%;">
+            <canvas id="anDimTrendChart"></canvas>
+          </div>
+        </div>
+        <div id="dimTrendLegend" style="display:flex;flex-wrap:wrap;justify-content:center;gap:14px;padding:10px 16px;box-sizing:border-box;"></div>
+      </div>
     </div>
 
     <!-- Indicator Trend Analysis -->
@@ -2582,8 +2582,13 @@ include __DIR__ . '/../includes/header.php';
           </div>
           </div>
       </div>
-      <div class="chart-card-body" style="position:relative;height:400px;">
-        <canvas id="anIndTrendChart"></canvas>
+      <div class="chart-card-body" style="position:relative;height:400px;padding:0;display:flex;flex-direction:column;">
+        <div id="indTrendScrollWrap" style="overflow-x:auto;overflow-y:hidden;width:100%;flex:1;padding:16px 16px 0;box-sizing:border-box;">
+          <div id="indTrendChartInner" style="position:relative;height:100%;min-width:100%;">
+            <canvas id="anIndTrendChart"></canvas>
+          </div>
+        </div>
+        <div id="indTrendLegend" style="display:flex;flex-wrap:wrap;justify-content:center;gap:14px;padding:10px 16px;box-sizing:border-box;"></div>
       </div>
     </div>
   <?php endif; ?>
@@ -3552,7 +3557,12 @@ include __DIR__ . '/../includes/header.php';
 let anDimTrendChartInstance = null;
 let anSelectedTrendDim = 1;
 let anTrendWindowSize = 10;
-let anTrendStart = Math.max(0, anTrendSYLabels.length - anTrendWindowSize);
+
+// Minimum pixel width per cycle so labels/points stay legible.
+// When (labels.length * this) exceeds the visible wrapper width,
+// the wrapper's overflow-x:auto kicks in and shows a scrollbar
+// instead of squeezing everything to fit.
+const TREND_PX_PER_CYCLE = 70;
 
 function getTrendWindow() {
   const total = anTrendSYLabels.length;
@@ -3560,54 +3570,95 @@ function getTrendWindow() {
     ? total
     : Math.min(anTrendWindowSize, total);
 
-  const maxStart = Math.max(0, total - size);
-  anTrendStart = Math.min(Math.max(0, anTrendStart), maxStart);
+  // Always anchored to the latest cycles — no more paging offset.
+  const start = Math.max(0, total - size);
 
   return {
     total,
     size,
-    start: anTrendStart,
-    end: anTrendStart + size,
-    labels: anTrendSYLabels.slice(anTrendStart, anTrendStart + size)
+    start,
+    end: start + size,
+    labels: anTrendSYLabels.slice(start, start + size)
   };
-}
-
-function updateTrendRangeUI() {
-  const { total, size, start, end } = getTrendWindow();
-
-  const summary = document.getElementById('anTrendRangeSummary');
-  const older = document.getElementById('anTrendOlderBtn');
-  const newer = document.getElementById('anTrendNewerBtn');
-
-  if (summary) {
-    summary.textContent = total ? `Showing ${start + 1}–${end} of ${total}` : '';
-  }
-
-  if (older) older.disabled = size === total || start === 0;
-  if (newer) newer.disabled = size === total || end >= total;
 }
 
 function setTrendWindowSize(value) {
   anTrendWindowSize = parseInt(value, 10);
-
-  const size = anTrendWindowSize === 0
-    ? anTrendSYLabels.length
-    : Math.min(anTrendWindowSize, anTrendSYLabels.length);
-
-  anTrendStart = Math.max(0, anTrendSYLabels.length - size);
-
   renderDimensionTrendChart();
   updateIndicatorTrendChart(anSelectedTrendDim);
 }
 
-function moveTrendWindow(direction) {
-  const { size } = getTrendWindow();
+// Keep both trend charts sized to their container as the viewport changes,
+// so they only switch to horizontal scrolling when cycles truly no longer fit.
+let _trendResizeTimer = null;
+window.addEventListener('resize', function () {
+  clearTimeout(_trendResizeTimer);
+  _trendResizeTimer = setTimeout(function () {
+    renderDimensionTrendChart();
+    if (document.getElementById('anIndTrendChart')) {
+      updateIndicatorTrendChart(anSelectedTrendDim);
+    }
+  }, 150);
+});
 
-  anTrendStart += direction * size;
-  getTrendWindow();
+// Renders a plain-HTML legend outside the scrollable chart area, since
+// Chart.js's built-in legend lives inside the canvas and would otherwise
+// scroll along with the plot itself. Also wires up click-to-toggle on each
+// item so clicking a dimension/indicator hides or shows its line — the same
+// interaction Chart.js's built-in legend gives you natively, which we lost
+// by moving the legend outside the canvas.
+function renderCustomLegend(containerId, items, chartInstance) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container._chartInstance = chartInstance;
+  container.innerHTML = items.map((item, i) => `
+    <span data-legend-index="${i}" onclick="toggleTrendLegendItem(this, '${containerId}')"
+      style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--n-600);cursor:pointer;user-select:none;">
+      <span style="width:16px;height:2px;background:${item.color};display:inline-block;"></span>
+      ${item.label}
+    </span>
+  `).join('');
+}
 
-  renderDimensionTrendChart();
-  updateIndicatorTrendChart(anSelectedTrendDim);
+// Toggles a single dataset's visibility when its custom legend entry is
+// clicked, then dims + strikes through the label to show its hidden state.
+function toggleTrendLegendItem(el, containerId) {
+  const container = document.getElementById(containerId);
+  const chart = container && container._chartInstance;
+  if (!chart) return;
+
+  const index = parseInt(el.dataset.legendIndex, 10);
+  const meta = chart.getDatasetMeta(index);
+  meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : !meta.hidden;
+  chart.update();
+
+  el.style.opacity = meta.hidden ? '0.4' : '1';
+  el.style.textDecoration = meta.hidden ? 'line-through' : 'none';
+}
+
+// Sizes the chart's inner wrapper div so charts with many cycles get a
+// horizontal scrollbar instead of cramming all points into one width.
+// We only ever set the WIDTH of this inner div — never touch the canvas's
+// width/height attributes or its 2D context transform directly. Chart.js
+// (with responsive:true) owns the canvas itself: it watches this div via
+// its own container-resize handling and manages the retina/devicePixelRatio
+// scaling internally. Fighting that with manual canvas.width/ctx.setTransform
+// math is what caused the blurry, doubled-looking axis text before.
+function sizeTrendInner(innerEl, wrapperEl, pointCount) {
+  const wrapper = wrapperEl || innerEl.parentElement;
+
+  // wrapper.clientWidth includes its own left+right padding (box-sizing:
+  // border-box); subtract it so we compare against the actual visible area.
+  const cs = window.getComputedStyle(wrapper);
+  const hPad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  const availableWidth = (wrapper.clientWidth || 600) - hPad;
+
+  // Fit the container first; only grow past it (triggering the wrapper's
+  // overflow-x:auto scrollbar) once cycles actually need more room than
+  // the container can comfortably show.
+  const neededWidth = Math.max(availableWidth, pointCount * TREND_PX_PER_CYCLE);
+
+  innerEl.style.width = neededWidth + 'px';
 }
 
 function renderDimensionTrendChart() {
@@ -3615,6 +3666,9 @@ function renderDimensionTrendChart() {
   if (!canvas || anTrendSYLabels.length < 2) return;
 
   const { labels } = getTrendWindow();
+  const wrapperEl = document.getElementById('dimTrendScrollWrap');
+  const innerEl   = document.getElementById('dimTrendChartInner');
+  sizeTrendInner(innerEl, wrapperEl, labels.length);
 
   const datasets = anDimMeta.map(dm => ({
     label: 'D' + dm.no + ': ' + dm.name,
@@ -3649,32 +3703,28 @@ function renderDimensionTrendChart() {
         },
         x: {
           ticks: {
-            autoSkip: true,
-            maxTicksLimit: 10,
+            autoSkip: false,
             font: { size: 11, weight: '600' }
           },
           grid: { display: false }
         }
       },
       plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            font: { size: 11 },
-            padding: 10,
-            usePointStyle: true,
-            pointStyle: 'line',
-            pointStyleWidth: 24
-          }
-        }
+        legend: { display: false }
       },
+      // responsive:true lets Chart.js watch dimTrendChartInner (sized by
+      // sizeTrendInner above) and manage its own canvas resolution/DPR —
+      // don't fight it with manual canvas sizing, that's what caused the
+      // garbled axis text.
       responsive: true,
-maintainAspectRatio: true,
-aspectRatio: 3.5
+      maintainAspectRatio: false
     }
   });
 
-  updateTrendRangeUI();
+  renderCustomLegend('dimTrendLegend', anDimMeta.map(dm => ({
+    label: 'D' + dm.no + ': ' + dm.name,
+    color: dm.color
+  })), anDimTrendChartInstance);
 }
 
   function indTrendSelectDim(el, val, label) {
@@ -3688,13 +3738,12 @@ aspectRatio: 3.5
 updateIndicatorTrendChart(val);
   }
 
-  function updateIndicatorTrendChart(dimId) {
+ function updateIndicatorTrendChart(dimId) {
     dimId = parseInt(dimId);
     const el = document.getElementById('anIndTrendChart');
     if (!el) return;
 
     const syLabels = getTrendWindow().labels;
-updateTrendRangeUI();
     const byDim    = anIndTrendData.byDim[dimId] || {};
     const codes    = Object.keys(byDim);
 
@@ -3717,6 +3766,9 @@ updateTrendRangeUI();
       el.parentNode.replaceChild(newCanvas, el);
     }
     const canvas = document.getElementById('anIndTrendChart');
+    const indWrapperEl = document.getElementById('indTrendScrollWrap');
+    const indInnerEl   = document.getElementById('indTrendChartInner');
+    sizeTrendInner(indInnerEl, indWrapperEl, syLabels.length);
 
     const dimColors = {
       1:'#2563EB', 2:'#16A34A', 3:'#7C3AED',
@@ -3763,10 +3815,7 @@ updateTrendRangeUI();
           }
         },
           plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'line', pointStyleWidth: 24 }
-            },
+            legend: { display: false },
             tooltip: {
               callbacks: {
                 title: ctx => {
@@ -3782,11 +3831,20 @@ updateTrendRangeUI();
               }
             }
           },
+        // responsive:true lets Chart.js watch indTrendChartInner (sized by
+        // sizeTrendInner above) and manage its own canvas resolution/DPR —
+        // don't fight it with manual canvas sizing, that's what caused the
+        // garbled axis text.
         responsive: true,
         maintainAspectRatio: false,
         animation: { duration: 400, easing: 'easeInOutQuart' },
       }
     });
+
+    renderCustomLegend('indTrendLegend', codes.map((code, i) => ({
+      label: code,
+      color: indPalette[i % indPalette.length]
+    })), anIndTrendChartInstance);
   }
 
   // -- Auto-switch to analytics if ?view=analytics is in URL --
