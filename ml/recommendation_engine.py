@@ -356,6 +356,217 @@ def _call_groq_json(prompt: str) -> str:
     return response.choices[0].message.content.strip()
 
 
+import re
+
+CONFIDENCE_WEIGHTS = {
+    "indicator_evidence": 0.40,
+    "respondent_consistency": 0.25,
+    "historical_evidence": 0.20,
+    "data_completeness": 0.15,
+}
+
+
+def _indicator_evidence_score(codes: list, by_rating: dict) -> tuple:
+    """
+    40% factor. Uses the actual rating value (1 = Not Yet Manifested,
+    2 = Emerging) for each indicator code mentioned in this recommendation
+    block. Lower ratings = stronger evidence of a real gap = higher score.
+    Returns (score_0_100, list_of_factor_strings, matched_count).
+    """
+    ratings = []
+    rating1 = by_rating.get("1", by_rating.get(1, []))
+    rating2 = by_rating.get("2", by_rating.get(2, []))
+    lookup = {ind.get("code"): ind.get("rating") for ind in (rating1 + rating2) if ind.get("code")}
+
+    for code in codes:
+        if code in lookup and lookup[code] is not None:
+            ratings.append(float(lookup[code]))
+
+    if not ratings:
+        return None, [], 0
+
+    # rating 1.0 -> 100 evidence strength, rating 2.49 (weak cutoff) -> ~0
+    scores = [max(0.0, min(100.0, (2.5 - r) / 1.5 * 100)) for r in ratings]
+    avg_score = sum(scores) / len(scores)
+    factor_note = f"{len(ratings)} indicator{'s' if len(ratings) != 1 else ''} identified as below target"
+    return avg_score, [factor_note], len(ratings)
+
+
+def _respondent_consistency_score(codes: list, respondent_consistency: dict) -> tuple:
+    """
+    25% factor. Compares School-Head-pool vs Teacher-pool average ratings
+    for the same indicator. Smaller gap = higher agreement = higher score.
+    Rating scale is 1-4, so max possible gap is 3.
+    """
+    agreements = []
+    for code in codes:
+        entry = respondent_consistency.get(code)
+        if not entry:
+            continue
+        sh = entry.get("sh_avg")
+        tc = entry.get("teacher_avg")
+        if sh is None or tc is None:
+            continue
+        gap = abs(float(sh) - float(tc))
+        agreement_pct = max(0.0, min(100.0, (1 - gap / 3.0) * 100))
+        agreements.append(agreement_pct)
+
+    if not agreements:
+        return None, []
+
+    avg_agreement = sum(agreements) / len(agreements)
+    factor_note = f"{round(avg_agreement)}% respondent agreement between School Head and Teacher ratings"
+    return avg_agreement, [factor_note]
+
+
+def _historical_evidence_score(codes: list, indicator_history: dict) -> tuple:
+    """
+    20% factor. Checks whether the same indicator(s) were also rated weak
+    (<2.5) in prior cycles. Consistent weakness across cycles = higher score.
+    Gracefully returns None (not 0) when no prior-cycle data exists at all,
+    since "no history" is not the same as "inconsistent history".
+    """
+    any_history = False
+    persistent_hits = 0
+    total_checked = 0
+
+    for code in codes:
+        hist = indicator_history.get(code, [])
+        if not hist:
+            continue
+        any_history = True
+        total_checked += 1
+        weak_count = sum(1 for r in hist if r < 2.5)
+        if weak_count / len(hist) >= 0.5:
+            persistent_hits += 1
+
+    if not any_history:
+        return None, []
+
+    consistency_pct = (persistent_hits / total_checked * 100) if total_checked else 0
+    if consistency_pct >= 50:
+        factor_note = "Consistent performance issue across prior assessment cycles"
+    else:
+        factor_note = "This issue appears newly emerging (not consistently flagged in prior cycles)"
+    return consistency_pct, [factor_note]
+
+
+def _data_completeness_score(data_completeness) -> tuple:
+    """15% factor. Straight passthrough of the rated-vs-total percentage."""
+    if data_completeness is None:
+        return None, []
+    pct = float(data_completeness)
+    factor_note = f"Assessment data is {round(pct)}% complete"
+    return pct, [factor_note]
+
+
+def compute_recommendation_confidence(block_text: str, analysis: dict) -> dict:
+    """
+    Computes a transparent, data-derived confidence score for one
+    recommendation block (NOT the LLM's self-reported certainty).
+    Returns None fields / 'insufficient_data' when too little data exists
+    to calculate something meaningful, rather than inventing a number.
+    """
+    codes = sorted(set(re.findall(r'\b\d{1,2}\.\d{1,2}\b', block_text)))
+    by_rating = analysis.get("by_rating", {}) or {}
+    respondent_consistency = analysis.get("respondent_consistency", {}) or {}
+    indicator_history = analysis.get("indicator_history", {}) or {}
+    data_completeness = analysis.get("data_completeness")
+
+    ev_score, ev_factors, matched_count = _indicator_evidence_score(codes, by_rating)
+    rc_score, rc_factors = _respondent_consistency_score(codes, respondent_consistency)
+    he_score, he_factors = _historical_evidence_score(codes, indicator_history)
+    dc_score, dc_factors = _data_completeness_score(data_completeness)
+
+    # Not enough grounding to say anything meaningful — most commonly when
+    # the recommendation block didn't reference specific indicator codes at all.
+    if ev_score is None and matched_count == 0:
+        return {
+            "insufficient_data": True,
+            "reason": "Not enough completed assessment data is available to calculate a reliable recommendation confidence score.",
+            "indicator_codes": codes,
+        }
+
+    weighted_total = 0.0
+    weight_used = 0.0
+    factors = []
+
+    for score, factor_list, weight_key in [
+        (ev_score, ev_factors, "indicator_evidence"),
+        (rc_score, rc_factors, "respondent_consistency"),
+        (he_score, he_factors, "historical_evidence"),
+        (dc_score, dc_factors, "data_completeness"),
+    ]:
+        if score is not None:
+            w = CONFIDENCE_WEIGHTS[weight_key]
+            weighted_total += score * w
+            weight_used += w
+            factors.extend(factor_list)
+
+    if weight_used == 0:
+        return {
+            "insufficient_data": True,
+            "reason": "Not enough completed assessment data is available to calculate a reliable recommendation confidence score.",
+            "indicator_codes": codes,
+        }
+
+    # Re-normalize against only the factors we actually had data for, so a
+    # missing factor doesn't silently drag the score down — it's excluded,
+    # not scored as zero.
+    final_pct = round(weighted_total / weight_used, 1)
+    final_pct = max(0.0, min(100.0, final_pct))
+
+    if final_pct >= 80:
+        level = "High Confidence"
+    elif final_pct >= 60:
+        level = "Moderate Confidence"
+    else:
+        level = "Low Confidence"
+
+    return {
+        "insufficient_data": False,
+        "confidence_pct": final_pct,
+        "confidence_level": level,
+        "factors": factors,
+        "indicator_codes": codes,
+    }
+
+
+def split_into_confidence_blocks(raw_text: str, analysis: dict) -> list:
+    """
+    Splits the LLM's prose output on '**Bold Header**' lines (same boundary
+    the frontend's parseAILogicToHtml() already uses) and computes an
+    independent confidence score per block. Does NOT alter raw_text itself.
+    """
+    if not raw_text:
+        return []
+
+    lines = raw_text.split("\n")
+    blocks = []
+    current_title = None
+    current_body_lines = []
+
+    def flush():
+        if current_title is not None:
+            body_text = "\n".join(current_body_lines)
+            full_block_text = current_title + "\n" + body_text
+            conf = compute_recommendation_confidence(full_block_text, analysis)
+            blocks.append({"title": current_title, **conf})
+
+    for line in lines:
+        stripped = line.strip()
+        m = re.match(r'^\*\*(.+?)\*\*(.*)$', stripped)
+        if m:
+            flush()
+            current_title = m.group(1).strip()
+            current_body_lines = [m.group(2).strip()] if m.group(2).strip() else []
+        elif current_title is not None:
+            current_body_lines.append(stripped)
+
+    flush()
+    return blocks
+
+
 def _build_ip_field_prompt(field_type: str, indicator_code: str, indicator_text: str,
                             dimension_name: str, snippet: str) -> str:
     """
@@ -519,8 +730,16 @@ def generate_recommendations(
             text = _rule_based_fallback(analysis)
             backend = f"rule_based_error (was: {backend})"
 
+    try:
+        blocks = split_into_confidence_blocks(text, analysis) if text and not error else []
+    except Exception as e:
+        import logging
+        logging.error(f"Error computing recommendation confidence blocks: {e}")
+        blocks = []
+
     return {
         "recommendations": text,
+        "blocks": blocks,
         "backend_used": backend,
         "error": error,
         "prompt_chars": len(prompt),

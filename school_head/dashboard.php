@@ -2693,8 +2693,6 @@ include __DIR__ . '/../includes/header.php';
     <div id="anPredictionInsight" class="chart-card" style="margin-bottom:18px;display:none;">
       <div class="chart-card-head">
         <span class="chart-card-title">Trend Forecast</span>
-        <span style="font-size:11px;color:var(--n-400);font-weight:500;">Linear regression · <?= count($cycleHistory) ?>
-          cycles</span>
       </div>
       <div class="chart-card-body" style="padding:14px 16px;">
         <!-- Content populated by JavaScript -->
@@ -2717,7 +2715,6 @@ include __DIR__ . '/../includes/header.php';
     <div class="card" style="margin-bottom:18px;">
       <div class="card-head">
         <span class="card-title">Assessment History</span>
-        <span style="font-size:12px;color:var(--n-400);"><?= count($cycleHistory) ?> cycle(s)</span>
       </div>
       <?php if ($cycleHistory): ?>
         <div class="tbl-wrap">

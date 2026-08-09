@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 08, 2026 at 04:10 PM
+-- Generation Time: Aug 09, 2026 at 09:03 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -1571,7 +1571,18 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (1590, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-08 02:01:26'),
 (1591, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 02:04:28'),
 (1592, 46, 'revert_form_version', 'manage_form', 'Reverted active form to version ID 1', '::1', '2026-08-08 02:05:22'),
-(1593, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 09:45:57');
+(1593, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 09:45:57'),
+(1594, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-08 19:06:00'),
+(1595, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-08 19:06:15'),
+(1596, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-08 19:08:06'),
+(1597, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-09 03:45:01'),
+(1598, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-09 03:45:33'),
+(1599, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-09 03:46:47'),
+(1600, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-09 03:46:57'),
+(1601, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-09 05:29:56'),
+(1602, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-09 05:30:51'),
+(1603, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-09 06:14:56'),
+(1604, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-09 06:15:09');
 
 -- --------------------------------------------------------
 
@@ -1592,7 +1603,7 @@ CREATE TABLE `ai_suggestion_usage` (
 --
 
 INSERT INTO `ai_suggestion_usage` (`user_id`, `usage_count`, `last_generated_at`, `last_recommendation`, `reset_date`) VALUES
-(37, 1, '2026-08-07 13:23:03', 'Here are some targeted suggestions based on your school\'s current SBM data:\n\n**Strengthen curriculum delivery** Your scores in Curriculum and Teaching suggest room to grow in instructional delivery, particularly in addressing the needs of diverse learners. For indicator 6.7, consider improving your school\'s liquidation process to achieve a higher rating.\n\n* Review and refine your school\'s MOOE utilization and liquidation procedures to ensure timely and accurate reporting.\n* Provide training for staff on proper liquidation and reporting procedures, as outlined in DepEd Order No. 007, s. 2024.\n\n**Improve stakeholder engagement** The school\'s average rating of satisfactory from internal and external stakeholders (indicator 4.6) indicates a need to enhance communication and collaboration. This is crucial in building a strong school community.\n\n* Establish regular stakeholder feedback mechanisms, such as surveys or focus groups, to gather insights and concerns.\n* Foster partnerships with local industries to strengthen TLE-TVL course offerings, as suggested by indicator 1.8, to provide students with relevant and industry-aligned skills.\n\n**Enhance leadership and governance** The school\'s Leadership dimension score of 61.7% highlights the need to strengthen leadership and governance structures. A functional School Governance Council (SGC) is essential in driving school improvement.\n\n* Reactivate and strengthen the School Governance Council (SGC) to ensure it is functional and effective in supporting school decision-making.\n* Develop a strategic plan with a clear implementation roadmap, as indicated by indicator 3.1, to guide school improvement efforts.\n\n**Develop innovative frontline services** The school\'s rating of 2 in innovating frontline services (indicator 3.4) suggests an opportunity to enhance service delivery and responsiveness to stakeholders. This can be achieved by leveraging technology and streamlining processes.\n\n* Explore innovative solutions, such as online platforms or mobile applications, to improve communication and service delivery to stakeholders.\n* Review and refine school processes to reduce bureaucracy and enhance responsiveness to stakeholder needs.\n\nThe single biggest factor in improving your school\'s SBM score is **focusing on strengthening leadership and governance**, which will have a ripple effect on other areas, including curriculum delivery and stakeholder engagement.', '2026-08-07');
+(37, 3, '2026-08-09 06:41:27', '{\"text\":\"Given your school\'s current SBM data, it\'s clear that **Improving Curriculum and Teaching Quality** is crucial, as your scores in this dimension are lower than expected, at 50.5%. This is an area where focused efforts can yield significant improvements, especially considering the decline in overall SBM score from the last cycle.\\n\\n* Consider revisiting and refining your curriculum delivery strategies to better align with DepEd Order No. 007, s. 2024, emphasizing innovative and inclusive teaching methods.\\n* Implement regular teacher training and mentoring programs to enhance instructional delivery, particularly for subjects with notable gaps in student performance.\\n\\n**Enhancing the Learning Environment** is also vital, with a score of 50.7%, indicating room for growth in creating a supportive and conducive space for learning. For indicator 6.4, ensuring that basic facilities such as water, electricity, and internet are not just available but also well-maintained is essential.\\n\\n* Develop a maintenance schedule for school facilities to prevent disruptions and ensure a safe learning environment, as outlined in DepEd guidelines.\\n* Engage with the community and local stakeholders to explore potential partnerships for facility improvements and resource sharing.\\n\\n**Strengthening Leadership and Governance** is critical, given the maturing level of 46.3%. This involves not just administrative tasks but also strategic planning and stakeholder engagement. For indicators like 4.1 and 4.2, having a functional School Governance Council (SGC) and an operationalized strategic plan is key.\\n\\n* Review and update the school\'s strategic plan to reflect current needs and goals, ensuring it is operationalized through a clear implementation plan.\\n* Reactivate or strengthen the School Governance Council to enhance decision-making processes and community involvement, aligning with the principles of DepEd Order No. 007, s. 2024.\\n\\nThe single biggest factor in reversing the decline and improving SBM scores is **consistent and focused effort on priority areas**, particularly those identified as weak indicators. By addressing these areas systematically, Dasmari\\u00f1as Integrated High School can regain its momentum and achieve a higher level of maturity in its School-Based Management practices.\",\"blocks\":[{\"confidence_level\":\"Low Confidence\",\"confidence_pct\":41.2,\"factors\":[\"1 indicator identified as below target\",\"87% respondent agreement between School Head and Teacher ratings\",\"This issue appears newly emerging (not consistently flagged in prior cycles)\",\"Assessment data is 100% complete\"],\"indicator_codes\":[\"50.7\",\"6.4\"],\"insufficient_data\":false,\"title\":\"Enhancing the Learning Environment\"},{\"confidence_level\":\"Low Confidence\",\"confidence_pct\":51.1,\"factors\":[\"2 indicators identified as below target\",\"Consistent performance issue across prior assessment cycles\",\"Assessment data is 100% complete\"],\"indicator_codes\":[\"4.1\",\"4.2\",\"46.3\"],\"insufficient_data\":false,\"title\":\"Strengthening Leadership and Governance\"}]}', '2026-08-09');
 
 -- --------------------------------------------------------
 
@@ -2062,7 +2073,7 @@ CREATE TABLE `sbm_cycles` (
   `school_id` int(11) NOT NULL,
   `status` enum('draft','setup','assigning','in_progress','consolidating','submitted','returned','validated','finalized') DEFAULT 'draft',
   `overall_score` decimal(5,2) DEFAULT NULL,
-  `maturity_level` enum('Developing','Maturing','Advanced') DEFAULT NULL,
+  `maturity_level` varchar(20) DEFAULT NULL,
   `started_at` datetime DEFAULT NULL,
   `submitted_at` datetime DEFAULT NULL,
   `validated_at` datetime DEFAULT NULL,
@@ -2089,7 +2100,7 @@ CREATE TABLE `sbm_cycles` (
 INSERT INTO `sbm_cycles` (`cycle_id`, `sy_id`, `school_id`, `status`, `overall_score`, `maturity_level`, `started_at`, `submitted_at`, `validated_at`, `validated_by`, `validator_remarks`, `consolidation_confirmed`, `consolidation_confirmed_by`, `consolidation_confirmed_at`, `finalized_at`, `returned_at`, `returned_by`, `return_remarks`, `created_at`, `stakeholder_access_start`, `stakeholder_access_end`, `auto_deactivated_at`, `auto_deactivated_by`) VALUES
 (26, 25, 1, 'finalized', 61.37, 'Maturing', '2026-08-02 11:55:12', '2026-08-02 13:44:45', '2026-08-02 13:48:53', 46, '', 0, NULL, NULL, '2026-08-02 13:48:53', NULL, NULL, NULL, '2026-08-02 03:55:12', NULL, NULL, NULL, NULL),
 (27, 26, 1, 'finalized', 70.60, 'Advanced', '2026-08-02 21:48:41', '2026-08-02 22:10:04', '2026-08-02 22:10:38', 46, '', 0, NULL, NULL, '2026-08-02 22:10:38', NULL, NULL, NULL, '2026-08-02 13:48:41', NULL, NULL, NULL, NULL),
-(28, 27, 1, 'finalized', 70.00, '', '2026-08-03 22:35:33', '2026-08-03 22:40:34', '2026-08-03 22:41:00', 46, '', 0, NULL, NULL, '2026-08-03 22:41:00', NULL, NULL, NULL, '2026-08-03 14:35:33', NULL, NULL, NULL, NULL),
+(28, 27, 1, 'finalized', 70.00, 'Advanced', '2026-08-03 22:35:33', '2026-08-03 22:40:34', '2026-08-03 22:41:00', 46, '', 0, NULL, NULL, '2026-08-03 22:41:00', NULL, NULL, NULL, '2026-08-03 14:35:33', NULL, NULL, NULL, NULL),
 (29, 28, 1, 'in_progress', NULL, NULL, '2026-08-08 09:06:49', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-08 01:06:49', NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
@@ -2471,8 +2482,8 @@ CREATE TABLE `school_years` (
 INSERT INTO `school_years` (`sy_id`, `label`, `is_current`, `date_start`, `date_end`) VALUES
 (25, '2023-2024', 0, '2023-08-29', '2024-05-31'),
 (26, '2024-2025', 0, '2024-07-29', '2025-04-15'),
-(27, '2025-2026', 0, '2025-06-16', '2026-03-31'),
-(28, '2026-2027', 1, '2026-06-08', '2027-04-08');
+(27, '2025-2026', 1, '2025-06-16', '2026-03-31'),
+(28, '2026-2027', 0, '2026-06-08', '2027-04-08');
 
 -- --------------------------------------------------------
 
@@ -2984,9 +2995,9 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `r
 (13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 22:37:43', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL),
 (14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-08-03 22:38:28', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL),
 (15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-08 09:12:06', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-08-08 10:01:26', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg'),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-08 17:45:57', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
-(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-08-08 08:12:05', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL);
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-08-09 14:15:09', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg'),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-09 11:45:33', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
+(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-08-09 14:14:56', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -3425,7 +3436,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1594;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1605;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`

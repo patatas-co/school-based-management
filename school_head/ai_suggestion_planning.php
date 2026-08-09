@@ -98,6 +98,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
   $histQ->execute([$schoolIdAjax, $syIdAjax]);
   $historyAjax = $histQ->fetchAll();
 
+  // ── Respondent Consistency data: compare School-Head-pool vs Teacher-pool
+  // average ratings per weak indicator, so we can measure agreement between
+  // respondent groups rather than just a single pooled average. ──
+  $weakCodes = array_merge(
+    array_column($byRatingAjax['1'] ?? [], 'code'),
+    array_column($byRatingAjax['2'] ?? [], 'code')
+  );
+  $respondentConsistencyAjax = [];
+  if (!empty($weakCodes)) {
+    $ph = implode(',', array_fill(0, count($weakCodes), '?'));
+    $consQ = $db->prepare("
+      SELECT i.indicator_code,
+             ROUND(AVG(sr.rating), 2) AS sh_avg,
+             (SELECT ROUND(AVG(tr.rating), 2) FROM teacher_responses tr
+                JOIN sbm_cycles tc ON tr.cycle_id = tc.cycle_id
+                WHERE tr.indicator_id = i.indicator_id AND tc.sy_id = ? AND tc.school_id = ?) AS teacher_avg
+      FROM sbm_responses sr
+      JOIN sbm_indicators i ON sr.indicator_id = i.indicator_id
+      JOIN sbm_cycles c ON sr.cycle_id = c.cycle_id
+      WHERE c.sy_id = ? AND c.school_id = ? AND i.indicator_code IN ($ph)
+      GROUP BY i.indicator_id
+    ");
+    $consQ->execute(array_merge([$syIdAjax, $schoolIdAjax, $syIdAjax, $schoolIdAjax], $weakCodes));
+    foreach ($consQ->fetchAll() as $row) {
+      if ($row['sh_avg'] !== null && $row['teacher_avg'] !== null) {
+        $respondentConsistencyAjax[$row['indicator_code']] = [
+          'sh_avg' => (float) $row['sh_avg'],
+          'teacher_avg' => (float) $row['teacher_avg'],
+        ];
+      }
+    }
+  }
+
+  // ── Historical Evidence: was this same indicator also rated weak (<2.5)
+  // in prior cycles for this school? Checked over the same last-3-cycles window. ──
+  $indicatorHistoryAjax = [];
+  if (!empty($weakCodes)) {
+    $ph2 = implode(',', array_fill(0, count($weakCodes), '?'));
+    $indHistQ = $db->prepare("
+      SELECT i.indicator_code, c.sy_id, ROUND(AVG(all_r.rating), 2) AS rating
+      FROM (
+        SELECT cycle_id, indicator_id, rating FROM sbm_responses
+        UNION ALL
+        SELECT cycle_id, indicator_id, rating FROM teacher_responses
+      ) AS all_r
+      JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
+      JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
+      WHERE c.school_id = ? AND c.sy_id != ? AND c.status IN ('validated','finalized','completed')
+        AND i.indicator_code IN ($ph2)
+      GROUP BY i.indicator_id, c.sy_id
+      ORDER BY c.created_at DESC
+    ");
+    $indHistQ->execute(array_merge([$schoolIdAjax, $syIdAjax], $weakCodes));
+    foreach ($indHistQ->fetchAll() as $row) {
+      $indicatorHistoryAjax[$row['indicator_code']][] = (float) $row['rating'];
+    }
+  }
+
+  // ── Data Completeness: rated indicators vs total active indicators for
+  // the active form version, scoped to this cycle. ──
+  $activeFormVersionIdAjax = (int) $db->query("SELECT version_id FROM form_versions WHERE is_active=1 LIMIT 1")->fetchColumn();
+  $totalIndStmtAjax = $db->prepare("SELECT COUNT(*) FROM sbm_indicators WHERE is_active=1 AND form_version_id=?");
+  $totalIndStmtAjax->execute([$activeFormVersionIdAjax]);
+  $totalIndAjax = (int) $totalIndStmtAjax->fetchColumn();
+  $ratedIndQ = $db->prepare("
+    SELECT COUNT(DISTINCT all_r.indicator_id) FROM (
+      SELECT cycle_id, indicator_id FROM sbm_responses
+      UNION ALL
+      SELECT cycle_id, indicator_id FROM teacher_responses
+    ) AS all_r
+    JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
+    WHERE c.sy_id = ? AND c.school_id = ?
+  ");
+  $ratedIndQ->execute([$syIdAjax, $schoolIdAjax]);
+  $ratedIndAjax = (int) $ratedIndQ->fetchColumn();
+  $dataCompletenessAjax = $totalIndAjax > 0 ? round(($ratedIndAjax / $totalIndAjax) * 100, 1) : 0;
+
   $scoreQ = $db->prepare("
         SELECT overall_score, maturity_level FROM sbm_cycles 
         WHERE school_id = ? AND sy_id = ? AND status IN ('validated','finalized','completed')
@@ -119,7 +196,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
       ],
       'by_rating' => $byRatingAjax,
       'history' => $historyAjax,
-      'comment_summary' => ['top_topics' => [], 'has_urgent' => false]
+      'comment_summary' => ['top_topics' => [], 'has_urgent' => false],
+      'respondent_consistency' => $respondentConsistencyAjax,
+      'indicator_history' => $indicatorHistoryAjax,
+      'data_completeness' => $dataCompletenessAjax
     ]
   ];
 
@@ -129,9 +209,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
     'error' => 'Service Unavailable'
   ];
 
-  // Persist the successful result so it survives refresh/logout.
+  // Persist the successful result (raw text + per-block confidence data) so
+  // it survives refresh/logout. Stored as a JSON envelope; renderStoredRecommendation()
+  // handles both this new format and legacy plain-text values already saved.
   if (!empty($response['recommendations']) && empty($response['error'])) {
-    aiUsageSaveRecommendation($db, $currentUserId, $response['recommendations']);
+    aiUsageSaveRecommendation($db, $currentUserId, json_encode([
+      'text' => $response['recommendations'],
+      'blocks' => $response['blocks'] ?? [],
+    ]));
   }
 
   $response['remaining'] = $usageCheck['remaining'];
@@ -603,7 +688,6 @@ include __DIR__.'/../includes/header.php';
 <div class="card" style="margin-bottom:18px;border-color:var(--green-200, #bbf7d0);background:var(--green-50, #f0fdf4);">
   <div class="card-body" style="padding:20px 24px;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-      <span style="font-size:20px;line-height:1;">✅</span>
       <span style="font-size:15px;font-weight:700;color:var(--n-900);">Improvement Plans Successfully Submitted</span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
@@ -1019,6 +1103,85 @@ include __DIR__.'/../includes/header.php';
   font-weight: 700;
   color: var(--n-900);
 }
+.ai-conf-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+}
+.ai-conf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  letter-spacing: .1px;
+}
+.ai-conf-badge.high { background: #ECFDF5; color: #047857; }
+.ai-conf-badge.moderate { background: #FFFBEB; color: #B45309; }
+.ai-conf-badge.low { background: #FEF2F2; color: #B91C1C; }
+.ai-conf-badge.insufficient { background: var(--n-100); color: var(--n-500); }
+.ai-conf-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor; flex-shrink: 0;
+}
+.ai-conf-info {
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  border: 1px solid var(--n-300);
+  color: var(--n-400);
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  background: #fff;
+}
+.ai-conf-info:hover { border-color: var(--n-400); color: var(--n-600); }
+.ai-conf-popover {
+  display: none;
+  position: absolute;
+  top: 22px;
+  left: 0;
+  width: 300px;
+  background: #fff;
+  border: 1px solid var(--n-200);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  padding: 14px;
+  z-index: 50;
+  cursor: default;
+  text-align: left;
+}
+.ai-conf-info.open .ai-conf-popover { display: block; }
+.ai-conf-popover-title {
+  font-size: 12px; font-weight: 700; color: var(--n-800); margin-bottom: 4px;
+}
+.ai-conf-popover-score {
+  font-size: 13px; font-weight: 700; margin-bottom: 8px;
+}
+.ai-conf-popover-label {
+  font-size: 10.5px; font-weight: 700; color: var(--n-400); text-transform: uppercase;
+  letter-spacing: .3px; margin-bottom: 5px;
+}
+.ai-conf-popover ul {
+  list-style: none; padding: 0; margin: 0 0 10px 0;
+}
+.ai-conf-popover ul li {
+  font-size: 12px; color: var(--n-600); padding: 3px 0 3px 14px; position: relative; line-height: 1.4;
+}
+.ai-conf-popover ul li::before {
+  content: "•"; position: absolute; left: 0; color: var(--n-400);
+}
+.ai-conf-popover-footnote {
+  font-size: 10.5px; color: var(--n-400); line-height: 1.5;
+  border-top: 1px solid var(--n-100); padding-top: 8px;
+}
 .ai-suggest-content ul {
   list-style: none;
   padding-left: 32px;
@@ -1387,11 +1550,63 @@ include __DIR__.'/../includes/header.php';
 
 <script>
 /** Renders AI text as a formal, structured report (Claude-style formatting) */
-function parseAILogicToHtml(text) {
+function renderConfidenceBadge(block) {
+  if (!block) return '';
+
+  if (block.insufficient_data) {
+    return `
+      <div class="ai-conf-row">
+        <span class="ai-conf-badge insufficient"><span class="ai-conf-dot"></span>Insufficient Data</span>
+        <span class="ai-conf-info" onclick="toggleConfPopover(event, this)">i
+          <div class="ai-conf-popover">
+            <div class="ai-conf-popover-title">Recommendation Confidence</div>
+            <div class="ai-conf-popover-score" style="color:var(--n-500);">Insufficient Data</div>
+            <p style="font-size:12px;color:var(--n-600);line-height:1.5;margin:0 0 10px;">${block.reason || 'Not enough completed assessment data is available to calculate a reliable recommendation confidence score.'}</p>
+            <div class="ai-conf-popover-footnote">This score reflects data support for the recommendation and does not represent a probability that the recommendation is correct.</div>
+          </div>
+        </span>
+      </div>`;
+  }
+
+  const levelClass = block.confidence_level === 'High Confidence' ? 'high'
+    : block.confidence_level === 'Moderate Confidence' ? 'moderate' : 'low';
+  const colorMap = { high: '#047857', moderate: '#B45309', low: '#B91C1C' };
+  const factorsHtml = (block.factors || []).map(f => `<li>${f}</li>`).join('');
+
+  return `
+    <div class="ai-conf-row">
+      <span class="ai-conf-badge ${levelClass}"><span class="ai-conf-dot"></span>${block.confidence_pct}% · ${block.confidence_level}</span>
+      <span class="ai-conf-info" onclick="toggleConfPopover(event, this)">i
+        <div class="ai-conf-popover">
+          <div class="ai-conf-popover-title">Recommendation Confidence</div>
+          <div class="ai-conf-popover-score" style="color:${colorMap[levelClass]};">${block.confidence_pct}% — ${block.confidence_level}</div>
+          <p style="font-size:12px;color:var(--n-600);line-height:1.5;margin:0 0 10px;">This score indicates how strongly the available SBM data supports this recommendation.</p>
+          <div class="ai-conf-popover-label">Supporting factors</div>
+          <ul>${factorsHtml}</ul>
+          <div class="ai-conf-popover-footnote">This score reflects data support for the recommendation and does not represent a probability that the recommendation is correct.</div>
+        </div>
+      </span>
+    </div>`;
+}
+
+function toggleConfPopover(e, el) {
+  e.stopPropagation();
+  const wasOpen = el.classList.contains('open');
+  document.querySelectorAll('.ai-conf-info.open').forEach(o => o.classList.remove('open'));
+  if (!wasOpen) el.classList.add('open');
+}
+document.addEventListener('click', () => {
+  document.querySelectorAll('.ai-conf-info.open').forEach(o => o.classList.remove('open'));
+});
+
+function parseAILogicToHtml(text, blocks) {
+  blocks = blocks || [];
+  const blockByTitle = {};
+  blocks.forEach(b => { blockByTitle[b.title] = b; });
+
   const lines = text.split('\n');
   let finalHtml = '';
   let inList = false;
-  let sectionNo = 0;
 
   const inlineFormat = (s) => s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
@@ -1413,10 +1628,12 @@ function parseAILogicToHtml(text) {
 
     if (!trimmed) return;
 
-    // Paragraphs that open with a **Bold Heading** become a numbered section header
+    // Paragraphs that open with a **Bold Heading** become a section header
     const headingMatch = trimmed.match(/^\*\*(.+?)\*\*(.*)$/);
     if (headingMatch) {
-      finalHtml += '<div class="ai-section-head"><h4>' + headingMatch[1] + '</h4></div>';
+      const title = headingMatch[1];
+      const badgeHtml = renderConfidenceBadge(blockByTitle[title]);
+      finalHtml += '<div class="ai-section-head"><h4>' + title + '</h4>' + badgeHtml + '</div>';
       const rest = headingMatch[2].trim();
       if (rest) finalHtml += '<p>' + inlineFormat(rest) + '</p>';
       return;
@@ -2042,10 +2259,24 @@ function startAiCooldown(seconds) {
 
 function renderStoredRecommendation(recs, lastGeneratedAtUtc) {
   const body = document.getElementById('aiSuggestBody');
-  const cleaned = stripTrailingQuestion(recs);
+
+  // recs may be the new JSON envelope {text, blocks} or a legacy plain string.
+  let text = recs;
+  let blocks = [];
+  try {
+    const parsed = JSON.parse(recs);
+    if (parsed && typeof parsed === 'object' && 'text' in parsed) {
+      text = parsed.text;
+      blocks = parsed.blocks || [];
+    }
+  } catch (e) {
+    // Not JSON — legacy plain-text value, render as-is with no badges.
+  }
+
+  const cleaned = stripTrailingQuestion(text);
   currentAiRawText = cleaned;
   body.innerHTML = cleaned
-    ? parseAILogicToHtml(cleaned)
+    ? parseAILogicToHtml(cleaned, blocks)
     : '<p style="font-size:13px;color:var(--n-500);">Your performance is currently optimal with no critical gaps detected.</p>';
 
   if (lastGeneratedAtUtc) {
@@ -2125,7 +2356,7 @@ async function loadAISuggestionsPlan() {
     const recs = stripTrailingQuestion(data.recommendations || '');
     currentAiRawText = recs;
     body.innerHTML = recs
-      ? parseAILogicToHtml(recs)
+      ? parseAILogicToHtml(recs, data.blocks || [])
       : '<p style="font-size:13px;color:var(--n-500);">Your performance is currently optimal with no critical gaps detected.</p>';
 
     const now = new Date();
