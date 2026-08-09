@@ -556,12 +556,22 @@ function handleWorkflowPost(PDO $db): void
             exit;
         }
 
+        // Safety net: (re)compute maturity_level from overall_score in case it
+        // was never set at validation time (mirrors the validate_cycle handler).
+        $scoreRow = $db->prepare("SELECT overall_score FROM sbm_cycles WHERE cycle_id = ?");
+        $scoreRow->execute([$cycleId]);
+        $overallScore = $scoreRow->fetchColumn();
+        $maturityLevel = ($overallScore !== false && $overallScore !== null)
+            ? computeMaturity((float) $overallScore)
+            : null;
+
         $db->prepare("
             UPDATE sbm_cycles
             SET status = 'finalized',
-                finalized_at = NOW()
+                finalized_at = NOW(),
+                maturity_level = COALESCE(maturity_level, ?)
             WHERE cycle_id = ?
-        ")->execute([$cycleId]);
+        ")->execute([$maturityLevel, $cycleId]);
 
         logCycleStage($db, $cycleId, 'validated', 'finalized', $actorId, 'Cycle locked and archived.');
         echo json_encode(['ok' => true, 'msg' => 'Cycle has been finalized and locked.']);
