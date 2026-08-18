@@ -125,90 +125,55 @@ $activePage = 'departments.php';
 include __DIR__ . '/../includes/header.php';
 ?>
 
-<!-- Search bar -->
-<div class="filter-bar-v2" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-  <div class="search" style="flex:1;min-width:200px;max-width:360px;">
-    <span class="si"><?= svgIcon('search') ?></span>
-    <input type="text" id="liveSearch" placeholder="Search departments…"
-           value="<?= e($q) ?>" autocomplete="off" style="width:100%;">
-  </div>
-</div>
-
 <!-- Inline Add / Edit Form -->
 <div id="deptFormCard" style="
   background:#fff;
   border:1px solid var(--n-150,#e5e7eb);
   border-radius:14px;
-  margin-bottom:20px;
+  margin-bottom:16px;
   box-shadow:0 1px 4px rgba(0,0,0,.06);
   overflow:hidden;
+  padding:16px 20px;
 ">
-  <!-- Form header -->
-  <div style="
-    padding:14px 20px;
-    background:var(--n-50,#f9fafb);
-    border-bottom:1px solid var(--n-150,#e5e7eb);
-    display:flex;align-items:center;gap:8px;
-  ">
+  <input type="hidden" id="f_id" value="">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
     <span style="
-      width:30px;height:30px;border-radius:8px;
+      width:26px;height:26px;border-radius:7px;
       background:var(--brand-100,#dcfce7);
       color:var(--brand-600,#16a34a);
       display:flex;align-items:center;justify-content:center;
       flex-shrink:0;
-    "><?= svgIcon('briefcase', 15) ?></span>
+    "><?= svgIcon('briefcase', 13) ?></span>
     <span id="formCardTitle" style="font-weight:700;font-size:14px;color:var(--n-800,#1e293b);">Add Department</span>
   </div>
 
-  <!-- Form body -->
-  <div style="padding:20px 24px;">
-    <input type="hidden" id="f_id" value="">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-
-      <!-- Department Name -->
-      <div>
-        <label style="display:block;font-size:12px;font-weight:600;color:var(--n-600,#475569);margin-bottom:6px;letter-spacing:.03em;text-transform:uppercase;">
-          Department Name <span style="color:var(--red,#ef4444);">*</span>
-        </label>
-        <input type="text" id="f_name" placeholder="e.g. Science Department" maxlength="120" autocomplete="off"
-          style="
-            width:100%;padding:9px 12px;border-radius:8px;
-            border:1.5px solid var(--n-200,#e2e8f0);
-            font-size:13px;color:var(--n-800);
-            background:#fff;outline:none;box-sizing:border-box;
-            transition:border-color .15s;
-          "
-          onfocus="this.style.borderColor='var(--brand-500,#22c55e)'"
-          onblur="this.style.borderColor='var(--n-200,#e2e8f0)'">
-      </div>
-
-      <!-- Description -->
-      <div>
-        <label style="display:block;font-size:12px;font-weight:600;color:var(--n-600,#475569);margin-bottom:6px;letter-spacing:.03em;text-transform:uppercase;">
-          Description <span style="font-weight:400;color:var(--n-400,#94a3b8);text-transform:none;letter-spacing:0;">(optional)</span>
-        </label>
-        <input type="text" id="f_desc" placeholder="Brief description of this department…" maxlength="255" autocomplete="off"
-          style="
-            width:100%;padding:9px 12px;border-radius:8px;
-            border:1.5px solid var(--n-200,#e2e8f0);
-            font-size:13px;color:var(--n-800);
-            background:#fff;outline:none;box-sizing:border-box;
-            transition:border-color .15s;
-          "
-          onfocus="this.style.borderColor='var(--brand-500,#22c55e)'"
-          onblur="this.style.borderColor='var(--n-200,#e2e8f0)'">
-      </div>
+  <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+    <!-- Department Name -->
+    <div style="flex:1;min-width:220px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--n-600,#475569);margin-bottom:6px;letter-spacing:.03em;text-transform:uppercase;">
+        Department Name <span style="color:var(--red,#ef4444);">*</span>
+      </label>
+      <input type="text" id="f_name" placeholder="e.g. Science Department" maxlength="120" autocomplete="off"
+        style="
+          width:100%;padding:9px 12px;border-radius:8px;
+          border:1.5px solid var(--n-200,#e2e8f0);
+          font-size:13px;color:var(--n-800);
+          background:#fff;outline:none;box-sizing:border-box;
+          transition:border-color .15s;
+        "
+        onfocus="this.style.borderColor='var(--brand-500,#22c55e)'"
+        onblur="this.style.borderColor='var(--n-200,#e2e8f0)'">
     </div>
 
     <!-- Actions -->
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--n-100,#f1f5f9);">
+    <div style="display:flex;gap:8px;flex-shrink:0;">
       <button id="btnCancelEdit" onclick="cancelEdit()" style="
-        display:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;
+        display:none;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;
         border:1.5px solid var(--n-200,#e2e8f0);background:#fff;color:var(--n-600);cursor:pointer;
       ">Cancel</button>
       <button id="btnSaveDept" onclick="saveDept()" style="
         display:flex;align-items:center;gap:6px;
-        padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;
+        padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;
         background:var(--brand-600,#16a34a);color:#fff;border:none;cursor:pointer;
         box-shadow:0 1px 3px rgba(22,163,74,.25);transition:opacity .15s;
       " onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
@@ -218,13 +183,22 @@ include __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
-<div class="card">
-  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--n-100);">
-    <span style="font-weight:600;font-size:14px;color:var(--n-700);">
-      <?= svgIcon('briefcase') ?>
-      Departments
-      <span style="margin-left:6px;padding:2px 8px;border-radius:999px;font-size:11px;background:var(--n-100);color:var(--n-500);"><?= $totalDepts ?></span>
-    </span>
+<div class="card" style="box-shadow:none;border:1px solid var(--n-150,#e5e7eb);">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--n-100,#f1f5f9);">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-weight:600;font-size:14px;color:var(--n-700);">
+          <?= svgIcon('briefcase') ?>
+          Departments
+        </span>
+        <span style="padding:2px 8px;border-radius:999px;font-size:11px;background:var(--n-100);color:var(--n-500);"><?= $totalDepts ?></span>
+      </div>
+      <div class="search" style="width:100%;max-width:300px;">
+        <span class="si"><?= svgIcon('search') ?></span>
+        <input type="text" id="liveSearch" placeholder="Search departments…"
+               value="<?= e($q) ?>" autocomplete="off" style="width:100%;">
+      </div>
+    </div>
   </div>
 
   <?php if (!$departments): ?>
@@ -242,7 +216,6 @@ include __DIR__ . '/../includes/header.php';
           <tr>
             <th>#</th>
             <th>Department Name</th>
-            <th>Description</th>
             <th>Users</th>
             <th>Created</th>
             <th style="text-align:center;">Actions</th>
@@ -255,7 +228,6 @@ include __DIR__ . '/../includes/header.php';
               <td>
                 <span style="font-weight:600;font-size:13px;color:var(--n-800);"><?= e($d['name']) ?></span>
               </td>
-              <td style="font-size:13px;color:var(--n-500);"><?= $d['description'] ? e($d['description']) : '<span style="color:var(--n-300);">—</span>' ?></td>
               <td>
                 <span onclick="openUsersModal(<?= htmlspecialchars(json_encode($d['name'])) ?>)"
                   style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:var(--brand-50);color:var(--brand-600);border:1px solid var(--brand-100);cursor:pointer;transition:background .15s;"
@@ -394,7 +366,6 @@ async function apiPost(data) {
 function openEdit(id, name, desc) {
   document.getElementById('f_id').value   = id;
   document.getElementById('f_name').value = name;
-  document.getElementById('f_desc').value = desc || '';
   document.getElementById('formCardTitle').textContent = 'Edit Department';
   document.getElementById('btnSaveLabel').textContent  = 'Save Changes';
   document.getElementById('btnCancelEdit').style.display = '';
@@ -405,7 +376,6 @@ function openEdit(id, name, desc) {
 function cancelEdit() {
   document.getElementById('f_id').value   = '';
   document.getElementById('f_name').value = '';
-  document.getElementById('f_desc').value = '';
   document.getElementById('formCardTitle').textContent = 'Add Department';
   document.getElementById('btnSaveLabel').textContent  = 'Save';
   document.getElementById('btnCancelEdit').style.display = 'none';
@@ -414,12 +384,11 @@ function cancelEdit() {
 async function saveDept() {
   const id   = document.getElementById('f_id').value;
   const name = document.getElementById('f_name').value.trim();
-  const desc = document.getElementById('f_desc').value.trim();
   if (!name) { toast('Department name is required.', 'warning'); return; }
   const btn = document.getElementById('btnSaveDept');
   btn.disabled = true;
   const action = id ? 'update' : 'create';
-  const r = await apiPost({ action, id, name, description: desc });
+  const r = await apiPost({ action, id, name, description: '' });
   btn.disabled = false;
   if (r.ok) { toast(r.msg, 'ok'); setTimeout(() => location.reload(), 700); }
   else { toast(r.msg || 'Failed to save department.', 'err'); }

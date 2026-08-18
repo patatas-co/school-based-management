@@ -304,6 +304,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     exit;
   }
 
+  if ($action === 'resend_evaluator_invite') {
+    $cycleId = (int) ($_POST['cycle_id'] ?? 0);
+    $userId = (int) ($_POST['user_id'] ?? 0);
+    if (!$cycleId || !$userId) {
+      echo json_encode(['ok' => false, 'msg' => 'Invalid parameters.']);
+      exit;
+    }
+
+    $check = $db->prepare("SELECT 1 FROM cycle_evaluators WHERE cycle_id = ? AND user_id = ?");
+    $check->execute([$cycleId, $userId]);
+    if (!$check->fetchColumn()) {
+      echo json_encode(['ok' => false, 'msg' => 'This evaluator is not assigned to the selected cycle.']);
+      exit;
+    }
+
+    $userRow = $db->prepare("SELECT user_id, full_name, email FROM users WHERE user_id=?");
+    $userRow->execute([$userId]);
+    $userRow = $userRow->fetch();
+    if (!$userRow) {
+      echo json_encode(['ok' => false, 'msg' => 'Evaluator account not found.']);
+      exit;
+    }
+
+    $sent = sendStakeholderWelcomeEmail($db, $userRow, $cycleId);
+    logActivity('resend_evaluator_invite', 'users', "Resent invitation to user $userId for cycle $cycleId");
+
+    echo json_encode([
+      'ok' => $sent,
+      'msg' => $sent
+        ? 'Invitation resent to ' . $userRow['email'] . '.'
+        : 'Failed to resend invitation. Check mail settings.',
+    ]);
+    exit;
+  }
+
   if ($action === 'toggle_status') {
     $id = (int) ($_POST['id'] ?? 0);
     $targetStatus = $_POST['status'] ?? '';
@@ -488,7 +523,7 @@ if ($action === 'list_roles') {
   $hierarchyOrder = ['system_admin','school_head','sbm_coordinator','teacher','external_stakeholder'];
   $placeholders = implode(',', array_fill(0, count($hierarchyOrder), '?'));
   $rows = $db->prepare("SELECT id,slug,label,color,description,is_system FROM roles ORDER BY CASE slug " . implode(' ', array_map(fn($s,$i) => "WHEN '$s' THEN $i", $hierarchyOrder, array_keys($hierarchyOrder))) . " ELSE 99 END ASC")->execute([]);
-  $rows = $db->query("SELECT id,slug,label,color,description,is_system FROM roles ORDER BY CASE slug WHEN 'system_admin' THEN 1 WHEN 'school_head' THEN 2 WHEN 'sbm_coordinator' THEN 3 WHEN 'teacher' THEN 4 WHEN 'external_stakeholder' THEN 5 ELSE 6 END ASC, label ASC")->fetchAll(PDO::FETCH_ASSOC);
+  $rows = $db->query("SELECT id,slug,label,color,description,is_system,(SELECT COUNT(*) FROM users u WHERE u.role = roles.slug COLLATE utf8mb4_unicode_ci) AS user_count FROM roles ORDER BY CASE slug WHEN 'system_admin' THEN 1 WHEN 'school_head' THEN 2 WHEN 'sbm_coordinator' THEN 3 WHEN 'teacher' THEN 4 WHEN 'external_stakeholder' THEN 5 ELSE 6 END ASC, label ASC")->fetchAll(PDO::FETCH_ASSOC);
   echo json_encode(['ok' => true, 'data' => $rows]); exit;
 }
 
@@ -550,7 +585,9 @@ $q = $_GET['q'] ?? '';
 $rf = $_GET['role'] ?? '';
 $sf = $_GET['status'] ?? '';
 
-$sql = "SELECT u.user_id,u.username,u.email,u.full_name,u.role,u.status,u.school_id,u.last_login,u.created_at,u.email_verified,u.force_password_change,u.profile_picture,u.department,s.school_name FROM users u LEFT JOIN schools s ON u.school_id=s.school_id WHERE 1=1";
+// User Accounts only shows processed accounts — pending/rejected registrations
+// live exclusively on the Pending Requests page now.
+$sql = "SELECT u.user_id,u.username,u.email,u.full_name,u.role,u.status,u.school_id,u.last_login,u.created_at,u.email_verified,u.force_password_change,u.profile_picture,u.department,s.school_name FROM users u LEFT JOIN schools s ON u.school_id=s.school_id WHERE u.status NOT IN ('pending','rejected')";
 $p = [];
 if ($q) {
   $qE = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($q)) . '%';
@@ -570,9 +607,11 @@ $stmt = $db->prepare($sql);
 $stmt->execute($p);
 $users = $stmt->fetchAll();
 
-$roleCounts = $db->query("SELECT role,COUNT(*) cnt FROM users GROUP BY role")->fetchAll(PDO::FETCH_KEY_PAIR);
+$roleCounts = $db->query("SELECT role,COUNT(*) cnt FROM users WHERE status NOT IN ('pending','rejected') GROUP BY role")->fetchAll(PDO::FETCH_KEY_PAIR);
 $totalUsers = array_sum($roleCounts);
 $activeUsers = $db->query("SELECT COUNT(*) FROM users WHERE status='active'")->fetchColumn();
+$inactiveUsersCount = $db->query("SELECT COUNT(*) FROM users WHERE status='inactive'")->fetchColumn();
+$archivedUsersCount = $db->query("SELECT COUNT(*) FROM users WHERE status='archived'")->fetchColumn();
 
 $statusLabels = ['active' => 'Active Accounts', 'inactive' => 'Inactive Accounts', 'archived' => 'Archived Accounts'];
 $pageTitle = $statusLabels[$sf] ?? 'User Management';
@@ -587,25 +626,37 @@ $_allDepts->execute([SCHOOL_ID]);
 $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
 ?>
 
-<!-- Search + Actions bar -->
-<div class="filter-bar-v2" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-  <div class="search" style="flex:1;min-width:200px;max-width:360px;">
-    <span class="si"><?= svgIcon('search') ?></span>
-    <input type="text" id="liveSearch" placeholder="Search by name, username or email…"
-      value="<?= e($q) ?>" autocomplete="off"
-      style="width:100%;">
-  </div>
-  <?php if (!$sf): ?>
-    <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">
-      <button class="btn btn-secondary" onclick="openModal('mImport')"><?= svgIcon('upload') ?> Import CSV</button>
-      <button class="btn btn-secondary" onclick="openRolesModal()"><?= svgIcon('shield') ?> Manage Roles</button>
-      <button class="btn btn-secondary" onclick="openModal('mEvaluators')"><?= svgIcon('users') ?> Manage Evaluators</button>
-      <button class="btn btn-primary" onclick="openModal('mCreate')"><?= svgIcon('plus') ?> Add User</button>
-    </div>
-  <?php endif; ?>
+<style>
+  .status-tab{border:1px solid #E2E8F0;background:#fff;color:#64748B;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+  .status-tab:hover{background:#F8FAFC;}
+  .status-tab.active{background:#16A34A;border-color:#16A34A;color:#fff;}
+</style>
+
+<!-- Page-level actions (no container) -->
+<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+  <button class="btn btn-secondary" onclick="openModal('mImport')"><?= svgIcon('upload') ?> Import CSV</button>
+  <button class="btn btn-primary" onclick="openModal('mCreate')"><?= svgIcon('plus') ?> Add User</button>
 </div>
 
-<div class="card">
+<div class="card" style="box-shadow:none;border:1px solid var(--n-150,#e5e7eb);">
+  <!-- Table toolbar: search + status filters -->
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;width:100%;padding:16px 20px;border-bottom:1px solid var(--n-100,#f1f5f9);">
+    <div class="search" style="flex:0 1 320px;min-width:220px;">
+      <span class="si"><?= svgIcon('search') ?></span>
+      <input type="text" id="liveSearch" placeholder="Search by name, username or email…"
+        value="<?= e($q) ?>" autocomplete="off"
+        style="width:100%;">
+    </div>
+    <div class="status-filter-tabs" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto;">
+      <button type="button" class="status-tab <?= !$sf ? 'active' : '' ?>" data-status="" onclick="applyStatusFilter('')">All Users (<?= (int)$totalUsers ?>)</button>
+      <button type="button" class="status-tab <?= $sf === 'active' ? 'active' : '' ?>" data-status="active" onclick="applyStatusFilter('active')">Active (<?= (int)$activeUsers ?>)</button>
+      <button type="button" class="status-tab <?= $sf === 'inactive' ? 'active' : '' ?>" data-status="inactive" onclick="applyStatusFilter('inactive')">Inactive (<?= (int)$inactiveUsersCount ?>)</button>
+      <button type="button" class="status-tab <?= $sf === 'archived' ? 'active' : '' ?>" data-status="archived" onclick="applyStatusFilter('archived')">Archived (<?= (int)$archivedUsersCount ?>)</button>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="box-shadow:none;border:1px solid var(--n-150,#e5e7eb);margin-top:16px;">
   <?php if (!$users): ?>
     <div class="empty-state">
       <div class="empty-icon"><?= svgIcon('users') ?></div>
@@ -624,8 +675,6 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
             <th>Department</th>
             <th>Role</th>
             <th>Status</th>
-            <th>Age</th>
-            <th>Last Login</th>
             <th style="text-align:center;">Actions</th>
           </tr>
         </thead>
@@ -667,17 +716,10 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
                 </span>
               </td>
               <td>
-                <?php $statColors = ['active' => ['#DCFCE7', '#16A34A'], 'inactive' => ['var(--n-100)', 'var(--n-500)'], 'archived' => ['#FEF3C7', '#D97706'], 'suspended' => ['var(--red-bg)', 'var(--red)']];
+                <?php $statColors = ['active' => ['#DCFCE7', '#16A34A'], 'inactive' => ['var(--n-100)', 'var(--n-500)'], 'archived' => ['#FEF3C7', '#D97706'], 'suspended' => ['var(--red-bg)', 'var(--red)'], 'pending' => ['#FEF9C3', '#CA8A04'], 'rejected' => ['var(--red-bg)', 'var(--red)']];
                 [$sb, $sc] = $statColors[$u['status']] ?? ['var(--n-100)', 'var(--n-500)']; ?>
                 <span class="user-status-pill"
                   style="display:inline-flex;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:<?= $sb ?>;color:<?= $sc ?>;"><?= ucfirst($u['status']) ?></span>
-              </td>
-              <td style="font-size:12px;color:var(--n-500);font-weight:600;">
-                <?php $days = floor((time() - strtotime($u['created_at'])) / 86400);
-                echo ($days <= 0 ? 'Today' : number_format($days) . ' days'); ?>
-              </td>
-              <td style="font-size:12px;color:<?= $u['last_login'] ? 'var(--n-400)' : 'var(--red)' ?>;">
-                <?= $u['last_login'] ? timeAgo($u['last_login']) : 'Never' ?>
               </td>
               <td>
                 <div class="user-row-actions">
@@ -1383,7 +1425,28 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
         <div class="fg"><label>Full Name *</label><input class="fc" id="c_name" placeholder="Juan dela Cruz"></div>
       </div>
       <div class="fg"><label>Email *</label><input class="fc" type="email" id="c_email" placeholder="juan@deped.gov.ph"></div>
-      <div class="fg"><label>Department</label><input class="fc" id="c_dept" placeholder="e.g. Grade 10 — Science"></div>
+      <div class="fg">
+        <label>Department</label>
+        <div class="p-select p-select-fluid" id="pCDeptDropdown">
+          <input type="hidden" id="c_dept">
+          <div class="p-select-trigger" onclick="togglePSelect(event, 'pCDeptDropdown')">
+            <span class="p-select-val" id="pCDeptLabel">Select Department</span>
+            <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
+          </div>
+          <div class="p-select-menu">
+            <div class="p-select-item" data-val="" onclick="setCDept('', '— None —')">
+              <div class="p-item-content"><div class="p-item-title">— None —</div></div>
+              <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+            </div>
+            <?php foreach ($_allDepts as $dname): ?>
+              <div class="p-select-item" data-val="<?= e($dname) ?>" onclick="setCDept('<?= e($dname) ?>', '<?= e($dname) ?>')">
+                <div class="p-item-content"><div class="p-item-title"><?= e($dname) ?></div></div>
+                <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
       <div class="form-row">
         <div class="fg">
           <label>Role *</label>
@@ -1538,302 +1601,6 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
   </div>
 </div>
 
-<!-- Evaluator Management Modal -->
-<div class="overlay" id="mEvaluators">
-  <div class="modal" style="max-width:680px;">
-    <div class="modal-head">
-      <span class="modal-title">Manage Cycle Evaluators</span>
-      <button class="modal-close" onclick="closeModal('mEvaluators')">
-        <?= svgIcon('x') ?>
-      </button>
-    </div>
-    <div class="modal-body">
-
-      <!-- Cycle selector -->
-      <div class="fg">
-        <label>Assessment Cycle *</label>
-        <div class="p-select p-select-fluid" id="pCycleDropdown">
-          <input type="hidden" id="ev_cycle_id">
-          <div class="p-select-trigger" onclick="togglePSelect(event, 'pCycleDropdown')">
-            <span class="p-select-val" id="pCycleLabel">Select a cycle</span>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--n-400)" stroke-width="2.5"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </div>
-          <div class="p-select-menu">
-            <?php
-            $cycles = $db->query("
-              SELECT c.cycle_id, sy.label, c.status
-              FROM sbm_cycles c
-              JOIN school_years sy ON c.sy_id = sy.sy_id
-              WHERE c.school_id = " . SCHOOL_ID . "
-              ORDER BY c.cycle_id DESC
-            ")->fetchAll();
-            foreach ($cycles as $cyc):
-              $label = "SY " . e($cyc['label']) . " — " . ucfirst(str_replace('_', ' ', $cyc['status']));
-              $desc = ($cyc['status'] === 'open') ? "Currently assessing school year" : "Historical assessment records";
-              ?>
-              <div class="p-select-item" onclick="setMCycle('<?= $cyc['cycle_id'] ?>', '<?= e($label) ?>')">
-                <div class="p-item-content">
-                  <div class="p-item-title"><?= e($label) ?></div>
-                  <div class="p-item-desc"><?= $desc ?></div>
-                </div>
-                <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
-              </div>
-            <?php endforeach; ?>
-          </div>
-        </div>
-      </div>
-
-      <!-- Stakeholder Access Window Card -->
-      <div id="cycleDatesCard" style="display:none;margin-bottom:20px;">
-        <div
-          style="background:var(--brand-50);border:1px solid var(--brand-200);border-radius:16px;padding:20px;box-shadow:var(--shadow-sm);">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
-            <div>
-              <div
-                style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--brand-700);margin-bottom:4px;display:flex;align-items:center;gap:6px;">
-                <div style="width:6px;height:6px;border-radius:50%;background:var(--brand-600);"></div>
-                Stakeholder Access Window
-              </div>
-              <div id="cycleStatusBanner" style="font-size:14px;font-weight:700;color:var(--n-900);"></div>
-            </div>
-            <button class="btn btn-primary" onclick="saveCycleDates()"
-              style="padding:7px 14px;font-size:12.5px;border-radius:9px;box-shadow:0 4px 12px rgba(22, 163, 74, .2);">Save
-              Window</button>
-          </div>
-
-          <div class="form-row">
-            <!-- Start Group -->
-            <div>
-              <label
-                style="color:var(--n-600);font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#059669" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-                Opening Date &amp; Time
-              </label>
-              <!-- Hidden native inputs (values still read by saveCycleDates) -->
-              <input type="date" id="ev_start_d" class="dt-premium">
-              <input type="time" id="ev_start_t" class="dt-premium">
-              <!-- Custom trigger -->
-              <button type="button" class="dtp-trigger" onclick="dtpOpen('start')">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-                <span class="dtp-trigger-text placeholder" id="dtp_start_label">Pick opening date &amp; time</span>
-              </button>
-            </div>
-
-            <!-- End Group -->
-            <div>
-              <label
-                style="color:var(--n-600);font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#059669" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-                Closing Date &amp; Time
-              </label>
-              <input type="date" id="ev_end_d" class="dt-premium">
-              <input type="time" id="ev_end_t" class="dt-premium">
-              <button type="button" class="dtp-trigger" onclick="dtpOpen('end')">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-                <span class="dtp-trigger-text placeholder" id="dtp_end_label">Pick closing date &amp; time</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bulk CSV Import for Stakeholders -->
-      <div id="evCsvSection" style="margin-bottom:16px;">
-        <div class="import-card" id="evCsvDrop">
-          <!-- Header -->
-          <div class="import-head">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div class="import-icon-wrap">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <path d="M12 18v-6" />
-                  <path d="M9 15h6" />
-                </svg>
-              </div>
-              <div>
-                <div style="font-size:14px;font-weight:800;color:var(--n-900);line-height:1.2;">Bulk Import
-                </div>
-                <div style="font-size:11px;color:var(--n-500);margin-top:2px;">Upload CSV to add evaluators</div>
-              </div>
-            </div>
-            <div class="import-schema">
-              <span class="import-col">full_name</span>
-              <span class="import-col">email</span>
-            </div>
-          </div>
-
-          <!-- Body -->
-          <div class="import-body">
-            <label for="evCsvFile" class="import-drop-zone" id="evCsvDropZone">
-              <input type="file" id="evCsvFile" accept=".csv" style="display:none;" onchange="handleEvCsvSelect(this)">
-
-              <!-- Placeholder state -->
-              <div class="import-placeholder-state">
-                <div
-                  style="width:44px;height:44px;border-radius:12px;background:var(--brand-50);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:1px solid var(--brand-100);">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--brand-600)" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                </div>
-                <div style="font-size:14px;font-weight:700;color:var(--n-800);margin-bottom:4px;">Drop your CSV here
-                </div>
-                <div style="font-size:12px;color:var(--n-400);">
-                  or <span style="color:var(--brand-600);font-weight:600;text-decoration:underline;">click to
-                    browse</span>
-                </div>
-              </div>
-
-              <!-- Selected file pill -->
-              <div class="import-file-pill" id="evCsvFilePill">
-                <div
-                  style="width:32px;height:32px;border-radius:8px;background:var(--brand-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--brand-700)"
-                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                  </svg>
-                </div>
-                <div style="flex:1;min-width:0;text-align:left;">
-                  <div id="evCsvFileName"
-                    style="font-size:13px;font-weight:700;color:var(--n-900);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                  </div>
-                  <div id="evCsvFileSize" style="font-size:11px;color:var(--n-500);"></div>
-                </div>
-                <button type="button" onclick="event.preventDefault(); clearEvCsv();"
-                  style="background:var(--n-100);border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--n-500);line-height:0;transition:all .2s;"
-                  title="Remove file">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-            </label>
-
-            <button class="import-btn" id="evCsvImportBtn" onclick="importStakeholderCsv()" disabled>
-              <?= svgIcon('send') ?> Import &amp; Send Invites
-            </button>
-
-            <div style="text-align:center;">
-              <a href="users.php?action=download_template" class="import-download-link">
-                <?= svgIcon('download') ?> Download CSV Template
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Add evaluator form (Collapsible) -->
-      <div class="manual-entry-card" id="manualEntryCard">
-        <div class="manual-entry-header" onclick="toggleManualEntry()">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <div
-              style="width:32px;height:32px;border-radius:8px;background:var(--n-100);display:flex;align-items:center;justify-content:center;color:var(--n-600);"
-              id="manualIconWrap">
-              <?= svgIcon('plus') ?>
-            </div>
-            <div>
-              <div style="font-size:14px;font-weight:800;color:var(--n-800);line-height:1;">Manual Entry</div>
-              <div style="font-size:11px;color:var(--n-400);margin-top:2px;">Add a single evaluator manually</div>
-            </div>
-          </div>
-          <div class="chevron-icon">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </div>
-        </div>
-
-        <div class="manual-entry-content">
-          <div style="padding-top:10px;">
-            <div class="form-row">
-              <div class="fg" style="margin-bottom:0;">
-                <label>Full Name *</label>
-                <input class="fc" id="ev_name" placeholder="e.g. Juan dela Cruz">
-              </div>
-              <div class="fg" style="margin-bottom:0;">
-                <label>Email Address *</label>
-                <input class="fc" type="email" id="ev_email" placeholder="evaluator@email.com">
-              </div>
-            </div>
-            <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-              <button class="btn btn-primary btn-sm" onclick="addEvaluator()" style="padding:8px 16px;">
-                <?= svgIcon('user-plus') ?> Add & Send Invite
-              </button>
-              <div style="display:flex;align-items:center;gap:6px;color:var(--n-400);font-size:11px;">
-                <?= svgIcon('info') ?>
-                <span>System will email setup instructions.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Evaluator list -->
-      <div id="evaluatorListWrap">
-        <div
-          style="text-align:center;padding:40px 20px;color:var(--n-400);font-size:13px;background:var(--n-50);border:2px dashed var(--n-200);border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:12px;">
-          <div
-            style="width:48px;height:48px;border-radius:50%;background:var(--n-100);display:flex;align-items:center;justify-content:center;color:var(--n-300);">
-            <?= svgIcon('users', '', 'width:24px;height:24px;') ?>
-          </div>
-          <div>
-            <div style="font-weight:700;color:var(--n-500);">No Evaluators Loaded</div>
-            <div style="font-size:12px;margin-top:2px;">Select an assessment cycle to view assigned stakeholders.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-foot" style="justify-content:space-between;">
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-danger btn-sm" onclick="deactivateAllEvaluators()" id="deactivateAllBtn"
-          style="display:none;">
-          <?= svgIcon('x') ?> Deactivate All
-        </button>
-        <button class="btn btn-primary btn-sm" onclick="openReactivationModal()" id="reactivateAllBtn"
-          style="display:none;background:#2563EB;">
-          <?= svgIcon('refresh') ?> Reactivate All
-        </button>
-      </div>
-      <button class="btn btn-secondary" onclick="closeModal('mEvaluators')">Close</button>
-    </div>
-  </div>
-</div>
-
 <!-- Import Modal -->
 <div class="overlay" id="mImport">
   <div class="modal" style="max-width:540px;">
@@ -1948,377 +1715,7 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
       <button class="btn btn-primary" onclick="importUsers()"><?= svgIcon('upload') ?> Upload &amp;
         Import</button>
     </div>
-  </div>
-</div>
-
-<!-- ── Manage Roles Modal ── -->
-<div class="overlay" id="mRoles">
-  <div class="modal" style="max-width:520px;">
-    <div class="modal-head">
-      <span class="modal-title">Manage Roles</span>
-      <button class="modal-close" onclick="closeModal('mRoles')"><?= svgIcon('x') ?></button>
-    </div>
-    <div class="modal-body">
-
-      <!-- Add new role -->
-      <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:10px;padding:16px;margin-bottom:16px;">
-        <div style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Add New Role</div>
-        <div style="display:flex;gap:10px;align-items:center;">
-          <div class="fg" style="flex:1;margin:0;">
-            <label>Role Name *</label>
-            <input class="fc" id="nr_label" placeholder="e.g. Department Head" oninput="previewRoleSlug()">
-          </div>
-          <input type="hidden" id="nr_color" value="#64748B">
-          <button class="btn btn-primary" style="margin-top:20px;white-space:nowrap;" onclick="saveNewRole()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add Role
-          </button>
-        </div>
-        <div class="fg" style="margin:10px 0 0;">
-          <label>Description <span style="font-weight:400;color:#94A3B8;">(shown in role dropdown)</span></label>
-          <input class="fc" id="nr_desc" placeholder="e.g. Manages department-level tasks">
-        </div>
-      </div>
-
-      <!-- Existing roles list -->
-      <div style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Existing Roles</div>
-      <div id="rolesList" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;">
-        <div style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">Loading…</div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-secondary" onclick="closeModal('mRoles')">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- Reactivation Modal -->
-<div class="overlay" id="mReactivate">
-  <div class="modal" style="max-width:480px;">
-    <div class="modal-head">
-      <span class="modal-title">Reactivate Evaluators</span>
-      <button class="modal-close" onclick="closeModal('mReactivate')"><?= svgIcon('x') ?></button>
-    </div>
-    <div class="modal-body">
-      <div style="margin-bottom:16px;font-size:14px;color:var(--n-600);line-height:1.6;">
-        This will reactivate the selected evaluator accounts. They will be able to log in again immediately.
-      </div>
-
-      <div id="deactivatedEvalsList"
-        style="max-height:200px;overflow-y:auto;border:1px solid var(--n-200);border-radius:10px;padding:4px;margin-bottom:18px;background:var(--n-50);">
-        <!-- List with checkboxes -->
-      </div>
-
-      <div class="fg">
-        <label style="display:flex;align-items:center;gap:6px;color:#1E40AF;font-weight:600;">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#1E40AF" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
-          Optional: Extend Access End Date
-        </label>
-        <input type="date" id="reactivate_end_d" class="dt-premium">
-        <input type="time" id="reactivate_end_t" class="dt-premium">
-        <button type="button" class="dtp-trigger" onclick="dtpOpen('reactivate')"
-          style="margin-top:8px;border-color:#BFDBFE;">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#1E40AF" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
-          <span class="dtp-trigger-text placeholder" id="dtp_reactivate_label">Pick new end date &amp; time
-            (optional)</span>
-        </button>
-        <div style="margin-top:8px;font-size:11.5px;color:var(--n-400);">Leave blank to keep existing end date.</div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-secondary" onclick="closeModal('mReactivate')">Cancel</button>
-      <button class="btn btn-primary" onclick="confirmReactivate()" style="background:#2563EB;">Confirm
-        Reactivation</button>
-    </div>
-  </div>
-</div>
-
-<!-- Custom DateTime Picker Popover (shared, single instance) -->
-<div class="dtp-popover" id="dtpPopover">
-  <div class="dtp-body">
-    <!-- Calendar -->
-    <div class="dtp-cal">
-      <div class="dtp-cal-nav">
-        <button type="button" onclick="dtpPrevMonth()">
-          <svg viewBox="0 0 24 24">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-        <span class="dtp-cal-month" id="dtpMonthLabel"></span>
-        <button type="button" onclick="dtpNextMonth()">
-          <svg viewBox="0 0 24 24">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-      </div>
-      <div class="dtp-cal-grid" id="dtpCalGrid"></div>
-    </div>
-    <!-- Time slots -->
-    <div class="dtp-time" id="dtpTimeList"></div>
-  </div>
-  <div class="dtp-confirm">
-    <div class="dtp-confirm-text" id="dtpConfirmText">Select a date and time</div>
-    <button type="button" class="dtp-confirm-btn" onclick="dtpConfirm()">Continue</button>
-  </div>
-</div>
-
-<script>
-  // ── Custom DateTime Picker Engine ─────────────────────────────
-  (function () {
-    const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-    let _target = null; // 'start' | 'end' | 'reactivate'
-    let _year = 0;
-    let _month = 0;   // 0-based
-    let _selDate = null; // Date object
-    let _selTime = null; // '09:00'
-
-    const popover = document.getElementById('dtpPopover');
-    const grid = document.getElementById('dtpCalGrid');
-    const timeList = document.getElementById('dtpTimeList');
-    const monthLbl = document.getElementById('dtpMonthLabel');
-    const confText = document.getElementById('dtpConfirmText');
-
-    // Config per target
-    const cfg = {
-      start: { dateId: 'ev_start_d', timeId: 'ev_start_t', labelId: 'dtp_start_label' },
-      end: { dateId: 'ev_end_d', timeId: 'ev_end_t', labelId: 'dtp_end_label' },
-      reactivate: { dateId: 'reactivate_end_d', timeId: 'reactivate_end_t', labelId: 'dtp_reactivate_label' },
-    };
-
-    window.dtpOpen = function (target) {
-      _target = target;
-      const c = cfg[target];
-      const now = new Date();
-
-      // Read existing native value if any
-      const existingDate = document.getElementById(c.dateId).value;
-      const existingTime = document.getElementById(c.timeId).value;
-
-      if (existingDate) {
-        const [y, m, d] = existingDate.split('-').map(Number);
-        _selDate = new Date(y, m - 1, d);
-        _year = y; _month = m - 1;
-      } else {
-        _selDate = null;
-        _year = now.getFullYear(); _month = now.getMonth();
-      }
-      _selTime = existingTime || null;
-
-      renderCal();
-      renderTimeSlots();
-      updateConfirmText();
-      positionPopover(event.currentTarget || document.querySelector('.dtp-trigger'));
-      popover.classList.add('open');
-    };
-
-    function positionPopover(trigger) {
-      const rect = trigger.getBoundingClientRect();
-      const pw = 520;
-      const ph = 390;
-      let left = rect.left;
-      let top = rect.bottom + 8;
-
-      if (left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
-      if (left < 8) left = 8;
-      if (top + ph > window.innerHeight - 12) top = rect.top - ph - 8;
-
-      popover.style.left = left + 'px';
-      popover.style.top = top + 'px';
-      popover.style.width = pw + 'px';
-    }
-
-    function renderCal() {
-      monthLbl.textContent = MONTHS[_month] + ' ' + _year;
-      grid.innerHTML = '';
-
-      // Day-of-week headers
-      DOW.forEach(d => {
-        const el = document.createElement('div');
-        el.className = 'dtp-cal-dow';
-        el.textContent = d;
-        grid.appendChild(el);
-      });
-
-      const firstDay = new Date(_year, _month, 1).getDay();
-      const daysInMonth = new Date(_year, _month + 1, 0).getDate();
-      const daysInPrev = new Date(_year, _month, 0).getDate();
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Prev-month filler
-      for (let i = firstDay - 1; i >= 0; i--) {
-        const el = document.createElement('button');
-        el.type = 'button';
-        el.className = 'dtp-cal-day other-month';
-        el.textContent = daysInPrev - i;
-        grid.appendChild(el);
-      }
-
-      // Current month
-      for (let d = 1; d <= daysInMonth; d++) {
-        const dt = new Date(_year, _month, d);
-        const el = document.createElement('button');
-        el.type = 'button';
-        el.textContent = d;
-        let cls = 'dtp-cal-day';
-        
-        const isPastDate = dt.getTime() < today.getTime();
-        if (dt.getTime() === today.getTime()) cls += ' today';
-        if (_selDate && dt.toDateString() === _selDate.toDateString()) cls += ' selected';
-        if (isPastDate) cls += ' disabled';
-        
-        el.className = cls;
-        if (!isPastDate) {
-          el.onclick = () => { _selDate = dt; renderCal(); renderTimeSlots(); updateConfirmText(); };
-        }
-        grid.appendChild(el);
-      }
-
-      // Next-month filler
-      const totalCells = firstDay + daysInMonth;
-      const remainder = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
-      for (let d = 1; d <= remainder; d++) {
-        const el = document.createElement('button');
-        el.type = 'button';
-        el.className = 'dtp-cal-day other-month';
-        el.textContent = d;
-        grid.appendChild(el);
-      }
-    }
-
-    function renderTimeSlots() {
-      timeList.innerHTML = '';
-      const slots = [];
-      for (let h = 0; h < 24; h++) {
-        for (let m = 0; m < 60; m += 15) {
-          slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-        }
-      }
-      slots.forEach(slot => {
-        const el = document.createElement('div');
-        const [hh, mm] = slot.split(':').map(Number);
-        
-        let isDisabled = false;
-        if (_selDate) {
-           const now = new Date();
-           if (_selDate.toDateString() === now.toDateString()) {
-              if (hh < now.getHours() || (hh === now.getHours() && mm < now.getMinutes())) {
-                  isDisabled = true;
-              }
-           }
-        }
-        
-        let cls = 'dtp-time-slot';
-        if (slot === _selTime) cls += ' selected';
-        if (isDisabled) cls += ' disabled';
-        el.className = cls;
-        
-        // Display as 12-hr
-        const ampm = hh < 12 ? 'AM' : 'PM';
-        const disp = ((hh % 12) || 12) + ':' + String(mm).padStart(2, '0') + ' ' + ampm;
-        el.textContent = disp;
-        
-        if (!isDisabled) {
-           el.onclick = () => { _selTime = slot; renderTimeSlots(); updateConfirmText(); };
-        }
-        timeList.appendChild(el);
-      });
-
-      // Scroll to selected or current hour
-      const selectedEl = timeList.querySelector('.selected');
-      if (selectedEl) {
-        setTimeout(() => selectedEl.scrollIntoView({ block: 'center', behavior: 'smooth' }), 30);
-      } else {
-        const now = new Date();
-        const currentSlotIdx = now.getHours() * 4;
-        const all = timeList.querySelectorAll('.dtp-time-slot');
-        if (all[currentSlotIdx]) {
-          setTimeout(() => all[currentSlotIdx].scrollIntoView({ block: 'center' }), 30);
-        }
-      }
-    }
-
-    function updateConfirmText() {
-      if (!_selDate && !_selTime) {
-        confText.innerHTML = 'Select a date and time';
-        return;
-      }
-      const datePart = _selDate
-        ? _selDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-        : '—';
-      const timePart = _selTime ? fmtTime12(_selTime) : '—';
-      confText.innerHTML = `Your selection: <strong>${datePart} at ${timePart}</strong>`;
-    }
-
-    function fmtTime12(t) {
-      const [hh, mm] = t.split(':').map(Number);
-      const ampm = hh < 12 ? 'AM' : 'PM';
-      return ((hh % 12) || 12) + ':' + String(mm).padStart(2, '0') + ' ' + ampm;
-    }
-
-    window.dtpPrevMonth = function () {
-      _month--;
-      if (_month < 0) { _month = 11; _year--; }
-      renderCal();
-    };
-    window.dtpNextMonth = function () {
-      _month++;
-      if (_month > 11) { _month = 0; _year++; }
-      renderCal();
-    };
-
-    window.dtpConfirm = function () {
-      if (!_selDate || !_selTime) {
-        if (!_selDate) { alert('Please select a date.'); return; }
-        if (!_selTime) { alert('Please select a time slot.'); return; }
-      }
-      const c = cfg[_target];
-
-      // Write to hidden native inputs
-      const y = _selDate.getFullYear();
-      const m = String(_selDate.getMonth() + 1).padStart(2, '0');
-      const d = String(_selDate.getDate()).padStart(2, '0');
-      document.getElementById(c.dateId).value = `${y}-${m}-${d}`;
-      document.getElementById(c.timeId).value = _selTime;
-
-      // Update trigger label
-      const label = document.getElementById(c.labelId);
-      if (label) {
-        const datePart = _selDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        label.textContent = `${datePart}  ${fmtTime12(_selTime)}`;
-        label.classList.remove('placeholder');
-      }
-
-      popover.classList.remove('open');
-    };
-
-    // Close on outside click
-    document.addEventListener('mousedown', function (e) {
-      if (!popover.contains(e.target) && !e.target.closest('.dtp-trigger')) {
-        popover.classList.remove('open');
-      }
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') popover.classList.remove('open');
-    });
-  })();
-</script>
-
-<script>
+  <script>
   function closeRowMenus() {
     document.querySelectorAll('.row-menu.open').forEach(menu => {
       menu.classList.remove('open');
@@ -2479,173 +1876,6 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
   }
 
   // ── Roles Modal ──────────────────────────────────────────
-  async function openRolesModal() {
-    openModal('mRoles');
-    await loadRolesList();
-  }
-
-  async function loadRolesList() {
-    const wrap = document.getElementById('rolesList');
-    wrap.innerHTML = '<div style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">Loading…</div>';
-    const r = await apiPost('users.php', { action: 'list_roles' });
-    if (!r.ok || !r.data) { wrap.innerHTML = '<div style="color:red;padding:12px;">Failed to load roles.</div>'; return; }
-    if (!r.data.length) { wrap.innerHTML = '<div style="text-align:center;padding:20px;color:#94A3B8;">No roles found.</div>'; return; }
-    wrap.innerHTML = `
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead>
-          <tr style="background:#F8FAFC;border-bottom:1px solid #E5E7EB;">
-            <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;width:28%;">Name</th>
-            <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;">Description</th>
-            <th style="text-align:center;padding:8px 12px;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;width:80px;">Type</th>
-            <th style="text-align:center;padding:8px 12px;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;width:60px;">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${r.data.map((role, i) => `
-          <tr style="border-bottom:1px solid #F1F5F9;transition:background .12s;" onmouseenter="this.style.background='#F8FAFC'" onmouseleave="this.style.background=''">
-            <td style="padding:9px 12px;font-weight:600;color:#0F172A;">${role.label}</td>
-            <td style="padding:9px 12px;color:#64748B;">${role.description || '<span style="color:#CBD5E1;">—</span>'}</td>
-            <td style="padding:9px 12px;text-align:center;">
-              ${role.is_system == 1
-                ? `<span style="font-size:10px;font-weight:700;color:#94A3B8;background:#F1F5F9;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em;">System</span>`
-                : `<span style="font-size:10px;font-weight:700;color:#16A34A;background:#DCFCE7;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em;">Custom</span>`
-              }
-            </td>
-            <td style="padding:9px 12px;text-align:center;">
-              <div style="display:flex;align-items:center;justify-content:center;gap:5px;">
-                ${role.is_system == 1 ? `
-                  <span style="color:#CBD5E1;font-size:12px;">—</span>
-                ` : `
-                  <button onclick="openEditRole(${role.id},'${role.label.replace(/'/g,"\\'")}','${(role.description||'').replace(/'/g,"\\'")}','${role.slug}')" title="Edit role"
-                    style="background:#EFF6FF;border:none;cursor:pointer;padding:5px 8px;border-radius:6px;color:#2563EB;line-height:0;transition:all .15s;"
-                    onmouseenter="this.style.background='#DBEAFE'" onmouseleave="this.style.background='#EFF6FF'">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  </button>
-                  <button onclick="deleteRole(${role.id},'${role.label.replace(/'/g,"\\'")}') " title="Delete role"
-                    style="background:#FEE2E2;border:none;cursor:pointer;padding:5px 8px;border-radius:6px;color:#DC2626;line-height:0;transition:all .15s;"
-                    onmouseenter="this.style.background='#FECACA'" onmouseleave="this.style.background='#FEE2E2'">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                  </button>
-                `}
-              </div>
-            </td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`;
-  }
-
-  function previewRoleSlug() {}
-
-  async function saveNewRole() {
-    const label = document.getElementById('nr_label').value.trim();
-    const description = document.getElementById('nr_desc').value.trim();
-    const color = '#64748B';
-    if (!label) { toast('Role name is required.', 'warning'); return; }
-    const r = await apiPost('users.php', { action: 'save_role', id: 0, label, color, description });
-    toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) {
-      document.getElementById('nr_label').value = '';
-      document.getElementById('nr_desc').value = '';
-      await loadRolesList();
-      injectRoleOption(r.slug, label, description);
-    }
-  }
-
-  function injectRoleOption(slug, label, description = '') {
-    const desc = description || 'Standard institutional access';
-    const itemHTML = (fn) => `
-      <div class="p-item-content">
-        <div class="p-item-title">${label}</div>
-        <div class="p-item-desc">${desc}</div>
-      </div>
-      <div class="p-item-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>`;
-
-    // Add to Create User dropdown
-    const createMenu = document.querySelector('#pCRoleDropdown .p-select-menu');
-    if (createMenu && !createMenu.querySelector(`[data-val="${slug}"]`)) {
-      const div = document.createElement('div');
-      div.className = 'p-select-item';
-      div.dataset.val = slug;
-      div.setAttribute('onclick', `setCRole('${slug}', '${label}')`);
-      div.innerHTML = itemHTML('setCRole');
-      createMenu.appendChild(div);
-    }
-
-    // Add to Edit User dropdown
-    const editMenu = document.querySelector('#pERoleDropdown .p-select-menu');
-    if (editMenu && !editMenu.querySelector(`[data-val="${slug}"]`)) {
-      const div = document.createElement('div');
-      div.className = 'p-select-item';
-      div.dataset.val = slug;
-      div.setAttribute('onclick', `setERole('${slug}', '${label}')`);
-      div.innerHTML = itemHTML('setERole');
-      editMenu.appendChild(div);
-    }
-
-    if (typeof roleMap !== 'undefined') roleMap[slug] = label;
-  }
-
-  async function deleteRole(id, label) {
-    if (!confirm(`Delete role "${label}"? This cannot be undone.`)) return;
-    const r = await apiPost('users.php', { action: 'delete_role', id });
-    toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) await loadRolesList();
-  }
-
-  function openEditRole(id, label, description, slug) {
-    // Replace the roles table with an edit form inside rolesList
-    const wrap = document.getElementById('rolesList');
-    const editId = `editRoleForm_${id}`;
-    // Inject edit panel above table
-    const existing = document.getElementById(editId);
-    if (existing) { existing.remove(); return; }
-    const panel = document.createElement('div');
-    panel.id = editId;
-    panel.style = 'background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px 16px;margin-bottom:10px;';
-    panel.innerHTML = `
-      <div style="font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Editing: ${label}</div>
-      <div style="display:flex;gap:10px;flex-direction:column;">
-        <div class="fg" style="margin:0;">
-          <label>Role Name *</label>
-          <input class="fc" id="er_label_${id}" value="${label}">
-        </div>
-        <div class="fg" style="margin:0;">
-          <label>Description</label>
-          <input class="fc" id="er_desc_${id}" value="${description}">
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" onclick="document.getElementById('${editId}').remove()">Cancel</button>
-          <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;" onclick="saveEditRole(${id},'${slug}')">Save Changes</button>
-        </div>
-      </div>`;
-    wrap.insertBefore(panel, wrap.firstChild);
-  }
-
-  async function saveEditRole(id, slug) {
-    const label = document.getElementById(`er_label_${id}`).value.trim();
-    const description = document.getElementById(`er_desc_${id}`).value.trim();
-    if (!label) { toast('Role name is required.', 'warning'); return; }
-    const r = await apiPost('users.php', { action: 'save_role', id, label, color: '#64748B', description });
-    toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) {
-      document.getElementById(`editRoleForm_${id}`)?.remove();
-      await loadRolesList();
-      // Update dropdowns in-place
-      const updateMenu = (selector, fn) => {
-        const item = document.querySelector(`${selector} [data-val="${slug}"]`);
-        if (item) {
-          item.setAttribute('onclick', `${fn}('${slug}','${label}')`);
-          const title = item.querySelector('.p-item-title');
-          const desc  = item.querySelector('.p-item-desc');
-          if (title) title.textContent = label;
-          if (desc)  desc.textContent  = description || 'Standard institutional access';
-        }
-      };
-      updateMenu('#pCRoleDropdown .p-select-menu', 'setCRole');
-      updateMenu('#pERoleDropdown .p-select-menu', 'setERole');
-      if (typeof roleMap !== 'undefined') roleMap[slug] = label;
-    }
-  }
 
   async function importUsers() {
     const file = document.getElementById('csvFile').files[0];
@@ -2663,252 +1893,6 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
     } catch (e) {
       finishUploadToast(uploadToastEl, false, 'Network error. Please try again.');
     }
-  }
-
-  async function addEvaluator() {
-    const cycleId = document.getElementById('ev_cycle_id').value;
-    const name = document.getElementById('ev_name').value.trim();
-    const email = document.getElementById('ev_email').value.trim();
-    if (!cycleId) { toast('Please select a cycle first.', 'warning'); return; }
-    if (!name || !email) { toast('Name and email are required.', 'warning'); return; }
-    const r = await apiPost('users.php', {
-      action: 'create_temp_evaluator',
-      cycle_id: cycleId,
-      full_name: name,
-      email: email,
-    });
-    toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) {
-      document.getElementById('ev_name').value = '';
-      document.getElementById('ev_email').value = '';
-      loadEvaluators();
-    }
-  }
-
-  let lastEvalsList = [];
-  async function loadEvaluators() {
-    const cycleId = document.getElementById('ev_cycle_id').value;
-    const wrap = document.getElementById('evaluatorListWrap');
-    const deactBtn = document.getElementById('deactivateAllBtn');
-    const reactBtn = document.getElementById('reactivateAllBtn');
-
-    if (!cycleId) {
-      wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--n-400);font-size:13px;">Select a cycle above to see evaluators.</div>';
-      deactBtn.style.display = 'none';
-      reactBtn.style.display = 'none';
-      document.getElementById('cycleDatesCard').style.display = 'none';
-      return;
-    }
-
-    refreshCycleDates(cycleId);
-    wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--n-400);">Loading…</div>';
-
-    const r = await apiPost('users.php', { action: 'list_cycle_evaluators', cycle_id: cycleId });
-    if (!r.ok || !r.data) { wrap.innerHTML = '<div style="color:var(--red);padding:12px;">Failed to load.</div>'; return; }
-
-    lastEvalsList = r.data;
-
-    if (r.data.length === 0) {
-      wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--n-400);font-size:13px;">No evaluators added to this cycle yet.</div>';
-      deactBtn.style.display = 'none';
-      reactBtn.style.display = 'none';
-      return;
-    }
-
-    let hasActive = false;
-    let hasDeactivated = false;
-    let html = `<div style="font-size:13px;font-weight:700;color:var(--n-800);margin-bottom:10px;">
-      ${r.data.length} evaluator(s) for this cycle
-    </div>
-    <div style="display:flex;flex-direction:column;gap:8px;">`;
-
-    r.data.forEach(ev => {
-      const submitted = ev.submission_status === 'submitted';
-      const isAutoDeactivated = ev.is_active == 0;
-      if (!isAutoDeactivated) hasActive = true;
-      if (isAutoDeactivated) hasDeactivated = true;
-
-      const statusBadge = isAutoDeactivated
-        ? `<span style="background:#FEE2E2;color:#991B1B;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;">Deactivated</span>`
-        : `<span style="background:#DCFCE7;color:#16A34A;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;">Active</span>`;
-
-      const subBadge = submitted
-        ? `<span style="background:#DCFCE7;color:#166534;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;">Submitted</span>`
-        : `<span style="background:var(--n-100);color:var(--n-500);padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;">Pending</span>`;
-
-      html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;
-                   border:1px solid var(--n-200);border-radius:9px;background:#fff;${isAutoDeactivated ? 'opacity:0.75;' : ''}">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;color:var(--n-900);">${ev.full_name}</div>
-          <div style="font-size:11.5px;color:var(--n-500);">${ev.email}</div>
-        </div>
-        <div style="display:flex;gap:4px;">${statusBadge}${subBadge}</div>
-        <button class="btn btn-danger btn-sm" onclick="removeEvaluator(${ev.user_id})" title="Remove from cycle" style="padding:4px 8px;">
-          ${svgIcon('trash')}
-        </button>
-      </div>`;
-    });
-    html += '</div>';
-    wrap.innerHTML = html;
-
-    deactBtn.style.display = hasActive ? '' : 'none';
-    reactBtn.style.display = hasDeactivated ? '' : 'none';
-  }
-
-  async function refreshCycleDates(cycleId) {
-    const card = document.getElementById('cycleDatesCard');
-    const banner = document.getElementById('cycleStatusBanner');
-
-    card.style.display = 'block';
-    const r = await apiPost('users.php', { action: 'get_cycle_dates', cycle_id: cycleId });
-    if (r.ok && r.dates) {
-      const s = r.dates.stakeholder_access_start || '';
-      const e = r.dates.stakeholder_access_end || '';
-
-      document.getElementById('ev_start_d').value = s ? s.substring(0, 10) : '';
-      document.getElementById('ev_start_t').value = s ? s.substring(11, 16) : '';
-      document.getElementById('ev_end_d').value = e ? e.substring(0, 10) : '';
-      document.getElementById('ev_end_t').value = e ? e.substring(11, 16) : '';
-
-      // Restore trigger button labels from saved values
-      function fmtSavedLabel(dateStr, timeStr) {
-        if (!dateStr || !timeStr) return null;
-        const d = new Date(dateStr + 'T' + timeStr);
-        const datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        const [hh, mm] = timeStr.split(':').map(Number);
-        const ampm = hh < 12 ? 'AM' : 'PM';
-        const timePart = ((hh % 12) || 12) + ':' + String(mm).padStart(2, '0') + ' ' + ampm;
-        return datePart + '  ' + timePart;
-      }
-      const startLbl = document.getElementById('dtp_start_label');
-      const endLbl = document.getElementById('dtp_end_label');
-      const startFormatted = fmtSavedLabel(s ? s.substring(0, 10) : '', s ? s.substring(11, 16) : '');
-      const endFormatted = fmtSavedLabel(e ? e.substring(0, 10) : '', e ? e.substring(11, 16) : '');
-      if (startLbl) {
-        if (startFormatted) { startLbl.textContent = startFormatted; startLbl.classList.remove('placeholder'); }
-        else { startLbl.textContent = 'Pick opening date & time'; startLbl.classList.add('placeholder'); }
-      }
-      if (endLbl) {
-        if (endFormatted) { endLbl.textContent = endFormatted; endLbl.classList.remove('placeholder'); }
-        else { endLbl.textContent = 'Pick closing date & time'; endLbl.classList.add('placeholder'); }
-      }
-
-      const now = new Date();
-      const end = e ? new Date(e.replace(' ', 'T')) : null;
-      const start = s ? new Date(s.replace(' ', 'T')) : null;
-
-      if (!end) {
-        banner.innerHTML = '<span style="color:#991B1B;">No end date set</span>';
-      } else if (now > end) {
-        banner.innerHTML = '<span style="color:#991B1B;">Window Closed</span>';
-      } else if (start && now < start) {
-        banner.innerHTML = '<span style="color:#92400E;">Not Started Yet</span>';
-      } else {
-        banner.innerHTML = '<span style="color:#166534;">Window Open</span>';
-      }
-    }
-  }
-
-  async function saveCycleDates() {
-    const cycleId = document.getElementById('ev_cycle_id').value;
-    const sd = document.getElementById('ev_start_d').value;
-    const st = document.getElementById('ev_start_t').value;
-    const ed = document.getElementById('ev_end_d').value;
-    const et = document.getElementById('ev_end_t').value;
-
-    if (!ed || !et) { toast('Access end date and time are required.', 'warning'); return; }
-
-    const start = sd && st ? (sd + ' ' + st + ':00') : '';
-    const end = ed + ' ' + et + ':00';
-
-    const r = await apiPost('users.php', { action: 'set_cycle_dates', cycle_id: cycleId, start_date: start, end_date: end });
-    toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) refreshCycleDates(cycleId);
-  }
-
-  function openReactivationModal() {
-    const list = document.getElementById('deactivatedEvalsList');
-    const deactivated = lastEvalsList.filter(u => u.is_active == 0);
-    if (deactivated.length === 0) return;
-
-    list.innerHTML = deactivated.map(u => `
-      <div style="display:flex;align-items:center;padding:8px;border-bottom:1px solid var(--n-100);gap:10px;">
-        <input type="checkbox" name="reactivate_uid" value="${u.user_id}" checked style="width:16px;height:16px;">
-        <div style="flex:1;">
-          <div style="font-weight:600;font-size:13px;">${u.full_name}</div>
-          <div style="font-size:11px;color:var(--n-400);">${u.email}</div>
-        </div>
-      </div>
-    `).join('');
-
-    // Set default extension end date from current inputs
-    document.getElementById('reactivate_end_d').value = document.getElementById('ev_end_d').value;
-    document.getElementById('reactivate_end_t').value = document.getElementById('ev_end_t').value;
-    openModal('mReactivate');
-  }
-
-  async function confirmReactivate() {
-    const cycleId = document.getElementById('ev_cycle_id').value;
-    const checkboxes = document.querySelectorAll('input[name="reactivate_uid"]:checked');
-    const userIds = Array.from(checkboxes).map(cb => cb.value);
-
-    const rd = document.getElementById('reactivate_end_d').value;
-    const rt = document.getElementById('reactivate_end_t').value;
-    const newEnd = rd && rt ? (rd + ' ' + rt + ':00') : '';
-
-    if (userIds.length === 0) { toast('Please select at least one account.', 'warning'); return; }
-
-    const fd = new FormData();
-    fd.append('action', 'reactivate_evaluators');
-    fd.append('cycle_id', cycleId);
-    fd.append('csrf_token', '<?= csrfToken() ?>');
-    userIds.forEach(id => fd.append('user_ids[]', id));
-    fd.append('new_end_date', newEnd);
-
-    const r = await fetch('users.php', { method: 'POST', body: fd }).then(res => res.json());
-    toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) {
-      closeModal('mReactivate');
-      loadEvaluators();
-    }
-  }
-
-  async function deactivateAllEvaluators() {
-    const cycleId = document.getElementById('ev_cycle_id').value;
-    if (!cycleId) return;
-    if (!confirm('Deactivate ALL evaluator accounts for this cycle?\n\nTheir accounts will become inactive and they will no longer be able to log in.')) return;
-    const r = await apiPost('users.php', { action: 'deactivate_cycle_evaluators', cycle_id: cycleId });
-    toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) loadEvaluators();
-  }
-
-  async function removeEvaluator(userId) {
-    const cycleId = document.getElementById('ev_cycle_id').value;
-    if (!confirm('Remove this evaluator from the cycle?')) return;
-    const r = await apiPost('users.php', { action: 'remove_cycle_evaluator', cycle_id: cycleId, user_id: userId });
-    toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) loadEvaluators();
-  }
-
-
-  function handleEvCsvSelect(input) {
-    const file = input.files[0];
-    const drop = document.getElementById('evCsvDrop');
-    const btn = document.getElementById('evCsvImportBtn');
-    if (!file) { clearEvCsv(); return; }
-    drop.classList.add('has-file');
-    document.getElementById('evCsvFileName').textContent = file.name;
-    document.getElementById('evCsvFileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
-    btn.disabled = false;
-  }
-
-  function clearEvCsv() {
-    const input = document.getElementById('evCsvFile');
-    input.value = '';
-    document.getElementById('evCsvDrop').classList.remove('has-file');
-    document.getElementById('evCsvFileName').textContent = '';
-    document.getElementById('evCsvFileSize').textContent = '';
-    document.getElementById('evCsvImportBtn').disabled = true;
   }
 
   function handleUserCsvSelect(input) {
@@ -2933,23 +1917,6 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
 
   // Drag-and-drop wiring
   document.addEventListener('DOMContentLoaded', () => {
-    // Evaluators Zone
-    const evZone = document.getElementById('evCsvDropZone');
-    const evCard = document.getElementById('evCsvDrop');
-    if (evZone) {
-      evZone.addEventListener('dragover', e => { e.preventDefault(); evCard.classList.add('drag-over'); });
-      evZone.addEventListener('dragleave', () => evCard.classList.remove('drag-over'));
-      evZone.addEventListener('drop', e => {
-        e.preventDefault(); evCard.classList.remove('drag-over');
-        const file = e.dataTransfer.files[0];
-        if (file && file.name.endsWith('.csv')) {
-          const input = document.getElementById('evCsvFile');
-          const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
-          handleEvCsvSelect(input);
-        } else { toast('Please drop a .csv file.', 'warning'); }
-      });
-    }
-
     // Users Zone
     const userZone = document.getElementById('userImportDropZone');
     const userCard = document.getElementById('userImportCard');
@@ -2998,6 +1965,37 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
     }
   }
 
+  function fetchAndSwap(url) {
+    fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.text())
+      .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newTable = doc.querySelector('#tblUsers')?.closest('.tbl-wrap') || doc.querySelector('.empty-state');
+        const oldTable = document.querySelector('#tblUsers')?.closest('.tbl-wrap') || document.querySelector('.empty-state');
+        const card = document.querySelector('.card');
+        if (newTable && oldTable) {
+          oldTable.replaceWith(newTable);
+        } else if (newTable && card) {
+          card.appendChild(newTable);
+        }
+        const newTitle = doc.querySelector('.card-title');
+        const oldTitle = document.querySelector('.card-title');
+        if (newTitle && oldTitle) oldTitle.innerHTML = newTitle.innerHTML;
+        const newTabs = doc.querySelector('.status-filter-tabs');
+        const oldTabs = document.querySelector('.status-filter-tabs');
+        if (newTabs && oldTabs) oldTabs.outerHTML = newTabs.outerHTML;
+        history.replaceState(null, '', url.toString());
+      });
+  }
+
+  function applyStatusFilter(status) {
+    const url = new URL(window.location.href);
+    if (status) url.searchParams.set('status', status);
+    else url.searchParams.delete('status');
+    fetchAndSwap(url);
+  }
+
   (function () {
     const input = document.getElementById('liveSearch');
     if (!input) return;
@@ -3009,27 +2007,7 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
         const url = new URL(window.location.href);
         if (q) url.searchParams.set('q', q);
         else url.searchParams.delete('q');
-        // Preserve status filter from URL if present
-        fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-          .then(r => r.text())
-          .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newTable = doc.querySelector('#tblUsers')?.closest('.tbl-wrap') || doc.querySelector('.empty-state');
-            const oldTable = document.querySelector('#tblUsers')?.closest('.tbl-wrap') || document.querySelector('.empty-state');
-            const card = document.querySelector('.card');
-            if (newTable && oldTable) {
-              oldTable.replaceWith(newTable);
-            } else if (newTable && card) {
-              card.appendChild(newTable);
-            }
-            // Update count label
-            const newTitle = doc.querySelector('.card-title');
-            const oldTitle = document.querySelector('.card-title');
-            if (newTitle && oldTitle) oldTitle.innerHTML = newTitle.innerHTML;
-            // Update URL without reload
-            history.replaceState(null, '', url.toString());
-          });
+        fetchAndSwap(url);
       }, 300);
     });
   })();
@@ -3045,6 +2023,13 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
     $v('c_status', v);
     document.getElementById('pCStatusLabel').textContent = l;
     document.querySelectorAll('#pCStatusDropdown .p-select-item').forEach(i => i.classList.toggle('active', i.dataset.val === v));
+    closeAllPSelects();
+  }
+
+  function setCDept(v, l) {
+    $v('c_dept', v);
+    document.getElementById('pCDeptLabel').textContent = l;
+    document.querySelectorAll('#pCDeptDropdown .p-select-item').forEach(i => i.classList.toggle('active', i.dataset.val === v));
     closeAllPSelects();
   }
 
@@ -3079,71 +2064,6 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
     document.getElementById('pEStatusLabel').textContent = l;
     document.querySelectorAll('#pEStatusDropdown .p-select-item').forEach(i => i.classList.toggle('active', i.dataset.val === v));
     closeAllPSelects();
-  }
-
-  function setMCycle(id, label) {
-    document.getElementById('ev_cycle_id').value = id;
-    document.getElementById('pCycleLabel').textContent = label;
-    // Update active state in UI
-    document.querySelectorAll('#pCycleDropdown .p-select-item').forEach(item => {
-      item.classList.toggle('active', item.getAttribute('onclick').includes(`'${id}'`));
-    });
-    closeAllPSelects();
-    loadEvaluators();
-  }
-
-  function toggleManualEntry() {
-    const card = document.getElementById('manualEntryCard');
-    const iconWrap = document.getElementById('manualIconWrap');
-    const isExpanded = card.classList.toggle('is-expanded');
-
-    if (isExpanded) {
-      iconWrap.style.background = 'var(--brand-100)';
-      iconWrap.style.color = 'var(--brand-600)';
-    } else {
-      iconWrap.style.background = 'var(--n-100)';
-      iconWrap.style.color = 'var(--n-600)';
-    }
-  }
-
-  async function importStakeholderCsv() {
-    const cycleId = document.getElementById('ev_cycle_id').value;
-    if (!cycleId) { toast('Please select a cycle first.', 'warning'); return; }
-    const file = document.getElementById('evCsvFile').files[0];
-    if (!file) { toast('Please choose a CSV file first.', 'warning'); return; }
-
-    const btn = document.getElementById('evCsvImportBtn');
-    btn.disabled = true;
-    btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin .7s linear infinite;"><path d="M12 2a10 10 0 1 0 10 10" /></svg> Importing…`;
-
-    const text = await file.text();
-    const lines = text.trim().split('\n').filter(l => l.trim());
-    if (lines.length < 2) {
-      toast('CSV is empty or has no data rows.', 'err');
-      btn.disabled = false;
-      btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg> Import &amp; Send Invites`;
-      return;
-    }
-
-    const rows = lines.slice(1);
-    let success = 0, failed = 0, errors = [];
-
-    for (const line of rows) {
-      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-      const [full_name, email] = cols;
-      if (!full_name || !email) { failed++; errors.push('Skipped empty row'); continue; }
-      if (!email.includes('@')) { failed++; errors.push(`Invalid email: ${email}`); continue; }
-      const r = await apiPost('users.php', { action: 'create_temp_evaluator', cycle_id: cycleId, full_name, email });
-      if (r.ok) { success++; } else { failed++; errors.push(`${email}: ${r.msg}`); }
-    }
-
-    if (errors.length) console.warn('Import errors:', errors);
-    toast(`Import done — ${success} added${failed ? ', ' + failed + ' failed' : ''}.`, success > 0 ? 'ok' : 'err');
-    clearEvCsv();
-    if (success > 0) loadEvaluators();
-
-    btn.disabled = true;
-    btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg> Import &amp; Send Invites`;
   }
 
   window.addEventListener('DOMContentLoaded', () => {

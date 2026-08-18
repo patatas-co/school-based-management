@@ -153,6 +153,40 @@ function sendPasswordResetEmail(PDO $db, array $user): bool
   }
 }
 
+function sendRejectionEmail(PDO $db, array $user, string $reason): bool
+{
+  $html = buildRejectionEmailHtml($user['full_name'], $reason);
+
+  $mail = new PHPMailer(true);
+  try {
+    _configureMailer($mail);
+    $mail->addAddress($user['email'], $user['full_name']);
+
+    $mail->isHTML(true);
+    $mail->Subject = 'Update on Your DIHS SBM Portal Account Request';
+    $mail->Body = $html;
+    $mail->AltBody = "Hi {$user['full_name']},\n\nYour DIHS SBM Portal account request was not approved.\n\n"
+      . "Reason: $reason\n\nIf you believe this was a mistake, please contact your school administrator.";
+    $mail->send();
+
+    $db->prepare(
+      "INSERT INTO email_logs (user_id, email_type, recipient_email, status)
+             VALUES (?, 'account_rejection', ?, 'sent')"
+    )->execute([$user['user_id'], $user['email']]);
+
+    return true;
+
+  } catch (Exception $e) {
+    $errMsg = $mail->ErrorInfo ?: $e->getMessage();
+    $db->prepare(
+      "INSERT INTO email_logs (user_id, email_type, recipient_email, status, error_message)
+             VALUES (?, 'account_rejection', ?, 'failed', ?)"
+    )->execute([$user['user_id'], $user['email'], $errMsg]);
+    error_log('SBM Rejection Email Error: ' . $errMsg);
+    return false;
+  }
+}
+
 function _configureMailer(PHPMailer $mail): void
 {
   $mail->isSMTP();
@@ -316,6 +350,102 @@ function buildWelcomeEmailHtml(
                             </td>
                           </tr>
                         </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="background:#f7faf7;border-top:1px solid #edf2ed;border-radius:0 0 22px 22px;padding:18px 28px 24px;color:#77877b;font-family:Arial,sans-serif;font-size:12px;line-height:1.7;text-align:center;">
+                        Automated message from DIHS SBM Portal.<br>
+                        &copy; {$year} Dasmarinas Integrated High School.
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
+HTML;
+}
+
+function buildRejectionEmailHtml(
+  string $name,
+  string $reason
+): string {
+  $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+  $safeReason = nl2br(htmlspecialchars($reason, ENT_QUOTES, 'UTF-8'));
+  $year = date('Y');
+  $base = _emailBaseStyles();
+
+  return <<<HTML
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Update on Your DIHS SBM Portal Account Request</title>
+<style>{$base}</style>
+</head>
+<body style="margin:0;padding:0;background-color:#eef4ef;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#eef4ef;">
+  <tr>
+    <td align="center" style="padding:32px 16px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:640px;">
+        <tr>
+          <td>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#ffffff;border-radius:22px;">
+              <tr>
+                <td style="padding:0;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                    <tr>
+                      <td style="background:#103b1e;background-image:linear-gradient(145deg,#0c2d17 0%,#145127 52%,#1f7a3f 100%);border-radius:22px 22px 0 0;padding:28px 28px 24px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="width:54px;height:54px;border-radius:27px;background:#ffffff;text-align:center;vertical-align:middle;">
+                              <img src="https://www.learnatdihs.com/assets/images/logo.png" width="42" height="42" alt="DIHS Logo" style="display:inline-block;vertical-align:middle;">
+                            </td>
+                            <td style="padding-left:14px;">
+                              <div style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:700;line-height:1.3;">DIHS SBM Portal</div>
+                              <div style="color:rgba(255,255,255,0.72);font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:1.2px;line-height:1.4;text-transform:uppercase;">Dasmarinas Integrated High School</div>
+                            </td>
+                          </tr>
+                        </table>
+                        <div style="padding-top:18px;">
+                          <span style="display:inline-block;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:999px;color:#ffffff;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:1.6px;padding:6px 12px;text-transform:uppercase;">Account Request Update</span>
+                        </div>
+                        <div style="padding-top:14px;color:#ffffff;font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:500;letter-spacing:-1px;line-height:1.05;">
+                          Request not approved.
+                        </div>
+                        <div style="padding-top:10px;color:rgba(255,255,255,0.78);font-family:Arial,sans-serif;font-size:14px;line-height:1.7;">
+                          Your account request could not be approved at this time.
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding:28px;">
+                        <p style="margin:0 0 20px 0;color:#5d6f62;font-family:Arial,sans-serif;font-size:15px;line-height:1.8;">
+                          Hello <strong style="color:#102316;">{$safeName}</strong>, after reviewing your registration
+                          request for the DIHS SBM Portal, the System Administrator was unable to approve it.
+                        </p>
+
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:22px;background:#fdf2f2;border-radius:16px;">
+                          <tr>
+                            <td style="padding:16px 18px;">
+                              <div style="margin:0 0 6px 0;color:#9d3a3a;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:1.2px;line-height:1.4;text-transform:uppercase;">Reason</div>
+                              <div style="margin:0;color:#7a2222;font-family:Arial,sans-serif;font-size:14px;font-weight:600;line-height:1.7;">{$safeReason}</div>
+                            </td>
+                          </tr>
+                        </table>
+
+                        <p style="margin:0;color:#5d6f62;font-family:Arial,sans-serif;font-size:14px;line-height:1.8;">
+                          If you believe this was a mistake or would like to submit a new request, please contact your school administrator directly.
+                        </p>
                       </td>
                     </tr>
                     <tr>

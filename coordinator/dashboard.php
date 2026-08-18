@@ -2016,6 +2016,99 @@ include __DIR__ . '/../includes/header.php';
     stroke-linecap: round;
     stroke-linejoin: round;
   }
+
+  .ind-legend-panel {
+    width: 260px;
+    flex: 0 0 260px;
+    border-right: 1px solid var(--n-100);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 14px 12px;
+    box-sizing: border-box;
+  }
+  .ind-legend-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 7px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 2px;
+  }
+  .ind-legend-item:hover { background: var(--n-50); }
+  .ind-legend-item.hidden-line { opacity: .4; }
+  .ind-legend-swatch {
+    width: 14px;
+    height: 3px;
+    margin-top: 6px;
+    flex-shrink: 0;
+    border-radius: 2px;
+  }
+  .ind-legend-text { min-width: 0; }
+  .ind-legend-code { font-size: 11px; font-weight: 700; color: var(--n-700); }
+  .ind-legend-title { font-size: 11px; color: var(--n-500); line-height: 1.35; word-wrap: break-word; }
+  .ind-legend-info {
+    margin-left: auto;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid var(--n-300);
+    color: var(--n-400);
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .ind-legend-info:hover { background: var(--n-100); color: var(--n-600); }
+
+  .ind-legend-popover {
+    position: fixed;
+    z-index: 9999;
+    max-width: 280px;
+    background: #fff;
+    border: 1px solid var(--n-200);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    padding: 12px 14px;
+    display: none;
+  }
+  .ind-legend-popover.open { display: block; }
+  .ind-legend-popover h4 { margin: 0 0 4px; font-size: 12.5px; font-weight: 700; color: var(--n-800); }
+  .ind-legend-popover .ind-pop-sub { font-size: 11px; color: var(--n-500); margin-bottom: 8px; }
+  .ind-legend-popover .ind-pop-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--n-400); margin-bottom: 3px; }
+  .ind-legend-popover .ind-pop-desc { font-size: 12px; line-height: 1.5; color: var(--n-600); }
+  .ind-legend-popover-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: transparent;
+    color: var(--n-400);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .ind-legend-popover-close:hover { background: var(--n-100); color: var(--n-700); }
+
+  @media (max-width: 768px) {
+    .ind-trend-body { flex-direction: column !important; }
+    .ind-legend-panel {
+      width: 100% !important;
+      flex: 0 0 auto !important;
+      max-height: 160px;
+      border-right: none !important;
+      border-bottom: 1px solid var(--n-100);
+    }
+  }
 </style>
 
 <?php if ($cycle && $cycle['status'] === 'returned'): ?>
@@ -2174,50 +2267,7 @@ include __DIR__ . '/../includes/header.php';
 
   <!-- Filter bar -->
   <div class="an-filter-bar">
-    <label>Primary SY:</label>
-    <span style="font-size:13px;font-weight:700;color:var(--n-900);"><?= e($syLabel) ?></span>
-    <div style="width:1px;height:18px;background:var(--n-200);margin:0 4px;"></div>
-    <label>Compare with:</label>
     <?php $atCompareLimit = count($compareSyIds) >= 2; ?>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <?php foreach ($compareSyIds as $cid):
-        $cLabel = array_column($allSYs, 'label', 'sy_id')[$cid] ?? '';
-        $removeParam = implode(',', array_values(array_diff($compareSyIds, [$cid])));
-      ?>
-        <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:4px 6px 4px 12px;border-radius:999px;background:var(--blue-bg);color:var(--blue);">
-          <?= e($cLabel) ?>
-          <a href="dashboard.php?compare_sy=<?= $removeParam ?>&view=progress"
-            style="display:flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.08);color:inherit;font-size:10px;line-height:1;text-decoration:none;"
-            title="Remove SY <?= e($cLabel) ?> from comparison">✕</a>
-        </span>
-      <?php endforeach; ?>
-
-      <?php if (!$atCompareLimit): ?>
-        <div class="p-select" id="anCompareAddSelect" style="width:auto;">
-          <div class="p-select-trigger" onclick="togglePSelect(event, 'anCompareAddSelect')"
-            style="padding:4px 12px;font-size:12px;font-weight:600;min-height:28px;border-style:dashed;color:var(--n-500);">
-            <span class="p-select-val">+ Add comparison year</span>
-          </div>
-          <div class="p-select-menu">
-            <?php foreach ($allSYs as $sy):
-              if ($sy['sy_id'] == $syId || in_array($sy['sy_id'], $compareSyIds))
-                continue;
-              $newParam = implode(',', array_merge($compareSyIds, [$sy['sy_id']]));
-            ?>
-              <div class="p-select-item" onclick="location.href='dashboard.php?compare_sy=<?= $newParam ?>&view=progress'">
-                SY <?= e($sy['label']) ?>
-              </div>
-            <?php endforeach; ?>
-          </div>
-        </div>
-      <?php endif; ?>
-    </div>
-    <?php if (!empty($compareSyIds)): ?>
-      <span
-        style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--n-100);color:var(--n-600);">Comparing
-        <?= count($compareSyIds) + 1 ?> cycles</span>
-      <a href="dashboard.php?view=progress" class="btn btn-ghost btn-sm">✕ Clear</a>
-    <?php endif; ?>
     <div style="margin-left:auto;display:flex;gap:8px;">
       <?php if (($shPlanCount ?? 0) > 0): ?>
         <button class="ai-assistant-btn" onclick="viewSHImprovementPlan()"
@@ -2249,25 +2299,28 @@ include __DIR__ . '/../includes/header.php';
   <div class="trend-range-controls" style="margin-left:auto;display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
     <label for="anTrendWindowSize" style="font-size:12px;font-weight:600;color:var(--n-500);">Cycles:</label>
 
-    <select id="anTrendWindowSize" onchange="setTrendWindowSize(this.value)"
+    <select id="anTrendWindowSize" onchange="setTrendWindowSize(this.value,'anTrendWindowSize')"
       style="height:32px;padding:0 26px 0 9px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
       <option value="5">Latest 5</option>
       <option value="10" selected>Latest 10</option>
+      <option value="custom">Custom range</option>
       <option value="0">All cycles</option>
     </select>
 
-    <button type="button" id="anTrendOlderBtn" onclick="moveTrendWindow(-1)"
-      class="chart-dl-btn" style="padding:5px 9px;" aria-label="Show older cycles">
-      Older
-    </button>
-
-    <span id="anTrendRangeSummary"
-      style="min-width:132px;text-align:center;font-size:11.5px;color:var(--n-500);font-weight:600;"></span>
-
-    <button type="button" id="anTrendNewerBtn" onclick="moveTrendWindow(1)"
-      class="chart-dl-btn" style="padding:5px 9px;" aria-label="Show newer cycles">
-      Newer
-    </button>
+    <span id="trendCustomRangeWrap" style="display:none;align-items:center;gap:6px;">
+      <select id="trendRangeFrom" style="height:32px;padding:0 22px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+        <?php foreach ($trendSYLabels as $lbl): ?>
+          <option value="<?= e($lbl) ?>"><?= e($lbl) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <span style="font-size:11px;color:var(--n-400);">to</span>
+      <select id="trendRangeTo" style="height:32px;padding:0 22px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+        <?php foreach ($trendSYLabels as $lbl): ?>
+          <option value="<?= e($lbl) ?>" <?= $lbl === end($trendSYLabels) ? 'selected' : '' ?>><?= e($lbl) ?></option>
+        <?php endforeach; ?>
+      </select>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="applyTrendCustomRange('trendRangeFrom','trendRangeTo')">Apply</button>
+    </span>
   </div>
         <div class="chart-dl-wrap">
           <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_anDimTrendChart')">
@@ -2315,6 +2368,30 @@ include __DIR__ . '/../includes/header.php';
               <div class="p-select-item" onclick="indTrendSelectDim(this, 6, 'D6: Finance and Resource Management and Mobilization')">D6: Finance and Resource Management and Mobilization</div>
             </div>
           </div>
+
+          <label for="anTrendWindowSize2" style="font-size:12px;font-weight:600;color:var(--n-500);white-space:nowrap;">Cycles:</label>
+          <select id="anTrendWindowSize2" onchange="setTrendWindowSize(this.value,'anTrendWindowSize2')"
+            style="height:32px;padding:0 26px 0 9px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+            <option value="5">Latest 5</option>
+            <option value="10" selected>Latest 10</option>
+            <option value="custom">Custom range</option>
+            <option value="0">All cycles</option>
+          </select>
+
+          <span id="trendCustomRangeWrap2" style="display:none;align-items:center;gap:6px;">
+            <select id="trendRangeFrom2" style="height:32px;padding:0 22px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+              <?php foreach ($trendSYLabels as $lbl): ?>
+                <option value="<?= e($lbl) ?>"><?= e($lbl) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <span style="font-size:11px;color:var(--n-400);">to</span>
+            <select id="trendRangeTo2" style="height:32px;padding:0 22px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+              <?php foreach ($trendSYLabels as $lbl): ?>
+                <option value="<?= e($lbl) ?>" <?= $lbl === end($trendSYLabels) ? 'selected' : '' ?>><?= e($lbl) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="applyTrendCustomRange('trendRangeFrom2','trendRangeTo2')">Apply</button>
+          </span>
         </div>
         <div class="chart-dl-wrap">
           <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_anIndTrendChart')">
@@ -2333,13 +2410,15 @@ include __DIR__ . '/../includes/header.php';
           </div>
         </div>
       </div>
-      <div class="chart-card-body" style="position:relative;height:380px;padding:0;display:flex;flex-direction:column;">
-        <div id="indTrendScrollWrap" style="overflow-x:auto;overflow-y:hidden;width:100%;flex:1;padding:16px 16px 0;box-sizing:border-box;">
+      <div class="chart-card-body ind-trend-body" style="position:relative;height:380px;padding:0;display:flex;flex-direction:row;">
+        <div id="indTrendLegendPanel" class="ind-legend-panel"></div>
+        <div id="indTrendScrollWrap" style="overflow-x:auto;overflow-y:hidden;width:100%;flex:1;padding:16px 16px 0;box-sizing:border-box;min-width:0;">
           <div id="indTrendChartInner" style="position:relative;height:100%;min-width:100%;">
             <canvas id="anIndTrendChart"></canvas>
           </div>
         </div>
       </div>
+      <div id="indLegendPopover" class="ind-legend-popover"></div>
     </div>
   <?php endif; ?>
 
@@ -3221,9 +3300,22 @@ include __DIR__ . '/../includes/header.php';
 
   // Indicator trend data from PHP
   const anIndTrendData = <?php
+    // short_title is an optional column; detect it so this never fatals
+    // on installs that haven't run the ALTER TABLE for it yet.
+    $hasShortTitle = false;
+    try {
+      $colCheck = $db->query("SHOW COLUMNS FROM sbm_indicators LIKE 'short_title'");
+      $hasShortTitle = $colCheck && $colCheck->rowCount() > 0;
+    } catch (Exception $e) {
+      $hasShortTitle = false;
+    }
+    $shortTitleCol = $hasShortTitle ? "i.short_title," : "NULL AS short_title,";
+
     $indTrendQ = $db->prepare("
       SELECT sy.label AS sy_label,
              i.indicator_id, i.indicator_code,
+             $shortTitleCol
+             i.indicator_text,
              d.dimension_id,
              ROUND((AVG(all_r.rating) / 4) * 100, 1) AS pct
       FROM (
@@ -3242,7 +3334,7 @@ include __DIR__ . '/../includes/header.php';
     $indTrendQ->execute([$schoolId]);
     $indTrendRows = $indTrendQ->fetchAll();
     $indTrendByDim = [];
-    $indMetaByDim  = [];
+    $indMetaByDim  = []; // dimension_id => { indicator_code => {code, shortTitle, description} }
     foreach ($indTrendRows as $r) {
       $did  = (int)$r['dimension_id'];
       $code = $r['indicator_code'];
@@ -3250,7 +3342,15 @@ include __DIR__ . '/../includes/header.php';
       $pct  = floatval($r['pct']);
       if (!isset($indTrendByDim[$did][$code])) {
         $indTrendByDim[$did][$code] = [];
-        $indMetaByDim[$did][$code]  = $code;
+        $fullText = $r['indicator_text'] ?? '';
+        $shortTitle = !empty($r['short_title'])
+          ? $r['short_title']
+          : (mb_strlen($fullText) > 60 ? mb_substr($fullText, 0, 60) . '…' : $fullText);
+        $indMetaByDim[$did][$code] = [
+          'code'        => $code,
+          'shortTitle'  => $shortTitle,
+          'description' => $fullText,
+        ];
       }
       $indTrendByDim[$did][$code][$lbl] = $pct;
     }
@@ -3270,49 +3370,93 @@ include __DIR__ . '/../includes/header.php';
 let anDimTrendChartInstance = null;
 let anSelectedTrendDim = 1;
 let anTrendWindowSize = 10;
-let anTrendStart = Math.max(0, anTrendSYLabels.length - anTrendWindowSize);
+let anTrendCustomRange = null; // {start, end} indices into anTrendSYLabels when 'custom' is active
 
 function getTrendWindow() {
   const total = anTrendSYLabels.length;
+
+  if (anTrendWindowSize === 'custom' && anTrendCustomRange) {
+    const start = Math.max(0, anTrendCustomRange.start);
+    const end = Math.min(total, anTrendCustomRange.end);
+    return {
+      total,
+      size: end - start,
+      start,
+      end,
+      labels: anTrendSYLabels.slice(start, end)
+    };
+  }
+
   const size = anTrendWindowSize === 0
     ? total
     : Math.min(anTrendWindowSize, total);
 
-  const maxStart = Math.max(0, total - size);
-  anTrendStart = Math.min(Math.max(0, anTrendStart), maxStart);
+  // Always anchored to the latest cycles — no more paging offset.
+  const start = Math.max(0, total - size);
 
   return {
     total,
     size,
-    start: anTrendStart,
-    end: anTrendStart + size,
-    labels: anTrendSYLabels.slice(anTrendStart, anTrendStart + size)
+    start,
+    end: start + size,
+    labels: anTrendSYLabels.slice(start, start + size)
   };
 }
 
-function updateTrendRangeUI() {
-  const { total, size, start, end } = getTrendWindow();
+function setTrendWindowSize(value, sourceId) {
+  // Keep both Cycles dropdowns (Dimension Trend + Indicator Trend) in sync.
+  const sel1 = document.getElementById('anTrendWindowSize');
+  const sel2 = document.getElementById('anTrendWindowSize2');
+  if (sel1 && sel1.id !== sourceId) sel1.value = value;
+  if (sel2 && sel2.id !== sourceId) sel2.value = value;
 
-  const summary = document.getElementById('anTrendRangeSummary');
-  const older = document.getElementById('anTrendOlderBtn');
-  const newer = document.getElementById('anTrendNewerBtn');
+  const wrap1 = document.getElementById('trendCustomRangeWrap');
+  const wrap2 = document.getElementById('trendCustomRangeWrap2');
 
-  if (summary) {
-    summary.textContent = total ? `Showing ${start + 1}–${end} of ${total}` : '';
+  if (value === 'custom') {
+    if (wrap1) wrap1.style.display = 'inline-flex';
+    if (wrap2) wrap2.style.display = 'inline-flex';
+    anTrendWindowSize = 'custom';
+    // Wait for Apply before re-rendering.
+    return;
   }
 
-  if (older) older.disabled = size === total || start === 0;
-  if (newer) newer.disabled = size === total || end >= total;
+  if (wrap1) wrap1.style.display = 'none';
+  if (wrap2) wrap2.style.display = 'none';
+
+  anTrendWindowSize = parseInt(value, 10);
+  anTrendCustomRange = null;
+  renderDimensionTrendChart();
+  updateIndicatorTrendChart(anSelectedTrendDim);
 }
 
-function setTrendWindowSize(value) {
-  anTrendWindowSize = parseInt(value, 10);
+function applyTrendCustomRange(fromId, toId) {
+  const fromSel = document.getElementById(fromId);
+  const toSel = document.getElementById(toId);
+  if (!fromSel || !toSel) return;
 
-  const size = anTrendWindowSize === 0
-    ? anTrendSYLabels.length
-    : Math.min(anTrendWindowSize, anTrendSYLabels.length);
+  const fromLabel = fromSel.value;
+  const toLabel = toSel.value;
+  const fromIdx = anTrendSYLabels.indexOf(fromLabel);
+  const toIdx = anTrendSYLabels.indexOf(toLabel);
 
-  anTrendStart = Math.max(0, anTrendSYLabels.length - size);
+  if (fromIdx === -1 || toIdx === -1) return;
+
+  if (fromIdx > toIdx) {
+    alert('The "From" school year must be earlier than or equal to the "To" school year.');
+    return;
+  }
+
+  anTrendWindowSize = 'custom';
+  anTrendCustomRange = { start: fromIdx, end: toIdx + 1 };
+
+  // Keep the other pair of From/To selects in sync visually.
+  const otherFromId = fromId === 'trendRangeFrom' ? 'trendRangeFrom2' : 'trendRangeFrom';
+  const otherToId = toId === 'trendRangeTo' ? 'trendRangeTo2' : 'trendRangeTo';
+  const otherFromSel = document.getElementById(otherFromId);
+  const otherToSel = document.getElementById(otherToId);
+  if (otherFromSel) otherFromSel.value = fromLabel;
+  if (otherToSel) otherToSel.value = toLabel;
 
   renderDimensionTrendChart();
   updateIndicatorTrendChart(anSelectedTrendDim);
@@ -3329,16 +3473,6 @@ window.addEventListener('resize', function () {
     updateIndicatorTrendChart(anSelectedTrendDim);
   }, 150);
 });
-
-function moveTrendWindow(direction) {
-  const { size } = getTrendWindow();
-
-  anTrendStart += direction * size;
-  getTrendWindow();
-
-  renderDimensionTrendChart();
-  updateIndicatorTrendChart(anSelectedTrendDim);
-}
 
 // Minimum pixel width per cycle so labels/points stay legible. When the
 // currently-selected window of cycles needs more than this exceeds the
@@ -3428,8 +3562,6 @@ function renderDimensionTrendChart() {
       maintainAspectRatio: false
     }
   });
-
-  updateTrendRangeUI();
 }
 
   function indTrendSelectDim(el, val, label) {
@@ -3441,35 +3573,38 @@ updateIndicatorTrendChart(val);
 }
 function updateIndicatorTrendChart(dimId) {
     dimId = parseInt(dimId);
-    const el = document.getElementById('anIndTrendChart');
-    if (!el) return;
-
-    const syLabels = getTrendWindow().labels;
-updateTrendRangeUI();
-    const byDim    = anIndTrendData.byDim[dimId] || {};
-    const codes    = Object.keys(byDim);
+    const scrollWrap = document.getElementById('indTrendScrollWrap');
+    const legendPanel = document.getElementById('indTrendLegendPanel');
+    if (!scrollWrap) return;
 
     if (anIndTrendChartInstance) {
       anIndTrendChartInstance.destroy();
       anIndTrendChartInstance = null;
     }
 
+    const syLabels  = getTrendWindow().labels;
+    const byDim     = anIndTrendData.byDim[dimId] || {};
+    const metaByDim = anIndTrendData.metaDim[dimId] || {};
+    const codes     = Object.keys(byDim);
+
     if (!codes.length || syLabels.length < 1) {
-      el.closest('.chart-card-body').innerHTML =
+      if (legendPanel) legendPanel.innerHTML = '';
+      scrollWrap.innerHTML =
         '<p style="text-align:center;color:var(--n-400);font-size:13px;padding:48px 0;">No indicator data available for this dimension yet.</p>';
       return;
     }
 
-    if (!el.getContext) {
-      const newCanvas = document.createElement('canvas');
-      newCanvas.id = 'anIndTrendChart';
-      newCanvas.setAttribute('height', '90');
-      el.parentNode.replaceChild(newCanvas, el);
-    }
-    const canvas = document.getElementById('anIndTrendChart');
-    const indWrapperEl = document.getElementById('indTrendScrollWrap');
-    const indInnerEl   = document.getElementById('indTrendChartInner');
-    sizeTrendInner(indInnerEl, indWrapperEl, syLabels.length);
+    scrollWrap.innerHTML =
+      '<div id="indTrendChartInner" style="position:relative;height:100%;min-width:100%;"><canvas id="anIndTrendChart"></canvas></div>';
+    const indInnerEl = document.getElementById('indTrendChartInner');
+    const canvas     = document.getElementById('anIndTrendChart');
+    sizeTrendInner(indInnerEl, scrollWrap, syLabels.length);
+
+    const dimNames = {
+      1:'Curriculum and Teaching', 2:'Learning Environment', 3:'Leadership',
+      4:'Governance and Accountability', 5:'Human Resources and Team Development',
+      6:'Finance and Resource Management and Mobilization'
+    };
 
     const datasets = codes.map((code, i) => {
       const data = syLabels.map(lbl => byDim[code][lbl] ?? null);
@@ -3488,12 +3623,6 @@ updateTrendRangeUI();
       };
     });
 
-    const dimNames = {
-      1:'Curriculum and Teaching', 2:'Learning Environment', 3:'Leadership',
-      4:'Governance and Accountability', 5:'Human Resources and Team Development',
-      6:'Finance and Resource Management and Mobilization'
-    };
-
     anIndTrendChartInstance = new Chart(canvas, {
       type: 'line',
       data: { labels: syLabels, datasets },
@@ -3510,10 +3639,7 @@ updateTrendRangeUI();
           }
         },
         plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'line', pointStyleWidth: 24 }
-          },
+          legend: { display: false },
           tooltip: {
             callbacks: {
               title: ctx => 'D' + dimId + ' · Indicator ' + ctx[0].dataset.label,
@@ -3527,7 +3653,109 @@ updateTrendRangeUI();
         animation: { duration: 400, easing: 'easeInOutQuart' },
       }
     });
+
+    renderIndicatorLegendPanel(codes, indPalette, metaByDim, anIndTrendChartInstance);
   }
+
+  // Escapes HTML-special characters before injecting text into innerHTML.
+  function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
+  // Renders the left-side Indicator Legend panel for the Indicator Trend
+  // chart, using the same colors/order as the chart's datasets so the two
+  // always stay in sync.
+  function renderIndicatorLegendPanel(codes, palette, metaByCode, chartInstance) {
+    const panel = document.getElementById('indTrendLegendPanel');
+    if (!panel) return;
+    closeIndLegendPopover();
+    panel._chartInstance = chartInstance;
+    panel.innerHTML = codes.map((code, i) => {
+      const meta = metaByCode[code] || {};
+      const color = palette[i % palette.length];
+      const shortTitle = meta.shortTitle || '';
+      return `
+        <div class="ind-legend-item" data-legend-index="${i}" onclick="toggleIndLegendLine(this)">
+          <span class="ind-legend-swatch" style="background:${color};"></span>
+          <div class="ind-legend-text">
+            <div class="ind-legend-code">${escapeHtml(code)}</div>
+            <div class="ind-legend-title">${escapeHtml(shortTitle)}</div>
+          </div>
+          <span class="ind-legend-info" title="View full description" onclick="showIndLegendPopover(event, '${escapeHtml(code)}')">i</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Toggles a single indicator line on/off when its legend entry is clicked.
+  function toggleIndLegendLine(el) {
+    const panel = document.getElementById('indTrendLegendPanel');
+    const chart = panel && panel._chartInstance;
+    if (!chart) return;
+
+    const index = parseInt(el.dataset.legendIndex, 10);
+    const meta = chart.getDatasetMeta(index);
+    meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : !meta.hidden;
+    chart.update();
+    el.classList.toggle('hidden-line', !!meta.hidden);
+  }
+
+  // Tracks which single indicator popover (if any) is currently open, and
+  // the info button that opened it — so outside-click detection can tell
+  // "clicking the trigger again" apart from "clicking somewhere else".
+  let openIndLegendCode = null;
+  let openIndTriggerEl = null;
+
+  // Shows a small popover with the full official indicator description.
+  // Clicking the same info button again toggles it closed; clicking a
+  // different one switches the popover to that indicator.
+  function showIndLegendPopover(event, code) {
+    event.stopPropagation();
+
+    if (openIndLegendCode === code) {
+      closeIndLegendPopover();
+      return;
+    }
+
+    const metaByDim = anIndTrendData.metaDim[anSelectedTrendDim] || {};
+    const meta = metaByDim[code] || {};
+    const popover = document.getElementById('indLegendPopover');
+    if (!popover) return;
+
+    popover.innerHTML = `
+      <button type="button" class="ind-legend-popover-close" onclick="closeIndLegendPopover()" aria-label="Close">×</button>
+      <h4>Indicator ${escapeHtml(code)}</h4>
+      <div class="ind-pop-sub">${escapeHtml(meta.shortTitle || '')}</div>
+      <div class="ind-pop-label">Full Description</div>
+      <div class="ind-pop-desc">${escapeHtml(meta.description || '')}</div>
+    `;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const popW = 280;
+    popover.style.top = (rect.bottom + 6) + 'px';
+    popover.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - popW - 8)) + 'px';
+    popover.classList.add('open');
+
+    openIndLegendCode = code;
+    openIndTriggerEl = event.currentTarget;
+  }
+
+  function closeIndLegendPopover() {
+    const popover = document.getElementById('indLegendPopover');
+    if (popover) popover.classList.remove('open');
+    openIndLegendCode = null;
+    openIndTriggerEl = null;
+  }
+
+  document.addEventListener('click', function (e) {
+    const popover = document.getElementById('indLegendPopover');
+    if (!popover || !popover.classList.contains('open')) return;
+    if (popover.contains(e.target)) return;
+    if (openIndTriggerEl && openIndTriggerEl.contains(e.target)) return;
+    closeIndLegendPopover();
+  });
 
   // Auto-switch to analytics if ?view=analytics in URL
   (function () {

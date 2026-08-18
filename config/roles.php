@@ -15,6 +15,9 @@ define('SBM_MODULE_ACCESS', [
     // ── System Administration (School Head only) ────────────
     'system_admin_dashboard' => [ROLE_SYSTEM_ADMIN],
     'user_management' => [ROLE_SYSTEM_ADMIN],
+    'manage_roles' => [ROLE_SYSTEM_ADMIN],
+    'external_evaluators' => [ROLE_SYSTEM_ADMIN],
+    'pending_requests' => [ROLE_SYSTEM_ADMIN],
     'system_settings' => [ROLE_SYSTEM_ADMIN],
     'school_years' => [ROLE_SYSTEM_ADMIN],
 
@@ -54,7 +57,22 @@ define('SBM_NAV', [
             'users',
             [
                 ['User Accounts', 'system_admin/users.php', 'users'],
+                ['Pending Requests', 'system_admin/pending_requests.php', 'user-check'],
+                ['Manage Roles', 'system_admin/manage_roles.php', 'shield'],
+                ['External Evaluators', 'system_admin/external_evaluators.php', 'user-check'],
+            ]
+        ],
+        [
+            'Organization',
+            'briefcase',
+            [
                 ['Departments', 'system_admin/departments.php', 'briefcase'],
+            ]
+        ],
+        [
+            'System',
+            'settings',
+            [
                 ['System Settings', 'school_head/settings.php', 'calendar'],
             ]
         ],

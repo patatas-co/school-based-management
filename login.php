@@ -699,6 +699,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
         </form>
 
+        <div style="text-align:center;margin-top:18px;">
+          <span style="font-size:13px;color:var(--mid);">Don't have an account?</span>
+          <a href="register.php" style="font-size:13px;font-weight:600;color:var(--green);text-decoration:none;margin-left:4px;">Register here</a>
+        </div>
+
         <div
           style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid #F3F4F6;">
           <p class="form-footer" style="margin:0;"><?= e(SITE_NAME) ?> &nbsp;·&nbsp; DepEd Order No. 007, s. 2024

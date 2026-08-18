@@ -2211,12 +2211,10 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     }
 
     .p-select-menu {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: -8px;
-      width: calc(100% + 16px);
-      max-height: 280px;
+      position: fixed;
+      max-height: 190px;
       overflow-y: auto;
+      overscroll-behavior: contain;
       background: #fff;
       border: 1px solid var(--n-200);
       border-radius: 12px;
@@ -2514,6 +2512,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         'minus-circle' => '<circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/>',
         'check-square' => '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
         'book-open' => '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+        'chevron-down' => '<polyline points="6 9 12 15 18 9"/>',
+        'user-check' => '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>',
       ];
 
       $__icon = function (string $n) use ($__svgPaths): string {
@@ -2521,73 +2521,31 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         return "<svg viewBox=\"0 0 24 24\">$d</svg>";
       };
 
-      $__currentStatus = $_GET['status'] ?? '';
+      $__pendingRequestsCount = 0;
+      if ($__role === 'system_admin' && function_exists('getDB')) {
+        try {
+          $__pendingRequestsCount = (int) getDB()->query("SELECT COUNT(*) FROM users WHERE status='pending'")->fetchColumn();
+        } catch (Throwable $e) {
+          $__pendingRequestsCount = 0;
+        }
+      }
+
       foreach ($__navGroups as $group):
         [$groupLabel, $groupIcon, $groupItems] = $group;
         ?>
         <div class="sb-section-label"><?= e($groupLabel) ?></div>
         <?php foreach ($groupItems as $item):
           $isActive = basename($item[1]) === basename($_SERVER['PHP_SELF']);
-          // Special case: User Accounts gets a submenu
-          if ($item[0] === 'User Accounts'):
-            $isOpen = $isActive;
-            $isParentActive = $isActive && $__currentStatus === '';
-            ?>
-            <div class="sb-item sb-item-toggle <?= $isOpen ? 'open' : '' ?> <?= $isParentActive ? 'active' : '' ?>"
-              onclick="toggleSbSubmenu(this)" data-label="User Accounts"
-              style="cursor:pointer;position:relative;"
-              onmouseenter="showSbFlyout(this)" onmouseleave="hideSbFlyout(this)">
-              <a href="<?= $__base ?>/system_admin/users.php"
-                onclick="event.stopPropagation();"
-                style="display:contents;color:inherit;text-decoration:none;">
-                <span class="sb-icon"><?= $__icon($item[2]) ?></span>
-                <span class="sb-label">User Accounts</span>
-              </a>
-              <svg class="sb-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-
-              <!-- Flyout for collapsed state -->
-              <div class="sb-flyout" id="sbFlyoutUserAccounts"
-                onmouseenter="keepSbFlyout(this)" onmouseleave="hideSbFlyout(this)">
-                <div class="sb-flyout-title">User Accounts</div>
-                <a href="<?= $__base ?>/system_admin/users.php"
-                  class="sb-flyout-item <?= ($isParentActive) ? 'active' : '' ?>">
-                  <span class="sb-flyout-dot"></span> All Users
-                </a>
-                <a href="<?= $__base ?>/system_admin/users.php?status=active"
-                  class="sb-flyout-item <?= ($isActive && $__currentStatus === 'active') ? 'active' : '' ?>">
-                  <span class="sb-flyout-dot"></span> Active
-                </a>
-                <a href="<?= $__base ?>/system_admin/users.php?status=inactive"
-                  class="sb-flyout-item <?= ($isActive && $__currentStatus === 'inactive') ? 'active' : '' ?>">
-                  <span class="sb-flyout-dot"></span> Inactive
-                </a>
-                <a href="<?= $__base ?>/system_admin/users.php?status=archived"
-                  class="sb-flyout-item <?= ($isActive && $__currentStatus === 'archived') ? 'active' : '' ?>">
-                  <span class="sb-flyout-dot"></span> Archived
-                </a>
-              </div>
-            </div>
-            <div class="sb-submenu <?= $isOpen ? 'open' : '' ?>">
-              <a href="<?= $__base ?>/system_admin/users.php?status=active"
-                class="sb-sub-item <?= ($isActive && $__currentStatus === 'active') ? 'active' : '' ?>">
-                Active
-              </a>
-              <a href="<?= $__base ?>/system_admin/users.php?status=inactive"
-                class="sb-sub-item <?= ($isActive && $__currentStatus === 'inactive') ? 'active' : '' ?>">
-                Inactive
-              </a>
-              <a href="<?= $__base ?>/system_admin/users.php?status=archived"
-                class="sb-sub-item <?= ($isActive && $__currentStatus === 'archived') ? 'active' : '' ?>">
-                Archived
-              </a>
-            </div>
-          <?php else: ?>
-            <a href="<?= $__base ?>/<?= e($item[1]) ?>" class="sb-item <?= $isActive ? 'active' : '' ?>"
-              data-label="<?= e($item[0]) ?>">
-              <span class="sb-icon"><?= $__icon($item[2]) ?></span>
-              <span class="sb-label"><?= e($item[0]) ?></span>
-            </a>
-          <?php endif; ?>
+          $__isPendingItem = $item[1] === 'system_admin/pending_requests.php';
+          ?>
+          <a href="<?= $__base ?>/<?= e($item[1]) ?>" class="sb-item <?= $isActive ? 'active' : '' ?>"
+            data-label="<?= e($item[0]) ?>">
+            <span class="sb-icon"><?= $__icon($item[2]) ?></span>
+            <span class="sb-label"><?= e($item[0]) ?></span>
+            <?php if ($__isPendingItem && $__pendingRequestsCount > 0): ?>
+              <span class="sb-nav-badge" style="margin-left:auto;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;background:#FEF3C7;color:#D97706;flex-shrink:0;"><?= $__pendingRequestsCount ?></span>
+            <?php endif; ?>
+          </a>
         <?php endforeach; ?>
       <?php endforeach; ?>
     </nav>
@@ -2883,18 +2841,58 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
           if (e.target.classList.contains('overlay') && e.target.classList.contains('open')) e.target.classList.remove('open');
         });
 
-        // ── Premium Dropdown Helpers ──
+        // ── Premium Dropdown Helpers (portal-based, escapes transformed/clipped ancestors) ──
+        const _pSelectHome = new WeakMap();
         function togglePSelect(e, targetId) {
           if (e) e.stopPropagation();
           const drop = targetId ? document.getElementById(targetId) : (e?.target?.closest('.p-select'));
           if (!drop) return;
           const wasOpen = drop.classList.contains('open');
           closeAllPSelects();
-          if (!wasOpen) drop.classList.add('open');
+          if (!wasOpen) {
+            drop.classList.add('open');
+            openPSelectMenu(drop);
+          }
+        }
+        function openPSelectMenu(drop) {
+          const trigger = drop.querySelector('.p-select-trigger');
+          const menu = drop.querySelector('.p-select-menu');
+          if (!trigger || !menu) return;
+          if (!_pSelectHome.has(menu)) _pSelectHome.set(menu, drop);
+          document.body.appendChild(menu);
+          menu.style.display = 'block';
+          positionPSelectMenu(trigger, menu);
+        }
+        function positionPSelectMenu(trigger, menu) {
+          const rect = trigger.getBoundingClientRect();
+          const margin = 8;
+          const spaceBelow = window.innerHeight - rect.bottom - margin;
+          const spaceAbove = rect.top - margin;
+          menu.style.left = rect.left + 'px';
+          menu.style.width = rect.width + 'px';
+          if (spaceBelow < 120 && spaceAbove > spaceBelow) {
+            const h = Math.max(120, Math.min(190, spaceAbove));
+            menu.style.maxHeight = h + 'px';
+            menu.style.top = (rect.top - h - 4) + 'px';
+          } else {
+            const h = Math.max(120, Math.min(190, spaceBelow));
+            menu.style.maxHeight = h + 'px';
+            menu.style.top = (rect.bottom + 4) + 'px';
+          }
         }
         function closeAllPSelects() {
           document.querySelectorAll('.p-select.open').forEach(el => el.classList.remove('open'));
+          document.querySelectorAll('body > .p-select-menu').forEach(menu => {
+            menu.style.display = 'none';
+            const home = _pSelectHome.get(menu);
+            if (home) home.appendChild(menu);
+          });
         }
+        window.addEventListener('resize', closeAllPSelects);
+        document.addEventListener('scroll', e => {
+          if (e.target && e.target.closest && e.target.closest('.p-select-menu')) return;
+          closeAllPSelects();
+        }, true);
         document.addEventListener('keydown', e => {
           if (e.key === 'Escape') closeAllPSelects();
         });
