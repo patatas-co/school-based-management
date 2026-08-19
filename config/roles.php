@@ -57,9 +57,9 @@ define('SBM_NAV', [
             'users',
             [
                 ['User Accounts', 'system_admin/users.php', 'users'],
-                ['Pending Requests', 'system_admin/pending_requests.php', 'user-check'],
-                ['Manage Roles', 'system_admin/manage_roles.php', 'shield'],
                 ['External Evaluators', 'system_admin/external_evaluators.php', 'user-check'],
+                ['Manage Roles', 'system_admin/manage_roles.php', 'shield'],
+                ['Pending Requests', 'system_admin/pending_requests.php', 'user-round-clock'],
             ]
         ],
         [

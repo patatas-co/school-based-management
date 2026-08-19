@@ -2514,6 +2514,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         'book-open' => '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
         'chevron-down' => '<polyline points="6 9 12 15 18 9"/>',
         'user-check' => '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>',
+        'user-round-clock' => '<path d="M18 21a6 6 0 0 0-9-5.197M2.6 21a10 10 0 0 1 10.663-8.977"/><circle cx="10" cy="8" r="5"/><circle cx="18" cy="18" r="4"/><path d="M18 16.5v1.5l1 1"/>',
       ];
 
       $__icon = function (string $n) use ($__svgPaths): string {

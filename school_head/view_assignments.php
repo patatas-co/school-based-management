@@ -5,9 +5,41 @@ ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/form_version_helper.php';
+
 requireRole('school_head');
 $db = getDB();
 $schoolId = SCHOOL_ID;
+
+// Resolve the active assessment cycle context and form version
+$syId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
+$cycleId = null;
+if ($syId) {
+  $cycleIdStmt = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id = ? AND sy_id = ? LIMIT 1");
+  $cycleIdStmt->execute([$schoolId, $syId]);
+  $cycleId = $cycleIdStmt->fetchColumn();
+  if ($cycleId !== false) {
+    $cycleId = (int)$cycleId;
+  } else {
+    $cycleId = null;
+  }
+}
+
+try {
+  $activeFormVersionId = getApplicableFormVersionId($db, $cycleId);
+} catch (\RuntimeException $e) {
+  // Fail gracefully with a controlled error if no active form version exists
+  $pageTitle = 'Indicator Assignments';
+  $activePage = 'view_assignments.php';
+  include __DIR__ . '/../includes/header.php';
+  echo '<div class="alert alert-danger" style="margin: 20px;">' . e($e->getMessage()) . '</div>';
+  include __DIR__ . '/../includes/footer.php';
+  exit;
+}
+
+// Fetch dynamic, version-aware indicators for teachers
+$activeTeacherIndicators = getRoleIndicators($db, $activeFormVersionId, 'teacher');
+$activeTeacherCodes      = array_column($activeTeacherIndicators, 'indicator_code');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   ob_start();
@@ -17,8 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   try {
     if ($_POST['action'] === 'get_assignments') {
       $teacherId = (int) $_POST['teacher_id'];
-      $stmt = $db->prepare("SELECT tia.indicator_code, tia.assigned_by, tia.created_at, u.full_name as assigned_by_name FROM teacher_indicator_assignments tia LEFT JOIN users u ON tia.assigned_by = u.user_id WHERE tia.teacher_id = ?");
-      $stmt->execute([$teacherId]);
+      $stmt = $db->prepare("SELECT tia.indicator_code, tia.assigned_by, tia.created_at, u.full_name as assigned_by_name FROM teacher_indicator_assignments tia LEFT JOIN users u ON tia.assigned_by = u.user_id WHERE tia.teacher_id = ? AND (tia.cycle_id = ? OR tia.cycle_id IS NULL)");
+      $stmt->execute([$teacherId, $cycleId]);
       $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
       echo json_encode(['ok' => true, 'assignments' => $assignments]);
       exit;
@@ -34,15 +66,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       if (!$verify->fetchColumn())
         throw new Exception("Invalid teacher selected.");
       $db->beginTransaction();
-      $prevStmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignments WHERE teacher_id = ?");
-      $prevStmt->execute([$teacherId]);
+      $prevStmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignments WHERE teacher_id = ? AND (cycle_id = ? OR cycle_id IS NULL)");
+      $prevStmt->execute([$teacherId, $cycleId]);
       $previousAssignments = $prevStmt->fetchAll(PDO::FETCH_ASSOC);
-      $db->prepare("DELETE FROM teacher_indicator_assignments WHERE teacher_id = ?")->execute([$teacherId]);
+      $db->prepare("DELETE FROM teacher_indicator_assignments WHERE teacher_id = ? AND (cycle_id = ? OR cycle_id IS NULL)")->execute([$teacherId, $cycleId]);
       if (!empty($indicators)) {
-        $insert = $db->prepare("INSERT INTO teacher_indicator_assignments (teacher_id, indicator_code, assigned_by) VALUES (?, ?, ?)");
+        $insert = $db->prepare("INSERT INTO teacher_indicator_assignments (teacher_id, indicator_code, assigned_by, cycle_id) VALUES (?, ?, ?, ?)");
         foreach ($indicators as $code) {
-          if (in_array($code, TEACHER_INDICATOR_CODES))
-            $insert->execute([$teacherId, $code, $_SESSION['user_id']]);
+          if (in_array($code, $activeTeacherCodes))
+            $insert->execute([$teacherId, $code, $_SESSION['user_id'], $cycleId]);
         }
       }
       logActivity('override_assignments', 'school_head', sprintf("SH override for teacher ID %s. Prev: %s. New: %s. Reason: %s", $teacherId, json_encode(array_column($previousAssignments, 'indicator_code')), json_encode($indicators), $reason));
@@ -60,13 +92,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 $search = trim($_GET['q'] ?? '');
 $searchSQL = $search !== '' ? "AND (u.full_name LIKE ? OR u.email LIKE ?)" : "";
-$params = [$schoolId];
+$params = [];
+if ($cycleId !== null) {
+  $params[] = $cycleId; // for t.cycle_id = ? in COUNT(*) subquery
+  $params[] = $cycleId; // for tia.cycle_id = ? in GROUP_CONCAT subquery
+}
+$params[] = $schoolId;
 if ($search !== '') {
   $params[] = "%$search%";
   $params[] = "%$search%";
 }
 
-$stmt = $db->prepare("SELECT u.user_id, u.full_name, u.email, (SELECT COUNT(*) FROM teacher_indicator_assignments t WHERE t.teacher_id = u.user_id) as assigned_count, (SELECT GROUP_CONCAT(tia.indicator_code ORDER BY tia.indicator_code) FROM teacher_indicator_assignments tia WHERE tia.teacher_id = u.user_id) as assigned_indicators FROM users u WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active' $searchSQL ORDER BY u.full_name ASC");
+$cycleCond = $cycleId !== null ? "AND (tia.cycle_id = ? OR tia.cycle_id IS NULL)" : "AND tia.cycle_id IS NULL";
+$stmt = $db->prepare("SELECT u.user_id, u.full_name, u.email, (SELECT COUNT(*) FROM teacher_indicator_assignments t WHERE t.teacher_id = u.user_id AND (t.cycle_id = ? OR t.cycle_id IS NULL)) as assigned_count, (SELECT GROUP_CONCAT(tia.indicator_code ORDER BY tia.indicator_code) FROM teacher_indicator_assignments tia WHERE tia.teacher_id = u.user_id $cycleCond) as assigned_indicators FROM users u WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active' $searchSQL ORDER BY u.full_name ASC");
 $stmt->execute($params);
 $teachers = $stmt->fetchAll();
 
@@ -75,7 +113,7 @@ $activePage = 'view_assignments.php';
 include __DIR__ . '/../includes/header.php';
 
 $indicatorGroups = [];
-foreach (TEACHER_INDICATOR_CODES as $code) {
+foreach ($activeTeacherCodes as $code) {
   $dimNo = substr($code, 0, 1);
   $indicatorGroups[$dimNo][] = $code;
 }

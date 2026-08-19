@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 09, 2026 at 09:03 AM
+-- Generation Time: Aug 18, 2026 at 06:04 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -1582,7 +1582,70 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (1601, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-09 05:29:56'),
 (1602, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-09 05:30:51'),
 (1603, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-09 06:14:56'),
-(1604, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-09 06:15:09');
+(1604, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-09 06:15:09'),
+(1605, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-09 07:38:44'),
+(1606, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-09 07:39:14'),
+(1607, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-09 09:09:21'),
+(1608, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-09 09:09:43'),
+(1609, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-09 09:37:22'),
+(1610, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-14 09:15:19'),
+(1611, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-14 10:05:51'),
+(1612, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-14 10:15:44'),
+(1613, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-14 13:34:02'),
+(1614, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-14 13:42:52'),
+(1615, 74, 'toggle_user_status', 'users', 'User ID 2 status changed to inactive', '::1', '2026-08-14 14:08:24'),
+(1616, 74, 'toggle_user_status', 'users', 'User ID 2 status changed to active', '::1', '2026-08-14 14:08:29'),
+(1617, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-14 22:08:30'),
+(1618, 74, 'update_user', 'users', 'Updated user ID:2', '::1', '2026-08-14 22:29:32'),
+(1619, 2, 'login', 'auth', 'User logged in', '::1', '2026-08-14 22:29:45'),
+(1620, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-14 22:29:58'),
+(1621, 74, 'update_user', 'users', 'Updated user ID:2', '::1', '2026-08-14 22:30:12'),
+(1622, 2, 'login', 'auth', 'User logged in', '::1', '2026-08-14 22:30:23'),
+(1623, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-14 22:30:37'),
+(1624, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-17 01:37:09'),
+(1625, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-17 01:37:18'),
+(1626, 74, 'toggle_user_status', 'users', 'User ID 14 status changed to inactive', '::1', '2026-08-17 02:24:50'),
+(1627, 74, 'toggle_user_status', 'users', 'User ID 14 status changed to active', '::1', '2026-08-17 02:25:01'),
+(1628, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-17 02:27:35'),
+(1629, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-17 02:27:54'),
+(1630, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-17 02:54:38'),
+(1631, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-17 03:10:05'),
+(1632, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-17 03:54:58'),
+(1633, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-17 07:39:17'),
+(1634, NULL, 'self_register', 'users', 'Registration submitted: josejose', '::1', '2026-08-17 08:37:29'),
+(1635, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-17 08:38:47'),
+(1636, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-18 02:35:50'),
+(1637, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-18 02:55:55'),
+(1638, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-18 02:56:11'),
+(1639, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-18 03:07:03'),
+(1640, 74, 'toggle_department_status', 'departments', 'English set to inactive', '::1', '2026-08-18 03:18:12'),
+(1641, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-18 03:18:35'),
+(1642, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:15:00'),
+(1643, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:18:22'),
+(1644, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:30:24'),
+(1645, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:30:45'),
+(1646, 46, 'publish_form_version', 'manage_form', 'Published form version 2 (ID: 10)', '::1', '2026-08-18 15:33:09'),
+(1647, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:33:22'),
+(1648, 2, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:33:46'),
+(1649, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:34:03'),
+(1650, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:34:13'),
+(1651, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 28', '::1', '2026-08-18 15:34:43'),
+(1652, 2, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:34:58'),
+(1653, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:35:10'),
+(1654, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:36:44'),
+(1655, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:38:02'),
+(1656, 15, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:42:17'),
+(1657, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:45:43'),
+(1658, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:46:03'),
+(1659, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:46:15'),
+(1660, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:46:32'),
+(1661, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 28', '::1', '2026-08-18 15:47:10'),
+(1662, 37, 'start_assessment', 'self_assessment', 'Auto-started SBM assessment cycle (Self-Assessment window opened).', '::1', '2026-08-18 15:47:12'),
+(1663, 37, 'configure_cycle_schedule', 'workflow', 'Set cycle schedule for SY 28', '::1', '2026-08-18 15:47:22'),
+(1664, 15, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:47:31'),
+(1665, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-18 15:47:56'),
+(1666, 15, 'login', 'auth', 'User logged in', '::1', '2026-08-18 16:01:55'),
+(1667, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-18 16:02:41');
 
 -- --------------------------------------------------------
 
@@ -1721,6 +1784,7 @@ CREATE TABLE `departments` (
   `school_id` int(10) UNSIGNED NOT NULL,
   `name` varchar(120) NOT NULL,
   `description` varchar(255) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'active',
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -1728,11 +1792,11 @@ CREATE TABLE `departments` (
 -- Dumping data for table `departments`
 --
 
-INSERT INTO `departments` (`department_id`, `school_id`, `name`, `description`, `created_at`) VALUES
-(1, 1, 'English', NULL, '2026-06-07 19:43:18'),
-(2, 1, 'Information Technology', NULL, '2026-06-07 19:51:01'),
-(3, 1, 'Filipino', NULL, '2026-06-21 19:10:26'),
-(4, 1, 'Guidance', NULL, '2026-06-21 19:16:55');
+INSERT INTO `departments` (`department_id`, `school_id`, `name`, `description`, `status`, `created_at`) VALUES
+(1, 1, 'English', NULL, 'inactive', '2026-06-07 19:43:18'),
+(2, 1, 'Information Technology', NULL, 'active', '2026-06-07 19:51:01'),
+(3, 1, 'Filipino', NULL, 'active', '2026-06-21 19:10:26'),
+(4, 1, 'Guidance', NULL, 'active', '2026-06-21 19:16:55');
 
 -- --------------------------------------------------------
 
@@ -1817,7 +1881,8 @@ CREATE TABLE `form_versions` (
 --
 
 INSERT INTO `form_versions` (`version_id`, `version_number`, `label`, `is_active`, `created_by`, `created_at`, `published_at`) VALUES
-(1, 1, 'Initial Form (DO 007 s.2024)', 1, NULL, '2026-06-01 11:34:31', '2026-06-01 19:34:31');
+(1, 1, 'Initial Form (DO 007 s.2024)', 0, NULL, '2026-06-01 11:34:31', '2026-06-01 19:34:31'),
+(10, 2, 'try', 1, 46, '2026-08-18 15:33:09', '2026-08-18 23:33:09');
 
 -- --------------------------------------------------------
 
@@ -1870,7 +1935,7 @@ CREATE TABLE `improvement_plans` (
 --
 
 INSERT INTO `improvement_plans` (`plan_id`, `school_id`, `cycle_id`, `dimension_id`, `indicator_id`, `priority_level`, `objective`, `strategy`, `person_responsible`, `target_date`, `resources_needed`, `expected_output`, `status`, `workflow_status`, `remarks`, `created_by`, `submitted_by`, `submitted_at`, `created_at`, `updated_at`) VALUES
-(60, 1, 28, 3, 19, 'Medium', 'The school aims to develop and implement a revised strategic plan that aligns with its vision and mission, and includes specific, measurable goals and objectives, by the end of the next academic year. This plan will be formulated through a collaborative process involving all stakeholders, ensuring ownership and commitment to its implementation and attainment of its objectives.', 'The school will revise its strategic plan to include specific, measurable goals and objectives that align with its vision and mission, as mandated by DepEd Order No. 007, s. 2024. This revision process will be inclusive, engaging all stakeholders to foster ownership and commitment, and will be led by the School Head in collaboration with the school\'s planning team. The revised strategic plan will be finalized and disseminated to all stakeholders within a specified timeframe to ensure a unified direction for the school.', 'SBM Coordinator', '2026-08-25', 'collaboration with other stakeholders', NULL, 'planned', 'draft', NULL, 37, NULL, NULL, '2026-08-05 03:37:15', '2026-08-05 03:37:15');
+(60, 1, 28, 3, 19, 'Medium', 'The school aims to develop and implement a revised strategic plan that aligns with its vision and mission, and includes specific, measurable goals and objectives, by the end of the next academic year. This plan will be formulated through a collaborative process involving all stakeholders, ensuring ownership and commitment to its implementation and attainment of its objectives.', 'The school will revise its strategic plan to include specific, measurable goals and objectives that align with its vision and mission, as mandated by DepEd Order No. 007, s. 2024. This revision process will be inclusive, engaging all stakeholders to foster ownership and commitment, and will be led by the School Head in collaboration with the school\'s planning team. The revised strategic plan will be finalized and disseminated to all stakeholders within a specified timeframe to ensure a unified direction for the school.', 'SBM Coordinator', '2026-08-25', 'collaboration with other stakeholders', NULL, 'planned', 'submitted', NULL, 37, 37, '2026-08-09 09:07:56', '2026-08-05 03:37:15', '2026-08-09 09:07:56');
 
 -- --------------------------------------------------------
 
@@ -2009,6 +2074,31 @@ INSERT INTO `password_setup_tokens` (`token_id`, `user_id`, `token`, `type`, `ex
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `registration_requests`
+--
+
+CREATE TABLE `registration_requests` (
+  `request_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `employee_id` varchar(50) DEFAULT NULL,
+  `full_name` varchar(120) NOT NULL,
+  `email` varchar(120) NOT NULL,
+  `department` varchar(100) DEFAULT NULL,
+  `username` varchar(60) NOT NULL,
+  `profile_photo` varchar(255) DEFAULT NULL,
+  `submitted_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `approved_at` datetime DEFAULT NULL,
+  `approved_by` int(11) DEFAULT NULL,
+  `assigned_role` enum('system_admin','school_head','sbm_coordinator','teacher','external_stakeholder') DEFAULT NULL,
+  `rejected_at` datetime DEFAULT NULL,
+  `rejected_by` int(11) DEFAULT NULL,
+  `rejection_reason` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `response_attachments`
 --
 
@@ -2101,7 +2191,7 @@ INSERT INTO `sbm_cycles` (`cycle_id`, `sy_id`, `school_id`, `status`, `overall_s
 (26, 25, 1, 'finalized', 61.37, 'Maturing', '2026-08-02 11:55:12', '2026-08-02 13:44:45', '2026-08-02 13:48:53', 46, '', 0, NULL, NULL, '2026-08-02 13:48:53', NULL, NULL, NULL, '2026-08-02 03:55:12', NULL, NULL, NULL, NULL),
 (27, 26, 1, 'finalized', 70.60, 'Advanced', '2026-08-02 21:48:41', '2026-08-02 22:10:04', '2026-08-02 22:10:38', 46, '', 0, NULL, NULL, '2026-08-02 22:10:38', NULL, NULL, NULL, '2026-08-02 13:48:41', NULL, NULL, NULL, NULL),
 (28, 27, 1, 'finalized', 70.00, 'Advanced', '2026-08-03 22:35:33', '2026-08-03 22:40:34', '2026-08-03 22:41:00', 46, '', 0, NULL, NULL, '2026-08-03 22:41:00', NULL, NULL, NULL, '2026-08-03 14:35:33', NULL, NULL, NULL, NULL),
-(29, 28, 1, 'in_progress', NULL, NULL, '2026-08-08 09:06:49', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-08 01:06:49', NULL, NULL, NULL, NULL);
+(30, 28, 1, 'in_progress', NULL, NULL, '2026-08-18 23:47:12', NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-08-18 15:47:12', NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -2129,7 +2219,13 @@ INSERT INTO `sbm_dimensions` (`dimension_id`, `dimension_no`, `dimension_name`, 
 (3, 3, 'Leadership', '#7C3AED', 'star', 4, 1),
 (4, 4, 'Governance and Accountability', '#D97706', 'check-circle', 6, 1),
 (5, 5, 'Human Resources and Team Development', '#DC2626', 'users', 7, 1),
-(6, 6, 'Finance and Resource Management and Mobilization', '#0D9488', 'dollar-sign', 7, 1);
+(6, 6, 'Finance and Resource Management and Mobilization', '#0D9488', 'dollar-sign', 7, 1),
+(40, 1, 'Curriculum and Teaching', '#2563EB', 'book', 9, 10),
+(41, 2, 'Learning Environment', '#16A34A', 'home', 10, 10),
+(42, 3, 'Leadership', '#7C3AED', 'star', 4, 10),
+(43, 4, 'Governance and Accountability', '#D97706', 'check-circle', 6, 10),
+(44, 5, 'Human Resources and Team Development', '#DC2626', 'users', 7, 10),
+(45, 6, 'Finance and Resource Management and Mobilization', '#0D9488', 'dollar-sign', 7, 10);
 
 -- --------------------------------------------------------
 
@@ -2171,12 +2267,12 @@ INSERT INTO `sbm_dimension_scores` (`score_id`, `cycle_id`, `school_id`, `dimens
 (1282, 28, 1, 4, 15.00, 24.00, 62.50, '2026-08-03 14:40:34'),
 (1283, 28, 1, 5, 18.80, 28.00, 67.14, '2026-08-03 14:40:34'),
 (1284, 28, 1, 6, 21.00, 28.00, 75.00, '2026-08-03 14:40:34'),
-(1333, 29, 1, 1, 0.00, 0.00, 0.00, '2026-08-08 01:06:49'),
-(1335, 29, 1, 2, 0.00, 0.00, 0.00, '2026-08-08 01:06:49'),
-(1337, 29, 1, 3, 0.00, 0.00, 0.00, '2026-08-08 01:06:49'),
-(1339, 29, 1, 4, 0.00, 0.00, 0.00, '2026-08-08 01:06:49'),
-(1341, 29, 1, 5, 0.00, 0.00, 0.00, '2026-08-08 01:06:49'),
-(1343, 29, 1, 6, 0.00, 0.00, 0.00, '2026-08-08 01:06:49');
+(1345, 30, 1, 40, 0.00, 0.00, 0.00, '2026-08-18 15:47:12'),
+(1346, 30, 1, 41, 0.00, 0.00, 0.00, '2026-08-18 15:47:12'),
+(1347, 30, 1, 42, 0.00, 0.00, 0.00, '2026-08-18 15:47:12'),
+(1348, 30, 1, 43, 0.00, 0.00, 0.00, '2026-08-18 15:47:12'),
+(1349, 30, 1, 44, 0.00, 0.00, 0.00, '2026-08-18 15:47:12'),
+(1350, 30, 1, 45, 0.00, 0.00, 0.00, '2026-08-18 15:47:12');
 
 -- --------------------------------------------------------
 
@@ -2189,8 +2285,10 @@ CREATE TABLE `sbm_indicators` (
   `dimension_id` int(11) NOT NULL,
   `indicator_code` varchar(10) NOT NULL,
   `indicator_text` text NOT NULL,
+  `short_title` varchar(120) DEFAULT NULL,
   `mov_guide` text DEFAULT NULL,
   `sort_order` int(11) DEFAULT 0,
+  `rater_role` varchar(20) NOT NULL DEFAULT 'SH_ONLY',
   `is_active` tinyint(1) DEFAULT 1,
   `form_version_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -2199,49 +2297,92 @@ CREATE TABLE `sbm_indicators` (
 -- Dumping data for table `sbm_indicators`
 --
 
-INSERT INTO `sbm_indicators` (`indicator_id`, `dimension_id`, `indicator_code`, `indicator_text`, `mov_guide`, `sort_order`, `is_active`, `form_version_id`) VALUES
-(1, 1, '1.1', 'Grade 3 learners achieve the proficiency level for each cluster of early language, literacy, and numeracy skills.', 'MPS/proficiency data, class records, early language and literacy assessment results', 1, 1, 1),
-(2, 1, '1.2', 'Grade 6, 10, and 12 learners achieve the proficiency level in all 21st-century skills and core learning areas in the National Achievement Test (NAT).', 'NAT results, MPS data, class records', 2, 1, 1),
-(3, 1, '1.3', 'School-based ALS learners attain certification as elementary and junior high school completers.', 'ALS completion certificates, enrollment and completion records', 3, 1, 1),
-(4, 1, '1.4', 'Teachers prepare contextualized learning materials responsive to the needs of learners.', 'Developed contextualized LMs, LRMDS uploads, utilization records', 4, 1, 1),
-(5, 1, '1.5', 'Teachers conduct remediation activities to address learning gaps in reading and comprehension, science and technology, and mathematics.', 'Remediation program designs, attendance records, monitoring reports', 5, 1, 1),
-(6, 1, '1.6', 'Teachers integrate topics promoting peace and DepEd core values.', 'Lesson plans, classroom observations, LAC session minutes', 6, 1, 1),
-(7, 1, '1.7', 'The school conducts test item analysis to inform its teaching and learning process.', 'Item analysis reports, action plans based on findings, LAC minutes', 7, 1, 1),
-(8, 1, '1.8', 'The school engages local industries to strengthen its TLE-TVL course offerings.', 'MOA with industry partners, NC/COC certificates, industry immersion records', 8, 1, 1),
-(9, 2, '2.1', 'The school has zero bullying incidence.', 'Anti-bullying policy, incident reports, monitoring logs', 9, 1, 1),
-(10, 2, '2.2', 'The school has zero child abuse incidence.', 'CPC records, incident reports, referral documents', 10, 1, 1),
-(11, 2, '2.3', 'The school has reduced its drop-out incidence.', 'Enrollment/completion data, BEIS reports, intervention records', 11, 1, 1),
-(12, 2, '2.4', 'The school conducts culture-sensitive activities.', 'Activity programs, photo documentation, feedback forms', 12, 1, 1),
-(13, 2, '2.5', 'The school provides access to learning experiences for the disadvantaged, OSYs, and adult learners.', 'OSY mapping, ALS enrollment records, inclusion program documents', 13, 1, 1),
-(14, 2, '2.6', 'The school has a functional school-based ALS program.', 'ALS program design, learner enrollment, completion reports', 14, 1, 1),
-(15, 2, '2.7', 'The school has a functional child-protection committee.', 'CPC composition order, meeting minutes, activity reports', 15, 1, 1),
-(16, 2, '2.8', 'The school has a functional DRRM plan.', 'DRRM plan, drill documentation, hazard maps', 16, 1, 1),
-(17, 2, '2.9', 'The school has a functional support mechanism for mental wellness.', 'Wellness program design, referral records, accomplishment reports', 17, 1, 1),
-(18, 2, '2.10', 'The school has special education- and PWD-friendly facilities.', 'Accessibility audit, ramp/facility photos, SPED program records', 18, 1, 1),
-(19, 3, '3.1', 'The school develops a strategic plan.', 'SIP/strategic plan document, stakeholder attendance, accomplishment reports', 19, 1, 1),
-(20, 3, '3.2', 'The school has a functional school-community planning team.', 'Planning team composition, meeting minutes, activity reports', 20, 1, 1),
-(21, 3, '3.3', 'The school has a functional Supreme Student Government/Supreme Pupil Government.', 'SSG/SPG constitution, election records, program accomplishments', 21, 1, 1),
-(22, 3, '3.4', 'The school innovates in its provision of frontline services to stakeholders.', 'Innovation documentation, feedback/evaluation, impact data', 22, 1, 1),
-(23, 4, '4.1', 'The school\'s strategic plan is operationalized through an implementation plan.', 'Implementation plan, accomplishment reports, M&E records', 23, 1, 1),
-(24, 4, '4.2', 'The school has a functional School Governance Council (SGC).', 'SGC composition order, meeting minutes, resolutions', 24, 1, 1),
-(25, 4, '4.3', 'The school has a functional Parent-Teacher Association (PTA).', 'PTA election records, meeting minutes, financial reports', 25, 1, 1),
-(26, 4, '4.4', 'The school collaborates with stakeholders and other schools in strengthening partnerships.', 'MOA/MOU documents, partnership activity reports, resource contributions', 26, 1, 1),
-(27, 4, '4.5', 'The school monitors and evaluates its programs, projects, and activities.', 'M&E plan, monitoring reports, action plans based on findings', 27, 1, 1),
-(28, 4, '4.6', 'The school maintains an average rating of satisfactory from its internal and external stakeholders.', 'Stakeholder satisfaction survey results, tabulated data, action plans', 28, 1, 1),
-(29, 5, '5.1', 'School personnel achieve an average rating of very satisfactory in the individual performance commitment and review.', 'Signed IPCR forms, summary rating sheets, submission records', 29, 1, 1),
-(30, 5, '5.2', 'The school achieves an average rating of very satisfactory in the office performance commitment and review.', 'OPCR rating sheets, division evaluation results', 30, 1, 1),
-(31, 5, '5.3', 'The school conducts needs-based Learning Action Cells and Learning & Development activities.', 'LAC session plans, attendance, minutes, action plans, L&D records', 31, 1, 1),
-(32, 5, '5.4', 'The school facilitates the promotion and continuous professional development of its personnel.', 'Training certificates, individual development plans, PDO records', 32, 1, 1),
-(33, 5, '5.5', 'The school recognizes and rewards milestone achievements of its personnel.', 'Recognition program design, awarding documentation, photos', 33, 1, 1),
-(34, 5, '5.6', 'The school facilitates receipt of correct salaries, allowances, and other additional compensation in a timely manner.', 'Payroll records, DTR, allowance vouchers, personnel feedback', 34, 1, 1),
-(35, 5, '5.7', 'Teacher workload is distributed fairly and equitably.', 'Teaching load summary, class schedule, assignment orders', 35, 1, 1),
-(36, 6, '6.1', 'The school inspects its infrastructure and facilities.', 'Facilities inspection report, checklist, photos', 36, 1, 1),
-(37, 6, '6.2', 'The school initiates improvement of its infrastructure and facilities.', 'Maintenance/improvement plan, work orders, accomplishment reports, photos', 37, 1, 1),
-(38, 6, '6.3', 'The school has a functional library.', 'Library inventory, acquisition records, utilization logs', 38, 1, 1),
-(39, 6, '6.4', 'The school has functional water, electricity, and internet facilities.', 'Utility bills, repair records, functionality assessment', 39, 1, 1),
-(40, 6, '6.5', 'The school has a functional computer laboratory/classroom.', 'Lab inventory, equipment condition report, utilization records', 40, 1, 1),
-(41, 6, '6.6', 'The school achieves a 75–100% utilization rate of its Maintenance and Other Operating Expenses (MOOE).', 'MOOE liquidation reports, utilization matrix, COB vs. actual', 41, 1, 1),
-(42, 6, '6.7', 'The school liquidates 100% of its utilized MOOE.', 'Liquidation reports, submission acknowledgments, COA records', 42, 1, 1);
+INSERT INTO `sbm_indicators` (`indicator_id`, `dimension_id`, `indicator_code`, `indicator_text`, `short_title`, `mov_guide`, `sort_order`, `rater_role`, `is_active`, `form_version_id`) VALUES
+(1, 1, '1.1', 'Grade 3 learners achieve the proficiency level for each cluster of early language, literacy, and numeracy skills.', NULL, 'MPS/proficiency data, class records, early language and literacy assessment results', 1, 'SH_TEACHER', 1, 1),
+(2, 1, '1.2', 'Grade 6, 10, and 12 learners achieve the proficiency level in all 21st-century skills and core learning areas in the National Achievement Test (NAT).', NULL, 'NAT results, MPS data, class records', 2, 'SH_TEACHER', 1, 1),
+(3, 1, '1.3', 'School-based ALS learners attain certification as elementary and junior high school completers.', NULL, 'ALS completion certificates, enrollment and completion records', 3, 'SH_ONLY', 1, 1),
+(4, 1, '1.4', 'Teachers prepare contextualized learning materials responsive to the needs of learners.', NULL, 'Developed contextualized LMs, LRMDS uploads, utilization records', 4, 'SH_TEACHER', 1, 1),
+(5, 1, '1.5', 'Teachers conduct remediation activities to address learning gaps in reading and comprehension, science and technology, and mathematics.', NULL, 'Remediation program designs, attendance records, monitoring reports', 5, 'SH_TEACHER', 1, 1),
+(6, 1, '1.6', 'Teachers integrate topics promoting peace and DepEd core values.', NULL, 'Lesson plans, classroom observations, LAC session minutes', 6, 'SH_TEACHER', 1, 1),
+(7, 1, '1.7', 'The school conducts test item analysis to inform its teaching and learning process.', NULL, 'Item analysis reports, action plans based on findings, LAC minutes', 7, 'SH_TEACHER', 1, 1),
+(8, 1, '1.8', 'The school engages local industries to strengthen its TLE-TVL course offerings.', NULL, 'MOA with industry partners, NC/COC certificates, industry immersion records', 8, 'SH_EXT', 1, 1),
+(9, 2, '2.1', 'The school has zero bullying incidence.', NULL, 'Anti-bullying policy, incident reports, monitoring logs', 9, 'SH_TCH_EXT', 1, 1),
+(10, 2, '2.2', 'The school has zero child abuse incidence.', NULL, 'CPC records, incident reports, referral documents', 10, 'SH_TCH_EXT', 1, 1),
+(11, 2, '2.3', 'The school has reduced its drop-out incidence.', NULL, 'Enrollment/completion data, BEIS reports, intervention records', 11, 'SH_TEACHER', 1, 1),
+(12, 2, '2.4', 'The school conducts culture-sensitive activities.', NULL, 'Activity programs, photo documentation, feedback forms', 12, 'SH_TCH_EXT', 1, 1),
+(13, 2, '2.5', 'The school provides access to learning experiences for the disadvantaged, OSYs, and adult learners.', NULL, 'OSY mapping, ALS enrollment records, inclusion program documents', 13, 'SH_EXT', 1, 1),
+(14, 2, '2.6', 'The school has a functional school-based ALS program.', NULL, 'ALS program design, learner enrollment, completion reports', 14, 'SH_ONLY', 1, 1),
+(15, 2, '2.7', 'The school has a functional child-protection committee.', NULL, 'CPC composition order, meeting minutes, activity reports', 15, 'SH_ONLY', 1, 1),
+(16, 2, '2.8', 'The school has a functional DRRM plan.', NULL, 'DRRM plan, drill documentation, hazard maps', 16, 'SH_ONLY', 1, 1),
+(17, 2, '2.9', 'The school has a functional support mechanism for mental wellness.', NULL, 'Wellness program design, referral records, accomplishment reports', 17, 'SH_TEACHER', 1, 1),
+(18, 2, '2.10', 'The school has special education- and PWD-friendly facilities.', NULL, 'Accessibility audit, ramp/facility photos, SPED program records', 18, 'SH_EXT', 1, 1),
+(19, 3, '3.1', 'The school develops a strategic plan.', NULL, 'SIP/strategic plan document, stakeholder attendance, accomplishment reports', 19, 'SH_ONLY', 1, 1),
+(20, 3, '3.2', 'The school has a functional school-community planning team.', NULL, 'Planning team composition, meeting minutes, activity reports', 20, 'SH_EXT', 1, 1),
+(21, 3, '3.3', 'The school has a functional Supreme Student Government/Supreme Pupil Government.', NULL, 'SSG/SPG constitution, election records, program accomplishments', 21, 'SH_TEACHER', 1, 1),
+(22, 3, '3.4', 'The school innovates in its provision of frontline services to stakeholders.', NULL, 'Innovation documentation, feedback/evaluation, impact data', 22, 'SH_EXT', 1, 1),
+(23, 4, '4.1', 'The school\'s strategic plan is operationalized through an implementation plan.', NULL, 'Implementation plan, accomplishment reports, M&E records', 23, 'SH_ONLY', 1, 1),
+(24, 4, '4.2', 'The school has a functional School Governance Council (SGC).', NULL, 'SGC composition order, meeting minutes, resolutions', 24, 'SH_EXT', 1, 1),
+(25, 4, '4.3', 'The school has a functional Parent-Teacher Association (PTA).', NULL, 'PTA election records, meeting minutes, financial reports', 25, 'SH_EXT', 1, 1),
+(26, 4, '4.4', 'The school collaborates with stakeholders and other schools in strengthening partnerships.', NULL, 'MOA/MOU documents, partnership activity reports, resource contributions', 26, 'SH_EXT', 1, 1),
+(27, 4, '4.5', 'The school monitors and evaluates its programs, projects, and activities.', NULL, 'M&E plan, monitoring reports, action plans based on findings', 27, 'SH_ONLY', 1, 1),
+(28, 4, '4.6', 'The school maintains an average rating of satisfactory from its internal and external stakeholders.', NULL, 'Stakeholder satisfaction survey results, tabulated data, action plans', 28, 'SH_EXT', 1, 1),
+(29, 5, '5.1', 'School personnel achieve an average rating of very satisfactory in the individual performance commitment and review.', NULL, 'Signed IPCR forms, summary rating sheets, submission records', 29, 'SH_TEACHER', 1, 1),
+(30, 5, '5.2', 'The school achieves an average rating of very satisfactory in the office performance commitment and review.', NULL, 'OPCR rating sheets, division evaluation results', 30, 'SH_ONLY', 1, 1),
+(31, 5, '5.3', 'The school conducts needs-based Learning Action Cells and Learning & Development activities.', NULL, 'LAC session plans, attendance, minutes, action plans, L&D records', 31, 'SH_TEACHER', 1, 1),
+(32, 5, '5.4', 'The school facilitates the promotion and continuous professional development of its personnel.', NULL, 'Training certificates, individual development plans, PDO records', 32, 'SH_TEACHER', 1, 1),
+(33, 5, '5.5', 'The school recognizes and rewards milestone achievements of its personnel.', NULL, 'Recognition program design, awarding documentation, photos', 33, 'SH_TEACHER', 1, 1),
+(34, 5, '5.6', 'The school facilitates receipt of correct salaries, allowances, and other additional compensation in a timely manner.', NULL, 'Payroll records, DTR, allowance vouchers, personnel feedback', 34, 'SH_TEACHER', 1, 1),
+(35, 5, '5.7', 'Teacher workload is distributed fairly and equitably.', NULL, 'Teaching load summary, class schedule, assignment orders', 35, 'SH_TEACHER', 1, 1),
+(36, 6, '6.1', 'The school inspects its infrastructure and facilities.', NULL, 'Facilities inspection report, checklist, photos', 36, 'SH_ONLY', 1, 1),
+(37, 6, '6.2', 'The school initiates improvement of its infrastructure and facilities.', NULL, 'Maintenance/improvement plan, work orders, accomplishment reports, photos', 37, 'SH_EXT', 1, 1),
+(38, 6, '6.3', 'The school has a functional library.', NULL, 'Library inventory, acquisition records, utilization logs', 38, 'SH_TCH_EXT', 1, 1),
+(39, 6, '6.4', 'The school has functional water, electricity, and internet facilities.', NULL, 'Utility bills, repair records, functionality assessment', 39, 'SH_TCH_EXT', 1, 1),
+(40, 6, '6.5', 'The school has a functional computer laboratory/classroom.', NULL, 'Lab inventory, equipment condition report, utilization records', 40, 'SH_TCH_EXT', 1, 1),
+(41, 6, '6.6', 'The school achieves a 75–100% utilization rate of its Maintenance and Other Operating Expenses (MOOE).', NULL, 'MOOE liquidation reports, utilization matrix, COB vs. actual', 41, 'SH_ONLY', 1, 1),
+(42, 6, '6.7', 'The school liquidates 100% of its utilized MOOE.', NULL, 'Liquidation reports, submission acknowledgments, COA records', 42, 'SH_ONLY', 1, 1),
+(254, 40, '1.1', 'Grade 3 learners achieve the proficiency level for each cluster of early language, literacy, and numeracy skills.', NULL, 'MPS/proficiency data, class records, early language and literacy assessment results', 1, 'SH_TEACHER', 1, 10),
+(255, 40, '1.2', 'Grade 6, 10, and 12 learners achieve the proficiency level in all 21st-century skills and core learning areas in the National Achievement Test (NAT).', NULL, 'NAT results, MPS data, class records', 2, 'SH_TEACHER', 1, 10),
+(256, 40, '1.3', 'School-based ALS learners attain certification as elementary and junior high school completers.', NULL, 'ALS completion certificates, enrollment and completion records', 3, 'SH_ONLY', 1, 10),
+(257, 40, '1.4', 'Teachers prepare contextualized learning materials responsive to the needs of learners.', NULL, 'Developed contextualized LMs, LRMDS uploads, utilization records', 4, 'SH_TEACHER', 1, 10),
+(258, 40, '1.5', 'Teachers conduct remediation activities to address learning gaps in reading and comprehension, science and technology, and mathematics.', NULL, 'Remediation program designs, attendance records, monitoring reports', 5, 'SH_TEACHER', 1, 10),
+(259, 40, '1.6', 'Teachers integrate topics promoting peace and DepEd core values.', NULL, 'Lesson plans, classroom observations, LAC session minutes', 6, 'SH_TEACHER', 1, 10),
+(260, 40, '1.7', 'The school conducts test item analysis to inform its teaching and learning process.', NULL, 'Item analysis reports, action plans based on findings, LAC minutes', 7, 'SH_TEACHER', 1, 10),
+(261, 40, '1.8', 'The school engages local industries to strengthen its TLE-TVL course offerings.', NULL, 'MOA with industry partners, NC/COC certificates, industry immersion records', 8, 'SH_EXT', 1, 10),
+(262, 40, '1.9', 'The school liquidates 100% of its utilized MOOE.', NULL, '', 9, 'SH_ONLY', 1, 10),
+(263, 41, '2.1', 'The school has zero bullying incidence.', NULL, 'Anti-bullying policy, incident reports, monitoring logs', 1, 'SH_TCH_EXT', 1, 10),
+(264, 41, '2.2', 'The school has zero child abuse incidence.', NULL, 'CPC records, incident reports, referral documents', 2, 'SH_TCH_EXT', 1, 10),
+(265, 41, '2.3', 'The school has reduced its drop-out incidence.', NULL, 'Enrollment/completion data, BEIS reports, intervention records', 3, 'SH_TEACHER', 1, 10),
+(266, 41, '2.4', 'The school conducts culture-sensitive activities.', NULL, 'Activity programs, photo documentation, feedback forms', 4, 'SH_TCH_EXT', 1, 10),
+(267, 41, '2.5', 'The school provides access to learning experiences for the disadvantaged, OSYs, and adult learners.', NULL, 'OSY mapping, ALS enrollment records, inclusion program documents', 5, 'SH_EXT', 1, 10),
+(268, 41, '2.6', 'The school has a functional school-based ALS program.', NULL, 'ALS program design, learner enrollment, completion reports', 6, 'SH_ONLY', 1, 10),
+(269, 41, '2.7', 'The school has a functional child-protection committee.', NULL, 'CPC composition order, meeting minutes, activity reports', 7, 'SH_ONLY', 1, 10),
+(270, 41, '2.8', 'The school has a functional DRRM plan.', NULL, 'DRRM plan, drill documentation, hazard maps', 8, 'SH_ONLY', 1, 10),
+(271, 41, '2.9', 'The school has a functional support mechanism for mental wellness.', NULL, 'Wellness program design, referral records, accomplishment reports', 9, 'SH_TEACHER', 1, 10),
+(272, 41, '2.10', 'The school has special education- and PWD-friendly facilities.', NULL, 'Accessibility audit, ramp/facility photos, SPED program records', 10, 'SH_EXT', 1, 10),
+(273, 42, '3.1', 'The school develops a strategic plan.', NULL, 'SIP/strategic plan document, stakeholder attendance, accomplishment reports', 1, 'SH_ONLY', 1, 10),
+(274, 42, '3.2', 'The school has a functional school-community planning team.', NULL, 'Planning team composition, meeting minutes, activity reports', 2, 'SH_EXT', 1, 10),
+(275, 42, '3.3', 'The school has a functional Supreme Student Government/Supreme Pupil Government.', NULL, 'SSG/SPG constitution, election records, program accomplishments', 3, 'SH_TEACHER', 1, 10),
+(276, 42, '3.4', 'The school innovates in its provision of frontline services to stakeholders.', NULL, 'Innovation documentation, feedback/evaluation, impact data', 4, 'SH_EXT', 1, 10),
+(277, 43, '4.1', 'The school\'s strategic plan is operationalized through an implementation plan.', NULL, 'Implementation plan, accomplishment reports, M&E records', 1, 'SH_ONLY', 1, 10),
+(278, 43, '4.2', 'The school has a functional School Governance Council (SGC).', NULL, 'SGC composition order, meeting minutes, resolutions', 2, 'SH_EXT', 1, 10),
+(279, 43, '4.3', 'The school has a functional Parent-Teacher Association (PTA).', NULL, 'PTA election records, meeting minutes, financial reports', 3, 'SH_EXT', 1, 10),
+(280, 43, '4.4', 'The school collaborates with stakeholders and other schools in strengthening partnerships.', NULL, 'MOA/MOU documents, partnership activity reports, resource contributions', 4, 'SH_EXT', 1, 10),
+(281, 43, '4.5', 'The school monitors and evaluates its programs, projects, and activities.', NULL, 'M&E plan, monitoring reports, action plans based on findings', 5, 'SH_ONLY', 1, 10),
+(282, 43, '4.6', 'The school maintains an average rating of satisfactory from its internal and external stakeholders.', NULL, 'Stakeholder satisfaction survey results, tabulated data, action plans', 6, 'SH_EXT', 1, 10),
+(283, 44, '5.1', 'School personnel achieve an average rating of very satisfactory in the individual performance commitment and review.', NULL, 'Signed IPCR forms, summary rating sheets, submission records', 1, 'SH_TEACHER', 1, 10),
+(284, 44, '5.2', 'The school achieves an average rating of very satisfactory in the office performance commitment and review.', NULL, 'OPCR rating sheets, division evaluation results', 2, 'SH_ONLY', 1, 10),
+(285, 44, '5.3', 'The school conducts needs-based Learning Action Cells and Learning & Development activities.', NULL, 'LAC session plans, attendance, minutes, action plans, L&D records', 3, 'SH_TEACHER', 1, 10),
+(286, 44, '5.4', 'The school facilitates the promotion and continuous professional development of its personnel.', NULL, 'Training certificates, individual development plans, PDO records', 4, 'SH_TEACHER', 1, 10),
+(287, 44, '5.5', 'The school recognizes and rewards milestone achievements of its personnel.', NULL, 'Recognition program design, awarding documentation, photos', 5, 'SH_TEACHER', 1, 10),
+(288, 44, '5.6', 'The school facilitates receipt of correct salaries, allowances, and other additional compensation in a timely manner.', NULL, 'Payroll records, DTR, allowance vouchers, personnel feedback', 6, 'SH_TEACHER', 1, 10),
+(289, 44, '5.7', 'Teacher workload is distributed fairly and equitably.', NULL, 'Teaching load summary, class schedule, assignment orders', 7, 'SH_TEACHER', 1, 10),
+(290, 45, '6.1', 'The school inspects its infrastructure and facilities.', NULL, 'Facilities inspection report, checklist, photos', 1, 'SH_ONLY', 1, 10),
+(291, 45, '6.2', 'The school initiates improvement of its infrastructure and facilities.', NULL, 'Maintenance/improvement plan, work orders, accomplishment reports, photos', 2, 'SH_EXT', 1, 10),
+(292, 45, '6.3', 'The school has a functional library.', NULL, 'Library inventory, acquisition records, utilization logs', 3, 'SH_TCH_EXT', 1, 10),
+(293, 45, '6.4', 'The school has functional water, electricity, and internet facilities.', NULL, 'Utility bills, repair records, functionality assessment', 4, 'SH_TCH_EXT', 1, 10),
+(294, 45, '6.5', 'The school has a functional computer laboratory/classroom.', NULL, 'Lab inventory, equipment condition report, utilization records', 5, 'SH_TCH_EXT', 1, 10),
+(295, 45, '6.6', 'The school achieves a 75–100% utilization rate of its Maintenance and Other Operating Expenses (MOOE).', NULL, 'MOOE liquidation reports, utilization matrix, COB vs. actual', 6, 'SH_ONLY', 1, 10),
+(296, 45, '6.7', 'The school liquidates 100% of its utilized MOOE.', NULL, 'Liquidation reports, submission acknowledgments, COA records', 7, 'SH_ONLY', 1, 10);
 
 -- --------------------------------------------------------
 
@@ -2408,6 +2549,13 @@ CREATE TABLE `sbm_workflow_phases` (
   `is_active` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `sbm_workflow_phases`
+--
+
+INSERT INTO `sbm_workflow_phases` (`phase_id`, `sy_id`, `phase_no`, `phase_name`, `description`, `date_start`, `date_end`, `is_active`) VALUES
+(17, 28, 1, 'Self-Assessment', '', '2026-08-18', '2026-08-20', 1);
+
 -- --------------------------------------------------------
 
 --
@@ -2482,8 +2630,8 @@ CREATE TABLE `school_years` (
 INSERT INTO `school_years` (`sy_id`, `label`, `is_current`, `date_start`, `date_end`) VALUES
 (25, '2023-2024', 0, '2023-08-29', '2024-05-31'),
 (26, '2024-2025', 0, '2024-07-29', '2025-04-15'),
-(27, '2025-2026', 1, '2025-06-16', '2026-03-31'),
-(28, '2026-2027', 0, '2026-06-08', '2027-04-08');
+(27, '2025-2026', 0, '2025-06-16', '2026-03-31'),
+(28, '2026-2027', 1, '2026-06-08', '2027-04-08');
 
 -- --------------------------------------------------------
 
@@ -2917,7 +3065,17 @@ INSERT INTO `teacher_responses` (`tr_id`, `cycle_id`, `indicator_id`, `school_id
 (2503, 28, 35, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:54', '2026-08-03 14:39:01'),
 (2504, 28, 38, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:56', '2026-08-03 14:39:01'),
 (2505, 28, 39, 1, 14, 3, '', 'submitted', NULL, '2026-08-03 14:38:57', '2026-08-03 14:39:01'),
-(2506, 28, 40, 1, 14, 2, '', 'submitted', NULL, '2026-08-03 14:38:58', '2026-08-03 14:39:01');
+(2506, 28, 40, 1, 14, 2, '', 'submitted', NULL, '2026-08-03 14:38:58', '2026-08-03 14:39:01'),
+(2507, 30, 254, 1, 15, 3, '', 'draft', NULL, '2026-08-18 15:47:34', '2026-08-18 15:47:34'),
+(2508, 30, 255, 1, 15, 2, '', 'draft', NULL, '2026-08-18 15:47:35', '2026-08-18 15:47:35'),
+(2509, 30, 257, 1, 15, 3, '', 'draft', NULL, '2026-08-18 15:47:36', '2026-08-18 15:47:36'),
+(2510, 30, 258, 1, 15, 3, '', 'draft', NULL, '2026-08-18 15:47:37', '2026-08-18 15:47:37'),
+(2511, 30, 259, 1, 15, 2, '', 'draft', NULL, '2026-08-18 15:47:39', '2026-08-18 15:47:39'),
+(2512, 30, 260, 1, 15, 3, '', 'draft', NULL, '2026-08-18 15:47:40', '2026-08-18 15:47:40'),
+(2513, 30, 263, 1, 15, 3, '', 'draft', NULL, '2026-08-18 15:47:42', '2026-08-18 15:47:42'),
+(2514, 30, 264, 1, 15, 2, '', 'draft', NULL, '2026-08-18 15:47:43', '2026-08-18 15:47:43'),
+(2515, 30, 265, 1, 15, 3, '', 'draft', NULL, '2026-08-18 15:47:45', '2026-08-18 15:47:45'),
+(2516, 30, 266, 1, 15, 3, '', 'draft', NULL, '2026-08-18 15:47:46', '2026-08-18 15:47:46');
 
 -- --------------------------------------------------------
 
@@ -2969,8 +3127,8 @@ CREATE TABLE `users` (
   `password` varchar(255) DEFAULT NULL,
   `email` varchar(120) NOT NULL,
   `full_name` varchar(120) NOT NULL,
-  `role` enum('system_admin','school_head','sbm_coordinator','teacher','external_stakeholder') NOT NULL DEFAULT 'teacher',
-  `status` enum('active','inactive','archived','suspended') NOT NULL DEFAULT 'inactive',
+  `role` enum('system_admin','school_head','sbm_coordinator','teacher','external_stakeholder') DEFAULT NULL,
+  `status` enum('pending','active','inactive','archived','suspended','rejected') NOT NULL DEFAULT 'inactive',
   `school_id` int(11) DEFAULT NULL,
   `employee_id` varchar(50) DEFAULT NULL,
   `department` varchar(100) DEFAULT NULL,
@@ -2982,22 +3140,26 @@ CREATE TABLE `users` (
   `email_sent_at` datetime DEFAULT NULL,
   `force_password_change` tinyint(1) DEFAULT 1,
   `contact_number` varchar(20) DEFAULT NULL,
-  `profile_picture` varchar(255) DEFAULT NULL
+  `profile_picture` varchar(255) DEFAULT NULL,
+  `rejection_reason` text DEFAULT NULL,
+  `reviewed_by` int(11) DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `employee_id`, `department`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`, `contact_number`, `profile_picture`) VALUES
-(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, 'English', '2026-08-08 09:14:25', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, 'English', '2026-08-07 21:33:38', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 22:37:43', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-08-03 22:38:28', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-08 09:12:06', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-08-09 14:15:09', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg'),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-09 11:45:33', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL),
-(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-08-09 14:14:56', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL);
+INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `employee_id`, `department`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`, `contact_number`, `profile_picture`, `rejection_reason`, `reviewed_by`, `reviewed_at`) VALUES
+(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, 'English', '2026-08-18 23:34:58', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, 'English', '2026-08-07 21:33:38', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-08-03 22:37:43', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-08-03 22:38:28', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-19 00:01:55', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-08-18 23:46:32', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg', NULL, NULL, NULL),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-19 00:02:41', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL, NULL, NULL, NULL),
+(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-08-18 23:46:03', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(79, 'josejose', NULL, 'josesaint975@gmail.com', 'Jose Bethlehem', NULL, 'pending', 1, '100-456-789', 'Filipino', NULL, '2026-08-17 08:37:29', 0, NULL, NULL, NULL, 1, NULL, 'uploads/avatars/avatar_79_1786955849.jpg', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -3016,7 +3178,7 @@ CREATE TABLE `v_cycle_evaluator_summary` (
 ,`custom_access_end` datetime
 ,`full_name` varchar(120)
 ,`email` varchar(120)
-,`user_account_status` enum('active','inactive','archived','suspended')
+,`user_account_status` enum('pending','active','inactive','archived','suspended','rejected')
 ,`submission_status` enum('draft','submitted')
 ,`submitted_at` datetime
 ,`response_count` int(11)
@@ -3245,6 +3407,20 @@ ALTER TABLE `password_setup_tokens`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indexes for table `registration_requests`
+--
+ALTER TABLE `registration_requests`
+  ADD PRIMARY KEY (`request_id`),
+  ADD KEY `approved_by` (`approved_by`),
+  ADD KEY `rejected_by` (`rejected_by`),
+  ADD KEY `status_index` (`submitted_at`,`approved_at`,`rejected_at`),
+  ADD KEY `user_id_index` (`user_id`),
+  ADD KEY `ix_reg_req_user_id` (`user_id`),
+  ADD KEY `ix_reg_req_submitted` (`submitted_at`),
+  ADD KEY `ix_reg_req_approved` (`approved_at`),
+  ADD KEY `ix_reg_req_rejected` (`rejected_at`);
+
+--
 -- Indexes for table `response_attachments`
 --
 ALTER TABLE `response_attachments`
@@ -3436,7 +3612,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1605;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1668;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`
@@ -3490,7 +3666,7 @@ ALTER TABLE `evidence_audit_log`
 -- AUTO_INCREMENT for table `form_versions`
 --
 ALTER TABLE `form_versions`
-  MODIFY `version_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `version_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `grading_periods`
@@ -3541,6 +3717,12 @@ ALTER TABLE `password_setup_tokens`
   MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
 
 --
+-- AUTO_INCREMENT for table `registration_requests`
+--
+ALTER TABLE `registration_requests`
+  MODIFY `request_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `response_attachments`
 --
 ALTER TABLE `response_attachments`
@@ -3556,25 +3738,25 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `sbm_cycles`
 --
 ALTER TABLE `sbm_cycles`
-  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT for table `sbm_dimensions`
 --
 ALTER TABLE `sbm_dimensions`
-  MODIFY `dimension_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
+  MODIFY `dimension_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `sbm_dimension_scores`
 --
 ALTER TABLE `sbm_dimension_scores`
-  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1345;
+  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1351;
 
 --
 -- AUTO_INCREMENT for table `sbm_indicators`
 --
 ALTER TABLE `sbm_indicators`
-  MODIFY `indicator_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=254;
+  MODIFY `indicator_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=297;
 
 --
 -- AUTO_INCREMENT for table `sbm_responses`
@@ -3586,7 +3768,7 @@ ALTER TABLE `sbm_responses`
 -- AUTO_INCREMENT for table `sbm_workflow_phases`
 --
 ALTER TABLE `sbm_workflow_phases`
-  MODIFY `phase_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `phase_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `schools`
@@ -3634,7 +3816,7 @@ ALTER TABLE `teacher_indicator_assignments`
 -- AUTO_INCREMENT for table `teacher_responses`
 --
 ALTER TABLE `teacher_responses`
-  MODIFY `tr_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2507;
+  MODIFY `tr_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2517;
 
 --
 -- AUTO_INCREMENT for table `teacher_submissions`
@@ -3646,7 +3828,7 @@ ALTER TABLE `teacher_submissions`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=79;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=80;
 
 --
 -- AUTO_INCREMENT for table `workflow_checkpoints`
@@ -3778,6 +3960,14 @@ ALTER TABLE `ml_training_snapshots`
 --
 ALTER TABLE `password_setup_tokens`
   ADD CONSTRAINT `password_setup_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `registration_requests`
+--
+ALTER TABLE `registration_requests`
+  ADD CONSTRAINT `registration_requests_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `registration_requests_ibfk_2` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `registration_requests_ibfk_3` FOREIGN KEY (`rejected_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `response_attachments`

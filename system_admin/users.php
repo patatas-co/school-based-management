@@ -571,15 +571,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'download_template') {
   fclose($out);
   exit;
 }
-if (isset($_GET['action']) && $_GET['action'] === 'download_user_template') {
-  header('Content-Type: text/csv');
-  header('Content-Disposition: attachment; filename="user_template.csv"');
-  $out = fopen('php://output', 'w');
-  fputcsv($out, ['employee_id', 'full_name', 'email', 'department', 'role', 'status', 'username']);
-  fputcsv($out, ['100-456-789', 'Juan dela Cruz', 'juan@deped.gov.ph', 'Grade 10 - Science', 'teacher', 'active', 'juandelacruz']);
-  fclose($out);
-  exit;
-}
 
 $q = $_GET['q'] ?? '';
 $rf = $_GET['role'] ?? '';
@@ -621,7 +612,7 @@ include __DIR__ . '/../includes/header.php';
 $_allRoles  = $db->query("SELECT slug,label,color,description FROM roles ORDER BY CASE slug WHEN 'system_admin' THEN 1 WHEN 'school_head' THEN 2 WHEN 'sbm_coordinator' THEN 3 WHEN 'teacher' THEN 4 WHEN 'external_stakeholder' THEN 5 ELSE 6 END ASC, label ASC")->fetchAll(PDO::FETCH_ASSOC);
 $roleColors  = array_column($_allRoles, 'color', 'slug');
 $roleLabels  = array_column($_allRoles, 'label', 'slug');
-$_allDepts   = $db->prepare("SELECT name FROM departments WHERE school_id=? ORDER BY name ASC");
+$_allDepts   = $db->prepare("SELECT name FROM departments WHERE school_id=? AND status='active' ORDER BY name ASC");
 $_allDepts->execute([SCHOOL_ID]);
 $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
 ?>
@@ -634,8 +625,7 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
 
 <!-- Page-level actions (no container) -->
 <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-  <button class="btn btn-secondary" onclick="openModal('mImport')"><?= svgIcon('upload') ?> Import CSV</button>
-  <button class="btn btn-primary" onclick="openModal('mCreate')"><?= svgIcon('plus') ?> Add User</button>
+  <button class="btn btn-primary" onclick="openModal('mCreate')"><?= svgIcon('plus') ?> Add Internal User</button>
 </div>
 
 <div class="card" style="box-shadow:none;border:1px solid var(--n-150,#e5e7eb);">
@@ -1424,7 +1414,7 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
         <div class="fg"><label>Employee ID</label><input class="fc" id="c_empid" placeholder="e.g. 100-456-789"></div>
         <div class="fg"><label>Full Name *</label><input class="fc" id="c_name" placeholder="Juan dela Cruz"></div>
       </div>
-      <div class="fg"><label>Email *</label><input class="fc" type="email" id="c_email" placeholder="juan@deped.gov.ph"></div>
+      <div class="fg"><label>Email *</label><input class="fc" type="email" id="c_email" placeholder="Enter email"></div>
       <div class="fg">
         <label>Department</label>
         <div class="p-select p-select-fluid" id="pCDeptDropdown">
@@ -1601,120 +1591,6 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
   </div>
 </div>
 
-<!-- Import Modal -->
-<div class="overlay" id="mImport">
-  <div class="modal" style="max-width:540px;">
-    <div class="modal-head"><span class="modal-title">Bulk Import Users</span><button class="modal-close"
-        onclick="closeModal('mImport')"><?= svgIcon('x') ?></button></div>
-    <div class="modal-body">
-      <div
-        style="background:var(--n-50);border-radius:8px;border:1px solid var(--n-100);padding:14px 16px;margin-bottom:16px;">
-        <div
-          style="font-size:11px;font-weight:700;color:var(--n-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">
-          Required CSV format</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <?php foreach (['employee_id', 'full_name', 'email', 'department', 'role', 'status', 'username'] as $col): ?>
-            <span style="font-size:12px;font-family:monospace;background:#fff;border:1px solid var(--n-200);border-radius:4px;padding:3px 9px;color:var(--n-700);"><?= $col ?></span>
-          <?php endforeach; ?>
-        </div>
-      </div>
-      <div style="margin-bottom:12px;">
-        <div class="import-card" id="userImportCard">
-          <div class="import-head">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div class="import-icon-wrap" style="background:linear-gradient(135deg, var(--blue), #1E40AF);">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="8.5" cy="7" r="4" />
-                  <polyline points="17 11 19 13 23 9" />
-                </svg>
-              </div>
-              <div>
-                <div style="font-size:14px;font-weight:800;color:var(--n-900);line-height:1.2;">Bulk User Upload
-                </div>
-                <div style="font-size:11px;color:var(--n-500);margin-top:2px;">Select CSV to import system users</div>
-              </div>
-            </div>
-            <div class="import-schema">
-              <span class="import-col">employee_id</span>
-              <span class="import-col">full_name</span>
-              <span class="import-col">email</span>
-              <span class="import-col">department</span>
-              <span class="import-col">role</span>
-              <span class="import-col">status</span>
-              <span class="import-col">username</span>
-            </div>
-          </div>
-
-          <div class="import-body">
-            <label for="csvFile" class="import-drop-zone" id="userImportDropZone">
-              <input type="file" id="csvFile" accept=".csv" style="display:none;" onchange="handleUserCsvSelect(this)">
-
-              <div class="import-placeholder-state" id="userImportPlaceholder">
-                <div
-                  style="width:44px;height:44px;border-radius:12px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:1px solid #BFDBFE;">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--blue)" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                </div>
-                <div style="font-size:14px;font-weight:700;color:var(--n-800);margin-bottom:4px;">Drop CSV here
-                </div>
-                <div style="font-size:12px;color:var(--n-400);">or <span
-                    style="color:var(--blue);font-weight:600;text-decoration:underline;">browse files</span></div>
-              </div>
-
-              <!-- Selected file pill -->
-              <div class="import-file-pill" id="userImportFilePill">
-                <div
-                  style="width:32px;height:32px;border-radius:8px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--blue)" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                  </svg>
-                </div>
-                <div style="flex:1;min-width:0;text-align:left;">
-                  <div id="userImportFileName"
-                    style="font-size:13px;font-weight:700;color:var(--n-900);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                  </div>
-                  <div id="userImportFileSize" style="font-size:11px;color:var(--n-500);"></div>
-                </div>
-                <button type="button" onclick="event.preventDefault(); clearUserCsv();"
-                  style="background:var(--n-100);border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--n-500);line-height:0;transition:all .2s;"
-                  title="Remove file">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-            </label>
-
-            <button class="import-btn" id="userImportBtn"
-              style="background:linear-gradient(135deg, var(--blue), #1E40AF);box-shadow: 0 4px 12px rgba(37, 99, 235, .2);"
-              onclick="importUsers()">
-              <?= svgIcon('upload') ?> Upload &amp; Import Users
-            </button>
-
-            <div style="text-align:center;">
-              <a href="users.php?action=download_user_template" class="import-download-link" style="color:var(--blue);">
-                <?= svgIcon('download') ?> Download User Template
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-secondary" onclick="closeModal('mImport')">Cancel</button>
-      <button class="btn btn-primary" onclick="importUsers()"><?= svgIcon('upload') ?> Upload &amp;
-        Import</button>
-    </div>
   <script>
   function closeRowMenus() {
     document.querySelectorAll('.row-menu.open').forEach(menu => {
@@ -1874,66 +1750,6 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
       }
     }, 3000);
   }
-
-  // ── Roles Modal ──────────────────────────────────────────
-
-  async function importUsers() {
-    const file = document.getElementById('csvFile').files[0];
-    if (!file) { toast('Please select a CSV file.', 'err'); return; }
-    const formData = new FormData();
-    formData.append('action', 'import'); formData.append('csv', file);
-    formData.append('csrf_token', '<?= csrfToken() ?>');
-    closeModal('mImport');
-    const uploadToastEl = showUploadToast();
-    try {
-      const response = await fetch('users.php', { method: 'POST', body: formData });
-      const r = await response.json();
-      finishUploadToast(uploadToastEl, r.ok, r.msg);
-      if (r.ok) setTimeout(() => location.reload(), 2000);
-    } catch (e) {
-      finishUploadToast(uploadToastEl, false, 'Network error. Please try again.');
-    }
-  }
-
-  function handleUserCsvSelect(input) {
-    const file = input.files[0];
-    const card = document.getElementById('userImportCard');
-    const btn = document.getElementById('userImportBtn');
-    if (!file) { clearUserCsv(); return; }
-    card.classList.add('has-file');
-    document.getElementById('userImportFileName').textContent = file.name;
-    document.getElementById('userImportFileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
-    btn.disabled = false;
-  }
-
-  function clearUserCsv() {
-    const input = document.getElementById('csvFile');
-    input.value = '';
-    document.getElementById('userImportCard').classList.remove('has-file');
-    document.getElementById('userImportFileName').textContent = '';
-    document.getElementById('userImportFileSize').textContent = '';
-    document.getElementById('userImportBtn').disabled = true;
-  }
-
-  // Drag-and-drop wiring
-  document.addEventListener('DOMContentLoaded', () => {
-    // Users Zone
-    const userZone = document.getElementById('userImportDropZone');
-    const userCard = document.getElementById('userImportCard');
-    if (userZone) {
-      userZone.addEventListener('dragover', e => { e.preventDefault(); userCard.classList.add('drag-over'); });
-      userZone.addEventListener('dragleave', () => userCard.classList.remove('drag-over'));
-      userZone.addEventListener('drop', e => {
-        e.preventDefault(); userCard.classList.remove('drag-over');
-        const file = e.dataTransfer.files[0];
-        if (file && file.name.endsWith('.csv')) {
-          const input = document.getElementById('csvFile');
-          const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
-          handleUserCsvSelect(input);
-        } else { toast('Please drop a .csv file.', 'warning'); }
-      });
-    }
-  });
 
   async function unarchiveUser(id, name, btn) {
     if (!confirm(`Unarchive "${name}"? Their account will be set to inactive.`)) return;

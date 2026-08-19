@@ -7,11 +7,41 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/form_version_helper.php';
 
 requireRole(ROLE_SYSTEM_ADMIN, ROLE_SCHOOL_HEAD, ROLE_COORDINATOR);
 $db = getDB();
-
 $schoolId = SCHOOL_ID;
+
+// Resolve the active assessment cycle context and form version
+$syId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
+$cycleId = null;
+if ($syId) {
+    $cycleIdStmt = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id = ? AND sy_id = ? LIMIT 1");
+    $cycleIdStmt->execute([$schoolId, $syId]);
+    $cycleId = $cycleIdStmt->fetchColumn();
+    if ($cycleId !== false) {
+        $cycleId = (int)$cycleId;
+    } else {
+        $cycleId = null;
+    }
+}
+
+try {
+    $activeFormVersionId = getApplicableFormVersionId($db, $cycleId);
+} catch (\RuntimeException $e) {
+    // Fail gracefully with a controlled error if no active form version exists
+    $pageTitle = 'Assign Indicators';
+    $activePage = 'assign_indicators.php';
+    include __DIR__ . '/../includes/header.php';
+    echo '<div class="alert alert-danger" style="margin: 20px;">' . e($e->getMessage()) . '</div>';
+    include __DIR__ . '/../includes/footer.php';
+    exit;
+}
+
+// Fetch dynamic, version-aware indicators for teachers
+$activeTeacherIndicators = getRoleIndicators($db, $activeFormVersionId, 'teacher');
+$activeTeacherCodes      = array_column($activeTeacherIndicators, 'indicator_code');
 
 // ── AJAX HANDLERS ────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -40,8 +70,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($_POST['action'] === 'get_assignments') {
             $teacherId = (int) $_POST['teacher_id'];
 
-            $stmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignments WHERE teacher_id = ?");
-            $stmt->execute([$teacherId]);
+            $stmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignments WHERE teacher_id = ? AND (cycle_id = ? OR cycle_id IS NULL)");
+            $stmt->execute([$teacherId, $cycleId]);
+            $assigned = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            echo json_encode(['ok' => true, 'assigned' => $assigned]);
+            exit;
+        }
+
+        if ($_POST['action'] === 'get_user_assignments') {
+            $userId     = (int) $_POST['user_id'];
+            $roleFilter = $_POST['role_filter'] ?? 'teacher';
+
+            $tableMap = [
+                'teacher'              => ['table' => 'teacher_indicator_assignments',     'col' => 'teacher_id'],
+                'external_stakeholder' => ['table' => 'stakeholder_indicator_assignments', 'col' => 'stakeholder_id'],
+                'school_head'          => ['table' => 'school_head_indicator_assignments', 'col' => 'user_id'],
+            ];
+            if (!isset($tableMap[$roleFilter])) {
+                throw new Exception("Invalid role filter.");
+            }
+            $tbl = $tableMap[$roleFilter];
+
+            $tableCheck = $db->query("SHOW TABLES LIKE '{$tbl['table']}'")->fetch();
+            if (!$tableCheck) {
+                echo json_encode(['ok' => true, 'assigned' => []]);
+                exit;
+            }
+
+            $stmt = $db->prepare("SELECT indicator_code FROM {$tbl['table']} WHERE {$tbl['col']} = ? AND (cycle_id = ? OR cycle_id IS NULL)");
+            $stmt->execute([$userId, $cycleId]);
             $assigned = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
             echo json_encode(['ok' => true, 'assigned' => $assigned]);
@@ -62,15 +120,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $db->beginTransaction();
 
             // Clear existing
-            $db->prepare("DELETE FROM teacher_indicator_assignments WHERE teacher_id = ?")->execute([$teacherId]);
+            $db->prepare("DELETE FROM teacher_indicator_assignments WHERE teacher_id = ? AND (cycle_id = ? OR cycle_id IS NULL)")->execute([$teacherId, $cycleId]);
 
             // Insert new
             if (!empty($indicators)) {
-                $insert = $db->prepare("INSERT INTO teacher_indicator_assignments (teacher_id, indicator_code, assigned_by) VALUES (?, ?, ?)");
+                $insert = $db->prepare("INSERT INTO teacher_indicator_assignments (teacher_id, indicator_code, assigned_by, cycle_id) VALUES (?, ?, ?, ?)");
                 foreach ($indicators as $code) {
-                    // Make sure it's a valid teacher indicator
-                    if (in_array($code, TEACHER_INDICATOR_CODES)) {
-                        $insert->execute([$teacherId, $code, $_SESSION['user_id']]);
+                    // Make sure it's a valid teacher indicator in active form version
+                    if (in_array($code, $activeTeacherCodes)) {
+                        $insert->execute([$teacherId, $code, $_SESSION['user_id'], $cycleId]);
                     }
                 }
             }
@@ -81,7 +139,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             echo json_encode(['ok' => true, 'msg' => 'Assignments saved successfully!']);
             exit;
         }
-    if ($_POST['action'] === 'bulk_save_assignments') {
+
+        if ($_POST['action'] === 'bulk_save_assignments') {
             $userIds   = isset($_POST['user_ids'])   && is_array($_POST['user_ids'])   ? array_map('intval', $_POST['user_ids'])   : [];
             $indicators = isset($_POST['indicators']) && is_array($_POST['indicators']) ? $_POST['indicators'] : [];
             $roleFilter = $_POST['role_filter'] ?? 'teacher';
@@ -91,11 +150,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 throw new Exception("Invalid role filter.");
             }
 
-            // Map role to valid indicator codes
+            // Map role to valid indicator codes dynamically from database
             $roleCodeMap = [
-                'teacher'              => TEACHER_INDICATOR_CODES,
-                'external_stakeholder' => STAKEHOLDER_INDICATOR_CODES,
-                'school_head'          => SH_RATEABLE_CODES,
+                'teacher'              => $activeTeacherCodes,
+                'external_stakeholder' => getRoleIndicatorCodes($db, $activeFormVersionId, 'external_stakeholder'),
+                'school_head'          => getRoleIndicatorCodes($db, $activeFormVersionId, 'school_head'),
             ];
             $validCodes = $roleCodeMap[$roleFilter] ?? [];
 
@@ -122,15 +181,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             ];
             $tbl = $tableMap[$roleFilter];
 
+            $tableCheck = $db->query("SHOW TABLES LIKE '{$tbl['table']}'")->fetch();
+            if (!$tableCheck) {
+                throw new Exception("Assignment table '{$tbl['table']}' does not exist in the database.");
+            }
+
             foreach ($validIds as $uid) {
-                $db->prepare("DELETE FROM {$tbl['table']} WHERE {$tbl['col']} = ?")->execute([$uid]);
+                $db->prepare("DELETE FROM {$tbl['table']} WHERE {$tbl['col']} = ? AND (cycle_id = ? OR cycle_id IS NULL)")->execute([$uid, $cycleId]);
                 if (!empty($indicators)) {
                     $insert = $db->prepare(
-                        "INSERT INTO {$tbl['table']} ({$tbl['col']}, indicator_code, assigned_by) VALUES (?, ?, ?)"
+                        "INSERT INTO {$tbl['table']} ({$tbl['col']}, indicator_code, assigned_by, cycle_id) VALUES (?, ?, ?, ?)"
                     );
                     foreach ($indicators as $code) {
                         if (in_array($code, $validCodes)) {
-                            $insert->execute([$uid, $code, $_SESSION['user_id']]);
+                            $insert->execute([$uid, $code, $_SESSION['user_id'], $cycleId]);
                         }
                     }
                 }
@@ -155,16 +219,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 // ── FETCH TEACHERS ────────────────────────────────────────────
 $search = trim($_GET['q'] ?? '');
 $searchSQL = $search !== '' ? "AND (u.full_name LIKE ? OR u.email LIKE ?)" : "";
-$params = [$schoolId];
+$params = [];
+if ($cycleId !== null) {
+    $params[] = $cycleId;
+}
+$params[] = $schoolId;
 if ($search !== '') {
     $params[] = "%$search%";
     $params[] = "%$search%";
 }
 
+$cycleCond = $cycleId !== null ? "AND (t.cycle_id = ? OR t.cycle_id IS NULL)" : "AND t.cycle_id IS NULL";
 $stmt = $db->prepare("
     SELECT u.user_id, u.full_name, u.email,
            (SELECT COUNT(*) FROM teacher_indicator_assignments t 
-            WHERE t.teacher_id = u.user_id) as assigned_count
+            WHERE t.teacher_id = u.user_id $cycleCond) as assigned_count
     FROM users u
     WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active'
     $searchSQL
@@ -177,14 +246,50 @@ $pageTitle = 'Assign Indicators';
 $activePage = 'assign_indicators.php';
 include __DIR__ . '/../includes/header.php';
 
-// Group TEACHER_INDICATOR_CODES by dimension
+// Group active form version indicators by dimension
+$dbGrouped = getRoleIndicatorsGrouped($db, $activeFormVersionId, 'teacher');
 $groupedIndicators = [];
-foreach (SBM_INDICATORS as $ind) {
-    if (in_array($ind['code'], TEACHER_INDICATOR_CODES)) {
-        $dimName = SBM_DIMENSIONS[$ind['dim']]['name'] ?? "Dimension {$ind['dim']}";
-        $groupedIndicators[$ind['dim']]['name'] = $dimName;
-        $groupedIndicators[$ind['dim']]['indicators'][] = $ind;
+foreach ($dbGrouped as $dimNo => $dimInfo) {
+    $groupedIndicators[$dimNo] = [
+        'name' => $dimInfo['name'],
+        'indicators' => []
+    ];
+    foreach ($dimInfo['indicators'] as $ind) {
+        $groupedIndicators[$dimNo]['indicators'][] = [
+            'code' => $ind['indicator_code'],
+            'text' => $ind['indicator_text']
+        ];
     }
+}
+
+// Group all active form version indicators by dimension for bulk assign
+$dbAllIndicators = $db->prepare("
+    SELECT
+        i.indicator_code,
+        i.indicator_text,
+        d.dimension_no,
+        d.dimension_name
+    FROM sbm_indicators i
+    JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
+    WHERE i.form_version_id = ? AND i.is_active = 1
+    ORDER BY d.dimension_no ASC, i.sort_order ASC
+");
+$dbAllIndicators->execute([$activeFormVersionId]);
+$allActiveInds = $dbAllIndicators->fetchAll();
+
+$allGrouped = [];
+foreach ($allActiveInds as $ind) {
+    $dimNo = (int) $ind['dimension_no'];
+    if (!isset($allGrouped[$dimNo])) {
+        $allGrouped[$dimNo] = [
+            'name' => $ind['dimension_name'],
+            'indicators' => []
+        ];
+    }
+    $allGrouped[$dimNo]['indicators'][] = [
+        'code' => $ind['indicator_code'],
+        'text' => $ind['indicator_text']
+    ];
 }
 ?>
 
@@ -425,7 +530,7 @@ foreach (SBM_INDICATORS as $ind) {
                         <td>
                             <?php if ($t['assigned_count'] > 0): ?>
                                 <span class="pill pill-success" style="font-size:12px;"><?= $t['assigned_count'] ?> of
-                                    <?= count(TEACHER_INDICATOR_CODES) ?></span>
+                                    <?= count($activeTeacherCodes) ?></span>
                             <?php else: ?>
                                 <span class="pill pill-draft" style="font-size:12px;">Not assigned (Defaults to all)</span>
                             <?php endif; ?>
@@ -641,15 +746,15 @@ foreach (SBM_INDICATORS as $ind) {
             const data = await res.json();
 
             if (data.ok) {
-                showToast('Success', data.msg, 'success');
+                toast(data.msg, 'ok');
                 setTimeout(() => location.reload(), 1000);
             } else {
-                showToast('Error', data.msg || 'Failed to save', 'error');
+                toast(data.msg || 'Failed to save', 'err');
                 btn.disabled = false;
                 btn.textContent = 'Save Assignments';
             }
         } catch (err) {
-            showToast('Error', 'Network error', 'error');
+            toast('Network error', 'err');
             btn.disabled = false;
             btn.textContent = 'Save Assignments';
         }
@@ -657,13 +762,13 @@ foreach (SBM_INDICATORS as $ind) {
 // ── BULK MODAL ────────────────────────────────────────────────────────────
 
     // All indicators grouped by dimension, per role — built from PHP data
-    const ALL_GROUPED = <?= json_encode($groupedIndicators) ?>;
+    const ALL_GROUPED = <?= json_encode($allGrouped) ?>;
 
-    // Role → valid indicator codes (from PHP constants)
+    // Role → valid indicator codes (from active form version in DB)
     const ROLE_CODES = {
-        teacher:              <?= json_encode(TEACHER_INDICATOR_CODES) ?>,
-        school_head:          <?= json_encode(SH_RATEABLE_CODES) ?>,
-        external_stakeholder: <?= json_encode(STAKEHOLDER_INDICATOR_CODES) ?>,
+        teacher:              <?= json_encode($activeTeacherCodes) ?>,
+        school_head:          <?= json_encode(getRoleIndicatorCodes($db, $activeFormVersionId, 'school_head')) ?>,
+        external_stakeholder: <?= json_encode(getRoleIndicatorCodes($db, $activeFormVersionId, 'external_stakeholder')) ?>,
     };
 
     let bulkCurrentRole = 'teacher';
@@ -751,9 +856,32 @@ foreach (SBM_INDICATORS as $ind) {
         updateBulkSelectedCount();
     }
 
+    let bulkExcludedCodes = [];
+
     function updateBulkSelectedCount() {
-        const n = document.querySelectorAll('.bulk-user-chk:checked').length;
-        document.getElementById('bulkSelectedCount').textContent = n + ' selected';
+        const checked = Array.from(document.querySelectorAll('.bulk-user-chk:checked'));
+        document.getElementById('bulkSelectedCount').textContent = checked.length + ' selected';
+        refreshBulkIndicatorFilter(checked);
+    }
+
+    async function refreshBulkIndicatorFilter(checked) {
+        if (checked.length === 1) {
+            try {
+                const fd = new FormData();
+                fd.append('action', 'get_user_assignments');
+                fd.append('user_id', checked[0].value);
+                fd.append('role_filter', bulkCurrentRole);
+                fd.append('csrf_token', document.querySelector('[name=csrf_token]').value);
+                const res  = await fetch(location.href, { method: 'POST', body: fd });
+                const data = await res.json();
+                bulkExcludedCodes = (data.ok && data.assigned) ? data.assigned : [];
+            } catch (e) {
+                bulkExcludedCodes = [];
+            }
+        } else {
+            bulkExcludedCodes = [];
+        }
+        renderBulkIndicators(bulkCurrentRole);
     }
 
     function renderBulkIndicators(role) {
@@ -762,8 +890,9 @@ foreach (SBM_INDICATORS as $ind) {
 
         let html = '';
         for (const [dimId, dim] of Object.entries(ALL_GROUPED)) {
-            // Only show indicators applicable to this role
-            const applicable = dim.indicators.filter(ind => validCodes.includes(ind.code));
+            // Only show indicators applicable to this role AND not already assigned to the single selected user
+            const applicable = dim.indicators.filter(ind =>
+                validCodes.includes(ind.code) && !bulkExcludedCodes.includes(ind.code));
             if (!applicable.length) continue;
 
             html += `
@@ -806,7 +935,7 @@ foreach (SBM_INDICATORS as $ind) {
     async function saveBulkAssignments() {
         const selectedUsers = Array.from(document.querySelectorAll('.bulk-user-chk:checked')).map(el => el.value);
         if (!selectedUsers.length) {
-            showToast('Warning', 'Please select at least one user.', 'warning');
+            toast('Please select at least one user.', 'warning');
             return;
         }
 
@@ -828,16 +957,16 @@ foreach (SBM_INDICATORS as $ind) {
             const data = await res.json();
 
             if (data.ok) {
-                showToast('Success', data.msg, 'success');
+                toast(data.msg, 'ok');
                 closeBulkModal();
                 setTimeout(() => location.reload(), 1000);
             } else {
-                showToast('Error', data.msg || 'Failed to save', 'error');
+                toast(data.msg || 'Failed to save', 'err');
                 btn.disabled = false;
                 btn.textContent = 'Save Bulk Assignments';
             }
         } catch (err) {
-            showToast('Error', 'Network error', 'error');
+            toast('Network error', 'err');
             btn.disabled = false;
             btn.textContent = 'Save Bulk Assignments';
         }

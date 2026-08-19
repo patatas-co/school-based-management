@@ -35,6 +35,7 @@ function getSelfAssessmentWindow(PDO $db, int $syId): array
 
 function isWithinAssessmentWindow(array $window): bool
 {
+  if (!$window['start'] && !$window['end']) return false;
   $today = date('Y-m-d');
   if ($window['start'] && $today < $window['start']) return false;
   if ($window['end'] && $today > $window['end']) return false;

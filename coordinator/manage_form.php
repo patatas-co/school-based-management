@@ -130,16 +130,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 foreach (($dim['indicators'] ?? []) as $iIdx => $ind) {
                     $code = trim($dim['dimension_no'] . '.' . ($iIdx + 1));
+                    $raterRole = trim($ind['rater_role'] ?? 'SH_ONLY');
                     $db->prepare("
                         INSERT INTO sbm_indicators
-                            (dimension_id, indicator_code, indicator_text, mov_guide, sort_order, is_active, form_version_id)
-                        VALUES (?,?,?,?,?,1,?)
+                            (dimension_id, indicator_code, indicator_text, mov_guide, sort_order, rater_role, is_active, form_version_id)
+                        VALUES (?,?,?,?,?,?,1,?)
                     ")->execute([
                         $dimId,
                         $code,
                         trim($ind['indicator_text']),
                         trim($ind['mov_guide'] ?? ''),
                         $iIdx + 1,
+                        $raterRole,
                         $versionId
                     ]);
                 }
@@ -1171,6 +1173,16 @@ function renderDimCard(container, dim, dIdx) {
                 <input type="text" class="fc ind-mov-input" placeholder="MOV guide (optional)…" style="font-size:12.5px;"
                     value="${_esc(ind.mov_guide||'')}"
                     onchange="updateIndicator(${dIdx},${iIdx},'mov_guide',this.value)">
+                <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                    <label style="font-size:11.5px;color:var(--n-500);white-space:nowrap;">Rated by:</label>
+                    <select class="fc ind-rater-input" style="font-size:12px;padding:3px 6px;height:auto;"
+                        onchange="updateIndicator(${dIdx},${iIdx},'rater_role',this.value)">
+                        <option value="SH_TEACHER" ${(ind.rater_role||'SH_TEACHER')==='SH_TEACHER'?'selected':''}>School Head &amp; Teacher</option>
+                        <option value="SH_ONLY"    ${(ind.rater_role||'SH_TEACHER')==='SH_ONLY'   ?'selected':''}>School Head Only</option>
+                        <option value="SH_EXT"     ${(ind.rater_role||'SH_TEACHER')==='SH_EXT'    ?'selected':''}>School Head &amp; External</option>
+                        <option value="ALL"        ${(ind.rater_role||'SH_TEACHER')==='ALL'        ?'selected':''}>All Raters</option>
+                    </select>
+                </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:4px;padding-top:6px;flex-shrink:0;">
                 <button class="btn btn-secondary btn-sm btn-icon" title="Remove indicator" onclick="removeIndicator(${dIdx},${iIdx})">
@@ -1242,7 +1254,7 @@ function removeDimension(dIdx) {
 }
 
 function addIndicator(dIdx) {
-    _editData[dIdx].indicators.push({ indicator_text: '', mov_guide: '' });
+    _editData[dIdx].indicators.push({ indicator_text: '', mov_guide: '', rater_role: 'SH_TEACHER' });
     renderEditForm();
 }
 
@@ -1262,10 +1274,12 @@ function syncEditDataFromDOM() {
         const rows = card.querySelectorAll('.mf-edit-row');
         rows.forEach((row, iIdx) => {
             if (!_editData[dIdx].indicators[iIdx]) return;
-            const ta  = row.querySelector('.ind-text-input');
-            const mov = row.querySelector('.ind-mov-input');
-            if (ta)  _editData[dIdx].indicators[iIdx].indicator_text = ta.value;
-            if (mov) _editData[dIdx].indicators[iIdx].mov_guide       = mov.value;
+            const ta     = row.querySelector('.ind-text-input');
+            const mov    = row.querySelector('.ind-mov-input');
+            const rater  = row.querySelector('.ind-rater-input');
+            if (ta)    _editData[dIdx].indicators[iIdx].indicator_text = ta.value;
+            if (mov)   _editData[dIdx].indicators[iIdx].mov_guide       = mov.value;
+            if (rater) _editData[dIdx].indicators[iIdx].rater_role      = rater.value;
         });
     });
 }

@@ -3,13 +3,33 @@ ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/form_version_helper.php';
 requireRole('teacher');
 $db = getDB();
 
 $uid = $_SESSION['user_id'];
 $schoolId = SCHOOL_ID; // Always DIHS — single school system
 $syId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
-$activeFormVersionId = (int) $db->query("SELECT version_id FROM form_versions WHERE is_active=1 LIMIT 1")->fetchColumn();
+
+// Resolve active cycle
+$cycleId = null;
+if ($syId) {
+    $cycleIdStmt = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id = ? AND sy_id = ? LIMIT 1");
+    $cycleIdStmt->execute([$schoolId, $syId]);
+    $cycleId = $cycleIdStmt->fetchColumn();
+    if ($cycleId !== false) {
+        $cycleId = (int)$cycleId;
+    } else {
+        $cycleId = null;
+    }
+}
+
+try {
+    $activeFormVersionId = getApplicableFormVersionId($db, $cycleId);
+} catch (\RuntimeException $e) {
+    echo '<div class="alert alert-danger" style="margin: 20px;">' . e($e->getMessage()) . '</div>';
+    exit;
+}
 
 if (!$syId) {
     echo '<div class="alert alert-danger">No active school year. Contact the administrator.</div>';
@@ -107,13 +127,13 @@ if ($cycleCheck && in_array($cycleCheck['status'], ['completed', 'finalized', 'v
 }
 
 // ── FETCH ASSIGNED INDICATORS ─────────────────────────────────
-$assignStmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignments WHERE teacher_id = ?");
-$assignStmt->execute([$uid]);
+$assignStmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignments WHERE teacher_id = ? AND (cycle_id = ? OR cycle_id IS NULL)");
+$assignStmt->execute([$uid, $cycleId]);
 $assignedCodes = $assignStmt->fetchAll(PDO::FETCH_COLUMN);
 
 // Fallback to all teacher codes if none specifically assigned
 if (empty($assignedCodes)) {
-    $assignedCodes = TEACHER_INDICATOR_CODES;
+    $assignedCodes = getRoleIndicatorCodes($db, $activeFormVersionId, 'teacher');
 }
 
 // ── AJAX HANDLERS ─────────────────────────────────────────────

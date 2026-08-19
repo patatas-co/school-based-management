@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $desc = trim($_POST['description'] ?? '');
         if (!$name) { echo json_encode(['ok' => false, 'msg' => 'Department name is required.']); exit; }
         try {
-            $db->prepare("INSERT INTO departments (name, description, school_id, created_at) VALUES (?, ?, ?, NOW())")
+            $db->prepare("INSERT INTO departments (name, description, status, school_id, created_at) VALUES (?, ?, 'active', ?, NOW())")
                ->execute([$name, $desc ?: null, SCHOOL_ID]);
             $newId = $db->lastInsertId();
             logActivity('create_department', 'departments', 'Created: ' . $name);
@@ -31,13 +31,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
+    if ($action === 'toggle_status') {
+        $id = (int)($_POST['id'] ?? 0);
+        if (!$id) { echo json_encode(['ok' => false, 'msg' => 'Invalid department.']); exit; }
+        try {
+            $cur = $db->prepare("SELECT name, status FROM departments WHERE department_id=? AND school_id=?");
+            $cur->execute([$id, SCHOOL_ID]);
+            $row = $cur->fetch();
+            if (!$row) { echo json_encode(['ok' => false, 'msg' => 'Department not found.']); exit; }
+            $newStatus = ($row['status'] ?? 'active') === 'active' ? 'inactive' : 'active';
+            $db->prepare("UPDATE departments SET status=? WHERE department_id=? AND school_id=?")
+               ->execute([$newStatus, $id, SCHOOL_ID]);
+            logActivity('toggle_department_status', 'departments', $row['name'] . ' set to ' . $newStatus);
+            echo json_encode(['ok' => true, 'msg' => 'Department set to ' . $newStatus . '.', 'status' => $newStatus]);
+        } catch (PDOException $e) {
+            echo json_encode(['ok' => false, 'msg' => 'Database error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
     if ($action === 'get') {
-        $st = $db->prepare("SELECT department_id, name, description FROM departments WHERE department_id=? AND school_id=?");
+        $st = $db->prepare("SELECT department_id, name, description, status FROM departments WHERE department_id=? AND school_id=?");
         $st->execute([(int)$_POST['id'], SCHOOL_ID]);
         echo json_encode($st->fetch());
         exit;
     }
-
     if ($action === 'get_users') {
         try {
             $deptName = trim($_POST['dept_name'] ?? '');
@@ -101,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 // ── Page data ───────────────────────────────────────────────
 $q = trim($_GET['q'] ?? '');
-$sql = "SELECT d.department_id, d.name, d.description, d.created_at,
+$sql = "SELECT d.department_id, d.name, d.description, d.status, d.created_at,
                (SELECT COUNT(*) FROM users u WHERE u.department = d.name AND u.school_id = d.school_id) AS user_count
         FROM departments d
         WHERE d.school_id = ?";
@@ -217,6 +235,7 @@ include __DIR__ . '/../includes/header.php';
             <th>#</th>
             <th>Department Name</th>
             <th>Users</th>
+            <th>Status</th>
             <th>Created</th>
             <th style="text-align:center;">Actions</th>
           </tr>
@@ -236,21 +255,60 @@ include __DIR__ . '/../includes/header.php';
                   <?= svgIcon('users', 12) ?> <?= (int)$d['user_count'] ?>
                 </span>
               </td>
+              <td>
+                <?php $__deptStatus = $d['status'] ?? 'active'; ?>
+                <?php if ($__deptStatus === 'active'): ?>
+                  <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:#DCFCE7;color:#16A34A;">Active</span>
+                <?php else: ?>
+                  <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:#F1F5F9;color:#64748B;">Inactive</span>
+                <?php endif; ?>
+              </td>
               <td style="font-size:12px;color:var(--n-400);"><?= date('M j, Y', strtotime($d['created_at'])) ?></td>
               <td style="text-align:center;">
-                <button onclick="openEdit(<?= $d['department_id'] ?>, <?= htmlspecialchars(json_encode($d['name'])) ?>, <?= htmlspecialchars(json_encode($d['description'] ?? '')) ?>)"
-                  title="Edit"
-                  style="
-                    display:inline-flex;align-items:center;gap:5px;
-                    padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;
-                    background:var(--brand-50,#f0fdf4);color:var(--brand-600,#16a34a);
-                    border:1.5px solid var(--brand-200,#bbf7d0);cursor:pointer;
-                    transition:background .15s,border-color .15s;
-                  "
-                  onmouseover="this.style.background='var(--brand-100,#dcfce7)'"
-                  onmouseout="this.style.background='var(--brand-50,#f0fdf4)'">
-                  <?= svgIcon('edit', 13) ?> Edit
-                </button>
+                <div style="display:inline-flex;gap:6px;">
+                  <button onclick="openEdit(<?= $d['department_id'] ?>, <?= htmlspecialchars(json_encode($d['name'])) ?>, <?= htmlspecialchars(json_encode($d['description'] ?? '')) ?>)"
+                    title="Edit"
+                    style="
+                      display:inline-flex;align-items:center;justify-content:center;
+                      width:32px;height:32px;border-radius:8px;
+                      background:var(--brand-50,#f0fdf4);color:var(--brand-600,#16a34a);
+                      border:1.5px solid var(--brand-200,#bbf7d0);cursor:pointer;
+                      transition:background .15s,border-color .15s;
+                    "
+                    onmouseover="this.style.background='var(--brand-100,#dcfce7)'"
+                    onmouseout="this.style.background='var(--brand-50,#f0fdf4)'">
+                    <?= svgIcon('edit', 14) ?>
+                  </button>
+                  <?php if ($__deptStatus === 'active'): ?>
+                    <button onclick="toggleDeptStatus(<?= $d['department_id'] ?>, <?= htmlspecialchars(json_encode($d['name'])) ?>, this)"
+                      title="Deactivate"
+                      style="
+                        display:inline-flex;align-items:center;justify-content:center;
+                        width:32px;height:32px;border-radius:8px;
+                        background:#FEF2F2;color:#DC2626;
+                        border:1.5px solid #FECACA;cursor:pointer;
+                        transition:background .15s,border-color .15s;
+                      "
+                      onmouseover="this.style.background='#FEE2E2'"
+                      onmouseout="this.style.background='#FEF2F2'">
+                      <?= svgIcon('x', 14) ?>
+                    </button>
+                  <?php else: ?>
+                    <button onclick="toggleDeptStatus(<?= $d['department_id'] ?>, <?= htmlspecialchars(json_encode($d['name'])) ?>, this)"
+                      title="Activate"
+                      style="
+                        display:inline-flex;align-items:center;justify-content:center;
+                        width:32px;height:32px;border-radius:8px;
+                        background:#EFF6FF;color:#2563EB;
+                        border:1.5px solid #BFDBFE;cursor:pointer;
+                        transition:background .15s,border-color .15s;
+                      "
+                      onmouseover="this.style.background='#DBEAFE'"
+                      onmouseout="this.style.background='#EFF6FF'">
+                      <?= svgIcon('check', 14) ?>
+                    </button>
+                  <?php endif; ?>
+                </div>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -399,6 +457,17 @@ async function deleteDept(id, name) {
   const r = await apiPost({ action: 'delete', id });
   if (r.ok) { toast(r.msg, 'ok'); document.querySelector(`tr[data-dept-id="${id}"]`)?.remove(); }
   else { toast(r.msg || 'Failed to delete.', 'err'); }
+}
+
+async function toggleDeptStatus(id, name, btn) {
+  const activating = btn.title === 'Activate';
+  const verb = activating ? 'activate' : 'deactivate';
+  if (!confirm(`Are you sure you want to ${verb} "${name}"?${!activating ? '\n\nInactive departments will not be selectable when creating new user accounts.' : ''}`)) return;
+  btn.disabled = true;
+  const r = await apiPost({ action: 'toggle_status', id });
+  btn.disabled = false;
+  if (r.ok) { toast(r.msg, 'ok'); setTimeout(() => location.reload(), 600); }
+  else { toast(r.msg || 'Failed to update status.', 'err'); }
 }
 
 // Live search

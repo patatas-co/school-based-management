@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
-$_allDepts = $db->prepare("SELECT name FROM departments WHERE school_id=? ORDER BY name ASC");
+$_allDepts = $db->prepare("SELECT name FROM departments WHERE school_id=? AND status='active' ORDER BY name ASC");
 $_allDepts->execute([SCHOOL_ID]);
 $_allDepts = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
 ?>
