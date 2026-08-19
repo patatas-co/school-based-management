@@ -130,12 +130,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
       }
 
-      $chk = $db->prepare("SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?");
+      $chk = $db->prepare("SELECT indicator_code, rater_role FROM sbm_indicators WHERE indicator_id=?");
       $chk->execute([$indicatorId]);
-      $indicatorCode = $chk->fetchColumn();
+      $chkRow = $chk->fetch();
+      $indicatorCode = $chkRow['indicator_code'] ?? null;
+      $raterRole     = $chkRow['rater_role']     ?? null;
 
-      // Block only pure teacher-only indicators (not shared SH+Teacher ones)
-      if (!in_array($indicatorCode, SH_RATEABLE_CODES)) {
+      // SH can rate any indicator whose rater_role starts with 'SH_'
+      // This covers SH_ONLY, SH_TEACHER, SH_EXT, SH_TCH_EXT.
+      // TEACHER_ONLY and TCH_EXT have no SH input.
+      $shCanRate = $raterRole && str_starts_with($raterRole, 'SH_');
+      if (!$shCanRate) {
         echo json_encode(['ok' => false, 'msg' => 'This indicator is not rated by the School Head.']);
         exit;
       }
@@ -212,10 +217,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
       $indicatorId = (int) $_POST['indicator_id'];
 
-      $chk = $db->prepare("SELECT indicator_code FROM sbm_indicators WHERE indicator_id=?");
+      $chk = $db->prepare("SELECT indicator_code, rater_role FROM sbm_indicators WHERE indicator_id=?");
       $chk->execute([$indicatorId]);
-      $indicatorCode = $chk->fetchColumn();
-      if (!in_array($indicatorCode, SH_RATEABLE_CODES)) {
+      $chkRow = $chk->fetch();
+      $indicatorCode = $chkRow['indicator_code'] ?? null;
+      $raterRole     = $chkRow['rater_role']     ?? null;
+      if (!$raterRole || !str_starts_with($raterRole, 'SH_')) {
         echo json_encode(['ok' => false, 'msg' => 'Cannot clear a non-SH indicator.']);
         exit;
       }

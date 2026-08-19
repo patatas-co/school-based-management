@@ -2504,12 +2504,11 @@ include __DIR__ . '/../includes/header.php';
   <div class="card" style="margin-bottom:18px;">
     <div class="card-head" style="flex-wrap:wrap;gap:10px;">
       <span class="card-title" id="progressCardTitle">Assessment Cycle History</span>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">
         <button class="an-tab-btn active" id="progressTabBtn0" onclick="switchProgressTab(0)">Cycle History</button>
         <button class="an-tab-btn" id="progressTabBtn1" onclick="switchProgressTab(1)">Weak This Cycle</button>
-        <button class="an-tab-btn" id="progressTabBtn2" onclick="switchProgressTab(2)">Consistently Weak</button>
         <?php if (!empty($compareSyIds) && !empty($anDimAvgsCompareList)): ?>
-        <button class="an-tab-btn" id="progressTabBtn3" onclick="switchProgressTab(3)">Side-by-Side</button>
+        <button class="an-tab-btn" id="progressTabBtn2" onclick="switchProgressTab(2)">Side-by-Side</button>
         <?php endif; ?>
       </div>
     </div>
@@ -2582,32 +2581,9 @@ include __DIR__ . '/../includes/header.php';
       <?php endif; ?>
     </div>
 
-    <!-- Panel 2: Consistently Weak -->
-    <div id="progressPanelInner2" style="display:none;">
-      <?php if ($consistentlyWeak): ?>
-        <div class="card-body" style="padding:0;">
-          <?php foreach ($consistentlyWeak as $cw):
-            $avgR = floatval($cw['avg_rating']);
-            $color = $avgR >= 2 ? 'var(--amber)' : 'var(--red)';
-          ?>
-            <div class="an-cw-row">
-              <div class="an-cw-badge" style="background:<?= $avgR < 2 ? 'var(--red-bg)' : 'var(--amber-bg)' ?>;color:<?= $color ?>;"><?= e($cw['indicator_code']) ?></div>
-              <div class="an-cw-info">
-                <div class="an-cw-title"><?= e(substr($cw['indicator_text'], 0, 95)) ?>...</div>
-                <div class="an-cw-meta"><?= e($cw['dimension_name']) ?> · Avg: <strong style="color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</strong> · Worst: <?= number_format($cw['worst_cycle_avg'], 2) ?> · Best: <?= number_format($cw['best_cycle_avg'], 2) ?></div>
-              </div>
-              <div style="font-size:11px;font-weight:700;color:var(--red);text-align:center;min-width:48px;">Priority<br>Action</div>
-            </div>
-          <?php endforeach; ?>
-        </div>
-      <?php else: ?>
-        <div class="empty-state"><div class="empty-title">No consistently weak indicators</div><div class="empty-sub">All indicators are averaging above 2.5 across cycles.</div></div>
-      <?php endif; ?>
-    </div>
-
-    <!-- Panel 3: Side-by-Side -->
+    <!-- Panel 2: Side-by-Side -->
     <?php if (!empty($compareSyIds) && !empty($anDimAvgsCompareList)): ?>
-    <div id="progressPanelInner3" style="display:none;">
+    <div id="progressPanelInner2" style="display:none;">
       <div class="tbl-wrap">
         <table class="tbl-enhanced">
           <thead>
@@ -2648,9 +2624,9 @@ include __DIR__ . '/../includes/header.php';
   </div>
 
   <script>
-  const progressTitles = ['Assessment Cycle History', 'Weak This Cycle', 'Consistently Weak', 'Side-by-Side Comparison'];
+  const progressTitles = ['Assessment Cycle History', 'Weak This Cycle', 'Side-by-Side Comparison'];
   function switchProgressTab(idx) {
-    for (var i = 0; i <= 3; i++) {
+    for (var i = 0; i <= 2; i++) {
       var panel = document.getElementById('progressPanelInner' + i);
       var btn = document.getElementById('progressTabBtn' + i);
       if (panel) panel.style.display = (i === idx) ? '' : 'none';

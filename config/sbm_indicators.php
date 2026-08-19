@@ -381,7 +381,6 @@ define('SH_TEACHER_CODES', [
 
 // ── Indicators answered by SH/SBM Coord AND External Stakeholder (no Teacher) ─
 define('SH_EXT_CODES', [
-    '4.6',   // Stakeholder satisfaction rating
     '1.8',   // TLE-TVL industry engagement
     '2.5',   // Disadvantaged / OSYs / adult learners
     '2.10',  // PWD-friendly facilities
@@ -405,6 +404,7 @@ define('SH_TCH_EXT_CODES', [
 
 // ── Indicators answered by Teacher AND External (SH is NOT primary rater) ────
 define('TCH_EXT_CODES', [
+    '4.6',   // Stakeholder satisfaction rating (Teacher + External only)
 ]);
 
 // ── Indicators answered by SH/SBM Coord ONLY ─────────────────────────────────

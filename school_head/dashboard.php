@@ -2776,21 +2776,18 @@ include __DIR__ . '/../includes/header.php';
     </div>
   <?php endif; ?>
 
-  <!-- Tabbed bottom section -->
-  <div class="an-tab-btns">
-    <button class="an-tab-btn active" onclick="anSwitchTab(this,'anTabHistory')">Cycle History</button>
-    <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabWeak')">Weak This Cycle</button>
-    <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabConsistent')">Consistently Weak</button>
-    <?php if (!empty($compareSyIds) && !empty($anDimAvgsCompareList)): ?>
-      <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabCompare')">Side-by-Side</button>
-    <?php endif; ?>
-  </div>
-
   <!-- TAB: Cycle History -->
   <div class="an-tab-panel active" id="anTabHistory">
     <div class="card" style="margin-bottom:18px;">
-      <div class="card-head">
+      <div class="card-head" style="justify-content:space-between;">
         <span class="card-title">Assessment History</span>
+        <div class="an-tab-btns" style="margin-bottom:0;">
+          <button class="an-tab-btn active" onclick="anSwitchTab(this,'anTabHistory')">Cycle History</button>
+          <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabWeak')">Weak This Cycle</button>
+          <?php if (!empty($compareSyIds) && !empty($anDimAvgsCompareList)): ?>
+            <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabCompare')">Side-by-Side</button>
+          <?php endif; ?>
+        </div>
       </div>
       <?php if ($cycleHistory): ?>
         <div class="tbl-wrap">
@@ -2892,51 +2889,6 @@ include __DIR__ . '/../includes/header.php';
       <?php else: ?>
         <div class="empty-state">
           <div class="empty-title">No indicator data yet</div>
-        </div>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <!-- TAB: Consistently Weak -->
-  <div class="an-tab-panel" id="anTabConsistent">
-    <div class="card" style="margin-bottom:18px;">
-      <div class="card-head">
-        <span class="card-title">Consistently Weak Indicators</span>
-        <span style="font-size:12px;color:var(--n-400);">Average &le; 2.5 across all assessed cycles</span>
-      </div>
-      <?php if ($consistentlyWeak): ?>
-        <div class="card-body" style="padding:0;">
-          <?php foreach ($consistentlyWeak as $cw):
-            $avgR = floatval($cw['avg_rating']);
-            $color = $avgR >= 2 ? 'var(--amber)' : 'var(--red)';
-            $pct = ($avgR / 4) * 100;
-            ?>
-            <div class="an-cw-row">
-              <div class="an-cw-badge"
-                style="background:<?= $avgR < 2 ? 'var(--red-bg)' : 'var(--amber-bg)' ?>;color:<?= $color ?>;">
-                <?= e($cw['indicator_code']) ?>
-              </div>
-              <div class="an-cw-info">
-                <div class="an-cw-title"><?= e(substr($cw['indicator_text'], 0, 95)) ?>...</div>
-                <div class="an-cw-meta">
-                  <?= e($cw['dimension_name']) ?> ·
-                  Avg: <strong style="color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</strong> ·
-                  Worst: <?= number_format($cw['worst_cycle_avg'], 2) ?> ·
-                  Best: <?= number_format($cw['best_cycle_avg'], 2) ?>
-                </div>
-                <div class="an-cw-bar-track">
-                  <div class="an-cw-bar-fill" style="width:<?= $pct ?>%;background:<?= $color ?>;"></div>
-                </div>
-              </div>
-              <div style="font-size:11px;font-weight:700;color:var(--red);text-align:center;min-width:48px;">
-                Priority<br>Action</div>
-            </div>
-          <?php endforeach; ?>
-        </div>
-      <?php else: ?>
-        <div class="empty-state">
-          <div class="empty-title">No consistently weak indicators</div>
-          <div class="empty-sub">All indicators are averaging above 2.5 across cycles.</div>
         </div>
       <?php endif; ?>
     </div>
@@ -3626,7 +3578,7 @@ include __DIR__ . '/../includes/header.php';
              i.indicator_id, i.indicator_code,
              $shortTitleCol
              i.indicator_text,
-             d.dimension_id,
+             d.dimension_no,
              ROUND((AVG(all_r.rating) / 4) * 100, 1) AS pct
       FROM (
           SELECT cycle_id, indicator_id, rating FROM sbm_responses
@@ -3644,11 +3596,15 @@ include __DIR__ . '/../includes/header.php';
     $indTrendQ->execute([$mySchoolId]);
     $indTrendRows = $indTrendQ->fetchAll();
 
-    // Build structure: { dimension_id: { indicator_code: { sy_label: pct } } }
+    // Build structure: { dimension_no: { indicator_code: { sy_label: pct } } }
+    // Keyed by dimension_no (not raw dimension_id) so the chart stays
+    // consistent across form versions — dimension_id changes per form
+    // version (e.g. D1 was id 1 in v1, id 40 in v10), but dimension_no
+    // is the stable "D1..D6" the dropdown/UI actually selects by.
     $indTrendByDim = [];
-    $indMetaByDim  = []; // dimension_id => { indicator_code => {code, shortTitle, description} }
+    $indMetaByDim  = []; // dimension_no => { indicator_code => {code, shortTitle, description} }
     foreach ($indTrendRows as $r) {
-      $did  = (int)$r['dimension_id'];
+      $did  = (int)$r['dimension_no'];
       $code = $r['indicator_code'];
       $lbl  = $r['sy_label'];
       $pct  = floatval($r['pct']);
@@ -3967,14 +3923,22 @@ updateIndicatorTrendChart(val);
     const datasets = codes.map((code, i) => {
       const data = syLabels.map(lbl => byDim[code][lbl] ?? null);
       const color = indPalette[i % indPalette.length];
+
+      // A line needs 2+ non-null points to actually draw a segment.
+      // New indicators (like 1.9) with only one cycle of data would
+      // otherwise render as literally nothing — no line, no point.
+      // Force a visible dot only in that isolated case.
+      const nonNullCount = data.filter(v => v !== null).length;
+      const isIsolated = nonNullCount <= 1;
+
       return {
         label: code,
         data,
         borderColor: color,
         backgroundColor: color + '18',
         pointBackgroundColor: color,
-        pointRadius: 0,
-        pointHoverRadius: 0,
+        pointRadius: data.map(v => (isIsolated && v !== null) ? 4 : 0),
+        pointHoverRadius: data.map(v => (isIsolated && v !== null) ? 6 : 4),
         borderWidth: 2,
         tension: 0,
         spanGaps: true,
@@ -3985,6 +3949,10 @@ updateIndicatorTrendChart(val);
       type: 'line',
       data: { labels: syLabels, datasets },
       options: {
+        // Points sitting exactly at the max (100%) get clipped in half by
+        // the chart area boundary otherwise — this reserves headroom so
+        // the full point radius has room to render.
+        layout: { padding: { top: 8, right: 8 } },
         scales: {
           y: {
             min: 0, max: 100,
