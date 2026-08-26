@@ -792,6 +792,55 @@ include __DIR__ . '/../includes/header.php';
     overflow: hidden;
   }
 
+  .dim-tabs-row {
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+    position: sticky;
+    top: 60px;
+    z-index: 40;
+    background: var(--n50);
+  }
+
+  .dim-tab-item {
+    flex: 1;
+    min-width: 0;
+    text-decoration: none;
+    text-align: center;
+    padding: 12px 8px;
+    background: #f4f5f7;
+    border: 1px solid var(--n-200);
+    border-bottom: 2px solid var(--n900);
+    margin-right: -1px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--n-500);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background .2s, color .2s;
+  }
+
+  .dim-tab-item:last-child {
+    margin-right: 0;
+  }
+
+  .dim-tab-item .dim-tab-count {
+    font-weight: 500;
+    opacity: .75;
+  }
+
+  .dim-tab-item.active {
+    background: var(--n900);
+    color: #fff;
+    border-color: var(--n900);
+  }
+
+  .dim-tab-item.complete:not(.active) {
+    color: var(--n900);
+  }
+
   .dim-wrap {
     margin-bottom: 6px;
   }
@@ -1076,6 +1125,63 @@ include __DIR__ . '/../includes/header.php';
 
   .prog-complete {
     animation: prog-complete .6s ease-out forwards;
+  }
+
+  /* ── Sequential dimension nav (bottom Prev/Next) ───────── */
+  .dim-seq-nav-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 20px 4px 4px;
+  }
+
+  .dim-seq-nav {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid var(--n-200);
+    border-radius: 7px;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  .dim-seq-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 18px;
+    border: none;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--n-700);
+    cursor: pointer;
+    transition: background .15s ease;
+  }
+
+  .dim-seq-btn:hover:not(:disabled) {
+    background: var(--n-50);
+  }
+
+  .dim-seq-btn:disabled {
+    color: var(--n-300);
+    cursor: not-allowed;
+  }
+
+  .dim-seq-divider {
+    width: 1px;
+    background: var(--n-200);
+  }
+
+  .dim-seq-arrow {
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  @media (max-width: 480px) {
+    .dim-seq-btn {
+      padding: 0 14px;
+      font-size: 12.5px;
+    }
   }
 </style>
 
@@ -1560,27 +1666,21 @@ foreach ($grouped as $dimNo => $inds) {
   </div>
 <?php else: ?>
 
-  <!-- ── STICKY DIMENSION STEP PROGRESS ────────────────────── -->
-  <div id="dimTabs" style="display:flex;gap:6px;margin-bottom:18px;
-            position:sticky;top:60px;z-index:40;
-            background:var(--n50);padding:8px 0;">
+  <!-- ── DIMENSION TABS ─────────────────────────────────────── -->
+  <?php $dimNosList = array_keys($grouped); $firstDimNo = $dimNosList[0] ?? null; ?>
+  <div id="dimTabs" class="dim-tabs-row">
     <?php foreach ($grouped as $dimNo => $inds): ?>
       <?php
       $dimDone = count(array_filter($inds, fn($i) => isset($responses[$i['indicator_id']]) || (isTeacherHandled($i['indicator_code'] ?? '') && isset($sharedDone[$i['indicator_id']]))));
       $dimTotal = count($inds);
       $dimFull = $dimDone === $dimTotal;
+      $dimIsActive = $dimNo === $firstDimNo;
       ?>
       <a href="#dim<?= $dimNo ?>" id="dimTab<?= $dimNo ?>" data-done="<?= $dimDone ?>" data-total="<?= $dimTotal ?>"
-            style="flex:1;min-width:0;text-decoration:none;display:flex;flex-direction:column;gap:6px;">
-        <div id="dimBar<?= $dimNo ?>" style="height:4px;border-radius:2px;
-              background:<?= $dimFull ? 'var(--n900)' : 'var(--n200)' ?>;
-              transition:background .3s;"></div>
-        <div id="dimLabel<?= $dimNo ?>" style="font-size:12px;font-weight:700;
-              color:<?= $dimFull ? 'var(--n900)' : 'var(--n400)' ?>;
-              transition:color .3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-          D<?= $dimNo ?>
-          <span id="dimTabCount<?= $dimNo ?>" style="font-weight:500;opacity:.7;">(<?= $dimDone ?>/<?= $dimTotal ?>)</span>
-        </div>
+            onclick="event.preventDefault();switchDimension(<?= $dimNo ?>);"
+            class="dim-tab-item<?= $dimIsActive ? ' active' : '' ?><?= $dimFull ? ' complete' : '' ?>">
+        D<?= $dimNo ?>
+        <span id="dimTabCount<?= $dimNo ?>" class="dim-tab-count">(<?= $dimDone ?>/<?= $dimTotal ?>)</span>
       </a>
     <?php endforeach; ?>
   </div>
@@ -1593,9 +1693,13 @@ foreach ($grouped as $dimNo => $inds) {
     $allDone = $dimDone === count($inds);
     $dimShCount = count(array_filter($inds, fn($i) => !in_array($i['indicator_code'], TEACHER_INDICATOR_CODES)));
     $dimTchCount = count($inds) - $dimShCount;
+    $dimPos = array_search($dimNo, $dimNosList, true);
+    $prevDimNo = $dimPos > 0 ? $dimNosList[$dimPos - 1] : null;
+    $nextDimNo = $dimPos !== false && $dimPos < count($dimNosList) - 1 ? $dimNosList[$dimPos + 1] : null;
     ?>
     <div class="dim-wrap" id="dim<?= $dimNo ?>" data-dim="<?= $dimNo ?>" data-dim-db-id="<?= $dim['dimension_id'] ?>"
-      data-sh-count="<?= $dimShCount ?>" data-teacher-count="<?= $dimTchCount ?>">
+      data-sh-count="<?= $dimShCount ?>" data-teacher-count="<?= $dimTchCount ?>"
+      style="margin-top:18px;<?= $dimNo === $firstDimNo ? '' : 'display:none;' ?>">
 
       <div class="dim-header" onclick="toggleDim(<?= $dimNo ?>)" style="border-left:4px solid <?= e($dim['color_hex']) ?>;">
 
@@ -1799,6 +1903,22 @@ foreach ($grouped as $dimNo => $inds) {
 
         <?php endforeach; ?>
       </div><!-- /.dim-body -->
+
+      <div class="dim-seq-nav-wrap">
+        <div class="dim-seq-nav">
+          <button type="button" class="dim-seq-btn dim-seq-prev"
+            onclick="switchDimension(<?= (int)$prevDimNo ?>)"
+            <?= $prevDimNo === null ? 'disabled' : '' ?>>
+            <span class="dim-seq-arrow"></span> Previous
+          </button>
+          <div class="dim-seq-divider"></div>
+          <button type="button" class="dim-seq-btn dim-seq-next"
+            onclick="switchDimension(<?= (int)$nextDimNo ?>)"
+            <?= $nextDimNo === null ? 'disabled' : '' ?>>
+            Next <span class="dim-seq-arrow"></span>
+          </button>
+        </div>
+      </div>
     </div><!-- /.dim-wrap -->
   <?php endforeach; ?>
 
@@ -2136,6 +2256,32 @@ foreach ($grouped as $dimNo => $inds) {
     const isOpen = !body.classList.contains('collapsed');
     body.classList.toggle('collapsed', isOpen);
     chevron.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
+  }
+
+  // ── Dimension-by-dimension navigation ────────────────────────
+  function switchDimension(n) {
+    document.querySelectorAll('.dim-wrap').forEach(wrap => {
+      wrap.style.display = (parseInt(wrap.dataset.dim, 10) === n) ? '' : 'none';
+    });
+
+    const body = document.getElementById('dimBody' + n);
+    const chevron = document.getElementById('dimChevron' + n);
+    if (body && body.classList.contains('collapsed')) {
+      body.classList.remove('collapsed');
+      if (chevron) chevron.style.transform = 'rotate(0deg)';
+    }
+
+    document.querySelectorAll('#dimTabs > a.dim-tab-item').forEach(tab => {
+      const tabDim = parseInt(tab.id.replace('dimTab', ''), 10);
+      const isActive = tabDim === n;
+      tab.classList.toggle('active', isActive);
+    });
+
+    const dimTabs = document.getElementById('dimTabs');
+    if (dimTabs) {
+      const top = dimTabs.getBoundingClientRect().top + window.scrollY - 70;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
   }
 
   // ── Submit ─────────────────────────────────────────────────
