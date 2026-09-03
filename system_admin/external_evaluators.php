@@ -17,6 +17,27 @@ $pageTitle = 'External Evaluator Management';
 $activePage = 'external_evaluators.php';
 include __DIR__ . '/../includes/header.php';
 
+$defaultCycle = $db->query("
+  SELECT c.cycle_id, sy.label, c.status
+  FROM sbm_cycles c
+  JOIN school_years sy ON c.sy_id = sy.sy_id
+  WHERE c.school_id = " . SCHOOL_ID . "
+  AND sy.is_current = 1
+  ORDER BY c.cycle_id DESC
+  LIMIT 1
+")->fetch();
+
+if (empty($defaultCycle)) {
+  $defaultCycle = $db->query("
+    SELECT c.cycle_id, sy.label, c.status
+    FROM sbm_cycles c
+    JOIN school_years sy ON c.sy_id = sy.sy_id
+    WHERE c.school_id = " . SCHOOL_ID . "
+    ORDER BY c.cycle_id DESC
+    LIMIT 1
+  ")->fetch();
+}
+
 $cycles = $db->query("
   SELECT c.cycle_id, sy.label, c.status
   FROM sbm_cycles c
@@ -24,6 +45,9 @@ $cycles = $db->query("
   WHERE c.school_id = " . SCHOOL_ID . "
   ORDER BY c.cycle_id DESC
 ")->fetchAll();
+
+$defaultCycleId = (int) ($defaultCycle['cycle_id'] ?? 0);
+$defaultCycleLabel = $defaultCycleId ? ("SY " . e($defaultCycle['label']) . " — " . ucfirst(str_replace('_', ' ', $defaultCycle['status']))) : '';
 ?>
 
 <style>
@@ -131,9 +155,9 @@ $cycles = $db->query("
   <div class="fg">
     <label>Assessment Cycle *</label>
     <div class="p-select p-select-fluid" id="pCycleDropdown">
-      <input type="hidden" id="ev_cycle_id">
+      <input type="hidden" id="ev_cycle_id" value="<?= $defaultCycleId ?>">
       <div class="p-select-trigger" onclick="togglePSelect(event, 'pCycleDropdown')">
-        <span class="p-select-val" id="pCycleLabel">Select a cycle</span>
+        <span class="p-select-val" id="pCycleLabel"><?= $defaultCycleLabel ?: 'Select a cycle' ?></span>
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--n-400)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -142,8 +166,9 @@ $cycles = $db->query("
         <?php foreach ($cycles as $cyc):
           $label = "SY " . e($cyc['label']) . " — " . ucfirst(str_replace('_', ' ', $cyc['status']));
           $desc = ($cyc['status'] === 'open') ? "Currently assessing school year" : "Historical assessment records";
+          $isDefaultCycle = (int) $cyc['cycle_id'] === $defaultCycleId;
           ?>
-          <div class="p-select-item" onclick="setMCycle('<?= $cyc['cycle_id'] ?>', '<?= e($label) ?>')">
+          <div class="p-select-item <?= $isDefaultCycle ? 'active' : '' ?>" data-cycle-id="<?= (int) $cyc['cycle_id'] ?>" data-cycle-status="<?= e($cyc['status']) ?>" onclick="setMCycle('<?= $cyc['cycle_id'] ?>', '<?= e($label) ?>', '<?= e($cyc['status']) ?>')">
             <div class="p-item-content">
               <div class="p-item-title"><?= e($label) ?></div>
               <div class="p-item-desc"><?= $desc ?></div>
@@ -156,13 +181,13 @@ $cycles = $db->query("
   </div>
 
   <div id="cycleDatesCard" style="display:none;">
-    <div style="background:var(--brand-50);border:1px solid var(--brand-200);border-radius:16px;padding:20px;">
+    <div style="background:#fff;border:1px solid var(--n-200);border-radius:16px;padding:20px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div>
-          <div class="section-eyebrow" style="color:var(--brand-700);"><div style="width:6px;height:6px;border-radius:50%;background:var(--brand-600);"></div>Stakeholder Access Window</div>
+          <div class="section-eyebrow" style="color:var(--n-500);"><div style="width:6px;height:6px;border-radius:50%;background:var(--n-400);"></div>Stakeholder Access Window</div>
           <div id="cycleStatusBanner" style="font-size:14px;font-weight:700;color:var(--n-900);"></div>
         </div>
-        <button class="btn btn-primary" onclick="saveCycleDates()" style="padding:7px 14px;font-size:12.5px;border-radius:9px;box-shadow:0 4px 12px rgba(22, 163, 74, .2);">Save Access Window</button>
+        <button class="btn btn-primary" id="saveCycleDatesBtn" onclick="saveCycleDates()" style="padding:7px 14px;font-size:12.5px;border-radius:9px;box-shadow:0 4px 12px rgba(22, 163, 74, .2);">Save Access Window</button>
       </div>
 
       <div class="form-row">
@@ -423,6 +448,10 @@ $cycles = $db->query("
       reactivate: { dateId: 'reactivate_end_d', timeId: 'reactivate_end_t', labelId: 'dtp_reactivate_label' },
     };
     window.dtpOpen = function (target) {
+      if (target === 'start' || target === 'end') {
+        const selectedItem = document.querySelector('#pCycleDropdown .p-select-item.active');
+        if (selectedItem && selectedItem.dataset.cycleStatus.toLowerCase() === 'finalized') return;
+      }
       _target = target;
       const c = cfg[target];
       const now = new Date();
@@ -550,13 +579,33 @@ $cycles = $db->query("
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') popover.classList.remove('open'); });
   })();
 
-  function setMCycle(id, label) {
+  function updateCycleEditability(status) {
+    const isFinalized = status.toLowerCase() === 'finalized';
+    const saveButton = document.getElementById('saveCycleDatesBtn');
+    const dateTriggers = document.querySelectorAll('.dtp-trigger');
+
+    dateTriggers.forEach(trigger => {
+      trigger.disabled = isFinalized;
+      trigger.style.opacity = isFinalized ? '0.6' : '';
+      trigger.style.cursor = isFinalized ? 'not-allowed' : '';
+      trigger.title = isFinalized ? 'Finalized assessments cannot change the access window.' : '';
+    });
+    if (saveButton) {
+      saveButton.disabled = isFinalized;
+      saveButton.style.opacity = isFinalized ? '0.6' : '';
+      saveButton.style.cursor = isFinalized ? 'not-allowed' : '';
+      saveButton.title = isFinalized ? 'Finalized assessments cannot change the access window.' : '';
+    }
+  }
+
+  function setMCycle(id, label, status) {
     document.getElementById('ev_cycle_id').value = id;
     document.getElementById('pCycleLabel').textContent = label;
     document.querySelectorAll('#pCycleDropdown .p-select-item').forEach(item => {
-      item.classList.toggle('active', item.getAttribute('onclick').includes(`'${id}'`));
+      item.classList.toggle('active', item.dataset.cycleId === String(id));
     });
     closeAllPSelects();
+    updateCycleEditability(status || '');
     document.getElementById('cycleNotConfigured').style.display = 'none';
     loadEvaluators();
   }
@@ -751,6 +800,11 @@ $cycles = $db->query("
     const et = document.getElementById('ev_end_t').value;
 
     if (!cycleId) { toast('Please select a cycle first.', 'warning'); return; }
+    const selectedItem = document.querySelector('#pCycleDropdown .p-select-item.active');
+    if (selectedItem && selectedItem.dataset.cycleStatus.toLowerCase() === 'finalized') {
+      toast('Finalized assessments cannot change the access window.', 'warning');
+      return;
+    }
     if (!ed || !et) { toast('Access end date and time are required.', 'warning'); return; }
 
     const start = sd && st ? (sd + ' ' + st + ':00') : '';
@@ -889,6 +943,15 @@ $cycles = $db->query("
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    const defaultCycleId = document.getElementById('ev_cycle_id')?.value;
+    if (defaultCycleId) {
+      const defaultItem = document.querySelector(`.p-select-item[data-cycle-id="${defaultCycleId}"]`);
+      if (defaultItem) {
+        const defaultLabel = defaultItem.querySelector('.p-item-title')?.textContent.trim() || document.getElementById('pCycleLabel')?.textContent.trim();
+        setMCycle(defaultCycleId, defaultLabel, defaultItem.dataset.cycleStatus || '');
+      }
+    }
+
     const evZone = document.getElementById('evCsvDropZone');
     const evCard = document.getElementById('evCsvDrop');
     if (evZone) {

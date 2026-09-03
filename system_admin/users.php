@@ -175,6 +175,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     try {
+      $cycleStatus = $db->prepare("SELECT status FROM sbm_cycles WHERE cycle_id=? LIMIT 1");
+      $cycleStatus->execute([$cycleId]);
+      if ($cycleStatus->fetchColumn() === 'finalized') {
+        echo json_encode(['ok' => false, 'msg' => 'Finalized assessments cannot change the access window.']);
+        exit;
+      }
+
       $db->prepare("UPDATE sbm_cycles SET stakeholder_access_start=?, stakeholder_access_end=?, auto_deactivated_at=NULL, auto_deactivated_by=NULL WHERE cycle_id=?")
         ->execute([$start, $end, $cycleId]);
 
@@ -604,8 +611,7 @@ $activeUsers = $db->query("SELECT COUNT(*) FROM users WHERE status='active'")->f
 $inactiveUsersCount = $db->query("SELECT COUNT(*) FROM users WHERE status='inactive'")->fetchColumn();
 $archivedUsersCount = $db->query("SELECT COUNT(*) FROM users WHERE status='archived'")->fetchColumn();
 
-$statusLabels = ['active' => 'Active Accounts', 'inactive' => 'Inactive Accounts', 'archived' => 'Archived Accounts'];
-$pageTitle = $statusLabels[$sf] ?? 'User Management';
+$pageTitle = 'User Management';
 $activePage = 'users.php';
 include __DIR__ . '/../includes/header.php';
 
@@ -618,35 +624,114 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
 ?>
 
 <style>
-  .status-tab{border:1px solid #E2E8F0;background:#fff;color:#64748B;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;transition:all .15s;white-space:nowrap;}
-  .status-tab:hover{background:#F8FAFC;}
-  .status-tab.active{background:#16A34A;border-color:#16A34A;color:#fff;}
 </style>
 
-<!-- Page-level actions (no container) -->
-<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-  <button class="btn btn-primary" onclick="openModal('mCreate')"><?= svgIcon('plus') ?> Add Internal User</button>
+<div class="card" style="box-shadow:none;border:1px solid var(--n-150,#e5e7eb);margin-bottom:16px;">
+  <div style="display:flex;align-items:center;gap:8px;padding:16px 20px;border-bottom:1px solid var(--n-100,#f1f5f9);">
+    <?= svgIcon('plus') ?>
+    <span style="font-size:14px;font-weight:700;color:var(--n-800,#1e293b);">Add User</span>
+  </div>
+  <div style="padding:20px;">
+    <div class="form-row">
+      <div class="fg"><label>Employee ID</label><input class="fc" id="c_empid" placeholder="e.g. 100-456-789"></div>
+      <div class="fg"><label>Full Name *</label><input class="fc" id="c_name" placeholder="Juan dela Cruz"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Email *</label><input class="fc" type="email" id="c_email" placeholder="Enter email"></div>
+      <div class="fg">
+        <label>Department</label>
+        <div class="p-select p-select-fluid" id="pCDeptDropdown">
+          <input type="hidden" id="c_dept">
+          <div class="p-select-trigger" onclick="togglePSelect(event, 'pCDeptDropdown')">
+            <span class="p-select-val" id="pCDeptLabel">Select Department</span>
+            <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
+          </div>
+          <div class="p-select-menu">
+            <div class="p-select-item" data-val="" onclick="setCDept('', '— None —')">
+              <div class="p-item-content"><div class="p-item-title">— None —</div></div>
+              <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+            </div>
+            <?php foreach ($_allDepts as $dname): ?>
+              <div class="p-select-item" data-val="<?= e($dname) ?>" onclick="setCDept('<?= e($dname) ?>', '<?= e($dname) ?>')">
+                <div class="p-item-content"><div class="p-item-title"><?= e($dname) ?></div></div>
+                <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Role *</label>
+        <div class="p-select p-select-fluid" id="pCRoleDropdown">
+          <input type="hidden" id="c_role" value="teacher">
+          <div class="p-select-trigger" onclick="togglePSelect(event, 'pCRoleDropdown')">
+            <span class="p-select-val" id="pCRoleLabel">Teacher</span>
+            <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
+          </div>
+          <div class="p-select-menu">
+            <?php foreach ($_allRoles as $r): ?>
+              <div class="p-select-item <?= $r['slug'] === 'teacher' ? 'active' : '' ?>" data-val="<?= e($r['slug']) ?>"
+                onclick="setCRole('<?= e($r['slug']) ?>', '<?= e($r['label']) ?>')">
+                <div class="p-item-content">
+                  <div class="p-item-title"><?= e($r['label']) ?></div>
+                  <div class="p-item-desc"><?= !empty($r['description']) ? e($r['description']) : ($r['slug'] === 'system_admin' ? 'Total system control' : 'Standard institutional access') ?></div>
+                </div>
+                <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Status</label>
+        <div class="p-select p-select-fluid" id="pCStatusDropdown">
+          <input type="hidden" id="c_status" value="active">
+          <div class="p-select-trigger" onclick="togglePSelect(event, 'pCStatusDropdown')">
+            <span class="p-select-val" id="pCStatusLabel">Active</span>
+            <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
+          </div>
+          <div class="p-select-menu">
+            <?php foreach (['active' => 'Active', 'inactive' => 'Inactive'] as $val => $lbl): ?>
+              <div class="p-select-item <?= $val === 'active' ? 'active' : '' ?>" data-val="<?= $val ?>"
+                onclick="setCStatus('<?= $val ?>', '<?= $lbl ?>')">
+                <div class="p-item-content">
+                  <div class="p-item-title"><?= $lbl ?></div>
+                  <div class="p-item-desc"><?= $val === 'active' ? 'Account can log in' : 'Access is restricted' ?>
+                  </div>
+                </div>
+                <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Username *</label><input class="fc" id="c_user" placeholder="juandelacruz" autocomplete="off"></div>
+      <div class="fg" style="display:flex;align-items:flex-end;justify-content:flex-end;">
+        <button class="btn btn-primary" style="width:160px;" onclick="createUser()"><?= svgIcon('check') ?> Save</button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;margin-top:12px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;font-size:12.5px;color:#166534;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      A password setup link will be sent to the user's email after account creation.
+    </div>
+    <input type="hidden" id="c_school" value="<?= SCHOOL_ID ?>">
+  </div>
 </div>
 
 <div class="card" style="box-shadow:none;border:1px solid var(--n-150,#e5e7eb);">
-  <!-- Table toolbar: search + status filters -->
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;width:100%;padding:16px 20px;border-bottom:1px solid var(--n-100,#f1f5f9);">
+  <!-- Table toolbar: search -->
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;width:100%;padding:16px 20px;border-bottom:1px solid var(--n-100,#f1f5f9);">
     <div class="search" style="flex:0 1 320px;min-width:220px;">
       <span class="si"><?= svgIcon('search') ?></span>
       <input type="text" id="liveSearch" placeholder="Search by name, username or email…"
         value="<?= e($q) ?>" autocomplete="off"
         style="width:100%;">
     </div>
-    <div class="status-filter-tabs" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto;">
-      <button type="button" class="status-tab <?= !$sf ? 'active' : '' ?>" data-status="" onclick="applyStatusFilter('')">All Users (<?= (int)$totalUsers ?>)</button>
-      <button type="button" class="status-tab <?= $sf === 'active' ? 'active' : '' ?>" data-status="active" onclick="applyStatusFilter('active')">Active (<?= (int)$activeUsers ?>)</button>
-      <button type="button" class="status-tab <?= $sf === 'inactive' ? 'active' : '' ?>" data-status="inactive" onclick="applyStatusFilter('inactive')">Inactive (<?= (int)$inactiveUsersCount ?>)</button>
-      <button type="button" class="status-tab <?= $sf === 'archived' ? 'active' : '' ?>" data-status="archived" onclick="applyStatusFilter('archived')">Archived (<?= (int)$archivedUsersCount ?>)</button>
-    </div>
   </div>
-</div>
-
-<div class="card" style="box-shadow:none;border:1px solid var(--n-150,#e5e7eb);margin-top:16px;">
   <?php if (!$users): ?>
     <div class="empty-state">
       <div class="empty-icon"><?= svgIcon('users') ?></div>
@@ -1404,100 +1489,6 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
   }
 </style>
 
-<!-- Create Modal -->
-<div class="overlay" id="mCreate">
-  <div class="modal">
-    <div class="modal-head"><span class="modal-title">Create New User</span><button class="modal-close"
-        onclick="closeModal('mCreate')"><?= svgIcon('x') ?></button></div>
-    <div class="modal-body">
-      <div class="form-row">
-        <div class="fg"><label>Employee ID</label><input class="fc" id="c_empid" placeholder="e.g. 100-456-789"></div>
-        <div class="fg"><label>Full Name *</label><input class="fc" id="c_name" placeholder="Juan dela Cruz"></div>
-      </div>
-      <div class="fg"><label>Email *</label><input class="fc" type="email" id="c_email" placeholder="Enter email"></div>
-      <div class="fg">
-        <label>Department</label>
-        <div class="p-select p-select-fluid" id="pCDeptDropdown">
-          <input type="hidden" id="c_dept">
-          <div class="p-select-trigger" onclick="togglePSelect(event, 'pCDeptDropdown')">
-            <span class="p-select-val" id="pCDeptLabel">Select Department</span>
-            <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
-          </div>
-          <div class="p-select-menu">
-            <div class="p-select-item" data-val="" onclick="setCDept('', '— None —')">
-              <div class="p-item-content"><div class="p-item-title">— None —</div></div>
-              <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
-            </div>
-            <?php foreach ($_allDepts as $dname): ?>
-              <div class="p-select-item" data-val="<?= e($dname) ?>" onclick="setCDept('<?= e($dname) ?>', '<?= e($dname) ?>')">
-                <div class="p-item-content"><div class="p-item-title"><?= e($dname) ?></div></div>
-                <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
-              </div>
-            <?php endforeach; ?>
-          </div>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="fg">
-          <label>Role *</label>
-          <div class="p-select p-select-fluid" id="pCRoleDropdown">
-            <input type="hidden" id="c_role" value="teacher">
-            <div class="p-select-trigger" onclick="togglePSelect(event, 'pCRoleDropdown')">
-              <span class="p-select-val" id="pCRoleLabel">Teacher</span>
-              <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
-            </div>
-            <div class="p-select-menu">
-              <?php foreach ($_allRoles as $r): ?>
-                <div class="p-select-item <?= $r['slug'] === 'teacher' ? 'active' : '' ?>" data-val="<?= e($r['slug']) ?>"
-                  onclick="setCRole('<?= e($r['slug']) ?>', '<?= e($r['label']) ?>')">
-                  <div class="p-item-content">
-                    <div class="p-item-title"><?= e($r['label']) ?></div>
-                    <div class="p-item-desc"><?= !empty($r['description']) ? e($r['description']) : ($r['slug'] === 'system_admin' ? 'Total system control' : 'Standard institutional access') ?></div>
-                  </div>
-                  <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
-                </div>
-              <?php endforeach; ?>
-            </div>
-          </div>
-        </div>
-        <div class="fg">
-          <label>Status</label>
-          <div class="p-select p-select-fluid" id="pCStatusDropdown">
-            <input type="hidden" id="c_status" value="active">
-            <div class="p-select-trigger" onclick="togglePSelect(event, 'pCStatusDropdown')">
-              <span class="p-select-val" id="pCStatusLabel">Active</span>
-              <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
-            </div>
-            <div class="p-select-menu">
-              <?php foreach (['active' => 'Active', 'inactive' => 'Inactive'] as $val => $lbl): ?>
-                <div class="p-select-item <?= $val === 'active' ? 'active' : '' ?>" data-val="<?= $val ?>"
-                  onclick="setCStatus('<?= $val ?>', '<?= $lbl ?>')">
-                  <div class="p-item-content">
-                    <div class="p-item-title"><?= $lbl ?></div>
-                    <div class="p-item-desc"><?= $val === 'active' ? 'Account can log in' : 'Access is restricted' ?>
-                    </div>
-                  </div>
-                  <div class="p-item-check"><?= svgIcon('check', '', 'width:16px;height:16px;') ?></div>
-                </div>
-              <?php endforeach; ?>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="fg"><label>Username *</label><input class="fc" id="c_user" placeholder="juandelacruz" autocomplete="off"></div>
-      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;font-size:12.5px;color:#166534;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        A password setup link will be sent to the user's email after account creation.
-      </div>
-      <input type="hidden" id="c_school" value="<?= SCHOOL_ID ?>">
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-secondary" onclick="closeModal('mCreate')">Cancel</button>
-      <button class="btn btn-primary" onclick="createUser()">Create User</button>
-    </div>
-  </div>
-</div>
-
 <!-- Edit Modal -->
 <div class="overlay" id="mEdit">
   <div class="modal">
@@ -1604,7 +1595,7 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
     const d = { action: 'create', full_name: $('c_name'), username: $('c_user'), email: $('c_email'), role: $('c_role'), status: $('c_status'), school_id: $('c_school'), employee_id: $('c_empid'), department: $('c_dept') };
     const r = await apiPost('users.php', d);
     toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) { closeModal('mCreate');['c_name', 'c_user', 'c_email', 'c_empid', 'c_dept'].forEach(id => $v(id, '')); setTimeout(() => location.reload(), 800); }
+    if (r.ok) { ['c_name', 'c_user', 'c_email', 'c_empid', 'c_dept'].forEach(id => $v(id, '')); setTimeout(() => location.reload(), 800); }
   }
   async function editUser(id) {
     const r = await apiPost('users.php', { action: 'get', id });
@@ -1798,18 +1789,8 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
         const newTitle = doc.querySelector('.card-title');
         const oldTitle = document.querySelector('.card-title');
         if (newTitle && oldTitle) oldTitle.innerHTML = newTitle.innerHTML;
-        const newTabs = doc.querySelector('.status-filter-tabs');
-        const oldTabs = document.querySelector('.status-filter-tabs');
-        if (newTabs && oldTabs) oldTabs.outerHTML = newTabs.outerHTML;
         history.replaceState(null, '', url.toString());
       });
-  }
-
-  function applyStatusFilter(status) {
-    const url = new URL(window.location.href);
-    if (status) url.searchParams.set('status', status);
-    else url.searchParams.delete('status');
-    fetchAndSwap(url);
   }
 
   (function () {
@@ -1883,7 +1864,6 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
   }
 
   window.addEventListener('DOMContentLoaded', () => {
-    if (new URLSearchParams(window.location.search).get('action') === 'create') openModal('mCreate');
   });
   document.addEventListener('click', event => {
     if (!event.target.closest('.row-menu')) closeRowMenus();
