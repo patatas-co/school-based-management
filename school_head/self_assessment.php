@@ -603,8 +603,10 @@ foreach ($indicators as $ind)
 
 $ratingLabels = [1 => 'Not yet Manifested', 2 => 'Rarely Manifested', 3 => 'Frequently Manifested', 4 => 'Always manifested'];
 $ratingColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A'];
+$ratingBgs = [1 => '#FEE2E2', 2 => '#FEF3C7', 3 => '#DBEAFE', 4 => '#DCFCE7'];
 
 $isLocked = $cycle && in_array($cycle['status'], ['submitted', 'validated', 'finalized']);
+$isFinalized = $cycle && $cycle['status'] === 'finalized';
 $isCoordinator = ($_SESSION['role'] === 'sbm_coordinator');
 // Coordinator is always effectively locked (view-only)
 $canEdit = !$isLocked && !$isCoordinator;
@@ -719,6 +721,27 @@ if ($cycle) {
   }
 }
 
+// Evidence attachments per indicator (for finalized report view)
+$attachByIndicator = [];
+if ($cycle) {
+  try {
+    $attStmt = $db->prepare("
+            SELECT ra.attachment_id, ra.indicator_id, ra.original_name, ra.mime_type, ra.file_size
+            FROM response_attachments ra
+            WHERE ra.cycle_id = ?
+              AND ra.deleted_at IS NULL
+              AND ra.is_current_version = 1
+            ORDER BY ra.uploaded_at ASC
+        ");
+    $attStmt->execute([$cycle['cycle_id']]);
+    foreach ($attStmt->fetchAll() as $att) {
+      $attachByIndicator[$att['indicator_id']][] = $att;
+    }
+  } catch (Exception $e) {
+    // response_attachments table may not exist yet — safe to ignore
+  }
+}
+
 $pageTitle = $isCoordinator ? 'Intervention Matrix' : 'SBM Self-Assessment';
 $activePage = 'self_assessment.php';
 
@@ -790,6 +813,84 @@ include __DIR__ . '/../includes/header.php';
     margin-bottom: 0;
     padding-top: 0;
     overflow: hidden;
+  }
+
+  .ind-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .ind-table th {
+    background: var(--n50);
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--n500);
+    border-bottom: 1px solid var(--n200);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+
+  .ind-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--n100);
+    vertical-align: top;
+  }
+
+  .ind-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .ind-table tr:hover td {
+    background: var(--n50);
+  }
+
+  .rating-pill {
+    display: inline-flex;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .report-ev-file {
+    display: block;
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11.5px;
+    text-decoration: none;
+  }
+
+  .report-ev-more {
+    margin-top: 3px;
+  }
+
+  .report-ev-more summary {
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--n400);
+    list-style: none;
+  }
+
+  .report-ev-more summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .report-ev-more summary:hover {
+    color: var(--n600);
+  }
+
+  .report-ev-more-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 4px;
   }
 
   .dim-tabs-row {
@@ -956,6 +1057,69 @@ include __DIR__ . '/../includes/header.php';
     background: #DCFCE7;
     border-color: #16A34A;
     color: #16A34A;
+  }
+
+  /* ── Finalized report-style rating display ─────────────── */
+  .report-rating-row {
+    margin-bottom: 4px;
+  }
+
+  .ind-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .ind-table th {
+    background: var(--n50);
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--n500);
+    border-bottom: 1px solid var(--n200);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+
+  .ind-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--n100);
+    vertical-align: top;
+  }
+
+  .ind-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .ind-table tr:hover td {
+    background: var(--n50);
+  }
+
+  .rating-pill {
+    display: inline-flex;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .report-rating-badge {
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+
+  .report-rating-badge.report-rating-none {
+    color: var(--n400);
+    font-weight: 600;
+  }
+
+  .report-evidence-text {
+    font-size: 12px;
+    color: var(--n500);
+    line-height: 1.5;
+    margin-top: 2px;
   }
 
   /* ══════════════════════════════════════════════════════
@@ -1633,7 +1797,14 @@ foreach ($grouped as $dimNo => $inds) {
   </div>
 </div>
 
-<?php if ($isLocked): ?>
+<?php if ($isFinalized): ?>
+  <div class="alert alert-info" style="margin-bottom:16px;">
+    <?= svgIcon('info') ?> This assessment has been <strong>finalized</strong><?php if ($cycle['submitted_at']): ?> on
+      <?= date('M d, Y', strtotime($cycle['submitted_at'])) ?><?php endif; ?><?php if ($cycle['overall_score']): ?>
+      &nbsp;·&nbsp; Overall Score: <strong><?= $cycle['overall_score'] ?>%</strong>
+      (<?= e($cycle['maturity_level']) ?>)<?php endif; ?>. Responses are read-only.
+  </div>
+<?php elseif ($isLocked): ?>
   <div class="alert alert-info" style="margin-bottom:16px;">
     <?= svgIcon('info') ?> This assessment has been <strong><?= e($cycle['status']) ?></strong>. Responses are read-only.
   </div>
@@ -1748,7 +1919,8 @@ foreach ($grouped as $dimNo => $inds) {
             Clear Dim
           </button>
         <?php endif; ?>
-        <span class="dim-chevron" id="dimChevron<?= $dimNo ?>">▾</span>
+        <span class="dim-chevron" id="dimChevron<?= $dimNo ?>"
+          style="<?= $isFinalized ? 'opacity:.45;' : '' ?>">▾</span>
       </div><!-- /.dim-header -->
 
       <div class="dim-body" id="dimBody<?= $dimNo ?>">
@@ -1758,6 +1930,99 @@ foreach ($grouped as $dimNo => $inds) {
           No indicators match the current filter in this dimension.
         </div>
 
+        <?php if ($isFinalized): ?>
+          <div class="tbl-wrap">
+            <table class="ind-table">
+              <thead>
+                <tr>
+                  <th style="width:70px;">Code</th>
+                  <th>Indicator</th>
+                  <th style="width:180px;">MOV Guide</th>
+                  <th style="width:190px;">Rating</th>
+                  <th>Evidence</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($inds as $ind): ?>
+                  <?php
+                  $isTeacherCardR = isTeacherHandled($ind['indicator_code'] ?? '');
+                  $trDataR = $teacherData[$ind['indicator_id']] ?? null;
+                  $respR = $responses[$ind['indicator_id']] ?? null;
+
+                  if ($isTeacherCardR) {
+                    $ratingR = ($trDataR && (int) $trDataR['teacher_count'] > 0) ? (int) round((float) $trDataR['avg_rating']) : null;
+                    $evidenceR = ($trDataR && (int) $trDataR['teacher_count'] > 0)
+                      ? (int) $trDataR['teacher_count'] . ' teacher response(s) — avg ' . $trDataR['avg_rating'] . '/4.00'
+                      : 'No teacher input recorded.';
+                  } else {
+                    $ratingR = $respR['rating'] ?? null;
+                    $evidenceR = (!empty($respR['evidence_text'])) ? $respR['evidence_text'] : '—';
+                  }
+                  ?>
+                  <tr>
+                    <td><span style="font-family:monospace;font-size:11.5px;font-weight:700;color:var(--n500);">
+                        <?= e($ind['indicator_code']) ?>
+                      </span></td>
+                    <td style="font-size:12.5px;line-height:1.55;color:var(--n900);">
+                      <?= e($ind['indicator_text']) ?>
+                    </td>
+                    <td style="font-size:11.5px;color:var(--n400);font-style:italic;line-height:1.4;">
+                      <?= e($ind['mov_guide'] ?? '—') ?>
+                    </td>
+                    <td>
+                      <?php if ($ratingR): ?>
+                        <span class="rating-pill"
+                          style="background:<?= $ratingBgs[$ratingR] ?>;color:<?= $ratingColors[$ratingR] ?>;">
+                          <?= $ratingR ?> — <?= $ratingLabels[$ratingR] ?>
+                        </span>
+                      <?php else: ?>
+                        <span style="font-size:11.5px;color:var(--n300);font-weight:600;">Not rated</span>
+                      <?php endif; ?>
+                    </td>
+                    <td style="font-size:12px;color:var(--n600);max-width:210px;">
+                      <?php
+                      $indAttachments = $attachByIndicator[$ind['indicator_id']] ?? [];
+                      $visibleFiles = array_slice($indAttachments, 0, 2);
+                      $hiddenFiles = array_slice($indAttachments, 2);
+                      $hasEvidenceText = $evidenceR !== '—';
+                      ?>
+                      <?php if ($hasEvidenceText || !$indAttachments): ?>
+                        <?= e($evidenceR) ?>
+                      <?php endif; ?>
+                      <?php if ($visibleFiles): ?>
+                        <div style="display:flex;flex-direction:column;gap:3px;<?= $evidenceR !== '—' ? 'margin-top:6px;' : '' ?>">
+                          <?php foreach ($visibleFiles as $file): ?>
+                            <a href="javascript:void(0)" class="report-ev-file" title="<?= e($file['original_name']) ?>"
+                              onclick="openEvPreview('../includes/serve_attachment.php?id=<?= (int) $file['attachment_id'] ?>','<?= e(addslashes($file['original_name'])) ?>','<?= e($file['mime_type']) ?>')"
+                              style="color:var(--brand-700, #2563EB);">
+                              📎 <?= e($file['original_name']) ?>
+                            </a>
+                          <?php endforeach; ?>
+
+                          <?php if ($hiddenFiles): ?>
+                            <details class="report-ev-more">
+                              <summary>+<?= count($hiddenFiles) ?> more</summary>
+                              <div class="report-ev-more-list">
+                                <?php foreach ($hiddenFiles as $file): ?>
+                                  <a href="javascript:void(0)" class="report-ev-file"
+                                    title="<?= e($file['original_name']) ?>"
+                                    onclick="openEvPreview('../includes/serve_attachment.php?id=<?= (int) $file['attachment_id'] ?>','<?= e(addslashes($file['original_name'])) ?>','<?= e($file['mime_type']) ?>')"
+                                    style="color:var(--brand-700, #2563EB);">
+                                    📎 <?= e($file['original_name']) ?>
+                                  </a>
+                                <?php endforeach; ?>
+                              </div>
+                            </details>
+                          <?php endif; ?>
+                        </div>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php else: ?>
         <?php foreach ($inds as $ind): ?>
           <?php
           $resp = $responses[$ind['indicator_id']] ?? null;
@@ -1843,23 +2108,40 @@ foreach ($grouped as $dimNo => $inds) {
             </div>
 
             <?php if (!$isTeacherCard): ?>
-              <!-- SCHOOL HEAD RATING -->
-              <div class="rating-group" id="ratingGroup<?= $ind['indicator_id'] ?>">
-                <?php foreach ([1, 2, 3, 4] as $r): ?>
-                  <button <?= !$canEdit ? 'disabled' : '' ?> type="button"
-                    class="rating-btn <?= $resp && $resp['rating'] == $r ? 'selected-' . $r : '' ?>"
-                    data-ind="<?= $ind['indicator_id'] ?>" data-rating="<?= $r ?>"
-                    onclick="selectRating(<?= $ind['indicator_id'] ?>,<?= $r ?>)">
-                    <?= $r ?> — <?= $ratingLabels[$r] ?>
-                  </button>
-                <?php endforeach; ?>
-              </div>
+              <?php if ($isFinalized): ?>
+                <!-- FINALIZED: static read-only rating -->
+                <div class="report-rating-row">
+                  <?php if ($resp && $resp['rating']): ?>
+                    <span class="report-rating-badge" style="color:<?= $ratingColors[(int) $resp['rating']] ?>;">
+                      <?= (int) $resp['rating'] ?> — <?= $ratingLabels[(int) $resp['rating']] ?>
+                    </span>
+                  <?php else: ?>
+                    <span class="report-rating-badge report-rating-none">Not rated</span>
+                  <?php endif; ?>
+                </div>
 
-              <textarea class="fc" id="evidence<?= $ind['indicator_id'] ?>" rows="2"
-                placeholder="Describe evidence or attach MOV reference…" <?= !$canEdit ? 'disabled' : '' ?>
-                onblur="saveResponse(<?= $ind['indicator_id'] ?>)"><?= e($resp['evidence_text'] ?? '') ?></textarea>
-              <div id="attachWidget_<?= $ind['indicator_id'] ?>"></div>
+                <?php if (!empty($resp['evidence_text'])): ?>
+                  <div class="report-evidence-text"><?= nl2br(e($resp['evidence_text'])) ?></div>
+                <?php endif; ?>
 
+              <?php else: ?>
+                <!-- SCHOOL HEAD RATING -->
+                <div class="rating-group" id="ratingGroup<?= $ind['indicator_id'] ?>">
+                  <?php foreach ([1, 2, 3, 4] as $r): ?>
+                    <button <?= !$canEdit ? 'disabled' : '' ?> type="button"
+                      class="rating-btn <?= $resp && $resp['rating'] == $r ? 'selected-' . $r : '' ?>"
+                      data-ind="<?= $ind['indicator_id'] ?>" data-rating="<?= $r ?>"
+                      onclick="selectRating(<?= $ind['indicator_id'] ?>,<?= $r ?>)">
+                      <?= $r ?> — <?= $ratingLabels[$r] ?>
+                    </button>
+                  <?php endforeach; ?>
+                </div>
+
+                <textarea class="fc" id="evidence<?= $ind['indicator_id'] ?>" rows="2"
+                  placeholder="Describe evidence or attach MOV reference…" <?= !$canEdit ? 'disabled' : '' ?>
+                  onblur="saveResponse(<?= $ind['indicator_id'] ?>)"><?= e($resp['evidence_text'] ?? '') ?></textarea>
+                <div id="attachWidget_<?= $ind['indicator_id'] ?>"></div>
+              <?php endif; ?>
             <?php endif; ?>
 
             <?php
@@ -1902,6 +2184,7 @@ foreach ($grouped as $dimNo => $inds) {
           </div><!-- /.indicator-row -->
 
         <?php endforeach; ?>
+        <?php endif; // end $isFinalized table / card branch ?>
       </div><!-- /.dim-body -->
 
       <div class="dim-seq-nav-wrap">
@@ -2459,5 +2742,85 @@ foreach ($grouped as $dimNo => $inds) {
 </div>
 
 <?php endif; // end non-coordinator (school head) view ?>
+
+<?php if ($isFinalized): ?>
+<!-- Evidence preview modal (finalized report view) -->
+<div id="evPreviewModal" onclick="if(event.target===this)closeEvPreview()"
+  style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);padding:20px;box-sizing:border-box;">
+  <div style="background:#fff;border-radius:14px;width:100%;max-width:900px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.35);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--n100);flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;overflow:hidden;">
+        <span id="evPreviewIcon" style="font-size:20px;flex-shrink:0;"></span>
+        <span id="evPreviewName"
+          style="font-size:14px;font-weight:700;color:var(--n900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:600px;"></span>
+      </div>
+      <button onclick="closeEvPreview()"
+        style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;border:1px solid var(--n200);background:var(--n50);cursor:pointer;color:var(--n600);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+          style="width:14px;height:14px;">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+    <div id="evPreviewBody"
+      style="flex:1;overflow:auto;background:var(--n50);display:flex;align-items:center;justify-content:center;min-height:400px;">
+    </div>
+  </div>
+</div>
+
+<script>
+  function openEvPreview(url, name, mime) {
+    document.getElementById('evPreviewName').textContent = name;
+    document.getElementById('evPreviewIcon').textContent = mimeToIcon(mime);
+    const body = document.getElementById('evPreviewBody');
+    body.innerHTML = '';
+    if (mime.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.cssText = 'max-width:100%;max-height:75vh;object-fit:contain;border-radius:6px;';
+      body.appendChild(img);
+    } else if (mime === 'application/pdf') {
+      const iframe = document.createElement('iframe');
+      iframe.src = url;
+      iframe.style.cssText = 'width:100%;height:75vh;border:none;';
+      body.appendChild(iframe);
+    } else {
+      body.innerHTML = `
+        <div style="text-align:center;padding:48px 24px;">
+          <div style="font-size:48px;margin-bottom:12px;">${mimeToIcon(mime)}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--n800);margin-bottom:6px;">${name}</div>
+          <div style="font-size:13px;color:var(--n400);margin-bottom:20px;">This file type cannot be previewed in the browser.</div>
+          <a href="${url}" download="${name}"
+            style="display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:8px;background:var(--teal);color:#fff;font-size:13px;font-weight:600;text-decoration:none;">
+            Download to view
+          </a>
+        </div>`;
+    }
+    const modal = document.getElementById('evPreviewModal');
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeEvPreview() {
+    document.getElementById('evPreviewModal').style.display = 'none';
+    document.getElementById('evPreviewBody').innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  function mimeToIcon(mime) {
+    if (mime.startsWith('image/')) return '🖼️';
+    if (mime === 'application/pdf') return '📄';
+    if (mime.includes('word')) return '📝';
+    if (mime.includes('sheet') || mime.includes('excel')) return '📊';
+    if (mime.includes('presentation') || mime.includes('powerpoint')) return '📊';
+    return '📎';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEvPreview(); });
+</script>
+<?php endif; ?>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

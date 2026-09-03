@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 19, 2026 at 09:12 AM
+-- Generation Time: Sep 03, 2026 at 04:50 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -1693,7 +1693,24 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (1712, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-19 07:06:04'),
 (1713, 37, 'submit_assessment', 'self_assessment', 'Submitted SBM assessment cycle 30', '::1', '2026-08-19 07:06:20'),
 (1714, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-19 07:10:45'),
-(1715, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-19 07:11:01');
+(1715, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-19 07:11:01'),
+(1716, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-19 08:37:38'),
+(1717, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-19 08:37:49'),
+(1718, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-19 08:41:18'),
+(1719, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-19 08:46:49'),
+(1720, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-24 13:24:58'),
+(1721, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-26 21:09:31'),
+(1722, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-27 03:45:27'),
+(1723, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-27 03:47:00'),
+(1724, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-27 03:52:41'),
+(1725, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-27 03:53:01'),
+(1726, 74, 'login', 'auth', 'User logged in', '::1', '2026-08-27 03:54:07'),
+(1727, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-27 04:01:33'),
+(1728, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-27 06:05:15'),
+(1729, 15, 'login', 'auth', 'User logged in', '::1', '2026-08-27 06:10:03'),
+(1730, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-27 06:12:36'),
+(1731, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-27 06:12:42'),
+(1732, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-03 14:41:28');
 
 -- --------------------------------------------------------
 
@@ -3519,10 +3536,10 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `r
 (12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, 'English', '2026-08-19 14:47:21', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
 (13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-08-19 14:47:58', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
 (14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-08-19 14:48:42', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-19 14:45:35', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-08-19 15:11:01', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg', NULL, NULL, NULL),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-19 15:10:45', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL, NULL, NULL, NULL),
-(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-08-19 15:05:58', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-27 14:10:03', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-08-27 14:12:36', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg', NULL, NULL, NULL),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-27 14:12:42', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL, NULL, NULL, NULL),
+(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-09-03 22:41:28', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
 (79, 'josejose', NULL, 'josesaint975@gmail.com', 'Jose Bethlehem', NULL, 'pending', 1, '100-456-789', 'Filipino', NULL, '2026-08-17 08:37:29', 0, NULL, NULL, NULL, 1, NULL, 'uploads/avatars/avatar_79_1786955849.jpg', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
@@ -3992,7 +4009,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1716;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1733;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`
