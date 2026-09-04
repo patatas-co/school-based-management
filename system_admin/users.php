@@ -785,16 +785,12 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
                 <?php endif; ?>
               </td>
               <td>
-                <span
-                  style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:<?= $rc ?>18;color:<?= $rc ?>;border:1px solid <?= $rc ?>30;">
+                <span style="font-size:12px;font-weight:500;color:var(--n-600,#475569);">
                   <?= e($rl) ?>
                 </span>
               </td>
               <td>
-                <?php $statColors = ['active' => ['#DCFCE7', '#16A34A'], 'inactive' => ['var(--n-100)', 'var(--n-500)'], 'archived' => ['#FEF3C7', '#D97706'], 'suspended' => ['var(--red-bg)', 'var(--red)'], 'pending' => ['#FEF9C3', '#CA8A04'], 'rejected' => ['var(--red-bg)', 'var(--red)']];
-                [$sb, $sc] = $statColors[$u['status']] ?? ['var(--n-100)', 'var(--n-500)']; ?>
-                <span class="user-status-pill"
-                  style="display:inline-flex;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:<?= $sb ?>;color:<?= $sc ?>;"><?= ucfirst($u['status']) ?></span>
+                <span class="user-status-pill" style="font-size:12px;font-weight:500;color:var(--n-600,#475569);"><?= ucfirst($u['status']) ?></span>
               </td>
               <td>
                 <div class="user-row-actions">

@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     exit;
   }
-  if ($_POST['action'] === 'delete_sy') {
+  if ($_POST['action'] === 'archive_sy') {
     $id = (int) ($_POST['id'] ?? 0);
     if (!$id) {
       echo json_encode(['ok' => false, 'msg' => 'Invalid ID.']);
@@ -90,17 +90,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       exit;
     }
     if ((int) $row['is_current'] === 1) {
-      echo json_encode(['ok' => false, 'msg' => 'Cannot delete the current active school year.']);
+      echo json_encode(['ok' => false, 'msg' => 'Cannot archive the current active school year.']);
       exit;
     }
-    try {
-      $db->prepare("DELETE FROM school_years WHERE sy_id = ?")->execute([$id]);
-      echo json_encode(['ok' => true, 'msg' => 'School year deleted.']);
-      exit;
-    } catch (\PDOException $e) {
-      echo json_encode(['ok' => false, 'msg' => 'Cannot delete: this school year has linked assessment data.']);
+    $db->prepare("UPDATE school_years SET is_archived = 1 WHERE sy_id = ?")->execute([$id]);
+    echo json_encode(['ok' => true, 'msg' => 'School year archived.']);
+    exit;
+  }
+  if ($_POST['action'] === 'unarchive_sy') {
+    $id = (int) ($_POST['id'] ?? 0);
+    if (!$id) {
+      echo json_encode(['ok' => false, 'msg' => 'Invalid ID.']);
       exit;
     }
+    $db->prepare("UPDATE school_years SET is_archived = 0 WHERE sy_id = ?")->execute([$id]);
+    echo json_encode(['ok' => true, 'msg' => 'School year restored.']);
+    exit;
   }
   if ($_POST['action'] === 'save_maturity') {
     $bands = $_POST['bands'] ?? [];
@@ -160,7 +165,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   exit;
 }
 
-$syears = $db->query("SELECT * FROM school_years ORDER BY sy_id DESC")->fetchAll();
+$syears = $db->query("SELECT * FROM school_years WHERE is_archived = 0 ORDER BY sy_id DESC")->fetchAll();
+$archivedSyears = $db->query("SELECT * FROM school_years WHERE is_archived = 1 ORDER BY sy_id DESC")->fetchAll();
 
 // Load saved maturity bands (fall back to DepEd defaults if not yet configured)
 $maturityRow = $db->query("SELECT setting_value FROM system_settings WHERE setting_key='sbm_maturity_bands' LIMIT 1")->fetchColumn();
@@ -271,40 +277,72 @@ include __DIR__ . '/../includes/header.php';
         <div class="settings-section-title">School Years</div>
         <div class="settings-section-desc">Manage assessment periods and set the active year.</div>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="openModal('mSY');resetSY()"
-        style="margin-left:auto;"><?= svgIcon('plus') ?> Add</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+        <button class="btn btn-secondary btn-sm" id="btnToggleArchivedSY" onclick="toggleArchivedSY()">
+          View Archived (<?= count($archivedSyears) ?>)
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('mSY');resetSY()"><?= svgIcon('plus') ?> Add</button>
+      </div>
     </div>
-    <?php foreach ($syears as $sy): ?>
-      <div class="sy-row">
-        <div>
-          <div class="sy-label">
-            <?= e($sy['label']) ?>
-            <?php if ($sy['is_current']): ?><span class="pill pill-active"
-                style="margin-left:6px;font-size:10.5px;">Current</span><?php endif; ?>
+    <div id="syActiveList">
+      <?php foreach ($syears as $sy): ?>
+        <div class="sy-row">
+          <div>
+            <div class="sy-label">
+              <?= e($sy['label']) ?>
+              <?php if ($sy['is_current']): ?><span class="pill pill-active"
+                  style="margin-left:6px;font-size:10.5px;">Current</span><?php endif; ?>
+            </div>
+            <div class="sy-dates">
+              <?= $sy['date_start'] ? date('M d, Y', strtotime($sy['date_start'])) : '—' ?> →
+              <?= $sy['date_end'] ? date('M d, Y', strtotime($sy['date_end'])) : 'Ongoing' ?>
+            </div>
           </div>
-          <div class="sy-dates">
-            <?= $sy['date_start'] ? date('M d, Y', strtotime($sy['date_start'])) : '—' ?> →
-            <?= $sy['date_end'] ? date('M d, Y', strtotime($sy['date_end'])) : 'Ongoing' ?>
-          </div>
-        </div>
-        <div class="sy-actions">
-          <?php if (!(int) $sy['is_current']): ?>
-            <button class="btn btn-primary btn-sm"
-              onclick="setCurrentSY(<?= $sy['sy_id'] ?>,'<?= e(addslashes($sy['label'])) ?>')">
-              <?= svgIcon('check') ?> Set Current
+          <div class="sy-actions">
+            <?php if (!(int) $sy['is_current']): ?>
+              <button class="btn btn-primary btn-sm" title="Set Current"
+                onclick="setCurrentSY(<?= $sy['sy_id'] ?>,'<?= e(addslashes($sy['label'])) ?>')">
+                <?= svgIcon('check') ?>
+              </button>
+            <?php endif; ?>
+            <button class="btn btn-danger btn-sm" title="Archive"
+              onclick="delSY(<?= $sy['sy_id'] ?>,'<?= e(addslashes($sy['label'])) ?>')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
             </button>
-          <?php endif; ?>
-          <button class="btn btn-danger btn-sm"
-            onclick="delSY(<?= $sy['sy_id'] ?>,'<?= e(addslashes($sy['label'])) ?>')"><?= svgIcon('trash') ?></button>
+          </div>
         </div>
-      </div>
-    <?php endforeach; ?>
-    <?php if (!$syears): ?>
-      <div class="empty-state" style="padding:32px;">
-        <div class="empty-title">No school years</div>
-        <div class="empty-sub">Add a school year to enable the assessment cycle.</div>
-      </div>
-    <?php endif; ?>
+      <?php endforeach; ?>
+      <?php if (!$syears): ?>
+        <div class="empty-state" style="padding:32px;">
+          <div class="empty-title">No school years</div>
+          <div class="empty-sub">Add a school year to enable the assessment cycle.</div>
+        </div>
+      <?php endif; ?>
+    </div>
+    <div id="syArchivedList" style="display:none;">
+      <?php foreach ($archivedSyears as $sy): ?>
+        <div class="sy-row">
+          <div>
+            <div class="sy-label"><?= e($sy['label']) ?></div>
+            <div class="sy-dates">
+              <?= $sy['date_start'] ? date('M d, Y', strtotime($sy['date_start'])) : '—' ?> →
+              <?= $sy['date_end'] ? date('M d, Y', strtotime($sy['date_end'])) : 'Ongoing' ?>
+            </div>
+          </div>
+          <div class="sy-actions">
+            <button class="btn btn-secondary btn-sm" title="Restore"
+              onclick="unarchiveSY(<?= $sy['sy_id'] ?>,'<?= e(addslashes($sy['label'])) ?>')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            </button>
+          </div>
+        </div>
+      <?php endforeach; ?>
+      <?php if (!$archivedSyears): ?>
+        <div class="empty-state" style="padding:32px;">
+          <div class="empty-title">No archived school years</div>
+        </div>
+      <?php endif; ?>
+    </div>
   </div>
 
   <!-- Maturity Level Configuration Panel -->
@@ -369,6 +407,40 @@ include __DIR__ . '/../includes/header.php';
           style="font-family:monospace;font-size:13px;"><?= phpversion() ?></span></div>
       <div class="info-row"><span class="info-label">DepEd Order Reference</span><span class="info-value"
           style="font-size:13px;">No. 007, s. 2024</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Archive SY Confirm Modal -->
+<div class="overlay" id="mArchiveSY">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-head">
+      <span class="modal-title">Archive School Year</span>
+      <button class="modal-close" onclick="closeModal('mArchiveSY')"><?= svgIcon('x') ?></button>
+    </div>
+    <div class="modal-body">
+      <p id="archiveSYText" style="font-size:14.5px;color:var(--n700);line-height:1.5;"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mArchiveSY')">Cancel</button>
+      <button class="btn btn-danger" type="button" onclick="confirmArchiveSY()">Yes, Archive</button>
+    </div>
+  </div>
+</div>
+
+<!-- Restore SY Confirm Modal -->
+<div class="overlay" id="mRestoreSY">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-head">
+      <span class="modal-title">Restore School Year</span>
+      <button class="modal-close" onclick="closeModal('mRestoreSY')"><?= svgIcon('x') ?></button>
+    </div>
+    <div class="modal-body">
+      <p id="restoreSYText" style="font-size:14.5px;color:var(--n700);line-height:1.5;"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('mRestoreSY')">Cancel</button>
+      <button class="btn btn-primary" type="button" onclick="confirmRestoreSY()">Yes, Restore</button>
     </div>
   </div>
 </div>
@@ -527,12 +599,44 @@ include __DIR__ . '/../includes/header.php';
     $el('mSYTitle').textContent = 'Edit School Year';
     openModal('mSY');
   }
-  async function delSY(id, label) {
-    if (!confirm(`Delete school year "${label}"?\n\nAll related assessment cycles will also be removed.`)) return;
-    const r = await apiPost('settings.php', { action: 'delete_sy', id });
-    toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) setTimeout(() => location.reload(), 800);
+  function delSY(id, label) {
+    document.getElementById('mArchiveSY').dataset.id = id;
+    document.getElementById('archiveSYText').textContent = `Are you sure you want to archive "${label}"? It will be hidden from the active list, but its data is kept.`;
+    openModal('mArchiveSY');
   }
+  async function confirmArchiveSY() {
+    const id = document.getElementById('mArchiveSY').dataset.id;
+    const r = await apiPost('settings.php', { action: 'archive_sy', id });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) { closeModal('mArchiveSY'); setTimeout(() => location.reload(), 800); }
+  }
+  function unarchiveSY(id, label) {
+    document.getElementById('mRestoreSY').dataset.id = id;
+    document.getElementById('restoreSYText').textContent = `Are you sure you want to restore "${label}" to the active list?`;
+    openModal('mRestoreSY');
+  }
+  async function confirmRestoreSY() {
+    const id = document.getElementById('mRestoreSY').dataset.id;
+    const r = await apiPost('settings.php', { action: 'unarchive_sy', id });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) { closeModal('mRestoreSY'); setTimeout(() => location.reload(), 800); }
+  }
+  function toggleArchivedSY(forceView) {
+    const active = document.getElementById('syActiveList');
+    const archived = document.getElementById('syArchivedList');
+    const btn = document.getElementById('btnToggleArchivedSY');
+    const showingArchived = forceView ? forceView !== 'archived' : archived.style.display !== 'none';
+    active.style.display = showingArchived ? '' : 'none';
+    archived.style.display = showingArchived ? 'none' : '';
+    btn.textContent = showingArchived ? btn.dataset.viewLabel : 'Back to Active';
+    sessionStorage.setItem('sy_view', showingArchived ? 'active' : 'archived');
+  }
+  (function () {
+    const btn = document.getElementById('btnToggleArchivedSY');
+    if (!btn) return;
+    btn.dataset.viewLabel = btn.textContent.trim();
+    if (sessionStorage.getItem('sy_view') === 'archived') toggleArchivedSY('active');
+  })();
   function setCurrentSY(id, label) {
     document.getElementById('mSetCurrentSY').dataset.id = id;
     document.getElementById('setCurrentSYText').textContent = `Set "${label}" as the current school year?`;

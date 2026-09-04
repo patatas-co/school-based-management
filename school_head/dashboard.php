@@ -2470,14 +2470,6 @@ include __DIR__ . '/../includes/header.php';
   <div class="db-hero-right" style="align-items:center;"></div><!-- /db-hero-right -->
 </div><!-- /db-hero -->
 
-<!-- ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  VIEW TOGGLE ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  -->
-<div class="view-toggle-wrap">
-  <div class="view-toggle">
-    <button class="vt-btn active" onclick="switchView('progress', this)">Progress</button>
-    <button class="vt-btn" onclick="switchView('analytics', this)">Analytics</button>
-  </div>
-</div>
-
 <!-- ━━━━━━━━━━━ PROGRESS VIEW ━━━━━━━━━━━ -->
 <div id="viewProgress" style="">
 
@@ -2516,36 +2508,6 @@ include __DIR__ . '/../includes/header.php';
         style="margin-left:auto;font-weight:700;color:var(--amber);white-space:nowrap;">View Assessments</a>
     </div>
   <?php endif; ?>
-
-  <!-- ━━━━━━━━━━━ PIPELINE ━━━━━━━━━━━ -->
-  <div class="card" style="margin-bottom:20px;">
-    <div class="card-head">
-      <span class="card-title">Assessment Pipeline</span>
-      <a href="assessment.php" class="btn btn-ghost btn-sm">View all </a>
-    </div>
-    <div class="card-body" style="padding:8px 0;">
-      <div class="pipeline">
-        <div class="pipeline-step">
-          <div class="pipeline-val" style="color:var(--n-500);"><?= $inProgress ?></div>
-          <div class="pipeline-lbl">In Progress</div>
-        </div>
-        <div class="pipeline-step">
-          <div class="pipeline-val" style="color:var(--amber);"><?= $submitted - $validated ?></div>
-          <div class="pipeline-lbl">Pending Review</div>
-        </div>
-        <div class="pipeline-step">
-          <div class="pipeline-val" style="color:var(--n-800);"><?= $validated ?></div>
-          <div class="pipeline-lbl">Validated</div>
-        </div>
-        <?php if ($returned > 0): ?>
-          <div class="pipeline-step">
-            <div class="pipeline-val" style="color:var(--red);"><?= $returned ?></div>
-            <div class="pipeline-lbl">Returned</div>
-          </div>
-        <?php endif; ?>
-      </div>
-    </div>
-  </div>
 
   <?php $anCompareView = $_GET['view'] ?? 'progress'; ?>
 <!-- ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  MAIN GRID ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  -->
@@ -2776,18 +2738,20 @@ include __DIR__ . '/../includes/header.php';
     </div>
   <?php endif; ?>
 
+  <!-- Persistent tab bar (stays visible across all tab panels) -->
+  <div class="an-tab-btns" style="margin-bottom:12px;">
+    <button class="an-tab-btn active" onclick="anSwitchTab(this,'anTabHistory')">Cycle History</button>
+    <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabWeak')">Weak This Cycle</button>
+    <?php if (!empty($compareSyIds) && !empty($anDimAvgsCompareList)): ?>
+      <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabCompare')">Side-by-Side</button>
+    <?php endif; ?>
+  </div>
+
   <!-- TAB: Cycle History -->
   <div class="an-tab-panel active" id="anTabHistory">
     <div class="card" style="margin-bottom:18px;">
-      <div class="card-head" style="justify-content:space-between;">
+      <div class="card-head">
         <span class="card-title">Assessment History</span>
-        <div class="an-tab-btns" style="margin-bottom:0;">
-          <button class="an-tab-btn active" onclick="anSwitchTab(this,'anTabHistory')">Cycle History</button>
-          <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabWeak')">Weak This Cycle</button>
-          <?php if (!empty($compareSyIds) && !empty($anDimAvgsCompareList)): ?>
-            <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabCompare')">Side-by-Side</button>
-          <?php endif; ?>
-        </div>
       </div>
       <?php if ($cycleHistory): ?>
         <div class="tbl-wrap">
@@ -2972,102 +2936,6 @@ include __DIR__ . '/../includes/header.php';
 
 
 </div><!-- /viewProgress -->
-
-<!-- ━━━━━━━━━━━ ANALYTICS VIEW ━━━━━━━━━━━ -->
-<div id="viewAnalytics" style="display:none;">
-
-  <!-- KPI insight strip — Primary -->
-  <div class="an-insight-strip">
-    <div class="an-insight-card">
-      <div class="an-insight-val"
-        style="color:<?= $anAvgOverall !== null ? ($anAvgOverall >= 76 ? '#16A34A' : ($anAvgOverall >= 51 ? '#2563EB' : ($anAvgOverall >= 26 ? '#D97706' : '#DC2626'))) : 'var(--n-400)' ?>;">
-        <?= $anAvgOverall !== null ? $anAvgOverall . '%' : '—' ?>
-      </div>
-      <div class="an-insight-lbl">Overall SBM Score</div>
-      <?php if ($scoreDelta !== null): ?>
-        <div class="an-insight-delta <?= $scoreDelta > 0 ? 'up' : ($scoreDelta < 0 ? 'down' : 'flat') ?>">
-          <?= $scoreDelta > 0 ? '▲ +' : '▼ ' ?>   <?= abs($scoreDelta) ?>% vs prev cycle
-        </div>
-      <?php endif; ?>
-    </div>
-
-    <div class="an-insight-card">
-      <?php
-      // Use dynamic maturity based on the calculated overall score to ensure consistency
-      $curMaturity = $anAvgOverall !== null ? computeMaturity($anAvgOverall) : ($currCycle['maturity_level'] ?? null);
-      $anMatColors = ['Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A', 'Advanced (Accredited)' => '#16A34A'];
-      ?>
-      <div class="an-insight-val" style="font-size:18px;color:<?= $curMaturity ? 'var(--n-900)' : 'var(--n-400)' ?>;">
-        <?= $curMaturity ?? '—' ?>
-      </div>
-      <div class="an-insight-lbl">Maturity Level</div>
-      <?php if ($prevCycle && $prevCycle['maturity_level'] && $curMaturity): ?>
-        <div class="an-insight-delta flat">Was: <?= e($prevCycle['maturity_level']) ?></div>
-      <?php endif; ?>
-    </div>
-
-    <div class="an-insight-card">
-      <?php if ($anWeakDim): ?>
-        <div class="an-insight-val" style="color:var(--n-900);">
-          <?= svgIcon(getDimensionIcon((int) $anWeakDim['dimension_no']), '', 'width:20px;height:20px;') ?>
-          <?= e($anWeakDim['dimension_name']) ?>
-        </div>
-        <div class="an-insight-lbl">Needs Work (Weakest)</div>
-        <div class="an-insight-delta down"><?= $anWeakDim['avg_pct'] ?>% average</div>
-      <?php else: ?>
-        <div class="an-insight-val">—</div>
-        <div class="an-insight-lbl">Weakest Dimension</div>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <!-- Secondary KPIs — collapsed by default -->
-  <div class="an-insight-extra" id="anInsightExtra">
-    <div class="an-insight-card">
-      <?php if ($anTopDim): ?>
-        <div class="an-insight-val" style="color:var(--n-900);">
-          <?= svgIcon(getDimensionIcon((int) $anTopDim['dimension_no']), '', 'width:20px;height:20px;') ?>
-          <?= e($anTopDim['dimension_name']) ?>
-        </div>
-        <div class="an-insight-lbl">Strongest Dimension</div>
-        <div class="an-insight-delta up"><?= $anTopDim['avg_pct'] ?>% average</div>
-      <?php else: ?>
-        <div class="an-insight-val">—</div>
-        <div class="an-insight-lbl">Strongest Dimension</div>
-      <?php endif; ?>
-    </div>
-
-    <div class="an-insight-card">
-      <div class="an-insight-val" style="color:var(--n-900);">
-        <?= count($consistentlyWeak) ?>
-      </div>
-      <div class="an-insight-lbl">Indicators Below 2.5 Avg</div>
-      <?php if (count($consistentlyWeak) > 0): ?>
-        <div class="an-insight-delta down">Needs targeted intervention</div>
-      <?php else: ?>
-        <div class="an-insight-delta up">All indicators &ge; 2.5</div>
-      <?php endif; ?>
-    </div>
-
-    <div class="an-insight-card">
-      <div class="an-insight-val"><?= count($cycleHistory) ?></div>
-      <div class="an-insight-lbl">Cycles Assessed</div>
-      <?php if (count($cycleHistory) > 0): ?>
-        <div class="an-insight-delta flat">Since SY <?= e($cycleHistory[0]['sy_label']) ?></div>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <div class="an-insight-toggle-wrap">
-    <button class="an-insight-toggle-btn" id="anInsightToggleBtn" onclick="toggleAnInsightExtras()">
-      <span id="anInsightToggleText">See more</span>
-      <svg viewBox="0 0 24 24">
-        <polyline points="6 9 12 15 18 9" />
-      </svg>
-    </button>
-  </div>
-
-  </div><!-- /viewAnalytics -->
 
 
 <script>
@@ -3299,27 +3167,6 @@ include __DIR__ . '/../includes/header.php';
     btn.classList.toggle('open', isOpen);
     txt.textContent = isOpen ? 'See less' : 'See more';
   }
-  function switchView(view, btn) {
-    document.querySelectorAll('.vt-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('viewProgress').style.display = view === 'progress' ? '' : 'none';
-    document.getElementById('viewAnalytics').style.display = view === 'analytics' ? '' : 'none';
-
-    // Update URL to persist view on refresh
-    const url = new URL(window.location.href);
-    if (view === 'analytics') {
-      url.searchParams.set('view', 'analytics');
-    } else {
-      url.searchParams.delete('view');
-    }
-    window.history.replaceState({}, '', url.toString());
-
-    if (view === 'analytics' && !window._anChartsInit) {
-      window._anChartsInit = true;
-      initAnalyticsCharts();
-    }
-  }
-
   // -- Analytics tab switching --------------------------------
   function anSwitchTab(btn, panelId) {
     document.querySelectorAll('.an-tab-btn').forEach(b => b.classList.remove('active'));
@@ -4098,14 +3945,6 @@ updateIndicatorTrendChart(val);
     closeIndLegendPopover();
   });
 
-  // -- Auto-switch to analytics if ?view=analytics is in URL --
-  (function () {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('view') === 'analytics') {
-      const btn = document.querySelectorAll('.vt-btn')[1];
-      if (btn) switchView('analytics', btn);
-    }
-  })();
 </script>
 
 

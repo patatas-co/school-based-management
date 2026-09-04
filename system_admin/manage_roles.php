@@ -16,18 +16,34 @@ include __DIR__ . '/../includes/header.php';
 $roles = $db->query("SELECT id,slug,label,color,description,is_system,(SELECT COUNT(*) FROM users u WHERE u.role = roles.slug COLLATE utf8mb4_unicode_ci) AS user_count FROM roles ORDER BY CASE slug WHEN 'system_admin' THEN 1 WHEN 'school_head' THEN 2 WHEN 'sbm_coordinator' THEN 3 WHEN 'teacher' THEN 4 WHEN 'external_stakeholder' THEN 5 ELSE 6 END ASC, label ASC")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<!-- Search + Actions bar -->
-<div class="filter-bar-v2" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
-  <div class="search" style="flex:1;min-width:200px;max-width:360px;">
-    <span class="si"><?= svgIcon('search') ?></span>
-    <input type="text" id="roleSearch" placeholder="Search roles…" autocomplete="off" style="width:100%;">
+<!-- Add Role -->
+<div class="card" style="box-shadow:none;border:1px solid var(--n-150,#e5e7eb);margin-bottom:16px;">
+  <div style="display:flex;align-items:center;gap:8px;padding:16px 20px;border-bottom:1px solid var(--n-100,#f1f5f9);">
+    <?= svgIcon('plus') ?>
+    <span style="font-size:14px;font-weight:700;color:var(--n-800,#1e293b);">Add Role</span>
   </div>
-  <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">
-    <button class="btn btn-primary" onclick="openModal('mAddRole')"><?= svgIcon('plus') ?> Add Role</button>
+  <div style="padding:20px;">
+    <div style="display:flex;align-items:flex-end;gap:10px;">
+      <div class="fg" style="flex:1;margin-bottom:0;">
+        <label>Role Name *</label>
+        <input class="fc" id="ar_label" placeholder="e.g. Department Head">
+      </div>
+      <div style="width:160px;">
+        <label style="visibility:hidden;display:block;">&nbsp;</label>
+        <button class="btn btn-primary" style="width:100%;height:38px;" onclick="saveAddRole()"><?= svgIcon('check') ?> Save</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <div class="card">
+  <!-- Search bar -->
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--n-100,#f1f5f9);">
+    <div class="search" style="flex:1;min-width:200px;max-width:360px;">
+      <span class="si"><?= svgIcon('search') ?></span>
+      <input type="text" id="roleSearch" placeholder="Search roles…" autocomplete="off" style="width:100%;">
+    </div>
+  </div>
   <?php if (!$roles): ?>
     <div class="empty-state">
       <div class="empty-icon"><?= svgIcon('shield') ?></div>
@@ -75,26 +91,6 @@ $roles = $db->query("SELECT id,slug,label,color,description,is_system,(SELECT CO
   <?php endif; ?>
 </div>
 
-<!-- Add Role Modal -->
-<div class="overlay" id="mAddRole">
-  <div class="modal" style="max-width:440px;">
-    <div class="modal-head">
-      <span class="modal-title">Add Role</span>
-      <button class="modal-close" onclick="closeModal('mAddRole')"><?= svgIcon('x') ?></button>
-    </div>
-    <div class="modal-body">
-      <div class="fg">
-        <label>Role Name *</label>
-        <input class="fc" id="ar_label" placeholder="e.g. Department Head">
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-secondary" onclick="closeModal('mAddRole')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveAddRole()">Add Role</button>
-    </div>
-  </div>
-</div>
-
 <!-- Edit Role Modal -->
 <div class="overlay" id="mEditRole">
   <div class="modal" style="max-width:440px;">
@@ -123,7 +119,6 @@ $roles = $db->query("SELECT id,slug,label,color,description,is_system,(SELECT CO
     const r = await apiPost('users.php', { action: 'save_role', id: 0, label, color: '#64748B', description: '' });
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) {
-      closeModal('mAddRole');
       document.getElementById('ar_label').value = '';
       setTimeout(() => location.reload(), 500);
     }

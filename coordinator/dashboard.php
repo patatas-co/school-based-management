@@ -2197,14 +2197,6 @@ include __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
-<!-- ━━━━━━━━━━━ VIEW TOGGLE ━━━━━━━━━━━ -->
-<div class="view-toggle-wrap">
-  <div class="view-toggle">
-    <button class="vt-btn active" onclick="switchView('progress', this)">Progress</button>
-    <button class="vt-btn" onclick="switchView('analytics', this)">Analytics</button>
-  </div>
-</div>
-
   <!-- ━━━━━━━━━━━ PROGRESS VIEW ━━━━━━━━━━━ -->
 <div id="viewProgress">
 
@@ -2681,146 +2673,10 @@ include __DIR__ . '/../includes/header.php';
       </div>
   </div>
 
+  
 </div><!-- /viewProgress -->
 
-<!-- ━━━━━━━━━━━ ANALYTICS VIEW ━━━━━━━━━━━ -->
-<div id="viewAnalytics" style="display:none;">
-
-  <!-- KPI insight strip — Primary -->
-  <div class="an-insight-strip">
-    <div class="an-insight-card">
-      <div class="an-insight-val"
-        style="color:<?= $anAvgOverall !== null ? ($anAvgOverall >= 76 ? '#16A34A' : ($anAvgOverall >= 51 ? '#2563EB' : ($anAvgOverall >= 26 ? '#D97706' : '#DC2626'))) : 'var(--n-400)' ?>;">
-        <?= $anAvgOverall !== null ? $anAvgOverall . '%' : '—' ?>
-      </div>
-      <div class="an-insight-lbl">Overall SBM Score</div>
-      <?php if ($scoreDelta !== null): ?>
-        <div class="an-insight-delta <?= $scoreDelta > 0 ? 'up' : ($scoreDelta < 0 ? 'down' : 'flat') ?>">
-          <?= $scoreDelta > 0 ? '▲ +' : '▼ ' ?>   <?= abs($scoreDelta) ?>% vs prev cycle
-        </div>
-      <?php endif; ?>
-    </div>
-    <div class="an-insight-card">
-      <?php
-      // Use dynamic maturity based on the calculated overall score to ensure consistency
-      $curMaturity = $anAvgOverall !== null ? computeMaturity($anAvgOverall) : ($currCycle['maturity_level'] ?? null);
-      $anMatColors = ['Developing' => '#D97706', 'Maturing' => '#2563EB', 'Advanced' => '#16A34A', 'Advanced (Accredited)' => '#16A34A'];
-      ?>
-      <div class="an-insight-val" style="font-size:18px;color:<?= $curMaturity ? 'var(--n-900)' : 'var(--n-400)' ?>;">
-        <?= $curMaturity ?? '—' ?>
-      </div>
-      <div class="an-insight-lbl">Maturity Level</div>
-      <?php if ($prevCycle && $prevCycle['maturity_level'] && $curMaturity): ?>
-        <div class="an-insight-delta flat">Was: <?= e($prevCycle['maturity_level']) ?></div>
-      <?php endif; ?>
-    </div>
-    <div class="an-insight-card">
-      <?php if ($anWeakDim): ?>
-        <div class="an-insight-val" style="color:var(--n-900);">
-          <?= svgIcon(getDimensionIcon((int) $anWeakDim['dimension_no']), '', 'width:20px;height:20px;') ?>
-          <?= e($anWeakDim['dimension_name']) ?>
-        </div>
-        <div class="an-insight-lbl">Needs Work (Weakest)</div>
-        <div class="an-insight-delta down"><?= $anWeakDim['avg_pct'] ?>% average</div>
-      <?php else: ?>
-        <div class="an-insight-val">—</div>
-        <div class="an-insight-lbl">Weakest Dimension</div>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <!-- Secondary KPIs — collapsed by default -->
-  <div class="an-insight-extra" id="coordInsightExtra">
-    <div class="an-insight-card">
-      <?php if ($anTopDim): ?>
-        <div class="an-insight-val" style="color:var(--n-900);">
-          <?= svgIcon(getDimensionIcon((int) $anTopDim['dimension_no']), '', 'width:20px;height:20px;') ?>
-          <?= e($anTopDim['dimension_name']) ?>
-        </div>
-        <div class="an-insight-lbl">Strongest Dimension</div>
-        <div class="an-insight-delta up"><?= $anTopDim['avg_pct'] ?>% average</div>
-      <?php else: ?>
-        <div class="an-insight-val">—</div>
-        <div class="an-insight-lbl">Strongest Dimension</div>
-      <?php endif; ?>
-    </div>
-    <div class="an-insight-card">
-      <div class="an-insight-val" style="color:var(--n-900);">
-        <?= count($consistentlyWeak) ?>
-      </div>
-      <div class="an-insight-lbl">Indicators Below 2.5 Avg</div>
-      <?php if (count($consistentlyWeak) > 0): ?>
-        <div class="an-insight-delta down">Needs targeted intervention</div>
-      <?php else: ?>
-        <div class="an-insight-delta up">All indicators ≥ 2.5</div>
-      <?php endif; ?>
-    </div>
-    <div class="an-insight-card">
-      <div class="an-insight-val"><?= count($cycleHistory) ?></div>
-      <div class="an-insight-lbl">Cycles Assessed</div>
-      <?php if (count($cycleHistory) > 0): ?>
-        <div class="an-insight-delta flat">Since SY <?= e($cycleHistory[0]['sy_label']) ?></div>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <div class="an-insight-toggle-wrap">
-    <button class="an-insight-toggle-btn" id="coordInsightToggleBtn" onclick="toggleCoordInsightExtras()">
-      <span id="coordInsightToggleText">See more</span>
-      <svg viewBox="0 0 24 24">
-        <polyline points="6 9 12 15 18 9" />
-      </svg>
-    </button>
-  </div>
-
-  <!-- Tabs -->
-  <div class="an-tab-btns" style="display:none;">
-    <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabWeak')">Weak This Cycle</button>
-    <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabConsistent')">Consistently Weak</button>
-    <?php if ($compareSyId && !empty($anDimAvgsCompare)): ?>
-      <button class="an-tab-btn" onclick="anSwitchTab(this,'anTabCompare')">Side-by-Side</button>
-    <?php endif; ?>
-  </div>
-
-  <!-- TAB: Weak This Cycle -->
-  <div class="an-tab-panel active" id="anTabWeak">
-    <div class="card" style="margin-bottom:18px;">
-      <div class="card-head">
-        <span class="card-title">Weak Indicators This Cycle</span>
-        <span style="font-size:12px;color:var(--n-400);">Average rating ≤ 2.5</span>
-      </div>
-      <?php if ($weakIndicatorRows): ?>
-        <div class="card-body" style="padding:0;">
-          <?php foreach ($weakIndicatorRows as $ind):
-            $avgR = floatval($ind['avg_rating']);
-            $pct = ($avgR / 4) * 100;
-            $color = $avgR >= 3 ? 'var(--n-800)' : ($avgR >= 2 ? 'var(--amber)' : 'var(--red)');
-            ?>
-            <div style="padding:12px 20px;border-bottom:1px solid var(--n-100);">
-              <div class="flex-cb" style="margin-bottom:4px;">
-                <div>
-                  <span
-                    style="font-size:10.5px;font-weight:700;color:var(--n-400);text-transform:uppercase;letter-spacing:.05em;"><?= e($ind['indicator_code']) ?></span>
-                  <span
-                    style="font-size:10.5px;color:var(--n-400);margin-left:6px;padding:1px 7px;background:var(--n-100);border-radius:4px;"><?= e($ind['dimension_name']) ?></span>
-                </div>
-                <span style="font-size:13px;font-weight:700;color:<?= $color ?>;"><?= number_format($avgR, 2) ?>/4.00</span>
-              </div>
-              <div style="font-size:12.5px;color:var(--n-700);margin-bottom:5px;line-height:1.45;">
-                <?= e(substr($ind['indicator_text'], 0, 100)) ?>…
-              </div>
-              <div style="font-size:11px;color:var(--n-400);margin-top:4px;"><?= $ind['response_count'] ?> response(s)</div>
-            </div>
-          <?php endforeach; ?>
-        </div>
-      <?php else: ?>
-        <div class="empty-state">
-          <div class="empty-title">No weak indicators found for this cycle.</div>
-        </div>
-      <?php endif; ?>
-    </div>
-  </div>
-
+<div id="viewAnalytics">
   <!-- TAB: Consistently Weak -->
   <div class="an-tab-panel" id="anTabConsistent">
     <div class="card" style="margin-bottom:18px;">
@@ -2990,15 +2846,6 @@ include __DIR__ . '/../includes/header.php';
 
 
 <script>
-  // -- KPI toggle
-  function toggleCoordInsightExtras() {
-    const extra = document.getElementById('coordInsightExtra');
-    const btn = document.getElementById('coordInsightToggleBtn');
-    const txt = document.getElementById('coordInsightToggleText');
-    const isOpen = extra.classList.toggle('open');
-    btn.classList.toggle('open', isOpen);
-    txt.textContent = isOpen ? 'See less' : 'See more';
-  }
   const anCompareSyLabel = <?= json_encode(!empty($anDimAvgsCompare) ? (array_column($allSYs, 'label', 'sy_id')[$compareSyId] ?? '') : '') ?>;
   const anDimValCmpList = <?= json_encode(array_map(fn($c) => [
     'label' => $c['label'],
@@ -3154,34 +3001,6 @@ include __DIR__ . '/../includes/header.php';
     }
   });
 
-  // -- View switcher
-  function switchView(view, btn) {
-    document.querySelectorAll('.vt-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('viewProgress').style.display = view === 'progress' ? '' : 'none';
-    document.getElementById('viewAnalytics').style.display = view === 'analytics' ? '' : 'none';
-    const url = new URL(window.location.href);
-    if (view === 'analytics') {
-      url.searchParams.set('view', 'analytics');
-    } else {
-      url.searchParams.delete('view');
-    }
-    window.history.replaceState({}, '', url.toString());
-    if (view === 'analytics' && !window._anChartsInit) {
-      window._anChartsInit = true;
-      initAnalyticsCharts();
-    }
-    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
-  }
-
-  // -- Analytics tab switching
-  function anSwitchTab(btn, panelId) {
-    document.querySelectorAll('.an-tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.an-tab-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(panelId)?.classList.add('active');
-  }
-
   // -- Analytics chart data
   const anDimLabels = <?= json_encode(array_map(fn($d) => 'D' . $d['dimension_no'], $anDimAvgs)) ?>;
   const anDimColors = <?= json_encode(array_column($anDimAvgs, 'color_hex')) ?>;
@@ -3292,7 +3111,7 @@ include __DIR__ . '/../includes/header.php';
              i.indicator_id, i.indicator_code,
              $shortTitleCol
              i.indicator_text,
-             d.dimension_id,
+             d.dimension_no,
              ROUND((AVG(all_r.rating) / 4) * 100, 1) AS pct
       FROM (
           SELECT cycle_id, indicator_id, rating FROM sbm_responses
@@ -3310,9 +3129,9 @@ include __DIR__ . '/../includes/header.php';
     $indTrendQ->execute([$schoolId]);
     $indTrendRows = $indTrendQ->fetchAll();
     $indTrendByDim = [];
-    $indMetaByDim  = []; // dimension_id => { indicator_code => {code, shortTitle, description} }
+    $indMetaByDim  = []; // dimension_no => { indicator_code => {code, shortTitle, description} }
     foreach ($indTrendRows as $r) {
-      $did  = (int)$r['dimension_id'];
+      $did  = (int)$r['dimension_no'];
       $code = $r['indicator_code'];
       $lbl  = $r['sy_label'];
       $pct  = floatval($r['pct']);
@@ -3585,14 +3404,22 @@ function updateIndicatorTrendChart(dimId) {
     const datasets = codes.map((code, i) => {
       const data = syLabels.map(lbl => byDim[code][lbl] ?? null);
       const color = indPalette[i % indPalette.length];
+
+      // A line needs 2+ non-null points to draw a segment.
+      // New indicators (like 1.9) with only one cycle of data would
+      // otherwise render as literally nothing — no line, no point.
+      // Force a visible dot only in that isolated case.
+      const nonNullCount = data.filter(v => v !== null).length;
+      const isIsolated = nonNullCount <= 1;
+
       return {
         label: code,
         data,
         borderColor: color,
         backgroundColor: color + '18',
         pointBackgroundColor: color,
-        pointRadius: 0,
-        pointHoverRadius: 0,
+        pointRadius: data.map(v => (isIsolated && v !== null) ? 4 : 0),
+        pointHoverRadius: data.map(v => (isIsolated && v !== null) ? 6 : 4),
         borderWidth: 2,
         tension: 0,
         spanGaps: true,

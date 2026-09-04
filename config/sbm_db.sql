@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 03, 2026 at 04:50 PM
+-- Generation Time: Sep 04, 2026 at 06:15 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -1710,7 +1710,9 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (1729, 15, 'login', 'auth', 'User logged in', '::1', '2026-08-27 06:10:03'),
 (1730, 37, 'login', 'auth', 'User logged in', '::1', '2026-08-27 06:12:36'),
 (1731, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-27 06:12:42'),
-(1732, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-03 14:41:28');
+(1732, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-03 14:41:28'),
+(1733, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-04 10:29:41'),
+(1734, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-04 15:50:36');
 
 -- --------------------------------------------------------
 
@@ -2765,18 +2767,19 @@ CREATE TABLE `school_years` (
   `label` varchar(20) NOT NULL,
   `is_current` tinyint(4) DEFAULT 0,
   `date_start` date DEFAULT NULL,
-  `date_end` date DEFAULT NULL
+  `date_end` date DEFAULT NULL,
+  `is_archived` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `school_years`
 --
 
-INSERT INTO `school_years` (`sy_id`, `label`, `is_current`, `date_start`, `date_end`) VALUES
-(25, '2023-2024', 0, '2023-08-29', '2024-05-31'),
-(26, '2024-2025', 0, '2024-07-29', '2025-04-15'),
-(27, '2025-2026', 0, '2025-06-16', '2026-03-31'),
-(28, '2026-2027', 1, '2026-06-08', '2027-04-08');
+INSERT INTO `school_years` (`sy_id`, `label`, `is_current`, `date_start`, `date_end`, `is_archived`) VALUES
+(25, '2023-2024', 0, '2023-08-29', '2024-05-31', 0),
+(26, '2024-2025', 0, '2024-07-29', '2025-04-15', 0),
+(27, '2025-2026', 0, '2025-06-16', '2026-03-31', 0),
+(28, '2026-2027', 1, '2026-06-08', '2027-04-08', 0);
 
 -- --------------------------------------------------------
 
@@ -3537,9 +3540,9 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `r
 (13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-08-19 14:47:58', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
 (14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-08-19 14:48:42', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
 (15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-27 14:10:03', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-08-27 14:12:36', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg', NULL, NULL, NULL),
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-09-04 23:50:36', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg', NULL, NULL, NULL),
 (46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-27 14:12:42', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL, NULL, NULL, NULL),
-(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-09-03 22:41:28', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-09-04 18:29:40', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
 (79, 'josejose', NULL, 'josesaint975@gmail.com', 'Jose Bethlehem', NULL, 'pending', 1, '100-456-789', 'Filipino', NULL, '2026-08-17 08:37:29', 0, NULL, NULL, NULL, 1, NULL, 'uploads/avatars/avatar_79_1786955849.jpg', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
@@ -4009,7 +4012,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1733;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1735;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`
