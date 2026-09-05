@@ -42,7 +42,7 @@ include __DIR__ . '/../includes/header.php';
 ?>
 <div class="page-head">
   <div class="page-head-text">
-    <h2>Welcome, <?= e(explode(' ', trim($_SESSION['full_name']))[0]) ?></h2>
+    <h2>Welcome to School-based Management System</h2>
   </div>
   <?php if ($deadlineInfo && (!$cycle || !in_array($cycle['status'], ['completed', 'finalized', 'validated']))): ?>
     <div class="page-head-actions">

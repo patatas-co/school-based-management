@@ -2457,8 +2457,8 @@ include __DIR__ . '/../includes/header.php';
     <div class="db-hero-shimmer"></div>
   </div>
   <div class="db-hero-left">
-    <div class="db-hero-greeting">Welcome Back,</div>
-    <div class="db-hero-title"><?= e($__me['name']) ?></div>
+    <div class="db-hero-greeting">Welcome to</div>
+    <div class="db-hero-title">School-based Management System</div>
     <div class="db-hero-sub" style="margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
       <?= date('l, F j, Y') ?>
       &nbsp;·&nbsp; Dasmariñas Integrated High School
@@ -2769,11 +2769,11 @@ include __DIR__ . '/../includes/header.php';
             </thead>
             <tbody>
               <?php
-              $prevScore = null;
-              foreach ($cycleHistory as $i => $sc):
+              foreach (array_reverse($cycleHistory, true) as $i => $sc):
                 $mat = sbmMaturityLevel(floatval($sc['overall_score']));
-                $delta = $prevScore !== null ? round(floatval($sc['overall_score']) - $prevScore, 2) : null;
-                $prevScore = floatval($sc['overall_score']);
+                $delta = isset($cycleHistory[$i - 1])
+                  ? round(floatval($sc['overall_score']) - floatval($cycleHistory[$i - 1]['overall_score']), 2)
+                  : null;
                 ?>
                 <tr>
                   <td style="width:32px;"><span

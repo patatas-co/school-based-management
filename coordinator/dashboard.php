@@ -2132,8 +2132,8 @@ include __DIR__ . '/../includes/header.php';
      ═══════════════════════════════════════════════════════ -->
 <div class="coord-hero">
   <div class="coord-hero-left">
-    <div class="coord-hero-eyebrow">Welcome Back,</div>
-    <div class="coord-hero-title"><?= e($__me['name']) ?></div>
+    <div class="coord-hero-eyebrow">Welcome to</div>
+    <div class="coord-hero-title">School-based Management System</div>
     <div class="coord-hero-sub" style="align-items:center;">
       <?= date('l, F j, Y') ?>
       <?php if ($syLabel): ?>&nbsp;·&nbsp; SY <?= e($syLabel) ?><?php endif; ?>
