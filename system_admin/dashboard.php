@@ -22,14 +22,14 @@ include __DIR__ . '/../includes/header.php';
 <style>
   .sa-hero {
     border-radius: var(--radius-lg);
-    padding: 28px 32px;
+    padding: 22px 28px;
     color: #fff;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
     gap: 18px;
     flex-wrap: wrap;
-    margin-bottom: 22px;
+    margin-bottom: 18px;
     position: relative;
     overflow: hidden;
   }
@@ -112,8 +112,8 @@ include __DIR__ . '/../includes/header.php';
 <div class="sa-hero">
   <div class="sa-hero-bg"></div>
   <div style="position:relative; z-index:1;">
-    <div style="font-family:var(--font-display);font-size:14px;font-weight:600;color:rgba(74,222,128,.9);margin-bottom:4px;">Welcome back,</div>
-    <div style="font-family:var(--font-display);font-size:30px;font-weight:800;line-height:1.1;"><?= e($__me['name']) ?></div>
+    <div style="font-family:var(--font-display);font-size:12px;font-weight:600;color:rgba(74,222,128,.9);margin-bottom:4px;">Welcome back,</div>
+    <div style="font-family:var(--font-display);font-size:24px;font-weight:800;line-height:1.1;"><?= e($__me['name']) ?></div>
     <div style="margin-top:8px;font-size:13px;color:rgba(255,255,255,.72);">
       <?= date('l, F j, Y') ?><?php if ($currentSY): ?> · SY <?= e($currentSY) ?><?php endif; ?>
     </div>
