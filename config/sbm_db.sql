@@ -2025,12 +2025,37 @@ CREATE TABLE `improvement_plans` (
   `expected_output` text DEFAULT NULL,
   `status` enum('planned','ongoing','completed','cancelled') DEFAULT 'planned',
   `workflow_status` varchar(30) NOT NULL DEFAULT 'draft',
+  `current_owner_role` varchar(30) DEFAULT 'school_head',
+  `current_owner_user_id` int(11) DEFAULT NULL,
+  `last_action_by` int(11) DEFAULT NULL,
+  `last_action_at` datetime DEFAULT NULL,
   `remarks` text DEFAULT NULL,
   `created_by` int(11) NOT NULL,
   `submitted_by` int(11) DEFAULT NULL,
   `submitted_at` datetime DEFAULT NULL,
+  `approved_by` int(11) DEFAULT NULL,
+  `approved_at` datetime DEFAULT NULL,
+  `validated_by` int(11) DEFAULT NULL,
+  `validated_at` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `improvement_plan_history` (
+  `history_id` int(11) NOT NULL,
+  `plan_id` int(11) NOT NULL,
+  `version_no` int(11) NOT NULL,
+  `action` varchar(40) NOT NULL,
+  `from_status` varchar(30) DEFAULT NULL,
+  `to_status` varchar(30) DEFAULT NULL,
+  `actor_id` int(11) NOT NULL,
+  `remarks` text DEFAULT NULL,
+  `snapshot_json` longtext NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`history_id`),
+  UNIQUE KEY `uq_plan_version` (`plan_id`,`version_no`),
+  KEY `idx_plan_history_plan` (`plan_id`),
+  KEY `idx_plan_history_actor` (`actor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -4356,6 +4381,13 @@ ALTER TABLE `improvement_plans`
   ADD CONSTRAINT `improvement_plans_ibfk_4` FOREIGN KEY (`indicator_id`) REFERENCES `sbm_indicators` (`indicator_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `improvement_plans_ibfk_5` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
   ADD CONSTRAINT `improvement_plans_ibfk_6` FOREIGN KEY (`submitted_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `improvement_plan_history`
+--
+ALTER TABLE `improvement_plan_history`
+  ADD CONSTRAINT `fk_plan_history_plan` FOREIGN KEY (`plan_id`) REFERENCES `improvement_plans` (`plan_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_plan_history_actor` FOREIGN KEY (`actor_id`) REFERENCES `users` (`user_id`);
 
 --
 -- Constraints for table `indicator_evidence_requirements`

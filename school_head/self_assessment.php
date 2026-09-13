@@ -10,10 +10,6 @@ function buildInPlaceholders(array $arr): string
 requireRole('school_head', 'sbm_coordinator');
 $db = getDB();
 
-// Rating constants
-define('MIN_RATING', 1);
-define('MAX_RATING', 4);
-
 $schoolId = SCHOOL_ID; // Always DIHS
 $syId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 $activeFormVersionId = (int) $db->query("SELECT version_id FROM form_versions WHERE is_active=1 LIMIT 1")->fetchColumn();

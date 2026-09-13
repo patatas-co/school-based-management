@@ -6,6 +6,7 @@ ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/improvement_plan_workflow.php';
 requireRole('sbm_coordinator');
 $db = getDB();
 
@@ -32,6 +33,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_s
   $plans = $st->fetchAll(PDO::FETCH_ASSOC);
 
   echo json_encode(['ok' => true, 'plans' => $plans]);
+  exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), ['coordinator_update_improvement_plan', 'coordinator_return_improvement_plan', 'coordinator_approve_improvement_plan', 'coordinator_validate_improvement_plan', 'get_improvement_plan_history'], true)) {
+  header('Content-Type: application/json');
+  $planId = (int) ($_POST['plan_id'] ?? 0);
+  $actorId = (int) ($_SESSION['user_id'] ?? 0);
+  $action = $_POST['action'];
+  $q = $db->prepare("SELECT * FROM improvement_plans WHERE plan_id = ? AND school_id = ? LIMIT 1");
+  $q->execute([$planId, SCHOOL_ID]);
+  $plan = $q->fetch(PDO::FETCH_ASSOC);
+  if (!$plan) { echo json_encode(['ok' => false, 'msg' => 'Improvement plan not found.']); exit; }
+
+  if ($action === 'get_improvement_plan_history') {
+    $h = $db->prepare("SELECT h.*, u.full_name AS actor_name FROM improvement_plan_history h JOIN users u ON u.user_id = h.actor_id WHERE h.plan_id = ? ORDER BY h.version_no DESC");
+    $h->execute([$planId]);
+    echo json_encode(['ok' => true, 'history' => $h->fetchAll(PDO::FETCH_ASSOC)]);
+    exit;
+  }
+
+  if ($action === 'coordinator_validate_improvement_plan') {
+    if ($plan['workflow_status'] !== IP_STATUS_APPROVED) { echo json_encode(['ok' => false, 'msg' => 'Only an approved plan can be validated.']); exit; }
+    try {
+      $db->beginTransaction();
+      $db->prepare("UPDATE improvement_plans SET workflow_status=?, current_owner_role=NULL, current_owner_user_id=NULL, last_action_by=?, last_action_at=NOW(), validated_by=?, validated_at=NOW() WHERE plan_id=?")
+        ->execute([IP_STATUS_FINALIZED, $actorId, $actorId, $planId]);
+      ipRecordHistory($db, $planId, $actorId, 'coordinator_validated', IP_STATUS_APPROVED, IP_STATUS_FINALIZED, trim($_POST['remarks'] ?? ''));
+      $db->commit();
+      echo json_encode(['ok' => true, 'msg' => 'Improvement plan validated and finalized.']);
+    } catch (Throwable $e) {
+      if ($db->inTransaction()) $db->rollBack();
+      echo json_encode(['ok' => false, 'msg' => $e->getMessage()]);
+    }
+    exit;
+  }
+
+  $allowed = [IP_STATUS_SUBMITTED, IP_STATUS_RESUBMITTED];
+  if (!in_array($plan['workflow_status'], $allowed, true)) {
+    echo json_encode(['ok' => false, 'msg' => 'This plan is not currently with the SBM Coordinator.']); exit;
+  }
+
+  try {
+    $db->beginTransaction();
+    if ($action === 'coordinator_update_improvement_plan') {
+      $obj = trim($_POST['objective'] ?? '');
+      $strat = trim($_POST['strategy'] ?? '');
+      $revisionRemarks = trim($_POST['remarks'] ?? '');
+      if ($obj === '' || $strat === '') throw new RuntimeException('Objective and strategy are required.');
+      if ($revisionRemarks === '') throw new RuntimeException('Revision remarks are required before returning the plan.');
+      $upd = $db->prepare("UPDATE improvement_plans SET priority_level=?, objective=?, strategy=?, person_responsible=?, target_date=?, resources_needed=?, expected_output=?, workflow_status=?, current_owner_role='school_head', current_owner_user_id=NULL, last_action_by=?, last_action_at=NOW(), remarks=? WHERE plan_id=?");
+      $upd->execute([
+        in_array($_POST['priority_level'] ?? '', ['High', 'Medium', 'Low'], true) ? $_POST['priority_level'] : 'Medium',
+        $obj, $strat, trim($_POST['person_responsible'] ?? '') ?: null, $_POST['target_date'] ?: null,
+        trim($_POST['resources_needed'] ?? '') ?: null, trim($_POST['expected_output'] ?? '') ?: null,
+        IP_STATUS_RETURNED, $actorId, $revisionRemarks, $planId,
+      ]);
+      ipRecordHistory($db, $planId, $actorId, 'coordinator_revision', $plan['workflow_status'], IP_STATUS_RETURNED, $revisionRemarks);
+      $message = 'Plan revised and returned to the School Head for review.';
+    } elseif ($action === 'coordinator_return_improvement_plan') {
+      $remarks = trim($_POST['remarks'] ?? '');
+      if ($remarks === '') throw new RuntimeException('Return remarks are required.');
+      $db->prepare("UPDATE improvement_plans SET workflow_status=?, current_owner_role='school_head', current_owner_user_id=NULL, last_action_by=?, last_action_at=NOW(), remarks=? WHERE plan_id=?")
+        ->execute([IP_STATUS_RETURNED, $actorId, $remarks, $planId]);
+      ipRecordHistory($db, $planId, $actorId, 'coordinator_returned', $plan['workflow_status'], IP_STATUS_RETURNED, $remarks);
+      $message = 'Plan returned to the School Head for review.';
+    } else {
+      $remarks = trim($_POST['remarks'] ?? '');
+      $db->prepare("UPDATE improvement_plans SET workflow_status=?, current_owner_role='sbm_coordinator', current_owner_user_id=NULL, last_action_by=?, last_action_at=NOW(), approved_by=?, approved_at=NOW(), remarks=? WHERE plan_id=?")
+        ->execute([IP_STATUS_APPROVED, $actorId, $actorId, $remarks ?: null, $planId]);
+      ipRecordHistory($db, $planId, $actorId, 'coordinator_approved', $plan['workflow_status'], IP_STATUS_APPROVED, $remarks);
+      $message = 'Improvement plan approved. It is ready for separate validation.';
+    }
+    $db->commit();
+    echo json_encode(['ok' => true, 'msg' => $message]);
+  } catch (Throwable $e) {
+    if ($db->inTransaction()) $db->rollBack();
+    echo json_encode(['ok' => false, 'msg' => $e->getMessage()]);
+  }
   exit;
 }
 
@@ -2262,14 +2341,14 @@ include __DIR__ . '/../includes/header.php';
     <?php $atCompareLimit = count($compareSyIds) >= 2; ?>
     <div style="margin-left:auto;display:flex;gap:8px;">
       <?php if (($shPlanCount ?? 0) > 0): ?>
-        <button class="ai-assistant-btn" onclick="viewSHImprovementPlan()"
+        <a class="ai-assistant-btn" href="<?= e(baseUrl()) ?>/coordinator/improvement_plans.php"
           style="border-color:var(--brand-300);background:var(--brand-50);color:var(--brand-700);">
           <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
           </svg>
           View SH Improvement Plan
-        </button>
+        </a>
       <?php endif; ?>
       <button class="ai-assistant-btn" onclick="openAIAssistant()">
         <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -3666,8 +3745,8 @@ function updateIndicatorTrendChart(dimId) {
       html += `
         <tr data-idx="${idx}" style="cursor:pointer;">
           <td>
-            <span class="ip-priority-badge ${p.priority_level}">${p.priority_level}</span>
-            <div style="font-size:11px;color:#94a3b8;font-weight:500;margin-top:4px;">Priority</div>
+            <span class="ip-priority-badge ${p.workflow_status === 'finalized' ? 'Low' : p.priority_level}">${p.workflow_status === 'returned_to_school_head' ? 'Returned' : (p.workflow_status === 'resubmitted_to_coordinator' ? 'Final Review' : (p.workflow_status === 'finalized' ? 'Finalized' : 'With Coordinator'))}</span>
+            <div style="font-size:11px;color:#94a3b8;font-weight:500;margin-top:4px;">${p.priority_level} priority</div>
           </td>
           <td>
             <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
@@ -3709,6 +3788,12 @@ function updateIndicatorTrendChart(dimId) {
     });
   }
 
+  function ipEscape(value) {
+    const div = document.createElement('div');
+    div.textContent = value || '';
+    return div.innerHTML;
+  }
+
   // ── PLAN DETAIL MODAL ───────────────────────────────────────
   function openPlanDetail(p) {
     if (!p) { console.error('openPlanDetail: plan data missing'); return; }
@@ -3722,7 +3807,72 @@ function updateIndicatorTrendChart(dimId) {
     document.getElementById('pdOutput').textContent = p.expected_output || '—';
     document.getElementById('pdIndicator').textContent = p.indicator_code || '—';
     document.getElementById('pdDimName').textContent = `Dimension ${p.dimension_no}: ${p.dimension_name}`;
+    document.getElementById('pdStatus').textContent = p.workflow_status === 'returned_to_school_head' ? 'Returned to School Head' : (p.workflow_status === 'resubmitted_to_coordinator' ? 'With SBM Coordinator for Final Review' : (p.workflow_status === 'finalized' ? 'Finalized' : 'With SBM Coordinator'));
+    const canReview = ['submitted', 'resubmitted_to_coordinator'].includes(p.workflow_status);
+    document.getElementById('pdEditBtn').style.display = canReview ? 'inline-flex' : 'none';
+    document.getElementById('pdReturnBtn').style.display = canReview ? 'inline-flex' : 'none';
+    document.getElementById('pdApproveBtn').style.display = canReview ? 'inline-flex' : 'none';
+    document.getElementById('pdHistory').textContent = 'Loading history…';
+    fetch(window.location.href, { method: 'POST', body: new URLSearchParams({ action: 'get_improvement_plan_history', plan_id: p.plan_id }) })
+      .then(res => res.json()).then(data => {
+        document.getElementById('pdHistory').innerHTML = data.ok && data.history.length
+          ? data.history.map(h => `<div style="padding:9px 0;border-bottom:1px solid #f1f5f9;"><strong>${ipEscape(h.action.replaceAll('_', ' '))}</strong><br><span style="color:#64748b;">${ipEscape(h.actor_name)} · ${ipEscape(h.from_status || 'new')} → ${ipEscape(h.to_status || '—')} · ${ipEscape(h.created_at)}</span>${h.remarks ? `<br>${ipEscape(h.remarks)}` : ''}</div>`).join('')
+          : 'No history recorded.';
+      });
+    window._selectedPlan = p;
     modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  }
+
+  function openCoordinatorEdit() {
+    const p = window._selectedPlan;
+    if (!p) return;
+    document.getElementById('coordPlanId').value = p.plan_id;
+    document.getElementById('coordPriority').value = p.priority_level || 'Medium';
+    document.getElementById('coordTarget').value = p.target_date || '';
+    document.getElementById('coordObjective').value = p.objective || '';
+    document.getElementById('coordStrategy').value = p.strategy || '';
+    document.getElementById('coordPerson').value = p.person_responsible || '';
+    document.getElementById('coordResources').value = p.resources_needed || '';
+    document.getElementById('coordOutput').value = p.expected_output || '';
+    document.getElementById('coordRemarks').value = '';
+    document.getElementById('planDetailModal').style.display = 'none';
+    document.getElementById('coordEditModal').style.display = 'flex';
+  }
+
+  function closeCoordinatorEdit() { document.getElementById('coordEditModal').style.display = 'none'; }
+
+  async function submitCoordinatorAction(action, remarks = '') {
+    const p = window._selectedPlan;
+    if (!p) return;
+    const body = new URLSearchParams({ action, plan_id: p.plan_id, remarks });
+    const res = await fetch(window.location.href, { method: 'POST', body });
+    const data = await res.json();
+    toast(data.msg, data.ok ? 'ok' : 'err');
+    if (data.ok) { closeCoordinatorEdit(); closePlanDetail(); setTimeout(() => location.reload(), 700); }
+  }
+
+  async function saveCoordinatorEdit() {
+    const body = new URLSearchParams({
+      action: 'coordinator_update_improvement_plan', plan_id: document.getElementById('coordPlanId').value,
+      priority_level: document.getElementById('coordPriority').value, target_date: document.getElementById('coordTarget').value,
+      objective: document.getElementById('coordObjective').value, strategy: document.getElementById('coordStrategy').value,
+      person_responsible: document.getElementById('coordPerson').value, resources_needed: document.getElementById('coordResources').value,
+      expected_output: document.getElementById('coordOutput').value, remarks: document.getElementById('coordRemarks').value
+    });
+    const res = await fetch(window.location.href, { method: 'POST', body });
+    const data = await res.json();
+    toast(data.msg, data.ok ? 'ok' : 'err');
+    if (data.ok) { closeCoordinatorEdit(); setTimeout(() => location.reload(), 700); }
+  }
+
+  function returnSelectedPlan() {
+    const remarks = prompt('Explain what the School Head should review:');
+    if (remarks && remarks.trim()) submitCoordinatorAction('coordinator_return_improvement_plan', remarks.trim());
+  }
+
+  function approveSelectedPlan() {
+    const remarks = prompt('Optional final approval remarks:') || '';
+    submitCoordinatorAction('coordinator_approve_improvement_plan', remarks.trim());
   }
 
   function closePlanDetail() {
@@ -3863,6 +4013,12 @@ function updateIndicatorTrendChart(dimId) {
     <div
       style="padding:20px 28px;border-bottom:1px solid #e8ecf0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <div style="font-size:16px;font-weight:800;color:#0f172a;letter-spacing:-0.3px;" id="pdTitle"></div>
+      <button id="pdEditBtn" onclick="openCoordinatorEdit()"
+        style="padding:8px 16px;border-radius:8px;border:1px solid #f59e0b;background:#fffbeb;font-size:13px;font-weight:600;color:#b45309;cursor:pointer;display:none;">Edit &amp; Return</button>
+      <button id="pdReturnBtn" onclick="returnSelectedPlan()"
+        style="padding:8px 16px;border-radius:8px;border:1px solid #f59e0b;background:#fff7ed;font-size:13px;font-weight:600;color:#c2410c;cursor:pointer;display:none;">Return for Review</button>
+      <button id="pdApproveBtn" onclick="approveSelectedPlan()"
+        style="padding:8px 16px;border-radius:8px;border:1px solid #86efac;background:#f0fdf4;font-size:13px;font-weight:600;color:#15803d;cursor:pointer;display:none;">Approve &amp; Finalize</button>
       <button onclick="closePlanDetail()"
         style="width:30px;height:30px;border-radius:7px;background:#f1f5f9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
         <svg viewBox="0 0 24 24"
@@ -3899,6 +4055,8 @@ function updateIndicatorTrendChart(dimId) {
             style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:14px;font-weight:700;color:#0f172a;">
             Expected Outputs &amp; Evidence</div>
           <div style="padding:16px 18px;font-size:13.5px;line-height:1.9;color:#334155;">
+            <span style="font-weight:700;">INDICATOR:</span> <span id="pdIndicator"></span><br>
+            <span style="font-weight:700;">STATUS:</span> <span id="pdStatus"></span><br>
             <span style="font-weight:700;">EXPECTED OUTPUT:</span> <span id="pdOutput"></span><br><br>
             <span style="font-weight:700;">Evidence:</span> <span style="color:#64748b;">Meeting Minutes, Attendance
               Sheets, Feedback Forms (Placeholder).</span>
@@ -3928,10 +4086,10 @@ function updateIndicatorTrendChart(dimId) {
             style="padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e8ecf0;font-size:14px;font-weight:700;color:#0f172a;">
             Activity Log &amp; Team Comments</div>
           <div style="padding:0;">
-            <div
+            <div id="pdHistory"
               style="padding:14px 18px;border-bottom:1px solid #f1f5f9;font-size:12.5px;line-height:1.55;color:#334155;">
               <strong id="pdDimName" style="color:#0f172a;display:block;margin-bottom:2px;"></strong>
-              <span style="color:#64748b;">Plan created.</span>
+              <span style="color:#64748b;">Loading history…</span>
             </div>
             <div style="padding:14px 18px;font-size:12.5px;line-height:1.55;color:#334155;">
               <strong style="color:#0f172a;display:block;margin-bottom:2px;">System</strong>
@@ -3971,8 +4129,7 @@ function updateIndicatorTrendChart(dimId) {
     <div
       style="padding:14px 28px;border-top:1px solid #e8ecf0;background:#fff;display:flex;justify-content:flex-end;gap:10px;flex-shrink:0;">
       <button onclick="closePlanDetail()"
-        style="padding:8px 20px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:13px;font-weight:600;color:#475569;cursor:pointer;">Save
-        Changes</button>
+        style="padding:8px 20px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:13px;font-weight:600;color:#475569;cursor:pointer;">Close</button>
       <a href="<?= baseUrl() ?>/export_pdf.php?cycle_id=<?= $cycle ? $cycle['cycle_id'] : '' ?>&type=improvement"
         target="_blank"
         style="padding:8px 20px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:13px;font-weight:600;color:#475569;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:7px;">
@@ -3985,6 +4142,22 @@ function updateIndicatorTrendChart(dimId) {
       </a>
     </div>
 
+  </div>
+</div>
+
+<div id="coordEditModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:3100;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;width:100%;max-width:760px;max-height:90vh;overflow:auto;border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.2);">
+    <div style="padding:18px 22px;border-bottom:1px solid #e8ecf0;font-size:16px;font-weight:700;color:#0f172a;">Revise Improvement Plan</div>
+    <div style="padding:22px;display:grid;gap:14px;">
+      <input type="hidden" id="coordPlanId">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;"><label>Priority<select id="coordPriority" class="form-control"><option>High</option><option>Medium</option><option>Low</option></select></label><label>Target Date<input id="coordTarget" type="date" class="form-control"></label></div>
+      <label>Objective<textarea id="coordObjective" class="form-control" rows="3"></textarea></label>
+      <label>Strategy<textarea id="coordStrategy" class="form-control" rows="3"></textarea></label>
+      <label>Person Responsible<input id="coordPerson" class="form-control"></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;"><label>Resources Needed<textarea id="coordResources" class="form-control" rows="2"></textarea></label><label>Expected Output<textarea id="coordOutput" class="form-control" rows="2"></textarea></label></div>
+      <label>Remarks for School Head<textarea id="coordRemarks" class="form-control" rows="2" placeholder="Explain the revisions or requested review."></textarea></label>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid #e8ecf0;"><button onclick="closeCoordinatorEdit()" class="btn btn-secondary">Cancel</button><button onclick="saveCoordinatorEdit()" class="btn btn-primary">Save Changes &amp; Return</button></div>
   </div>
 </div>
 
@@ -4188,6 +4361,7 @@ function updateIndicatorTrendChart(dimId) {
     doc.addImage(imgData, 'PNG', x, y, imgW, imgH);
     doc.save(filename + '.pdf');
   }
+
 </script>
 
 <?= deadlineChipCss() ?>

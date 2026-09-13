@@ -56,6 +56,7 @@ define('SBM_NAV', [
             'Management',
             'users',
             [
+                ['SH Improvement Plans', 'coordinator/improvement_plans.php', 'clipboard'],
                 ['User Accounts', 'system_admin/users.php', 'users'],
                 ['External Evaluators', 'system_admin/external_evaluators.php', 'user-check'],
                 ['Manage Roles', 'system_admin/manage_roles.php', 'shield'],
@@ -143,6 +144,7 @@ define('SBM_NAV', [
             'check-circle',
             [
                 ['Intervention Matrix', 'coordinator/self_assessment.php', 'check-circle'],
+                ['SH Improvement Plans', 'coordinator/improvement_plans.php', 'clipboard'],
             ]
         ],
     ],

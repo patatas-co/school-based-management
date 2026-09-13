@@ -4,10 +4,20 @@ ob_start();
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
 require_once __DIR__.'/../includes/ai_usage_limiter.php';
+require_once __DIR__.'/../includes/improvement_plan_workflow.php';
 requireRole('school_head', 'sbm_coordinator');
 $db = getDB();
 
 $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_improvement_plan_history') {
+  header('Content-Type: application/json');
+  $planId = (int) ($_POST['plan_id'] ?? 0);
+  $h = $db->prepare("SELECT h.*, u.full_name AS actor_name FROM improvement_plan_history h JOIN improvement_plans ip ON ip.plan_id = h.plan_id JOIN users u ON u.user_id = h.actor_id WHERE h.plan_id = ? AND ip.school_id = ? ORDER BY h.version_no DESC");
+  $h->execute([$planId, (int) ($_SESSION['school_id'] ?? 1)]);
+  echo json_encode(['success' => true, 'history' => $h->fetchAll(PDO::FETCH_ASSOC)]);
+  exit;
+}
 
 // ── AI USAGE STATUS (read-only, used to restore button/timer state on page load) ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_ai_usage_status') {
@@ -300,14 +310,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'gener
   exit;
 }
 
-// ── IMPROVEMENT PLAN WORKFLOW CONSTANTS ─────────────────────────
-// Allowed workflow_status values. Kept as plain strings (not a DB ENUM)
-// so future statuses (pending_review, returned, approved) are just new
-// values here + in the Coordinator UI — no schema migration needed.
-define('IP_STATUS_DRAFT', 'draft');
-define('IP_STATUS_SUBMITTED', 'submitted');
-// Future (not implemented yet): IP_STATUS_PENDING_REVIEW, IP_STATUS_RETURNED, IP_STATUS_APPROVED
-
 /**
  * Resolves the active cycle_id for a given school + SY.
  * Centralized here so every handler below scopes to the same cycle.
@@ -327,8 +329,8 @@ function ipResolveCycleId(PDO $db, int $schoolId, int $syId): ?int
  */
 function ipCycleIsSubmitted(PDO $db, int $cycleId): bool
 {
-  $q = $db->prepare("SELECT COUNT(*) FROM improvement_plans WHERE cycle_id = ? AND workflow_status = ?");
-  $q->execute([$cycleId, IP_STATUS_SUBMITTED]);
+  $q = $db->prepare("SELECT COUNT(*) FROM improvement_plans WHERE cycle_id = ? AND workflow_status IN (?, ?, ?, ?)");
+  $q->execute([$cycleId, IP_STATUS_SUBMITTED, IP_STATUS_RESUBMITTED, IP_STATUS_APPROVED, IP_STATUS_FINALIZED]);
   return ((int) $q->fetchColumn()) > 0;
 }
 
@@ -361,16 +363,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
   }
 
   // ── One-and-done guard: can't add drafts to an already-submitted batch ──
-  if (ipCycleIsSubmitted($db, $cycleIdIp)) {
+  $returnedPlanQ = $db->prepare("SELECT COUNT(*) FROM improvement_plans WHERE cycle_id = ? AND workflow_status = ?");
+  $returnedPlanQ->execute([$cycleIdIp, IP_STATUS_RETURNED]);
+  if (ipCycleIsSubmitted($db, $cycleIdIp) || (int) $returnedPlanQ->fetchColumn() > 0) {
     echo json_encode(['success' => false, 'message' => 'Improvement plans for this school year have already been submitted and can no longer be edited.']);
     exit;
   }
 
   $db->beginTransaction();
   try {
-    $ins = $db->prepare("INSERT INTO improvement_plans (school_id, cycle_id, dimension_id, indicator_id, priority_level, objective, strategy, person_responsible, target_date, resources_needed, expected_output, workflow_status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $ins = $db->prepare("INSERT INTO improvement_plans (school_id, cycle_id, dimension_id, indicator_id, priority_level, objective, strategy, person_responsible, target_date, resources_needed, expected_output, workflow_status, current_owner_role, current_owner_user_id, last_action_by, last_action_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'school_head', ?, ?, NOW(), ?)");
 
     $inserted = 0;
+    $newPlanIds = [];
     foreach ($indIds as $indId) {
       if (!$indId)
         continue;
@@ -379,7 +384,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
       $dId = $dimQ->fetchColumn();
       if (!$dId) continue;
 
-      $ins->execute([$schoolIdIp, $cycleIdIp, $dId, $indId, $priority, $obj, $strat, $person ?: null, $target ?: null, $res ?: null, $output ?: null, IP_STATUS_DRAFT, $currentUserId]);
+      $ins->execute([$schoolIdIp, $cycleIdIp, $dId, $indId, $priority, $obj, $strat, $person ?: null, $target ?: null, $res ?: null, $output ?: null, IP_STATUS_DRAFT, $currentUserId, $currentUserId]);
+      $newPlanIds[] = (int) $db->lastInsertId();
       $inserted++;
     }
 
@@ -390,6 +396,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     }
 
     $db->commit();
+    foreach ($newPlanIds as $newId) ipRecordHistory($db, $newId, $currentUserId, 'created', null, IP_STATUS_DRAFT);
     echo json_encode(['success' => true]);
   } catch (Exception $e) {
     if ($db->inTransaction()) $db->rollBack();
@@ -423,17 +430,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
     $priority = 'Medium';
   }
 
-  // Ownership + status guard: must belong to this school AND still be a draft.
-  $chk = $db->prepare("SELECT plan_id FROM improvement_plans WHERE plan_id = ? AND school_id = ? AND workflow_status = ?");
-  $chk->execute([$planId, $schoolIdIp, IP_STATUS_DRAFT]);
-  if (!$chk->fetchColumn()) {
+  // School Head may revise drafts or plans explicitly returned by the coordinator.
+  $chk = $db->prepare("SELECT plan_id, workflow_status FROM improvement_plans WHERE plan_id = ? AND school_id = ? AND workflow_status IN (?, ?)");
+  $chk->execute([$planId, $schoolIdIp, IP_STATUS_DRAFT, IP_STATUS_RETURNED]);
+  $existing = $chk->fetch();
+  if (!$existing) {
     echo json_encode(['success' => false, 'message' => 'This plan can no longer be edited.']);
     exit;
   }
 
   try {
-    $upd = $db->prepare("UPDATE improvement_plans SET priority_level = ?, objective = ?, strategy = ?, person_responsible = ?, target_date = ?, resources_needed = ?, expected_output = ? WHERE plan_id = ?");
-    $upd->execute([$priority, $obj, $strat, $person ?: null, $target ?: null, $res ?: null, $output ?: null, $planId]);
+    $upd = $db->prepare("UPDATE improvement_plans SET priority_level = ?, objective = ?, strategy = ?, person_responsible = ?, target_date = ?, resources_needed = ?, expected_output = ?, last_action_by = ?, last_action_at = NOW() WHERE plan_id = ?");
+    $upd->execute([$priority, $obj, $strat, $person ?: null, $target ?: null, $res ?: null, $output ?: null, $currentUserId, $planId]);
+    ipRecordHistory($db, $planId, $currentUserId, 'school_head_revision', $existing['workflow_status'], $existing['workflow_status']);
     echo json_encode(['success' => true]);
   } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
@@ -489,8 +498,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
   $db->beginTransaction();
   try {
     // Lock the draft rows for this cycle to prevent a double-submit race.
-    $lockQ = $db->prepare("SELECT plan_id FROM improvement_plans WHERE cycle_id = ? AND workflow_status = ? FOR UPDATE");
-    $lockQ->execute([$cycleIdIp, IP_STATUS_DRAFT]);
+    $lockQ = $db->prepare("SELECT plan_id FROM improvement_plans WHERE cycle_id = ? AND workflow_status IN (?, ?) FOR UPDATE");
+    $lockQ->execute([$cycleIdIp, IP_STATUS_DRAFT, IP_STATUS_RETURNED]);
     $draftIds = $lockQ->fetchAll(PDO::FETCH_COLUMN);
 
     if (empty($draftIds)) {
@@ -499,10 +508,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
       exit;
     }
 
-    $upd = $db->prepare("UPDATE improvement_plans SET workflow_status = ?, submitted_by = ?, submitted_at = UTC_TIMESTAMP() WHERE cycle_id = ? AND workflow_status = ?");
-    $upd->execute([IP_STATUS_SUBMITTED, $currentUserId, $cycleIdIp, IP_STATUS_DRAFT]);
+    $returnedQ = $db->prepare("SELECT COUNT(*) FROM improvement_plans WHERE cycle_id = ? AND workflow_status = ?");
+    $returnedQ->execute([$cycleIdIp, IP_STATUS_RETURNED]);
+    $hasReturned = (int) $returnedQ->fetchColumn() > 0;
+    $fromStatus = $hasReturned ? IP_STATUS_RETURNED : IP_STATUS_DRAFT;
+    $toStatus = $hasReturned ? IP_STATUS_RESUBMITTED : IP_STATUS_SUBMITTED;
+    $schoolHead = $currentUserId;
+    $upd = $db->prepare("UPDATE improvement_plans SET workflow_status = ?, current_owner_role = 'sbm_coordinator', current_owner_user_id = NULL, submitted_by = ?, submitted_at = UTC_TIMESTAMP(), last_action_by = ?, last_action_at = NOW() WHERE cycle_id = ? AND workflow_status = ?");
+    $upd->execute([$toStatus, $currentUserId, $currentUserId, $cycleIdIp, $fromStatus]);
 
     $db->commit();
+    foreach ($draftIds as $draftId) ipRecordHistory($db, (int) $draftId, $currentUserId, $hasReturned ? 'school_head_resubmitted' : 'school_head_submitted', $fromStatus, $toStatus);
     echo json_encode(['success' => true, 'count' => count($draftIds)]);
   } catch (Exception $e) {
     if ($db->inTransaction()) $db->rollBack();
@@ -588,17 +604,21 @@ if ($currentCycleId) {
 }
 
 $isSubmitted     = false;
+$isReturned      = false;
+$isFinalized     = false;
 $submittedByName = null;
 $submittedAt     = null;
 foreach ($planList as $p) {
-    if ($p['workflow_status'] === IP_STATUS_SUBMITTED) {
+  if ($p['workflow_status'] === IP_STATUS_RETURNED) $isReturned = true;
+  if ($p['workflow_status'] === IP_STATUS_FINALIZED) $isFinalized = true;
+    if (in_array($p['workflow_status'], [IP_STATUS_SUBMITTED, IP_STATUS_RESUBMITTED, IP_STATUS_FINALIZED], true)) {
         $isSubmitted     = true;
         $submittedByName = $p['submitted_by_name'] ?? 'School Head';
         $submittedAt     = $p['submitted_at'];
         break; // one-and-done: all rows in a submitted batch share the same submitted_by/at
     }
 }
-$draftCount = count(array_filter($planList, fn($p) => $p['workflow_status'] === IP_STATUS_DRAFT));
+  $draftCount = count(array_filter($planList, fn($p) => in_array($p['workflow_status'], [IP_STATUS_DRAFT, IP_STATUS_RETURNED], true)));
 
 // ── History of past improvement plans (shown when the new SY has no cycle/data yet) ──
 $historyPlans = [];
@@ -684,20 +704,20 @@ include __DIR__.'/../includes/header.php';
   <div id="aiUsageMsg" style="display:none;padding:10px 28px 18px 28px;font-size:12.5px;color:var(--red);"></div>
 </div>
 
-<?php if ($isSubmitted): ?>
+<?php if ($isSubmitted || $isReturned): ?>
 <div class="card" style="margin-bottom:18px;border-color:var(--green-200, #bbf7d0);background:var(--green-50, #f0fdf4);">
   <div class="card-body" style="padding:20px 24px;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-      <span style="font-size:15px;font-weight:700;color:var(--n-900);">Improvement Plans Successfully Submitted</span>
+      <span style="font-size:15px;font-weight:700;color:var(--n-900);">Improvement Plan Workflow Status</span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
       <div>
         <div style="font-size:12px;color:var(--n-500);margin-bottom:4px;">Status</div>
-        <div style="font-size:14px;font-weight:700;color:var(--green-700, #15803d);">Submitted</div>
+        <div style="font-size:14px;font-weight:700;color:var(--green-700, #15803d);"><?= e(ipStatusLabel($isFinalized ? IP_STATUS_FINALIZED : ($isReturned ? IP_STATUS_RETURNED : ($planList[0]['workflow_status'] ?? IP_STATUS_SUBMITTED)))) ?></div>
       </div>
       <div>
-        <div style="font-size:12px;color:var(--n-500);margin-bottom:4px;">Submitted By</div>
-        <div style="font-size:14px;font-weight:700;color:var(--n-900);"><?= e($submittedByName ?? 'School Head') ?></div>
+        <div style="font-size:12px;color:var(--n-500);margin-bottom:4px;">Current Responsible User</div>
+        <div style="font-size:14px;font-weight:700;color:var(--n-900);"><?= e($isReturned ? 'School Head' : ($isFinalized ? 'SBM Coordinator' : 'SBM Coordinator')) ?></div>
       </div>
       <div>
         <div style="font-size:12px;color:var(--n-500);margin-bottom:4px;">Submitted On</div>
@@ -712,9 +732,9 @@ include __DIR__.'/../includes/header.php';
 
 <div class="card" style="margin-bottom:18px;">
   <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-    <span class="card-title">Improvement Plans<?= $isSubmitted ? ' <span style="font-weight:600;font-size:11.5px;color:var(--n-500);">(read-only — submitted)</span>' : '' ?></span>
+    <span class="card-title">Improvement Plans<?= $isFinalized ? ' <span style="font-weight:600;font-size:11.5px;color:var(--n-500);">(finalized — read-only)</span>' : ($isSubmitted ? ' <span style="font-weight:600;font-size:11.5px;color:var(--n-500);">(with SBM Coordinator)</span>' : ($isReturned ? ' <span style="font-weight:600;font-size:11.5px;color:#b45309;">(returned for your review)</span>' : '')) ?></span>
     <div style="display:flex;align-items:center;gap:10px;">
-      <?php if (!$isSubmitted): ?>
+      <?php if (!$isSubmitted && !$isFinalized): ?>
         <?php if ($draftCount > 0): ?>
           <button class="btn btn-secondary" onclick="openSubmitConfirm()">Submit Improvement Plans</button>
         <?php endif; ?>
@@ -764,9 +784,9 @@ include __DIR__.'/../includes/header.php';
               <td style="font-size:12.5px;color:var(--n-600);"><?= $p['target_date'] ? date('M j, Y', strtotime($p['target_date'])) : '—' ?></td>
               <td>
                 <span style="display:inline-flex;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;
-                  background:<?= $p['workflow_status']===IP_STATUS_SUBMITTED ? '#dcfce7' : '#f1f5f9' ?>;
-                  color:<?= $p['workflow_status']===IP_STATUS_SUBMITTED ? '#15803d' : '#64748b' ?>;">
-                  <?= e(ucfirst($p['workflow_status'])) ?>
+                  background:<?= $p['workflow_status']===IP_STATUS_RETURNED ? '#fef3c7' : ($p['workflow_status']===IP_STATUS_FINALIZED ? '#dcfce7' : '#f1f5f9') ?>;
+                  color:<?= $p['workflow_status']===IP_STATUS_RETURNED ? '#b45309' : ($p['workflow_status']===IP_STATUS_FINALIZED ? '#15803d' : '#64748b') ?>;">
+                  <?= e(ipStatusLabel($p['workflow_status'])) ?>
                 </span>
               </td>
               <td>
@@ -774,7 +794,10 @@ include __DIR__.'/../includes/header.php';
                   <button class="ip-icon-btn" title="Preview" onclick='openViewPlan(<?= json_encode($p, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   </button>
-                  <?php if (!$isSubmitted): ?>
+                  <button class="ip-icon-btn" title="History" onclick="openPlanHistory(<?= (int)$p['plan_id'] ?>)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 3 3 9 9 9"/><path d="M12 7v5l3 2"/></svg>
+                  </button>
+                  <?php if (!$isSubmitted && !$isFinalized): ?>
                     <button class="ip-icon-btn" title="Edit" onclick='openEditPlan(<?= json_encode($p, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
@@ -2106,6 +2129,19 @@ function openEditPlan(plan) {
 function closeEditPlanModal() {
   document.getElementById('editPlanModal').style.display = 'none';
   document.getElementById('editPlanForm').reset();
+}
+
+async function openPlanHistory(planId) {
+  try {
+    const res = await fetch(window.location.href, { method: 'POST', body: new URLSearchParams({ action: 'get_improvement_plan_history', plan_id: planId }) });
+    const data = await res.json();
+    const rows = data.history || [];
+    document.querySelector('#viewPlanModal .modal-title').textContent = 'Improvement Plan History';
+    document.getElementById('viewPlanBody').innerHTML = rows.length
+      ? rows.map(h => `<div style="padding:12px 0;border-bottom:1px solid var(--n-200);"><strong>Version ${h.version_no}: ${ipEscape(h.action.replaceAll('_', ' '))}</strong><br><span style="color:var(--n-500);">${ipEscape(h.actor_name)} · ${ipEscape(h.from_status || 'new')} → ${ipEscape(h.to_status || '—')} · ${ipEscape(h.created_at)}</span>${h.remarks ? `<p style="margin:6px 0 0;">${ipEscape(h.remarks)}</p>` : ''}</div>`).join('')
+      : '<p>No history recorded.</p>';
+    document.getElementById('viewPlanModal').style.display = 'flex';
+  } catch (err) { alert('Unable to load improvement plan history.'); }
 }
 
 async function saveEditPlan(e) {

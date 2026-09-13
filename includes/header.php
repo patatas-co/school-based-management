@@ -2523,11 +2523,19 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       };
 
       $__pendingRequestsCount = 0;
+      $__pendingImprovementPlansCount = 0;
       if ($__role === 'system_admin' && function_exists('getDB')) {
         try {
           $__pendingRequestsCount = (int) getDB()->query("SELECT COUNT(*) FROM users WHERE status='pending'")->fetchColumn();
         } catch (Throwable $e) {
           $__pendingRequestsCount = 0;
+        }
+      }
+      if ($__role === 'sbm_coordinator' && function_exists('getDB')) {
+        try {
+          $__pendingImprovementPlansCount = (int) getDB()->query("SELECT COUNT(*) FROM improvement_plans ip JOIN sbm_cycles c ON c.cycle_id = ip.cycle_id JOIN school_years sy ON sy.sy_id = c.sy_id WHERE sy.is_current = 1 AND ip.workflow_status IN ('submitted','resubmitted_to_coordinator','approved')")->fetchColumn();
+        } catch (Throwable $e) {
+          $__pendingImprovementPlansCount = 0;
         }
       }
 
@@ -2536,7 +2544,9 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         ?>
         <div class="sb-section-label"><?= e($groupLabel) ?></div>
         <?php foreach ($groupItems as $item):
-          $isActive = basename($item[1]) === basename($_SERVER['PHP_SELF']);
+          $isPlanNav = $item[0] === 'SH Improvement Plans';
+          $isPlanSection = ($_GET['section'] ?? '') === 'improvement_plans';
+          $isActive = basename($item[1]) === basename($_SERVER['PHP_SELF']) && ($isPlanNav ? $isPlanSection : !($item[1] === 'coordinator/dashboard.php' && $isPlanSection));
           $__isPendingItem = $item[1] === 'system_admin/pending_requests.php';
           ?>
           <a href="<?= $__base ?>/<?= e($item[1]) ?>" class="sb-item <?= $isActive ? 'active' : '' ?>"
@@ -2545,6 +2555,9 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
             <span class="sb-label"><?= e($item[0]) ?></span>
             <?php if ($__isPendingItem && $__pendingRequestsCount > 0): ?>
               <span class="sb-nav-badge" style="margin-left:auto;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;background:#FEF3C7;color:#D97706;flex-shrink:0;"><?= $__pendingRequestsCount ?></span>
+            <?php endif; ?>
+            <?php if ($isPlanNav && $__pendingImprovementPlansCount > 0): ?>
+              <span class="sb-nav-badge" style="margin-left:auto;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;background:#FEF3C7;color:#D97706;flex-shrink:0;"><?= $__pendingImprovementPlansCount ?></span>
             <?php endif; ?>
           </a>
         <?php endforeach; ?>

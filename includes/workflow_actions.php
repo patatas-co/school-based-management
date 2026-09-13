@@ -3,18 +3,6 @@
 // POST handlers and helper functions for SBM workflow.
 // Included by workflow_core.php only — not directly.
 
-// ── Stage order definition ────────────────────────────────────
-const CYCLE_STAGES = [
-    'draft',
-    'setup',
-    'assigning',
-    'in_progress',
-    'consolidating',
-    'submitted',
-    'validated',
-    'finalized',
-];
-
 // Stages a cycle can be returned TO from validation
 const RETURNABLE_TO = ['in_progress', 'assigning'];
 
@@ -84,8 +72,6 @@ function gateSetupToAssigning(PDO $db, int $cycleId): array
     $st->execute([$cycleId]);
     $syId = (int) $st->fetchColumn();
 
-    $phases = (int) $db->prepare("SELECT COUNT(*) FROM sbm_workflow_phases WHERE sy_id = ?")
-        ->execute([$syId]) ? $db->prepare("SELECT COUNT(*) FROM sbm_workflow_phases WHERE sy_id = ?") : null;
     $phQ = $db->prepare("SELECT COUNT(*) FROM sbm_workflow_phases WHERE sy_id = ?");
     $phQ->execute([$syId]);
     $phCount = (int) $phQ->fetchColumn();
