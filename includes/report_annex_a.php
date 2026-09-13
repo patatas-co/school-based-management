@@ -19,6 +19,55 @@ if (!$reportData): ?>
 
   <div id="printReport">
 
+    <style>
+      .annex-indicator-title {
+        margin: 14px 0 4px;
+        padding: 5px 0;
+        color: #111827;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        page-break-after: avoid;
+      }
+      .annex-indicator-section { page-break-inside: avoid; }
+      .annex-indicator-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        margin-bottom: 14px;
+        font-size: 12px;
+      }
+      .annex-indicator-table thead { display: table-header-group; }
+      .annex-indicator-table tr { page-break-inside: avoid; }
+      .annex-indicator-table th {
+        padding: 6px 8px;
+        background: #F3F4F6;
+        border: 1px solid #9CA3AF;
+        color: #111827;
+        font-weight: 700;
+        text-align: left;
+        text-transform: uppercase;
+      }
+      .annex-indicator-table td {
+        padding: 6px 8px;
+        border: 1px solid #B8BEC7;
+        color: #1F2937;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+      }
+      .annex-indicator-table tbody tr:nth-child(even) td { background: #fff; }
+      .annex-indicator-code {
+        color: #1F2937;
+        font-weight: 700;
+        text-align: center;
+        white-space: nowrap;
+      }
+      .annex-indicator-rating {
+        color: #1F2937;
+        text-align: center;
+      }
+    </style>
+
     <!-- Header -->
     <div
       style="text-align:center;margin-bottom:24px;padding:20px;background:var(--white);border:1px solid var(--n200);border-radius:var(--radius);">
@@ -93,58 +142,6 @@ if (!$reportData): ?>
         </table>
       </div>
     </div>
-
-    <!-- Full Indicator Checklist -->
-    <?php
-    $ratingMap = [1 => 'Not yet Manifested', 2 => 'Rarely Manifested', 3 => 'Frequently Manifested', 4 => 'Always manifested'];
-    $ratingColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A'];
-    $grouped = [];
-    foreach (($responses ?? []) as $r)
-      $grouped[$r['dimension_no']][] = $r;
-    ?>
-    <?php foreach ($grouped as $dimNo => $indicators): ?>
-      <?php $first = $indicators[0]; ?>
-      <div class="card dim-card" style="margin-bottom:14px;">
-        <div class="card-head" style="background:<?= htmlspecialchars($first['color_hex'] ?? '#16A34A') ?>1A;">
-          <span class="card-title">Dimension <?= $dimNo ?>: <?= e($first['dimension_name']) ?></span>
-          <span style="font-size:12px;color:var(--n500);"><?= count($indicators) ?> indicators</span>
-        </div>
-        <div class="tbl-wrap dim-body">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:70px;">Code</th>
-                <th>Indicator</th>
-                <th style="width:180px;">Means of Verification</th>
-                <th style="width:150px;">Rating</th>
-                <th>Evidence</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($indicators as $ind): ?>
-                <tr>
-                  <td><strong style="font-size:12px;color:var(--n600);"><?= e($ind['indicator_code']) ?></strong></td>
-                  <td style="font-size:12.5px;line-height:1.5;"><?= e($ind['indicator_text']) ?></td>
-                  <td style="font-size:11.5px;color:var(--n500);font-style:italic;"><?= e($ind['mov_guide']) ?></td>
-                  <td>
-                    <span
-                      style="display:inline-flex;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:<?= $ratingColors[$ind['rating']] ?>22;color:<?= $ratingColors[$ind['rating']] ?>;">
-                      <?= $ind['rating'] ?> — <?= e($ratingMap[$ind['rating']] ?? '—') ?>
-                    </span>
-                  </td>
-                  <td style="font-size:12px;color:var(--n600);"><?= e($ind['evidence_text'] ?? '—') ?></td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    <?php endforeach; ?>
-
-    <?php if (empty($responses)): ?>
-      <div class="alert alert-info"><?= svgIcon('info') ?> No indicator responses recorded yet for this assessment cycle.
-      </div>
-    <?php endif; ?>
 
   </div><!-- #printReport -->
 <?php endif; ?>

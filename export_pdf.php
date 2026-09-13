@@ -170,14 +170,8 @@ ob_start();
   /* ── Page header ── */
   .page-header {
     text-align: center;
-    border-bottom: 2px solid #166534;
     padding-bottom: 10px;
     margin-bottom: 14px;
-  }
-  .deped-stripe {
-    height: 4px;
-    background: linear-gradient(90deg, #166534 0%, #22C55E 40%, #FFD700 70%, #CE1126 100%);
-    margin-bottom: 10px;
   }
   .page-header h1 {
     font-size: 12pt;
@@ -230,7 +224,7 @@ ob_start();
   .score-summary .score-val {
     font-size: 16pt;
     font-weight: bold;
-    color: #166534;
+    color: #1F2937;
   }
   .score-summary .score-lbl {
     font-size: 7.5pt;
@@ -284,30 +278,51 @@ ob_start();
   .ind-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
     margin-bottom: 14px;
     font-size: 8pt;
   }
+  .ind-table thead { display: table-header-group; }
+  .ind-table tr { page-break-inside: avoid; }
   .ind-table th {
     background: #F3F4F6;
     padding: 5px 8px;
     text-align: left;
     font-size: 7.5pt;
     font-weight: bold;
-    color: #4B5563;
-    border: 1px solid #D1D5DB;
+    color: #111827;
+    border: 1px solid #9CA3AF;
     text-transform: uppercase;
   }
   .ind-table td {
     padding: 5px 8px;
-    border: 1px solid #E5E7EB;
+    border: 1px solid #B8BEC7;
+    color: #1F2937;
     vertical-align: top;
+    overflow-wrap: anywhere;
   }
-  .ind-table tr:nth-child(even) td { background: #F9FAFB; }
+  .ind-table tbody tr:nth-child(even) td { background: #fff; }
+  .ind-dimension-title {
+    margin: 10px 0 4px;
+    padding: 5px 0;
+    color: #111827;
+    font-size: 8.5pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    page-break-after: avoid;
+  }
+  .ind-dimension-section { page-break-inside: avoid; }
   .ind-code {
     font-family: monospace;
     font-size: 7.5pt;
     font-weight: bold;
-    color: #6B7280;
+    color: #1F2937;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .ind-rating {
+    color: #1F2937;
+    text-align: center;
   }
   .rating-pill {
     display: inline-block;
@@ -337,20 +352,35 @@ ob_start();
     margin-bottom: 16px;
   }
   .dim-summary th {
-    background: #166534;
-    color: #fff;
+    background: #F3F4F6;
+    color: #111827;
     padding: 6px 10px;
     font-size: 8pt;
     text-align: left;
-    border: 1px solid #15803D;
+    border: 1px solid #9CA3AF;
   }
+  .dim-summary th:nth-child(5) { white-space: nowrap; }
   .dim-summary td {
     padding: 6px 10px;
     font-size: 8.5pt;
-    border: 1px solid #E5E7EB;
+    border: 1px solid #B8BEC7;
+    color: #1F2937 !important;
     vertical-align: middle;
   }
-  .dim-summary tr:nth-child(even) td { background: #F9FAFB; }
+  .dim-summary tr:nth-child(even) td { background: #fff; }
+  .dim-summary strong,
+  .dim-summary .rating-pill {
+    color: #1F2937 !important;
+  }
+  .dim-summary .rating-pill {
+    background: #fff !important;
+    border: 0;
+    padding: 0;
+  }
+  .dim-summary .prog-inner { background: #9CA3AF !important; }
+  .dim-summary .progress-result {
+    background: transparent !important;
+  }
 
   /* ── Improvement plan ── */
   .plan-table {
@@ -392,15 +422,16 @@ ob_start();
     margin-top: 30px;
   }
   .signature-block td {
-    width: 33%;
+    width: 50%;
     text-align: center;
     padding: 0 10px;
     vertical-align: bottom;
   }
   .signature-line {
+    width: 70%;
+    height: 0;
     border-top: 1px solid #374151;
-    margin-bottom: 3px;
-    margin-top: 30px;
+    margin: 5px auto 3px;
   }
   .signature-name  { font-weight: bold; font-size: 8.5pt; }
   .signature-title { font-size: 7.5pt; color: #6B7280; }
@@ -411,25 +442,20 @@ ob_start();
 </head>
 <body>
 
-<!-- DepEd stripe -->
-<div class="deped-stripe"></div>
-
 <!-- Page header -->
 <div class="page-header">
   <p style="font-size:8pt;color:#6B7280;margin-bottom:4px;">
-    Republic of the Philippines · Department of Education · Region IV-A (CALABARZON)
+    Republic of the Philippines · Department of Education
   </p>
   <?php if($type === 'improvement'): ?>
   <h1>School Improvement Plan (SIP)</h1>
   <h2>Based on SBM Self-Assessment Results</h2>
   <?php elseif($type === 'dimension'): ?>
-  <h1>SBM Dimension Performance Summary</h1>
-  <h2>School-Based Management Evaluation Report</h2>
+  <h1>School-Based Management Dimension Performance Summary</h1>
   <?php else: ?>
   <h1>SBM Self-Assessment Checklist</h1>
-  <h2>Annex A — DepEd Order No. 007, s. 2024</h2>
+  <h2>Annex A — Self-Assessment Checklist</h2>
   <?php endif; ?>
-  <p>School Year <?= htmlspecialchars($cycle['sy_label']) ?></p>
 </div>
 
 <!-- School information block -->
@@ -441,8 +467,8 @@ ob_start();
   <tr>
     <td class="lbl">School ID (DepEd)</td>
     <td><?= htmlspecialchars($cycle['school_id_deped'] ?? '—') ?></td>
-    <td class="lbl">Classification</td>
-    <td><?= htmlspecialchars($cycle['classification'] ?? '—') ?></td>
+    <td class="lbl">Address</td>
+    <td><?= htmlspecialchars($cycle['address'] ?? '—') ?></td>
   </tr>
   <tr>
     <td class="lbl">School Head</td>
@@ -451,22 +477,14 @@ ob_start();
     <td><?= htmlspecialchars($cycle['division_name'] ?? '—') ?></td>
   </tr>
   <tr>
-    <td class="lbl">Address</td>
-    <td><?= htmlspecialchars($cycle['address'] ?? '—') ?></td>
     <td class="lbl">School Year</td>
     <td><?= htmlspecialchars($cycle['sy_label']) ?></td>
-  </tr>
-  <tr>
-    <td class="lbl">Total Enrollment</td>
-    <td><?= number_format($cycle['total_enrollment'] ?? 0) ?></td>
-    <td class="lbl">Total Teachers</td>
-    <td><?= number_format($cycle['total_teachers'] ?? 0) ?></td>
-  </tr>
-  <tr>
     <td class="lbl">Assessment Status</td>
     <td><?= ucfirst(str_replace('_', ' ', $cycle['status'])) ?></td>
+  </tr>
+  <tr>
     <td class="lbl">Validated By</td>
-    <td><?= htmlspecialchars($cycle['validator_name'] ?? '—') ?></td>
+    <td colspan="3"><?= htmlspecialchars($cycle['validator_name'] ?? '—') ?></td>
   </tr>
 </table>
 
@@ -474,12 +492,12 @@ ob_start();
 <?php if($cycle['overall_score']): ?>
 <table class="score-summary">
   <tr>
-    <td style="width:25%;background:#F0FDF4;border:2px solid #86EFAC;">
+    <td style="width:25%;background:#fff;border:1px solid #B8BEC7;">
       <div class="score-val"><?= number_format($cycle['overall_score'], 2) ?>%</div>
       <div class="score-lbl">Overall SBM Score</div>
     </td>
-    <td style="width:20%;background:<?= $overallMat['bg'] ?>;border:1px solid <?= $overallMat['color'] ?>30;">
-      <span class="maturity-badge" style="background:<?= $overallMat['bg'] ?>;color:<?= $overallMat['color'] ?>;">
+    <td style="width:20%;background:#F9FAFB;border:1px solid #B8BEC7;">
+      <span class="maturity-badge" style="background:#fff;color:#1F2937;">
         <?= htmlspecialchars($cycle['maturity_level'] ?? $overallMat['label']) ?>
       </span>
       <div class="score-lbl" style="margin-top:4px;">Maturity Level</div>
@@ -490,18 +508,18 @@ ob_start();
           $mat = getMaturityLabel((float)$ds['percentage']);
         ?>
         <tr>
-          <td style="font-size:7.5pt;padding:2px 0;width:45%;">
-            D<?= $ds['dimension_no'] ?>: <?= htmlspecialchars($ds['dimension_name']) ?>
+          <td style="font-size:7.5pt;padding:3px 2px;width:52%;color:#1F2937;">
+            <?= htmlspecialchars($ds['dimension_name']) ?>
           </td>
-          <td style="width:45%;padding:2px 4px;">
+          <td style="width:26%;padding:3px 3px;">
             <div class="prog-outer">
               <div class="prog-inner"
                    style="width:<?= min(100, $ds['percentage']) ?>%;
-                          background:<?= htmlspecialchars($ds['color_hex']) ?>;"></div>
+                          background:#9CA3AF;"></div>
             </div>
           </td>
-          <td style="font-size:7.5pt;font-weight:bold;color:<?= $mat['color'] ?>;
-                     text-align:right;white-space:nowrap;width:10%;padding:2px 0 2px 4px;">
+          <td style="font-size:7.5pt;font-weight:bold;color:#1F2937;
+                     text-align:center;white-space:nowrap;width:22%;padding:3px 0 3px 5px;">
             <?= number_format($ds['percentage'], 1) ?>%
           </td>
         </tr>
@@ -522,12 +540,10 @@ ob_start();
   <thead>
     <tr>
       <th style="width:5%;">#</th>
-      <th style="width:30%;">Dimension</th>
-      <th style="width:12%;text-align:center;">Raw Score</th>
-      <th style="width:12%;text-align:center;">Max Score</th>
-      <th style="width:12%;text-align:center;">Percentage</th>
-      <th style="width:15%;text-align:center;">Maturity Level</th>
-      <th style="width:14%;">Progress</th>
+      <th style="width:42%;">Dimension</th>
+      <th style="width:15%;text-align:center;">Percentage</th>
+      <th style="width:20%;text-align:center;">Maturity Level</th>
+      <th style="width:18%;">Progress</th>
     </tr>
   </thead>
   <tbody>
@@ -535,39 +551,33 @@ ob_start();
     $mat = getMaturityLabel((float)$ds['percentage']);
   ?>
   <tr>
-    <td style="text-align:center;font-weight:bold;color:<?= htmlspecialchars($ds['color_hex']) ?>;">
+    <td style="text-align:center;font-weight:bold;color:#1F2937;">
         <?= $ds['dimension_no'] ?>
     </td>
     <td><?= htmlspecialchars($ds['dimension_name']) ?></td>
-    <td style="text-align:center;font-weight:bold;">
-        <?= number_format($ds['raw_score'], 1) ?>
-    </td>
-    <td style="text-align:center;color:#6B7280;">
-        <?= number_format($ds['max_score'], 1) ?>
-    </td>
-    <td style="text-align:center;font-weight:bold;color:<?= $mat['color'] ?>;">
+    <td style="text-align:center;font-weight:bold;color:#1F2937;">
         <?= number_format($ds['percentage'], 2) ?>%
     </td>
     <td style="text-align:center;">
       <span class="rating-pill"
-            style="background:<?= $mat['bg'] ?>;color:<?= $mat['color'] ?>;">
+        style="background:#fff;color:#1F2937;">
         <?= $mat['label'] ?>
       </span>
     </td>
     <td>
       <div class="prog-outer">
         <div class="prog-inner"
-             style="width:<?= min(100,$ds['percentage']) ?>%;
-                    background:<?= htmlspecialchars($ds['color_hex']) ?>;"></div>
+                  style="width:<?= min(100,$ds['percentage']) ?>%;
+                    background:#9CA3AF;"></div>
       </div>
-      <div style="font-size:7pt;color:#9CA3AF;margin-top:2px;">
+                <div class="progress-result" style="font-size:7pt;font-weight:bold;color:#1F2937;margin-top:2px;background:transparent;">
         <?= number_format($ds['raw_score'],1) ?>/<?= number_format($ds['max_score'],1) ?> pts
       </div>
     </td>
   </tr>
   <?php endforeach; ?>
   <?php if(!$dimScores): ?>
-  <tr><td colspan="7" style="text-align:center;color:#9CA3AF;padding:14px;">
+  <tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:14px;">
       No dimension scores computed yet.
   </td></tr>
   <?php endif; ?>
@@ -575,7 +585,7 @@ ob_start();
 </table>
 
 <!-- Indicator breakdown per dimension -->
-<div class="section-heading">Indicator Ratings by Dimension</div>
+<?php $isFirstDimension = true; ?>
 <?php foreach($grouped as $dimNo => $inds):
   $first = $inds[0];
   $rated1 = count(array_filter($inds, fn($i) => $i['rating'] == 1));
@@ -583,44 +593,37 @@ ob_start();
   $rated3 = count(array_filter($inds, fn($i) => $i['rating'] == 3));
   $rated4 = count(array_filter($inds, fn($i) => $i['rating'] == 4));
 ?>
+<div class="ind-dimension-section">
+<?php if ($isFirstDimension): ?>
+<div class="section-heading">Indicator Ratings by Dimension</div>
+<?php endif; ?>
+<div class="ind-dimension-title">
+  Dimension <?= $dimNo ?>: <?= htmlspecialchars($first['dimension_name']) ?>
+</div>
 <table class="ind-table">
   <thead>
     <tr>
-      <td colspan="3"
-          style="background:<?= htmlspecialchars($first['color_hex']) ?>;
-                 color:#fff;font-weight:bold;padding:5px 8px;font-size:8.5pt;">
-        Dimension <?= $dimNo ?>: <?= htmlspecialchars($first['dimension_name']) ?>
-        &nbsp;·&nbsp;
-        <span style="font-size:7.5pt;opacity:.9;">
-          NYM: <?= $rated1 ?> &nbsp; Rarely: <?= $rated2 ?> &nbsp;
-          Frequently: <?= $rated3 ?> &nbsp; Always: <?= $rated4 ?>
-        </span>
-      </td>
-    </tr>
-    <tr>
-      <th style="width:8%;">Code</th>
-      <th style="width:55%;">Indicator</th>
-      <th style="width:37%;">Rating</th>
+      <th style="width:12%;text-align:center;">Code</th>
+      <th style="width:58%;">Indicator</th>
+      <th style="width:30%;text-align:center;">Rating</th>
     </tr>
   </thead>
   <tbody>
   <?php foreach($inds as $ind): ?>
   <tr>
-    <td><span class="ind-code"><?= htmlspecialchars($ind['indicator_code']) ?></span></td>
+    <td style="text-align:center;"><span class="ind-code"><?= htmlspecialchars($ind['indicator_code']) ?></span></td>
     <td style="font-size:7.5pt;line-height:1.4;">
         <?= htmlspecialchars($ind['indicator_text']) ?>
     </td>
-    <td>
-      <span class="rating-pill"
-            style="background:<?= $ratingBgs[$ind['rating']] ?>;
-                   color:<?= $ratingColors[$ind['rating']] ?>;">
-        <?= $ind['rating'] ?> — <?= $ratingLabels[$ind['rating']] ?>
-      </span>
+    <td class="ind-rating">
+      <?= $ind['rating'] ?> — <?= htmlspecialchars($ratingLabels[$ind['rating']]) ?>
     </td>
   </tr>
   <?php endforeach; ?>
   </tbody>
 </table>
+</div>
+<?php $isFirstDimension = false; ?>
 <?php endforeach; ?>
 
 <?php elseif($type === 'improvement'): ?>
@@ -754,21 +757,18 @@ ob_start();
 <table class="signature-block">
   <tr>
     <td>
-      <div class="signature-line"></div>
       <div class="signature-name">
           <?= htmlspecialchars($cycle['school_head_name'] ?? 'School Head') ?>
       </div>
-      <div class="signature-title">School Head / SBM Coordinator</div>
+      <div class="signature-line"></div>
+      <div class="signature-title">School Head</div>
     </td>
     <td>
+      <div class="signature-name">
+          <?= htmlspecialchars($cycle['validator_name'] ?? 'SBM Coordinator') ?>
+      </div>
       <div class="signature-line"></div>
-      <div class="signature-name">District Supervisor</div>
-      <div class="signature-title">PSDS / District SBM Validator</div>
-    </td>
-    <td>
-      <div class="signature-line"></div>
-      <div class="signature-name">SDO Representative</div>
-      <div class="signature-title">Division SBM Focal Person</div>
+      <div class="signature-title">SBM Coordinator</div>
     </td>
   </tr>
 </table>
@@ -777,7 +777,6 @@ ob_start();
 <div class="report-footer">
   Generated by <?= htmlspecialchars(SITE_NAME) ?> &nbsp;·&nbsp;
   <?= date('F d, Y \a\t g:i A') ?> &nbsp;·&nbsp;
-  DepEd Order No. 007, s. 2024 &nbsp;·&nbsp;
   <?= htmlspecialchars($cycle['school_name']) ?>
 </div>
 
@@ -807,7 +806,7 @@ try {
             'mode'          => 'utf-8',
             'format'        => 'A4',
             'orientation'   => 'P',
-            'margin_top'    => 12,
+          'margin_top'    => 22,
             'margin_bottom' => 14,
             'margin_left'   => 15,
             'margin_right'  => 15,
@@ -821,7 +820,6 @@ try {
         <div style="font-size:7pt;color:#9CA3AF;text-align:right;
                     border-bottom:1px solid #E5E7EB;padding-bottom:3px;">
             ' . htmlspecialchars($cycle['school_name']) . '
-            &nbsp;·&nbsp; SY ' . htmlspecialchars($cycle['sy_label']) . '
             &nbsp;·&nbsp; SBM Self-Assessment Report (Annex A)
         </div>
     ');
