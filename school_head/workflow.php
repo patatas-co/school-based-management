@@ -13,6 +13,13 @@ require_once __DIR__ . '/../includes/workflow_actions.php';
 
 $schoolId = SCHOOL_ID;
 $syId = (int) ($_GET['sy'] ?? $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn());
+$activeFormVersionId = (int) $db->query("SELECT version_id FROM form_versions WHERE is_active=1 LIMIT 1")->fetchColumn();
+$dimensionCount = 0;
+if ($activeFormVersionId) {
+  $dimCountStmt = $db->prepare("SELECT COUNT(*) FROM sbm_dimensions WHERE form_version_id=?");
+  $dimCountStmt->execute([$activeFormVersionId]);
+  $dimensionCount = (int) $dimCountStmt->fetchColumn();
+}
 $syears = $db->query("SELECT * FROM school_years ORDER BY sy_id DESC")->fetchAll();
 $currentSY = $db->prepare("SELECT * FROM school_years WHERE sy_id=?");
 $currentSY->execute([$syId]);
@@ -594,7 +601,7 @@ $currentStageIdx = array_search($currentCycleStatus, $SH_STAGE_ORDER);
   <div class="wf-step <?= (!$cycle || $cycle['status'] === 'in_progress') ? 'active' : '' ?>">
     <div class="wf-step-num" style="background:#DBEAFE;color:#2563EB;">1</div>
     <div class="wf-step-title">Self-Assessment</div>
-    <div class="wf-step-sub">School conducts SBM self-assessment using the rating checklist across 6 dimensions.</div>
+    <div class="wf-step-sub">School conducts SBM self-assessment using the rating checklist across <?= (int) $dimensionCount ?> dimensions.</div>
     <?php if (!empty($phaseSchedule[1])): $ph = $phaseSchedule[1]; ?>
       <div class="wf-phase-dates">
         <?= date('M d', strtotime($ph['date_start'])) ?> — <?= date('M d, Y', strtotime($ph['date_end'])) ?>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 04, 2026 at 06:15 PM
+-- Generation Time: Sep 12, 2026 at 05:10 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -1712,7 +1712,34 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (1731, 46, 'login', 'auth', 'User logged in', '::1', '2026-08-27 06:12:42'),
 (1732, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-03 14:41:28'),
 (1733, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-04 10:29:41'),
-(1734, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-04 15:50:36');
+(1734, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-04 15:50:36'),
+(1735, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-04 16:27:23'),
+(1736, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-04 16:28:11'),
+(1737, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-04 16:28:30'),
+(1738, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-04 16:28:54'),
+(1739, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-04 16:29:00'),
+(1740, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-04 16:30:06'),
+(1741, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-04 16:38:02'),
+(1742, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-04 16:38:12'),
+(1743, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-04 16:47:12'),
+(1744, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-04 16:48:48'),
+(1745, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-04 17:08:58'),
+(1746, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-04 17:11:51'),
+(1747, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-05 02:04:00'),
+(1748, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-05 02:04:25'),
+(1749, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-05 02:04:47'),
+(1750, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-05 02:07:42'),
+(1751, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-05 02:13:36'),
+(1752, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-05 02:14:01'),
+(1753, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-05 03:00:28'),
+(1754, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-05 03:01:44'),
+(1755, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-06 17:28:02'),
+(1756, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-06 17:34:57'),
+(1757, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-08 08:16:30'),
+(1758, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-12 02:59:04'),
+(1759, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-12 03:06:06'),
+(1760, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-12 03:06:23'),
+(1761, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-12 03:06:34');
 
 -- --------------------------------------------------------
 
@@ -2286,6 +2313,7 @@ CREATE TABLE `sbm_dimensions` (
   `dimension_id` int(11) NOT NULL,
   `dimension_no` tinyint(4) NOT NULL,
   `dimension_name` varchar(120) NOT NULL,
+  `description` text DEFAULT NULL,
   `color_hex` varchar(7) DEFAULT '#16A34A',
   `icon` varchar(40) DEFAULT NULL,
   `indicator_count` int(11) DEFAULT 0,
@@ -2296,19 +2324,19 @@ CREATE TABLE `sbm_dimensions` (
 -- Dumping data for table `sbm_dimensions`
 --
 
-INSERT INTO `sbm_dimensions` (`dimension_id`, `dimension_no`, `dimension_name`, `color_hex`, `icon`, `indicator_count`, `form_version_id`) VALUES
-(1, 1, 'Curriculum and Teaching', '#2563EB', 'book', 8, 1),
-(2, 2, 'Learning Environment', '#16A34A', 'home', 10, 1),
-(3, 3, 'Leadership', '#7C3AED', 'star', 4, 1),
-(4, 4, 'Governance and Accountability', '#D97706', 'check-circle', 6, 1),
-(5, 5, 'Human Resources and Team Development', '#DC2626', 'users', 7, 1),
-(6, 6, 'Finance and Resource Management and Mobilization', '#0D9488', 'dollar-sign', 7, 1),
-(40, 1, 'Curriculum and Teaching', '#2563EB', 'book', 9, 10),
-(41, 2, 'Learning Environment', '#16A34A', 'home', 10, 10),
-(42, 3, 'Leadership', '#7C3AED', 'star', 4, 10),
-(43, 4, 'Governance and Accountability', '#D97706', 'check-circle', 6, 10),
-(44, 5, 'Human Resources and Team Development', '#DC2626', 'users', 7, 10),
-(45, 6, 'Finance and Resource Management and Mobilization', '#0D9488', 'dollar-sign', 7, 10);
+INSERT INTO `sbm_dimensions` (`dimension_id`, `dimension_no`, `dimension_name`, `description`, `color_hex`, `icon`, `indicator_count`, `form_version_id`) VALUES
+(1, 1, 'Curriculum and Teaching', 'School personnel and stakeholders work collaboratively to enhance learning standards...', '#2563EB', 'book', 8, 1),
+(2, 2, 'Learning Environment', NULL, '#16A34A', 'home', 10, 1),
+(3, 3, 'Leadership', NULL, '#7C3AED', 'star', 4, 1),
+(4, 4, 'Governance and Accountability', NULL, '#D97706', 'check-circle', 6, 1),
+(5, 5, 'Human Resources and Team Development', NULL, '#DC2626', 'users', 7, 1),
+(6, 6, 'Finance and Resource Management and Mobilization', NULL, '#0D9488', 'dollar-sign', 7, 1),
+(40, 1, 'Curriculum and Teaching', 'School personnel and stakeholders work collaboratively to enhance learning standards...', '#2563EB', 'book', 9, 10),
+(41, 2, 'Learning Environment', NULL, '#16A34A', 'home', 10, 10),
+(42, 3, 'Leadership', NULL, '#7C3AED', 'star', 4, 10),
+(43, 4, 'Governance and Accountability', NULL, '#D97706', 'check-circle', 6, 10),
+(44, 5, 'Human Resources and Team Development', NULL, '#DC2626', 'users', 7, 10),
+(45, 6, 'Finance and Resource Management and Mobilization', NULL, '#0D9488', 'dollar-sign', 7, 10);
 
 -- --------------------------------------------------------
 
@@ -3540,9 +3568,9 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `r
 (13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-08-19 14:47:58', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
 (14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-08-19 14:48:42', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
 (15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-27 14:10:03', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-09-04 23:50:36', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg', NULL, NULL, NULL),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-08-27 14:12:42', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL, NULL, NULL, NULL),
-(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-09-04 18:29:40', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-09-12 11:06:06', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg', NULL, NULL, NULL),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-09-12 11:06:34', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL, NULL, NULL, NULL),
+(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-09-12 11:06:23', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
 (79, 'josejose', NULL, 'josesaint975@gmail.com', 'Jose Bethlehem', NULL, 'pending', 1, '100-456-789', 'Filipino', NULL, '2026-08-17 08:37:29', 0, NULL, NULL, NULL, 1, NULL, 'uploads/avatars/avatar_79_1786955849.jpg', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
@@ -4012,7 +4040,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1735;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1762;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`

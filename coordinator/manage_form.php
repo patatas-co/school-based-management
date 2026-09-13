@@ -116,11 +116,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Insert dimension
                 $db->prepare("
                     INSERT INTO sbm_dimensions
-                        (dimension_no, dimension_name, color_hex, icon, indicator_count, form_version_id)
-                    VALUES (?,?,?,?,?,?)
+                        (dimension_no, dimension_name, description, color_hex, icon, indicator_count, form_version_id)
+                    VALUES (?,?,?,?,?,?,?)
                 ")->execute([
                     (int)$dim['dimension_no'],
                     trim($dim['dimension_name']),
+                    trim((string)($dim['description'] ?? '')),
                     $dim['color_hex'] ?? '#16A34A',
                     $dim['icon']      ?? 'layers',
                     count($dim['indicators'] ?? []),
@@ -466,6 +467,11 @@ include __DIR__ . '/../includes/header.php';
     flex-wrap: wrap;
 }
 .mf-publish-panel.open { display: flex; }
+#editMode { padding-bottom: 90px; }
+@media (max-width: 640px) {
+    .mf-publish-panel { padding: 12px 16px; }
+    .mf-publish-panel #newVersionLabel { width: 100% !important; }
+}
 
 .mf-publish-info {
     display: flex;
@@ -805,7 +811,7 @@ include __DIR__ . '/../includes/header.php';
 
             <div id="editDimList"></div>
 
-            <button class="mf-add-btn" style="width:100%;justify-content:center;margin-top:4px;" onclick="addDimension()">
+            <button class="mf-add-btn" style="width:100%;justify-content:center;margin-top:12px;" onclick="addDimension()">
                 <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Add Dimension
             </button>
@@ -997,11 +1003,13 @@ function startEdit() {
         return [
             'dimension_no'   => (int)$d['dimension_no'],
             'dimension_name' => $d['dimension_name'],
+            'description'    => $d['description'] ?? '',
             'color_hex'      => $d['color_hex'],
             'icon'           => $d['icon'] ?? 'layers',
             'indicators'     => array_map(fn($i) => [
                 'indicator_text' => $i['indicator_text'],
-                'mov_guide'      => $i['mov_guide'] ?? ''
+                'mov_guide'      => $i['mov_guide'] ?? '',
+                'rater_role'     => $i['rater_role'] ?? 'SH_TEACHER'
             ], $d['indicators'])
         ];
     }, $activeDimensions), JSON_HEX_TAG) ?>;
@@ -1161,7 +1169,8 @@ function renderDimCard(container, dim, dIdx) {
     card.dataset.dIdx = dIdx;
 
     const iconPath = DIM_ICONS[dIdx % DIM_ICONS.length];
-    let indHtml = dim.indicators.map((ind, iIdx) => `
+    let indHtml = dim.indicators.length
+        ? dim.indicators.map((ind, iIdx) => `
         <div class="mf-edit-row" data-iidx="${iIdx}">
             <div class="mf-edit-drag" title="Drag to reorder">
                 <svg viewBox="0 0 24 24"><circle cx="9" cy="5" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="19" r="1"/></svg>
@@ -1185,11 +1194,18 @@ function renderDimCard(container, dim, dIdx) {
                 </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:4px;padding-top:6px;flex-shrink:0;">
+                <button class="btn btn-secondary btn-sm btn-icon" title="Move indicator up" onclick="moveIndicator(${dIdx}, ${iIdx}, -1)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><polyline points="18 15 12 9 6 15"/></svg>
+                </button>
+                <button class="btn btn-secondary btn-sm btn-icon" title="Move indicator down" onclick="moveIndicator(${dIdx}, ${iIdx}, 1)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
                 <button class="btn btn-secondary btn-sm btn-icon" title="Remove indicator" onclick="removeIndicator(${dIdx},${iIdx})">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                 </button>
             </div>
-        </div>`).join('');
+        </div>`).join('') : `
+        <div style="padding:12px 0 6px;color:var(--n-500);font-size:12.5px;">No indicators yet</div>`;
 
     card.innerHTML = `
         <div class="mf-dim-head" onclick="toggleDimBody(this)">
@@ -1198,20 +1214,26 @@ function renderDimCard(container, dim, dIdx) {
                     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${iconPath}</svg>
                 </div>
             </div>
-            <div style="flex:1;display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
                 <input type="text" class="fc" value="${_esc(dim.dimension_name)}"
                     placeholder="Dimension name…"
-                    style="flex:1;font-size:13.5px;font-weight:700;border-color:transparent;background:transparent;padding:4px 8px;"
+                    style="width:100%;font-size:13.5px;font-weight:700;border-color:transparent;background:transparent;padding:4px 8px;"
                     onclick="event.stopPropagation()"
                     onchange="updateDimension(${dIdx},'dimension_name',this.value)"
                     oninput="updateDimension(${dIdx},'dimension_name',this.value)">
             </div>
-            <div class="mf-dim-count">${dim.indicators.length} ind.</div>
-            <button class="btn btn-danger btn-sm btn-icon" title="Remove dimension"
-                style="margin-left:6px;"
-                onclick="event.stopPropagation();removeDimension(${dIdx})">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                <button class="btn btn-secondary btn-sm btn-icon" title="Move dimension up" onclick="event.stopPropagation();moveDimension(${dIdx}, -1)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><polyline points="18 15 12 9 6 15"/></svg>
+                </button>
+                <button class="btn btn-secondary btn-sm btn-icon" title="Move dimension down" onclick="event.stopPropagation();moveDimension(${dIdx}, 1)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <button class="btn btn-danger btn-sm btn-icon" title="Remove dimension"
+                    onclick="event.stopPropagation();removeDimension(${dIdx})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--n-400);flex-shrink:0;transition:transform 200ms;" class="mf-chevron">
                 <polyline points="6 9 12 15 18 9"/>
             </svg>
@@ -1239,15 +1261,35 @@ function updateIndicator(dIdx, iIdx, field, value) {
 
 function addDimension() {
     const newNo = _editData.length + 1;
-    _editData.push({ dimension_no: newNo, dimension_name: 'New Dimension ' + newNo, color_hex: DIM_COLORS[(newNo-1) % DIM_COLORS.length], icon: 'layers', indicators: [{ indicator_text: '', mov_guide: '' }] });
+    _editData.push({
+        dimension_no: newNo,
+        dimension_name: 'New Dimension ' + newNo,
+        description: '',
+        color_hex: DIM_COLORS[(newNo-1) % DIM_COLORS.length],
+        icon: 'layers',
+        indicators: []
+    });
     renderEditForm();
-    // Scroll to bottom
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 }
 
+function moveDimension(dIdx, dir) {
+    const target = dIdx + dir;
+    if (target < 0 || target >= _editData.length) return;
+    [_editData[dIdx], _editData[target]] = [_editData[target], _editData[dIdx]];
+    _editData.forEach((d, i) => d.dimension_no = i + 1);
+    renderEditForm();
+}
+
 function removeDimension(dIdx) {
+    const dim = _editData[dIdx];
+    if (!dim) return;
     if (_editData.length <= 1) { toast('A form must have at least one dimension.','warning'); return; }
-    if (!confirm('Remove this entire dimension and all its indicators?')) return;
+    const count = dim.indicators.length;
+    const msg = count > 0
+        ? `Delete this dimension?\n\nThis dimension contains ${count} indicator${count !== 1 ? 's' : ''}. Deleting it will remove these indicators from the new form version.\n\nOld submissions and previous form versions will remain unaffected.`
+        : 'Delete this dimension?\n\nThis will remove it from the new form version only. Old submissions and previous form versions will remain unaffected.';
+    if (!confirm(msg)) return;
     _editData.splice(dIdx, 1);
     _editData.forEach((d, i) => d.dimension_no = i + 1);
     renderEditForm();
@@ -1255,6 +1297,15 @@ function removeDimension(dIdx) {
 
 function addIndicator(dIdx) {
     _editData[dIdx].indicators.push({ indicator_text: '', mov_guide: '', rater_role: 'SH_TEACHER' });
+    renderEditForm();
+}
+
+function moveIndicator(dIdx, iIdx, dir) {
+    const arr = _editData[dIdx]?.indicators;
+    if (!arr) return;
+    const target = iIdx + dir;
+    if (target < 0 || target >= arr.length) return;
+    [arr[iIdx], arr[target]] = [arr[target], arr[iIdx]];
     renderEditForm();
 }
 
@@ -1269,8 +1320,10 @@ function syncEditDataFromDOM() {
     const cards = document.querySelectorAll('#editDimList .mf-dim-card');
     cards.forEach((card, dIdx) => {
         if (!_editData[dIdx]) return;
-        const nameInput = card.querySelector('.mf-dim-head input');
+        const nameInput = card.querySelector('.mf-dim-head input[type="text"]');
+        const descInput = card.querySelector('textarea.fc');
         if (nameInput) _editData[dIdx].dimension_name = nameInput.value;
+        if (descInput) _editData[dIdx].description = descInput.value;
         const rows = card.querySelectorAll('.mf-edit-row');
         rows.forEach((row, iIdx) => {
             if (!_editData[dIdx].indicators[iIdx]) return;

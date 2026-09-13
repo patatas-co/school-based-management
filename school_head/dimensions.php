@@ -18,6 +18,7 @@ $activeFormVersionId = (int) $db->query("SELECT version_id FROM form_versions WH
 $dimStmt = $db->prepare("SELECT * FROM sbm_dimensions WHERE form_version_id=? ORDER BY dimension_no");
 $dimStmt->execute([$activeFormVersionId]);
 $dimensions = $dimStmt->fetchAll();
+$dimensionCount = count($dimensions);
 $dimScores = [];
 if ($cycle) {
     $st = $db->prepare("SELECT ds.*,d.dimension_name,d.dimension_no,d.color_hex,d.indicator_count FROM sbm_dimension_scores ds JOIN sbm_dimensions d ON ds.dimension_id=d.dimension_id WHERE ds.cycle_id=? ORDER BY d.dimension_no");
@@ -58,7 +59,7 @@ include __DIR__.'/../includes/header.php';
 <?php if (empty($_COORDINATOR_VIEW)): ?>
 <div class="page-head">
   <div class="page-head-text"><h2>SBM Dimensions</h2>
-    <p>Performance breakdown across 6 dimensions — SY <?= e($sy['label']??'—') ?></p></div>
+    <p>Performance breakdown across <?= (int) $dimensionCount ?> dimensions — SY <?= e($sy['label']??'—') ?></p></div>
   <div class="page-head-actions">
     <a href="self_assessment.php" class="btn btn-primary"><?= svgIcon('check-circle') ?> Fill Assessment</a>
   </div>
