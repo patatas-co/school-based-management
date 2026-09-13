@@ -14,9 +14,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['session_cleared'])) {
   $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-if (!empty($_SESSION['user_id'])) {
+if (!empty($_SESSION['user_id']) && sessionIsValid()) {
   header('Location: ' . roleHome($_SESSION['role']));
   exit;
+}
+
+if (!empty($_SESSION['user_id']) && !sessionIsValid()) {
+  session_unset();
+  session_destroy();
+  session_start();
+  session_regenerate_id(true);
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 $error = '';

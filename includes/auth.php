@@ -11,6 +11,37 @@ if (file_exists(__DIR__ . '/../config/sbm_indicators.php')) {
 if (session_status() === PHP_SESSION_NONE)
     session_start();
 
+function sessionIsValid(): bool
+{
+    if (empty($_SESSION['user_id'])) {
+        return false;
+    }
+
+    try {
+        $db = getDB();
+        $stmt = $db->prepare("SELECT user_id, username, email, full_name, role, status, school_id, profile_picture, contact_number, department FROM users WHERE user_id=? LIMIT 1");
+        $stmt->execute([(int) $_SESSION['user_id']]);
+        $user = $stmt->fetch();
+    } catch (Exception $e) {
+        return false;
+    }
+
+    if (!$user || ($user['status'] ?? '') !== 'active') {
+        return false;
+    }
+
+    $_SESSION['username'] = $user['username'] ?? ($_SESSION['username'] ?? '');
+    $_SESSION['email'] = $user['email'] ?? ($_SESSION['email'] ?? '');
+    $_SESSION['full_name'] = $user['full_name'] ?? ($_SESSION['full_name'] ?? '');
+    $_SESSION['role'] = $user['role'] ?? ($_SESSION['role'] ?? '');
+    $_SESSION['school_id'] = $user['school_id'] ?? ($_SESSION['school_id'] ?? null);
+    $_SESSION['profile_picture'] = $user['profile_picture'] ?? null;
+    $_SESSION['contact_number'] = $user['contact_number'] ?? null;
+    $_SESSION['department'] = $user['department'] ?? null;
+
+    return true;
+}
+
 function requireLogin(): void
 {
     if (empty($_SESSION['user_id'])) {
@@ -18,21 +49,7 @@ function requireLogin(): void
         exit;
     }
 
-    static $validatedSession = false;
-    if ($validatedSession) {
-        return;
-    }
-
-    try {
-        $db = getDB();
-        $stmt = $db->prepare("SELECT status, role FROM users WHERE user_id=? LIMIT 1");
-        $stmt->execute([(int) $_SESSION['user_id']]);
-        $user = $stmt->fetch();
-    } catch (Exception $e) {
-        $user = false;
-    }
-
-    if (!$user || ($user['status'] ?? '') !== 'active') {
+    if (!sessionIsValid()) {
         session_unset();
         session_destroy();
         session_start();
@@ -41,12 +58,6 @@ function requireLogin(): void
         header('Location: ' . baseUrl() . '/login.php?err=deactivated');
         exit;
     }
-
-    if (!empty($user['role']) && $user['role'] !== ($_SESSION['role'] ?? '')) {
-        $_SESSION['role'] = $user['role'];
-    }
-
-    $validatedSession = true;
 }
 
 function requireRole(string ...$roles): void

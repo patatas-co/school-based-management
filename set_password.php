@@ -3,15 +3,23 @@ ob_start();
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/auth.php';
 
-// If already logged in, destroy session so the link can be used cleanly
+// If already logged in, destroy the stale session so the link can be used cleanly.
 // This MUST happen before any CSRF checks or tokens are generated.
 // FIX: Only do this on GET to avoid destroying the CSRF token during a POST submission.
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_SESSION['user_id'])) {
-  session_regenerate_id(true);
-  session_unset();
-  session_destroy();
-  session_start();
-  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+  if (!sessionIsValid()) {
+    session_unset();
+    session_destroy();
+    session_start();
+    session_regenerate_id(true);
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+  } else {
+    session_regenerate_id(true);
+    session_unset();
+    session_destroy();
+    session_start();
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+  }
 }
 
 $db = getDB();

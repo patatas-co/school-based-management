@@ -40,18 +40,9 @@ $pageTitle = 'SH Improvement Plans';
 $activePage = 'improvement_plans.php';
 include __DIR__ . '/../includes/header.php';
 ?>
-<div class="page-head" style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-  <div>
-    <h1 style="font-size:24px;margin:0;color:var(--n-900);">School Head Improvement Plans</h1>
-    <p style="margin:6px 0 0;color:var(--n-500);font-size:13px;">Review, revise, return, and finalize plans for SY <?= e($syLabel) ?>.</p>
-  </div>
-  <a class="btn btn-secondary" href="<?= e(baseUrl()) ?>/coordinator/dashboard.php">Back to Dashboard</a>
-</div>
-
 <div class="card" style="margin-bottom:18px;">
   <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
     <span class="card-title">Improvement Plan Review Queue</span>
-    <span style="font-size:12px;color:var(--n-500);">Cycle <?= $cycleId ?: '—' ?> · <?= count($plans) ?> plan(s)</span>
   </div>
   <?php if (!$plans): ?>
     <div class="card-body" style="padding:28px;color:var(--n-500);font-size:13px;">No improvement plans are available for the current school year.</div>
@@ -99,24 +90,21 @@ include __DIR__ . '/../includes/header.php';
             </form>
           </tr>
           <?php else: ?>
-          <tr>
+          <tr class="ip-plan-row">
             <td>
-              <div class="ip-stepper" aria-label="<?= e(ipStatusLabel($status)) ?>">
-                <?php foreach (['Submitted', 'Returned', 'Resubmitted', 'Approved', 'Validated', 'Finalized'] as $stepNo => $step): $stepIndex = $stepNo + 1; $activeStep = ipStageIndex($status); ?>
-                  <span class="ip-step <?= $stepIndex <= $activeStep ? 'is-done' : '' ?> <?= $stepIndex === $activeStep ? 'is-current' : '' ?>" title="<?= e($step) ?>"><?= $stepIndex ?></span>
-                <?php endforeach; ?>
-              </div>
-              <strong class="ip-stage-label"><?= e(ipStatusLabel($status)) ?></strong><br>
+              <span class="ip-stage-label"><?= e(ipStatusLabel($status)) ?></span><br>
               <small><?= $status === IP_STATUS_RETURNED ? 'School Head' : ($status === IP_STATUS_FINALIZED ? 'Completed' : 'SBM Coordinator') ?></small>
                 <?php if ($status === IP_STATUS_FINALIZED && $plan['validated_by_name']): ?><br><small>Validated by <?= e($plan['validated_by_name']) ?><br><?= e($plan['validated_at']) ?></small><?php endif; ?>
             </td>
-            <td><strong>D<?= (int) $plan['dimension_no'] ?></strong><br><small><?= e($plan['dimension_name']) ?></small></td>
-            <td><strong><?= e($plan['indicator_code'] ?: 'General') ?></strong><br><small><?= e(mb_strimwidth($plan['indicator_text'] ?: '', 0, 72, '…')) ?></small></td>
+            <td><span class="ip-dimension-cell">D<?= (int) $plan['dimension_no'] ?></span><br><small><?= e($plan['dimension_name']) ?></small></td>
+            <td><span class="ip-indicator-cell"><?= e($plan['indicator_code'] ?: 'General') ?></span><br><small><?= e(mb_strimwidth($plan['indicator_text'] ?: '', 0, 72, '…')) ?></small></td>
             <td><span class="priority-pill priority-<?= e(strtolower($plan['priority_level'])) ?>"><?= e($plan['priority_level']) ?></span></td>
             <td>
-              <strong>Objective</strong><div class="plan-clamp"><?= e(mb_strimwidth($plan['objective'], 0, 150, '…')) ?></div>
-              <strong>Strategy</strong><div class="plan-clamp"><?= e(mb_strimwidth($plan['strategy'], 0, 150, '…')) ?></div>
-              <details class="full-plan"><summary>View full plan</summary><div><strong>Objective</strong><p><?= nl2br(e($plan['objective'])) ?></p><strong>Strategy</strong><p><?= nl2br(e($plan['strategy'])) ?></p><strong>Resources</strong><p><?= nl2br(e($plan['resources_needed'] ?: '—')) ?></p><strong>Expected Output</strong><p><?= nl2br(e($plan['expected_output'] ?: '—')) ?></p></div></details>
+              <div class="plan-detail">
+                <div class="plan-detail-row"><span class="plan-detail-label">Objective</span><div class="plan-clamp"><?= e(mb_strimwidth($plan['objective'], 0, 150, '…')) ?></div></div>
+                <div class="plan-detail-row"><span class="plan-detail-label">Strategy</span><div class="plan-clamp"><?= e(mb_strimwidth($plan['strategy'], 0, 150, '…')) ?></div></div>
+              </div>
+              <details class="full-plan"><summary>View full plan</summary><div><p class="plan-detail-block"><span class="plan-detail-label">Objective</span><span class="plan-detail-copy"><?= nl2br(e($plan['objective'])) ?></span></p><p class="plan-detail-block"><span class="plan-detail-label">Strategy</span><span class="plan-detail-copy"><?= nl2br(e($plan['strategy'])) ?></span></p><p class="plan-detail-block"><span class="plan-detail-label">Resources</span><span class="plan-detail-copy"><?= nl2br(e($plan['resources_needed'] ?: '—')) ?></span></p><p class="plan-detail-block"><span class="plan-detail-label">Expected Output</span><span class="plan-detail-copy"><?= nl2br(e($plan['expected_output'] ?: '—')) ?></span></p></div></details>
             </td>
             <td><?= $plan['target_date'] ? e(date('M j, Y', strtotime($plan['target_date']))) : '—' ?></td>
             <td><?= e($plan['person_responsible'] ?: '—') ?></td>
@@ -125,7 +113,7 @@ include __DIR__ . '/../includes/header.php';
               <?php if ($canReview): ?><details class="return-panel"><summary class="btn btn-secondary btn-sm" title="Return the plan without changing its content.">Return</summary><textarea class="return-remarks form-control" rows="2" placeholder="Required return remarks"></textarea><button class="btn btn-secondary btn-sm submit-return" data-id="<?= (int) $plan['plan_id'] ?>">Send Return</button><small class="action-help">Sends it back unchanged for review.</small></details><?php endif; ?>
               <?php if ($canReview): ?><button class="btn btn-success btn-sm approve-plan" title="Approve means the content is accepted and ready for the separate validation step." data-id="<?= (int) $plan['plan_id'] ?>">Approve</button><?php endif; ?>
               <?php if ($canValidate): ?><button class="btn btn-success btn-sm validate-plan" title="Validate records the final validation event and moves the plan to Finalized." data-id="<?= (int) $plan['plan_id'] ?>">Validate</button><?php endif; ?>
-              <details style="margin-top:8px;"><summary style="cursor:pointer;color:var(--brand-700);font-size:12px;">History (<?= count($history) ?>)</summary><div style="margin-top:7px;font-size:11px;line-height:1.5;"><?php foreach ($history as $item): ?><div style="padding:6px 0;border-bottom:1px solid var(--n-200);"><strong>v<?= (int) $item['version_no'] ?> · <?= e(ipHistoryActionLabel($item['action'])) ?></strong><br><?= e($item['actor_name']) ?> · <?= e($item['created_at']) ?><?php if ($item['remarks']): ?><br><?= e($item['remarks']) ?><?php endif; ?></div><?php endforeach; ?></div></details>
+              <details class="history-panel" style="margin-top:8px;"><summary class="history-summary">History (<?= count($history) ?>)</summary><div class="plan-history-list"><?php foreach ($history as $idx => $item): ?><div class="history-item <?= $idx === 0 ? 'history-current' : 'history-muted' ?>"><span class="history-version"><?= 'v' . (int) $item['version_no'] ?> · <?= e(ipHistoryActionLabel($item['action'])) ?></span><br><span class="history-person"><?= e($item['actor_name']) ?> · <?= e($item['created_at']) ?></span><?php if ($item['remarks']): ?><br><span class="history-remark"><?= e($item['remarks']) ?></span><?php endif; ?></div><?php endforeach; ?></div></details>
             </td>
           </tr>
           <?php endif; ?>
@@ -137,7 +125,7 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <style>
-.ip-status-badge{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#fef3c7;color:#b45309;white-space:nowrap}.ip-status-badge.finalized{background:#dcfce7;color:#15803d}.ip-status-badge.approved{background:#dbeafe;color:#1d4ed8}.ip-status-badge.returned{background:#ffedd5;color:#c2410c}.btn-sm{padding:5px 9px;font-size:11px;margin:2px 0}.action-help{display:block;color:var(--n-500);font-size:10px;line-height:1.3;margin:0 0 5px}.priority-pill{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700}.priority-high{background:#fee2e2;color:#b91c1c}.priority-medium{background:#fef3c7;color:#b45309}.priority-low{background:#e0f2fe;color:#0369a1}.plan-clamp{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px 0 8px;color:var(--n-700)}.full-plan summary{cursor:pointer;color:var(--brand-700);font-size:11px;margin-top:6px}.full-plan div{max-width:340px;padding:10px;background:var(--n-50);border-radius:6px;margin-top:5px}.full-plan p{margin:3px 0 9px;line-height:1.45}.ip-stepper{display:flex;align-items:center;gap:3px;margin-bottom:5px}.ip-step{width:19px;height:19px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#e5e7eb;color:#6b7280;font-size:10px;font-weight:700;position:relative}.ip-step.is-done{background:#bbf7d0;color:#166534}.ip-step.is-current{background:#16a34a;color:#fff;box-shadow:0 0 0 2px #dcfce7}.ip-stage-label{font-size:11px;color:var(--n-800);white-space:nowrap}.ip-date-input{min-width:142px;color-scheme:light}
+thead th{text-transform:none;font-size:11px;font-weight:500;letter-spacing:0.01em}.ip-status-badge{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#fef3c7;color:#b45309;white-space:nowrap}.ip-status-badge.finalized{background:#dcfce7;color:#15803d}.ip-status-badge.approved{background:#dbeafe;color:#1d4ed8}.ip-status-badge.returned{background:#ffedd5;color:#c2410c}.btn-sm{padding:5px 9px;font-size:11px;margin:2px 0}.action-help{display:block;color:var(--n-500);font-size:10px;line-height:1.3;margin:0 0 5px}.priority-pill{display:inline-flex;padding:3px 7px;border-radius:999px;font-size:11px;font-weight:600;box-shadow:none;line-height:1.3}.priority-high{background:#fef2f2;color:#b91c1c}.priority-medium{background:#fef3c7;color:#b45309}.priority-low{background:#e0f2fe;color:#0369a1}.plan-clamp{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:4px 0 8px;color:var(--n-700);font-weight:400}.plan-detail{display:grid;gap:11px}.plan-detail-row{margin:0}.plan-detail-label{display:block;font-size:11px;font-weight:700;color:var(--n-700);text-transform:none;letter-spacing:0.01em}.plan-detail-copy{display:block;color:var(--n-700);font-weight:400;line-height:1.55}.full-plan summary{cursor:pointer;color:var(--n-700);font-size:11px;margin-top:6px}.full-plan div{max-width:340px;padding:10px;background:var(--n-50);border-radius:6px;margin-top:5px}.full-plan p{margin:3px 0 9px;line-height:1.45}.full-plan .plan-detail-block{margin:0 0 9px}.full-plan .plan-detail-copy{margin-top:4px}.history-summary{cursor:pointer;color:var(--n-700);font-size:11px}.history-panel{margin-top:8px}.plan-history-list{margin-top:7px;font-size:11px;line-height:1.45}.history-item{padding:6px 0;border-bottom:1px solid var(--n-200);color:var(--n-500)}.history-current{border-left:2px solid var(--n-500);padding-left:7px;color:var(--n-800);background:transparent}.history-muted{color:var(--n-500)}.history-person{color:var(--n-500)}.history-remark{color:var(--n-600)}.history-version{font-weight:700;color:var(--n-900)}.history-current .history-version{font-weight:700}.ip-plan-row{background:#fff}.ip-plan-row td{border-top:1px solid var(--n-200)}.ip-plan-row .ip-dimension-cell,.ip-plan-row .ip-indicator-cell{font-size:12px;font-weight:700;color:var(--n-800);text-decoration:none}.ip-plan-row .ip-indicator-cell{color:var(--n-800)}.ip-stage-label{font-size:11px;color:var(--n-800);font-weight:600;white-space:nowrap}.ip-date-input{min-width:142px;color-scheme:light}.plan-detail-label,.plan-detail-block .plan-detail-label{font-weight:700}.plan-detail-copy{font-weight:400}.history-current strong{font-weight:700}.history-muted strong{font-weight:600}.history-item .history-person,.history-item .history-remark{font-weight:400}
 </style>
 <script>
 async function postPlanAction(action, planId, remarks = '') {

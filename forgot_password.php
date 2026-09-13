@@ -3,10 +3,19 @@ require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/email_service.php';
 
-// Redirect if already logged in
-if (!empty($_SESSION['user_id'])) {
+// Redirect if already logged in, but only for a session that actually matches
+// a live, active database record. Otherwise clear the stale session.
+if (!empty($_SESSION['user_id']) && sessionIsValid()) {
   header('Location: ' . roleHome($_SESSION['role']));
   exit;
+}
+
+if (!empty($_SESSION['user_id']) && !sessionIsValid()) {
+  session_unset();
+  session_destroy();
+  session_start();
+  session_regenerate_id(true);
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 $error = '';
