@@ -249,9 +249,8 @@ include __DIR__ . '/../includes/header.php';
               </td>
               <td>
                 <span onclick="openUsersModal(<?= htmlspecialchars(json_encode($d['name'])) ?>)"
-                  style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:var(--brand-50);color:var(--brand-600);border:1px solid var(--brand-100);cursor:pointer;transition:background .15s;"
-                  onmouseover="this.style.background='var(--brand-100)'"
-                  onmouseout="this.style.background='var(--brand-50)'">
+                  style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--n-600);cursor:pointer;"
+                  title="View department users">
                   <?= svgIcon('users', 12) ?> <?= (int)$d['user_count'] ?>
                 </span>
               </td>
@@ -271,12 +270,12 @@ include __DIR__ . '/../includes/header.php';
                     style="
                       display:inline-flex;align-items:center;justify-content:center;
                       width:32px;height:32px;border-radius:8px;
-                      background:var(--brand-50,#f0fdf4);color:var(--brand-600,#16a34a);
-                      border:1.5px solid var(--brand-200,#bbf7d0);cursor:pointer;
+                      background:#fff;color:var(--n-500);
+                      border:1.5px solid var(--n-200,#e2e8f0);cursor:pointer;
                       transition:background .15s,border-color .15s;
                     "
-                    onmouseover="this.style.background='var(--brand-100,#dcfce7)'"
-                    onmouseout="this.style.background='var(--brand-50,#f0fdf4)'">
+                    onmouseover="this.style.background='var(--n-50,#f8fafc)';this.style.borderColor='var(--n-300,#cbd5e1)'"
+                    onmouseout="this.style.background='#fff';this.style.borderColor='var(--n-200,#e2e8f0)'">
                     <?= svgIcon('edit', 14) ?>
                   </button>
                   <?php if ($__deptStatus === 'active'): ?>

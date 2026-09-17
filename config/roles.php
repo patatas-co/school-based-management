@@ -56,7 +56,6 @@ define('SBM_NAV', [
             'Management',
             'users',
             [
-                ['SH Improvement Plans', 'coordinator/improvement_plans.php', 'clipboard'],
                 ['User Accounts', 'system_admin/users.php', 'users'],
                 ['External Evaluators', 'system_admin/external_evaluators.php', 'user-check'],
                 ['Manage Roles', 'system_admin/manage_roles.php', 'shield'],
@@ -64,16 +63,10 @@ define('SBM_NAV', [
             ]
         ],
         [
-            'Organization',
-            'briefcase',
-            [
-                ['Departments', 'system_admin/departments.php', 'briefcase'],
-            ]
-        ],
-        [
             'System',
             'settings',
             [
+                ['Departments', 'system_admin/departments.php', 'briefcase'],
                 ['System Settings', 'school_head/settings.php', 'calendar'],
             ]
         ],
@@ -89,13 +82,6 @@ define('SBM_NAV', [
             ]
         ],
         [
-            'Management',
-            'users',
-            [
-                ['Evidence & MOV', 'school_head/evidence.php', 'paperclip'],
-            ]
-        ],
-        [
             'Evaluation',
             'check-circle',
             [
@@ -104,16 +90,11 @@ define('SBM_NAV', [
             ]
         ],
         [
-            'Workflow',
-            'trending-up',
+            'Management',
+            'users',
             [
                 ['Workflow Overview', 'school_head/workflow.php', 'trending-up'],
-            ]
-        ],
-        [
-            'Interventions',
-            'target',
-            [
+                ['Evidence & MOV', 'school_head/evidence.php', 'paperclip'],
                 ['AI Suggestion Planning', 'school_head/ai_suggestion_planning.php', 'target'],
             ]
         ],
@@ -135,7 +116,6 @@ define('SBM_NAV', [
             'users',
             [
                 ['Assign Indicators', 'coordinator/assign_indicators.php', 'check-square'],
-                ['Teacher Status', 'coordinator/teacher_status.php', 'users'],
                 ['Manage Form', 'coordinator/manage_form.php', 'edit']
             ]
         ],
@@ -143,6 +123,7 @@ define('SBM_NAV', [
             'Monitoring',
             'check-circle',
             [
+                ['Teacher Status', 'coordinator/teacher_status.php', 'users'],
                 ['Intervention Matrix', 'coordinator/self_assessment.php', 'check-circle'],
                 ['SH Improvement Plans', 'coordinator/improvement_plans.php', 'clipboard'],
             ]

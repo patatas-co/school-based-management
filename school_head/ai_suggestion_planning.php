@@ -605,13 +605,15 @@ if ($currentCycleId) {
 
 $isSubmitted     = false;
 $isReturned      = false;
+$isApproved      = false;
 $isFinalized     = false;
 $submittedByName = null;
 $submittedAt     = null;
 foreach ($planList as $p) {
   if ($p['workflow_status'] === IP_STATUS_RETURNED) $isReturned = true;
+  if ($p['workflow_status'] === IP_STATUS_APPROVED) $isApproved = true;
   if ($p['workflow_status'] === IP_STATUS_FINALIZED) $isFinalized = true;
-    if (in_array($p['workflow_status'], [IP_STATUS_SUBMITTED, IP_STATUS_RESUBMITTED, IP_STATUS_FINALIZED], true)) {
+    if (in_array($p['workflow_status'], [IP_STATUS_SUBMITTED, IP_STATUS_RESUBMITTED, IP_STATUS_APPROVED, IP_STATUS_FINALIZED], true)) {
         $isSubmitted     = true;
         $submittedByName = $p['submitted_by_name'] ?? 'School Head';
         $submittedAt     = $p['submitted_at'];
@@ -619,6 +621,25 @@ foreach ($planList as $p) {
     }
 }
   $draftCount = count(array_filter($planList, fn($p) => in_array($p['workflow_status'], [IP_STATUS_DRAFT, IP_STATUS_RETURNED], true)));
+  $workflowStatus = $planList[0]['workflow_status'] ?? IP_STATUS_DRAFT;
+  if ($isFinalized) {
+    $workflowStatus = IP_STATUS_FINALIZED;
+  } elseif ($isApproved) {
+    $workflowStatus = IP_STATUS_APPROVED;
+  } elseif ($isReturned) {
+    $workflowStatus = IP_STATUS_RETURNED;
+  }
+  $workflowStatusLabel = ipStatusLabel($workflowStatus);
+  $planStatusSuffix = '';
+  if ($isFinalized) {
+    $planStatusSuffix = ' <span style="font-weight:600;font-size:11.5px;color:var(--n-500);">(finalized — read-only)</span>';
+  } elseif ($isApproved) {
+    $planStatusSuffix = ' <span style="font-weight:600;font-size:11.5px;color:var(--n-500);">(approved — awaiting validation)</span>';
+  } elseif ($isSubmitted) {
+    $planStatusSuffix = ' <span style="font-weight:600;font-size:11.5px;color:var(--n-500);">(with SBM Coordinator)</span>';
+  } elseif ($isReturned) {
+    $planStatusSuffix = ' <span style="font-weight:600;font-size:11.5px;color:#b45309;">(returned for your review)</span>';
+  }
 
 // ── History of past improvement plans (shown when the new SY has no cycle/data yet) ──
 $historyPlans = [];
@@ -713,11 +734,11 @@ include __DIR__.'/../includes/header.php';
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
       <div>
         <div style="font-size:12px;color:var(--n-500);margin-bottom:4px;">Status</div>
-        <div style="font-size:14px;font-weight:700;color:var(--green-700, #15803d);"><?= e(ipStatusLabel($isFinalized ? IP_STATUS_FINALIZED : ($isReturned ? IP_STATUS_RETURNED : ($planList[0]['workflow_status'] ?? IP_STATUS_SUBMITTED)))) ?></div>
+        <div style="font-size:14px;font-weight:700;color:var(--green-700, #15803d);"><?= e($workflowStatusLabel) ?></div>
       </div>
       <div>
         <div style="font-size:12px;color:var(--n-500);margin-bottom:4px;">Current Responsible User</div>
-        <div style="font-size:14px;font-weight:700;color:var(--n-900);"><?= e($isReturned ? 'School Head' : ($isFinalized ? 'SBM Coordinator' : 'SBM Coordinator')) ?></div>
+        <div style="font-size:14px;font-weight:700;color:var(--n-900);"><?= e($isFinalized ? 'Completed' : ($isReturned ? 'School Head' : 'SBM Coordinator')) ?></div>
       </div>
       <div>
         <div style="font-size:12px;color:var(--n-500);margin-bottom:4px;">Submitted On</div>
@@ -732,7 +753,7 @@ include __DIR__.'/../includes/header.php';
 
 <div class="card" style="margin-bottom:18px;">
   <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-    <span class="card-title">Improvement Plans<?= $isFinalized ? ' <span style="font-weight:600;font-size:11.5px;color:var(--n-500);">(finalized — read-only)</span>' : ($isSubmitted ? ' <span style="font-weight:600;font-size:11.5px;color:var(--n-500);">(with SBM Coordinator)</span>' : ($isReturned ? ' <span style="font-weight:600;font-size:11.5px;color:#b45309;">(returned for your review)</span>' : '')) ?></span>
+    <span class="card-title">Improvement Plans<?= $planStatusSuffix ?></span>
     <div style="display:flex;align-items:center;gap:10px;">
       <?php if (!$isSubmitted && !$isFinalized): ?>
         <?php if ($draftCount > 0): ?>
@@ -893,7 +914,7 @@ include __DIR__.'/../includes/header.php';
       </div>
       <div class="modal-body">
         <p style="font-size:13.5px;color:var(--n-700);line-height:1.6;">
-          After submission, your improvement plans will be finalized and cannot be edited unless they are returned for revision in the future.
+          After submission, your improvement plans will be sent to the SBM Coordinator for review. They can be edited again if they are returned for revision.
         </p>
       </div>
       <div class="modal-footer">

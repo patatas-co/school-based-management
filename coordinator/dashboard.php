@@ -1582,45 +1582,6 @@ include __DIR__ . '/../includes/header.php';
   }
 
   /* ── AI ASSISTANT & IMPROVEMENT PLAN MODAL STYLES ── */
-  .ai-assistant-fab {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 64px;
-    height: 64px;
-    border-radius: 999px;
-    background: #fff;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    overflow: hidden;
-  }
-
-  .ai-assistant-fab:hover {
-    transform: translateY(-4px) scale(1.05);
-    box-shadow: 0 20px 40px -12px rgba(22, 163, 74, 0.25), 0 0 0 1px rgba(22, 163, 74, 0.1);
-  }
-
-  .ai-assistant-fab img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    padding: 8px;
-    transition: transform 0.3s ease;
-  }
-
-  .ai-assistant-fab.minimized {
-    width: 50px;
-    height: 50px;
-    bottom: 20px;
-    right: 20px;
-  }
-
   .ai-assistant-panel {
     position: fixed;
     bottom: 100px;
@@ -2335,29 +2296,6 @@ include __DIR__ . '/../includes/header.php';
       </div>
     </div>
   <?php endif; ?>
-
-  <!-- Filter bar -->
-  <div class="an-filter-bar">
-    <?php $atCompareLimit = count($compareSyIds) >= 2; ?>
-    <div style="margin-left:auto;display:flex;gap:8px;">
-      <?php if (($shPlanCount ?? 0) > 0): ?>
-        <a class="ai-assistant-btn" href="<?= e(baseUrl()) ?>/coordinator/improvement_plans.php"
-          style="border-color:var(--brand-300);background:var(--brand-50);color:var(--brand-700);">
-          <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-          </svg>
-          View SH Improvement Plan
-        </a>
-      <?php endif; ?>
-      <button class="ai-assistant-btn" onclick="openAIAssistant()">
-        <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-        </svg>
-        AI Suggestions
-      </button>
-    </div>
-  </div>
 
   <!-- ━━━━━━━━━━━ PROGRESS VIEW ━━━━━━━━━━━ -->
 
@@ -3913,13 +3851,13 @@ function updateIndicatorTrendChart(dimId) {
     const fab = document.getElementById('aiAssistantFab');
 
     panel.classList.remove('open', 'minimized');
-    fab.classList.remove('minimized');
+    if (fab) fab.classList.remove('minimized');
 
     if (state === 'open') {
       panel.classList.add('open');
     } else if (state === 'minimized') {
       panel.classList.add('open', 'minimized');
-      fab.classList.add('minimized');
+      if (fab) fab.classList.add('minimized');
     }
     localStorage.setItem('ai_panel_state', state);
   }
@@ -4269,11 +4207,7 @@ function updateIndicatorTrendChart(dimId) {
   </div>
 </div>
 
-<!-- AI Assistant FAB & Panel -->
-<button class="ai-assistant-fab" id="aiAssistantFab" onclick="openAIAssistant()">
-  <img src="<?= baseUrl() ?>/assets/seal.png" alt="School Seal">
-</button>
-
+<!-- AI Assistant Panel -->
 <div class="ai-assistant-panel" id="aiAssistant">
   <div class="ai-header" onclick="checkToggleMinimize(event)">
     <div class="ai-header-left">
