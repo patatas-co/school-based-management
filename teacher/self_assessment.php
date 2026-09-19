@@ -365,6 +365,18 @@ $isLocked = $cycleIsLocked || ($mySubCheck === 'submitted');
 $totalDone = count($responses);
 $totalInds = count($indicators);
 $progress = $totalInds > 0 ? round(($totalDone / $totalInds) * 100) : 0;
+$dimScores = [];
+foreach ($grouped as $dimNo => $dimIndicators) {
+    $ratedValues = array_values(array_filter(array_map(
+        fn($indicator) => isset($responses[$indicator['indicator_id']])
+            ? (int) $responses[$indicator['indicator_id']]['rating']
+            : null,
+        $dimIndicators
+    ), fn($rating) => $rating !== null));
+    $dimScores[$dimNo] = $ratedValues
+        ? round((array_sum($ratedValues) / (count($ratedValues) * 4)) * 100, 1)
+        : null;
+}
 
 $school = $db->prepare("SELECT * FROM schools WHERE school_id=?");
 $school->execute([$schoolId]);
@@ -543,6 +555,95 @@ include __DIR__ . '/../includes/header.php';
     .prog-complete {
         animation: prog-complete .7s ease-out forwards;
     }
+
+    .dim-tabs-row {
+        display: flex;
+        gap: 0;
+        margin-bottom: 18px;
+        position: sticky;
+        top: 60px;
+        z-index: 40;
+        background: var(--n50);
+    }
+
+    .dim-tab-item {
+        flex: 1;
+        min-width: 0;
+        text-decoration: none;
+        text-align: center;
+        padding: 12px 8px;
+        background: #f4f5f7;
+        border: 1px solid var(--n-200);
+        border-bottom: 2px solid var(--n900);
+        margin-right: -1px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--n-500);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        transition: background .2s, color .2s;
+    }
+
+    .dim-tab-item.active {
+        background: var(--n900);
+        color: #fff;
+        border-color: var(--n900);
+    }
+
+    .dim-tab-item.complete:not(.active) {
+        color: var(--n900);
+    }
+
+    .dim-tab-count {
+        font-weight: 500;
+        opacity: .75;
+    }
+
+    .dim-seq-nav-wrap {
+        display: flex;
+        justify-content: center;
+        padding: 20px 4px 4px;
+    }
+
+    .dim-seq-nav {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid var(--n-200);
+        border-radius: 7px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .dim-seq-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 40px;
+        padding: 0 18px;
+        border: none;
+        background: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--n-700);
+        cursor: pointer;
+        transition: background .15s ease;
+    }
+
+    .dim-seq-btn:hover:not(:disabled) {
+        background: var(--n-50);
+    }
+
+    .dim-seq-btn:disabled {
+        color: var(--n-300);
+        cursor: not-allowed;
+    }
+
+    .dim-seq-divider {
+        width: 1px;
+        background: var(--n-200);
+    }
 </style>
 
 <?php
@@ -576,6 +677,17 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
 <?php else: ?>
 
 <!-- ── NOTICE ── -->
+<?php if ($cycle && !empty($cycle['return_remarks'])): ?>
+<div class="alert alert-warning" style="margin-bottom:16px;">
+    <?= svgIcon('alert-circle') ?>
+    <span>
+        <strong>Assessment Returned for Revision.</strong>
+        <?= e($cycle['return_remarks']) ?>
+        Please revise your assigned indicators and submit them again.
+    </span>
+</div>
+<?php endif; ?>
+
 <div class="alert alert-info" style="margin-bottom:16px;">
     <?= svgIcon('info') ?>
     <span>
@@ -595,9 +707,8 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
 
 
 <!-- ── STICKY DIMENSION STEP PROGRESS ────────────────────── -->
-<div id="dimTabs" style="display:flex;gap:6px;margin-bottom:18px;
-            position:sticky;top:60px;z-index:40;
-            background:var(--n50);padding:8px 0;">
+<?php $dimNosList = array_keys($grouped); $firstDimNo = $dimNosList[0] ?? null; ?>
+<div id="dimTabs" class="dim-tabs-row">
     <?php foreach ($grouped as $dimNo => $inds): ?>
       <?php
       $dimDone = count(array_filter($inds, fn($i) => isset($responses[$i['indicator_id']])));
@@ -605,16 +716,10 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
       $dimFull = $dimDone === $dimTotal;
       ?>
       <a href="#dim<?= $dimNo ?>" id="dimTab<?= $dimNo ?>" data-done="<?= $dimDone ?>" data-total="<?= $dimTotal ?>"
-            style="flex:1;min-width:0;text-decoration:none;display:flex;flex-direction:column;gap:6px;">
-        <div id="dimBar<?= $dimNo ?>" style="height:4px;border-radius:2px;
-              background:<?= $dimFull ? 'var(--n900)' : 'var(--n200)' ?>;
-              transition:background .3s;"></div>
-        <div id="dimLabel<?= $dimNo ?>" style="font-size:12px;font-weight:700;
-              color:<?= $dimFull ? 'var(--n900)' : 'var(--n400)' ?>;
-              transition:color .3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-          D<?= $dimNo ?>
-          <span id="dimTabCount<?= $dimNo ?>" style="font-weight:500;opacity:.7;">(<?= $dimDone ?>/<?= $dimTotal ?>)</span>
-        </div>
+            onclick="event.preventDefault();switchDimension(<?= $dimNo ?>);"
+            class="dim-tab-item<?= $dimNo === $firstDimNo ? ' active' : '' ?><?= $dimFull ? ' complete' : '' ?>">
+        D<?= $dimNo ?>
+        <span id="dimTabCount<?= $dimNo ?>" class="dim-tab-count">(<?= $dimDone ?>/<?= $dimTotal ?>)</span>
       </a>
     <?php endforeach; ?>
 </div>
@@ -622,11 +727,15 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
 <!-- ── INDICATORS BY DIMENSION ── -->
 <?php foreach ($grouped as $dimNo => $inds):
     $dim = $inds[0];
+    $dimPos = array_search($dimNo, $dimNosList, true);
+    $prevDimNo = $dimPos > 0 ? $dimNosList[$dimPos - 1] : null;
+    $nextDimNo = $dimPos < count($dimNosList) - 1 ? $dimNosList[$dimPos + 1] : null;
     $dimDone = count(array_filter($inds, fn($i) => isset($responses[$i['indicator_id']])));
     $dimTotal = count($inds);
     $allDone = $dimDone === $dimTotal;
     ?>
-    <div class="dim-wrap" id="dim<?= $dimNo ?>" data-dim="<?= $dimNo ?>">
+    <div class="dim-wrap" id="dim<?= $dimNo ?>" data-dim="<?= $dimNo ?>"
+        style="<?= $dimNo === $firstDimNo ? '' : 'display:none;' ?>">
 
         <div class="dim-header" onclick="toggleDim(<?= $dimNo ?>)"
             style="border-left:4px solid <?= e($dim['color_hex']) ?>;">
@@ -646,6 +755,10 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
                 <div style="font-size:12px;color:var(--n400);margin-top:2px;" id="dimSubtitle<?= $dimNo ?>">
                     <?= $dimDone ?>/<?= $dimTotal ?> indicators rated
                 </div>
+            </div>
+
+            <div style="font-size:13px;font-weight:700;color:<?= e($dim['color_hex']) ?>;margin-right:6px;">
+                <?= $dimScores[$dimNo] !== null ? number_format($dimScores[$dimNo], 1) . '%' : '—' ?>
             </div>
 
             <span style="font-size:11px;font-weight:600;border-radius:999px;
@@ -715,7 +828,7 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
 
                     <!-- Evidence / Remarks -->
                     <textarea class="fc" id="evidence<?= $ind['indicator_id'] ?>" rows="2"
-                        placeholder="Add remarks or describe your evidence…" <?= $isLocked ? 'disabled' : '' ?>
+                        placeholder="Describe evidence or attach MOV reference…" <?= $isLocked ? 'disabled' : '' ?>
                         onblur="saveResponse(<?= $ind['indicator_id'] ?>)"
                         style="margin-top:4px;"><?= e($resp['remarks'] ?? '') ?></textarea>
 
@@ -723,6 +836,22 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
                     <div id="attachWidget_<?= $ind['indicator_id'] ?>"></div>
                 </div>
             <?php endforeach; ?>
+        </div>
+
+        <div class="dim-seq-nav-wrap">
+            <div class="dim-seq-nav">
+                <button type="button" class="dim-seq-btn dim-seq-prev"
+                    onclick="switchDimension(<?= $prevDimNo === null ? 'null' : (int) $prevDimNo ?>)"
+                    <?= $prevDimNo === null ? 'disabled' : '' ?>>
+                    <span class="dim-seq-arrow">←</span> Previous
+                </button>
+                <div class="dim-seq-divider"></div>
+                <button type="button" class="dim-seq-btn dim-seq-next"
+                    onclick="switchDimension(<?= $nextDimNo === null ? 'null' : (int) $nextDimNo ?>)"
+                    <?= $nextDimNo === null ? 'disabled' : '' ?>>
+                    Next <span class="dim-seq-arrow">→</span>
+                </button>
+            </div>
         </div>
 
     </div>
@@ -785,10 +914,25 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
         }
         prog.prevRatings[indId] = newRating;
 
-
-
         // Dimension tab
         updateDimTab(indId);
+    }
+
+    function switchDimension(n) {
+        document.querySelectorAll('.dim-wrap').forEach(wrap => {
+            wrap.style.display = parseInt(wrap.dataset.dim, 10) === n ? '' : 'none';
+        });
+
+        document.querySelectorAll('#dimTabs > a.dim-tab-item').forEach(tab => {
+            const tabDim = parseInt(tab.id.replace('dimTab', ''), 10);
+            tab.classList.toggle('active', tabDim === n);
+        });
+
+        const dimTabs = document.getElementById('dimTabs');
+        if (dimTabs) {
+            const top = dimTabs.getBoundingClientRect().top + window.scrollY - 70;
+            window.scrollTo({ top, behavior: 'smooth' });
+        }
     }
 
     function updateDimTab(indId) {
@@ -816,8 +960,8 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
         const label = document.getElementById('dimLabel' + dimNo);
         const leftBadge = document.getElementById('dimLeft' + dimNo);
         if (done === total) {
-            if (bar) bar.style.background = 'var(--n900)';
-            if (label) label.style.color = 'var(--n900)';
+            const tab = document.getElementById('dimTab' + dimNo);
+            if (tab) tab.classList.add('complete');
             if (leftBadge) {
                 leftBadge.textContent = 'Complete';
                 leftBadge.style.color = '#16A34A';
@@ -826,8 +970,8 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
                 leftBadge.style.fontWeight = '700';
             }
         } else {
-            if (bar) bar.style.background = 'var(--n200)';
-            if (label) label.style.color = 'var(--n400)';
+            const tab = document.getElementById('dimTab' + dimNo);
+            if (tab) tab.classList.remove('complete');
         }
     }
 

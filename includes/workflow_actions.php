@@ -409,6 +409,12 @@ function handleWorkflowPost(PDO $db): void
 
     // ── Return cycle for revision (validator only) ────────────
     if ($action === 'return_cycle') {
+        require_once __DIR__ . '/email_service.php';
+        if (($_SESSION['role'] ?? '') !== 'sbm_coordinator') {
+            echo json_encode(['ok' => false, 'msg' => 'Only the SBM Coordinator can return an assessment for revision.']);
+            exit;
+        }
+
         $cycleId = (int) ($_POST['cycle_id'] ?? 0);
         $remarks = trim($_POST['remarks'] ?? '');
         $toStage = trim($_POST['to_stage'] ?? 'in_progress');
@@ -424,17 +430,93 @@ function handleWorkflowPost(PDO $db): void
             $toStage = 'in_progress';
         }
 
-        $db->prepare("
-            UPDATE sbm_cycles
-            SET status = ?,
-                returned_at = NOW(),
-                returned_by = ?,
-                return_remarks = ?
-            WHERE cycle_id = ?
-        ")->execute([$toStage, $actorId, $remarks, $cycleId]);
+        $cycleQuery = $db->prepare("
+            SELECT cycle_id
+            FROM sbm_cycles
+            WHERE cycle_id = ? AND school_id = ? AND status = 'submitted'
+            LIMIT 1
+        ");
+        $cycleQuery->execute([$cycleId, SCHOOL_ID]);
+        if (!$cycleQuery->fetchColumn()) {
+            echo json_encode(['ok' => false, 'msg' => 'Only a submitted assessment can be returned for revision.']);
+            exit;
+        }
 
-        logCycleStage($db, $cycleId, 'submitted', $toStage, $actorId, "Returned: $remarks");
-        echo json_encode(['ok' => true, 'msg' => 'Assessment returned for revision.']);
+        $db->beginTransaction();
+        try {
+            $db->prepare("
+                UPDATE sbm_cycles
+                SET status = ?,
+                    consolidation_confirmed = 0,
+                    returned_at = NOW(),
+                    returned_by = ?,
+                    return_remarks = ?
+                WHERE cycle_id = ?
+            ")->execute([$toStage, $actorId, $remarks, $cycleId]);
+
+            // Preserve all answers, but reopen evaluator submission records so
+            // they can edit and submit their existing work again.
+            $db->prepare("UPDATE teacher_submissions SET status = 'draft', submitted_at = NULL WHERE cycle_id = ?")
+                ->execute([$cycleId]);
+            $db->prepare("UPDATE stakeholder_submissions SET status = 'draft', submitted_at = NULL WHERE cycle_id = ?")
+                ->execute([$cycleId]);
+
+            logCycleStage($db, $cycleId, 'submitted', $toStage, $actorId, "Returned: $remarks");
+            $db->commit();
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            echo json_encode(['ok' => false, 'msg' => 'The assessment could not be returned. No changes were made.']);
+            exit;
+        }
+
+        $recipientQuery = $db->prepare("
+            SELECT DISTINCT u.user_id, u.full_name, u.email
+            FROM users u
+            WHERE u.school_id = ? AND u.status = 'active'
+              AND (
+                u.role = 'school_head'
+                OR (
+                    u.role = 'teacher'
+                    AND EXISTS (
+                        SELECT 1 FROM teacher_indicator_assignments tia
+                        WHERE tia.cycle_id = ? AND tia.teacher_id = u.user_id
+                    )
+                )
+                OR (
+                    u.role = 'external_stakeholder'
+                    AND EXISTS (
+                        SELECT 1 FROM stakeholder_indicator_assignments sia
+                        WHERE sia.cycle_id = ? AND sia.stakeholder_id = u.user_id
+                    )
+                )
+              )
+              AND u.email IS NOT NULL AND TRIM(u.email) <> ''
+        ");
+        $recipientQuery->execute([SCHOOL_ID, $cycleId, $cycleId]);
+        $schoolYearQuery = $db->prepare("
+            SELECT sy.label
+            FROM sbm_cycles c
+            JOIN school_years sy ON sy.sy_id = c.sy_id
+            WHERE c.cycle_id = ?
+        ");
+        $schoolYearQuery->execute([$cycleId]);
+        $schoolYear = (string) ($schoolYearQuery->fetchColumn() ?: '');
+        $emailsSent = 0;
+        $emailsFailed = 0;
+        while ($recipient = $recipientQuery->fetch()) {
+            if (sendAssessmentReturnedEmail($db, $recipient, $schoolYear, $remarks)) {
+                $emailsSent++;
+            } else {
+                $emailsFailed++;
+            }
+        }
+
+        $emailMsg = $emailsFailed
+            ? " Assessment returned, but {$emailsFailed} notification email(s) failed; check the email log."
+            : " Notification sent to {$emailsSent} responsible user(s).";
+        echo json_encode(['ok' => true, 'msg' => 'Assessment returned for revision.' . $emailMsg]);
         exit;
     }
 

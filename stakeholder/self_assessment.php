@@ -546,6 +546,17 @@ include __DIR__ . '/../includes/header.php';
     </span>
 </div>
 
+<?php if ($cycle && !empty($cycle['return_remarks'])): ?>
+    <div class="alert alert-warning" style="margin-bottom:16px;">
+        <?= svgIcon('alert-circle') ?>
+        <span>
+            <strong>Assessment Returned for Revision.</strong>
+            <?= e($cycle['return_remarks']) ?>
+            Please revise your assigned indicators and submit them again.
+        </span>
+    </div>
+<?php endif; ?>
+
 <?php if (
     $isLocked && $mySubmission &&
     $mySubmission['status'] === 'submitted'

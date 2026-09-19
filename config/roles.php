@@ -116,7 +116,8 @@ define('SBM_NAV', [
             'users',
             [
                 ['Assign Indicators', 'coordinator/assign_indicators.php', 'check-square'],
-                ['Manage Form', 'coordinator/manage_form.php', 'edit']
+                ['Manage Form', 'coordinator/manage_form.php', 'edit'],
+                ['Evidence & MOV', 'coordinator/evidence.php', 'paperclip']
             ]
         ],
         [

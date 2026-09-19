@@ -48,6 +48,11 @@ if (!in_array($role, $allowedRoles)) {
 
 $action = $_POST['action'] ?? '';
 
+if (in_array($role, ['sbm_coordinator'], true) && in_array($action, ['upload_attachment', 'delete_attachment'], true)) {
+    echo json_encode(['ok' => false, 'msg' => 'SBM Coordinators can review MOV but cannot upload, replace, or delete evidence.']);
+    exit;
+}
+
 // ── DELETE ───────────────────────────────────────────────────
 if ($action === 'delete_attachment') {
     $attId = (int) ($_POST['attachment_id'] ?? 0);
@@ -66,7 +71,7 @@ if ($action === 'delete_attachment') {
     }
 
     $canDelete = ((int) $row['uploaded_by'] === (int) $uid)
-        || in_array($role, ['sbm_coordinator', 'school_head']);
+        || $role === 'school_head';
     if (!$canDelete) {
         echo json_encode(['ok' => false, 'msg' => 'Permission denied.']);
         exit;

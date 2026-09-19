@@ -31,7 +31,9 @@ function getSelfAssessmentWindow(PDO $db, int $syId): array
 
 function isWithinAssessmentWindow(array $window): bool
 {
-  if (!$window['start'] && !$window['end']) return false;
+  // Workflow dates are optional. When neither boundary is configured,
+  // the School Head may start the assessment immediately.
+  if (!$window['start'] && !$window['end']) return true;
   $today = date('Y-m-d');
   if ($window['start'] && $today < $window['start']) return false;
   if ($window['end'] && $today > $window['end']) return false;
@@ -132,10 +134,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $indicatorCode = $chkRow['indicator_code'] ?? null;
       $raterRole     = $chkRow['rater_role']     ?? null;
 
-      // SH can rate any indicator whose rater_role starts with 'SH_'
-      // This covers SH_ONLY, SH_TEACHER, SH_EXT, SH_TCH_EXT.
-      // TEACHER_ONLY and TCH_EXT have no SH input.
-      $shCanRate = $raterRole && str_starts_with($raterRole, 'SH_');
+      // The School Head can provide the school's rating for every indicator.
+      // Keep the configured rater role for other evaluation surfaces.
+      $shCanRate = $_SESSION['role'] === 'school_head'
+        || ($raterRole && str_starts_with($raterRole, 'SH_'));
       if (!$shCanRate) {
         echo json_encode(['ok' => false, 'msg' => 'This indicator is not rated by the School Head.']);
         exit;
@@ -218,7 +220,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $chkRow = $chk->fetch();
       $indicatorCode = $chkRow['indicator_code'] ?? null;
       $raterRole     = $chkRow['rater_role']     ?? null;
-      if (!$raterRole || !str_starts_with($raterRole, 'SH_')) {
+      $shCanClear = $_SESSION['role'] === 'school_head'
+        || ($raterRole && str_starts_with($raterRole, 'SH_'));
+      if (!$shCanClear) {
         echo json_encode(['ok' => false, 'msg' => 'Cannot clear a non-SH indicator.']);
         exit;
       }
@@ -263,8 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
       }
 
-      $teacherOnlyCodes = array_merge(TEACHER_ONLY_CODES, TCH_EXT_CODES);
-      if (empty($teacherOnlyCodes)) {
+      if ($_SESSION['role'] === 'school_head') {
         $db->prepare("
     DELETE r FROM sbm_responses r
     JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
@@ -272,6 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       AND i.dimension_id = ?
 ")->execute([$cycleRow['cycle_id'], $dimId]);
       } else {
+        $teacherOnlyCodes = array_merge(TEACHER_ONLY_CODES, TCH_EXT_CODES);
         $ph = buildInPlaceholders($teacherOnlyCodes);
         $db->prepare("
     DELETE r FROM sbm_responses r
@@ -390,7 +394,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $mat = sbmMaturityLevel($overall);
 
 
-      $db->prepare("UPDATE sbm_cycles SET status='submitted',submitted_at=NOW(),overall_score=?,maturity_level=? WHERE cycle_id=?")
+      $db->prepare("UPDATE sbm_cycles SET status='submitted',submitted_at=NOW(),overall_score=?,maturity_level=?,return_remarks=NULL WHERE cycle_id=?")
         ->execute([$overall, $mat['label'], $cyc['cycle_id']]);
       logActivity('submit_assessment', 'self_assessment', 'Submitted SBM assessment cycle ' . $cyc['cycle_id']);
 
@@ -481,9 +485,8 @@ function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId,
     $code = $ind['indicator_code'];
     $ratings = [];
 
-    // Teacher-only and Teacher+External indicators have no School Head rating.
-    $needsSchoolHead = !in_array($code, TEACHER_ONLY_CODES, true)
-      && !in_array($code, TCH_EXT_CODES, true);
+    // The School Head provides the school's rating for every indicator.
+    $needsSchoolHead = true;
 
     $needsTeachers = in_array($code, $teacherCodes, true);
     $needsExternal = in_array($code, $externalCodes, true);
@@ -607,8 +610,11 @@ $isCoordinator = ($_SESSION['role'] === 'sbm_coordinator');
 // Coordinator is always effectively locked (view-only)
 $canEdit = !$isLocked && !$isCoordinator;
 
-// SH rates: SH_ONLY + SH_TEACHER + SH_EXT + SH_TCH_EXT (= SH_RATEABLE_CODES)
-$shIndicators = array_filter($indicators, fn($i) => in_array($i['indicator_code'], SH_RATEABLE_CODES));
+// The School Head can rate every indicator; coordinators retain the configured
+// SH_RATEABLE_CODES view for monitoring.
+$shIndicators = $_SESSION['role'] === 'school_head'
+  ? $indicators
+  : array_filter($indicators, fn($i) => in_array($i['indicator_code'], SH_RATEABLE_CODES));
 $shResponded = count(array_filter($shIndicators, fn($i) => isset($responses[$i['indicator_id']])));
 $shTotal = count($shIndicators);
 
@@ -1800,6 +1806,15 @@ foreach ($grouped as $dimNo => $inds) {
       &nbsp;·&nbsp; Overall Score: <strong><?= $cycle['overall_score'] ?>%</strong>
       (<?= e($cycle['maturity_level']) ?>)<?php endif; ?>. Responses are read-only.
   </div>
+<?php elseif ($cycle && !empty($cycle['return_remarks'])): ?>
+  <div class="alert alert-warning" style="margin-bottom:16px;">
+    <?= svgIcon('alert-circle') ?>
+    <span>
+      <strong>Assessment Returned for Revision.</strong>
+      <?= e($cycle['return_remarks']) ?>
+      Please review the assessment and resubmit it after making the required corrections.
+    </span>
+  </div>
 <?php elseif ($isLocked): ?>
   <div class="alert alert-info" style="margin-bottom:16px;">
     <?= svgIcon('info') ?> This assessment has been <strong><?= e($cycle['status']) ?></strong>. Responses are read-only.
@@ -1858,7 +1873,9 @@ foreach ($grouped as $dimNo => $inds) {
     $dim = $inds[0];
     $dimDone = count(array_filter($inds, fn($i) => isset($responses[$i['indicator_id']]) || (isTeacherHandled($i['indicator_code'] ?? '') && isset($sharedDone[$i['indicator_id']]))));
     $allDone = $dimDone === count($inds);
-    $dimShCount = count(array_filter($inds, fn($i) => !in_array($i['indicator_code'], TEACHER_INDICATOR_CODES)));
+    $dimShCount = $_SESSION['role'] === 'school_head'
+      ? count($inds)
+      : count(array_filter($inds, fn($i) => !in_array($i['indicator_code'], TEACHER_INDICATOR_CODES)));
     $dimTchCount = count($inds) - $dimShCount;
     $dimPos = array_search($dimNo, $dimNosList, true);
     $prevDimNo = $dimPos > 0 ? $dimNosList[$dimPos - 1] : null;
@@ -1941,7 +1958,8 @@ foreach ($grouped as $dimNo => $inds) {
               <tbody>
                 <?php foreach ($inds as $ind): ?>
                   <?php
-                  $isTeacherCardR = isTeacherHandled($ind['indicator_code'] ?? '');
+                  $isTeacherCardR = isTeacherHandled($ind['indicator_code'] ?? '')
+                    && $_SESSION['role'] !== 'school_head';
                   $trDataR = $teacherData[$ind['indicator_id']] ?? null;
                   $respR = $responses[$ind['indicator_id']] ?? null;
 
@@ -2023,14 +2041,16 @@ foreach ($grouped as $dimNo => $inds) {
           <?php
           $resp = $responses[$ind['indicator_id']] ?? null;
           $rated = $resp !== null;
-          $isTeacherCard = isTeacherHandled($ind['indicator_code'] ?? '');
+          $isTeacherCard = isTeacherHandled($ind['indicator_code'] ?? '')
+            && $_SESSION['role'] !== 'school_head';
           $role = $isTeacherCard ? 'teacher' : 'sh';
           $showTeacherInfoAlso = in_array($ind['indicator_code'] ?? '', SH_SEES_TEACHER_CODES);
           $trData = $teacherData[$ind['indicator_id']] ?? null;
           ?>
 
           <?php
-          $isSH = in_array($ind['indicator_code'], SH_RATEABLE_CODES);
+          $isSH = $_SESSION['role'] === 'school_head'
+            || in_array($ind['indicator_code'], SH_RATEABLE_CODES);
           $isTeacher = in_array($ind['indicator_code'], TEACHER_INDICATOR_CODES);
           ?>
           <div class="indicator-row <?= $rated ? 'rated' : '' ?> <?= $isTeacherCard ? 'teacher-only' : '' ?>"
@@ -2654,7 +2674,7 @@ foreach ($grouped as $dimNo => $inds) {
     </div>
     <div class="modal-body">
       <p style="font-size:17px; font-weight:600; color:var(--n900); line-height:1.4; margin-bottom:16px;">
-        Submit your SBM Self-Assessment to the SDO?
+        Submit assessment for validation?
       </p>
       <div style="display:flex;align-items:center;gap:8px;color:var(--n500);font-size:13px;">
         <?= svgIcon('info') ?>
@@ -2723,7 +2743,9 @@ foreach ($grouped as $dimNo => $inds) {
       </div>
       <p style="font-size:14px; color:var(--n600); line-height:1.5;">
         This action will immediately initialize the assessment indicators and reflect them on the teachers' dashboard so
-        they can begin providing their ratings.
+        they can begin providing their ratings.<?php if (!$assessmentWindow['start'] && !$assessmentWindow['end']): ?>
+          No Self-Assessment schedule is configured, so the assessment will start immediately without date restrictions.
+        <?php endif; ?>
       </p>
     </div>
     <div class="modal-foot">

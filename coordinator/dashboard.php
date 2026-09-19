@@ -7,10 +7,16 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/improvement_plan_workflow.php';
+require_once __DIR__ . '/../includes/workflow_actions.php';
 requireRole('sbm_coordinator');
 $db = getDB();
 
 // ── AJAX HANDLER ──────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'return_cycle') {
+  handleWorkflowPost($db);
+  exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_sh_improvement_plans') {
   header('Content-Type: application/json');
   $cycleId = (int) ($_POST['cycle_id'] ?? 0);
@@ -2151,7 +2157,7 @@ include __DIR__ . '/../includes/header.php';
   }
 </style>
 
-<?php if ($cycle && $cycle['status'] === 'returned'): ?>
+<?php if ($cycle && in_array($cycle['status'], ['returned', 'in_progress'], true) && !empty($cycle['return_remarks'])): ?>
   <div
     style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:9px;background:#FEF3C7;border:1px solid #FDE68A;margin-bottom:16px;font-size:13px;">
     <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -2161,8 +2167,7 @@ include __DIR__ . '/../includes/header.php';
       <line x1="12" y1="16" x2="12.01" y2="16" />
     </svg>
     <div style="color:#92400E;">
-      <strong>Assessment Returned for Revision</strong>
-      <?php if ($cycle['validator_remarks']): ?> — <?= e($cycle['validator_remarks']) ?><?php endif; ?>
+      <strong>Assessment Returned for Revision</strong> — <?= e($cycle['return_remarks']) ?>
     </div>
   </div>
 <?php endif; ?>
@@ -2281,9 +2286,14 @@ include __DIR__ . '/../includes/header.php';
           </div>
         </div>
 
-        <button class="btn btn-success" onclick="validateAndCompleteCycle(<?= (int) $cycle['cycle_id'] ?>)">
-          <?= svgIcon('check-circle') ?> Validate & Complete Cycle
-        </button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-danger" onclick="openReturnCycleModal(<?= (int) $cycle['cycle_id'] ?>)">
+            <?= svgIcon('arrow-left') ?> Return for Revision
+          </button>
+          <button class="btn btn-success" onclick="validateAndCompleteCycle(<?= (int) $cycle['cycle_id'] ?>)">
+            <?= svgIcon('check-circle') ?> Validate & Complete Cycle
+          </button>
+        </div>
       </div>
     </div>
   <?php elseif ($cycle && in_array($cycle['status'], ['validated', 'finalized', 'completed'])): ?>
@@ -3590,6 +3600,29 @@ function updateIndicatorTrendChart(dimId) {
   document.getElementById('validateCycleModal').dataset.cycleId = cycleId;
   document.getElementById('validateRemarksInput').value = '';
   document.getElementById('validateCycleModal').style.display = 'flex';
+}
+
+function openReturnCycleModal(cycleId) {
+  const remarks = prompt('Explain what needs to be corrected before resubmission:');
+  if (remarks === null) return;
+  if (!remarks.trim()) {
+    toast('Return remarks are required.', 'warning');
+    return;
+  }
+
+  returnCycleForRevision(cycleId, remarks.trim());
+}
+
+async function returnCycleForRevision(cycleId, remarks) {
+  const response = await apiPost('dashboard.php', {
+    action: 'return_cycle',
+    cycle_id: cycleId,
+    to_stage: 'in_progress',
+    remarks
+  });
+
+  toast(response.msg, response.ok ? 'ok' : 'err');
+  if (response.ok) setTimeout(() => location.reload(), 800);
 }
 
   function closeValidateCycleModal() {

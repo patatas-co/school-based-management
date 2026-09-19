@@ -187,6 +187,50 @@ function sendRejectionEmail(PDO $db, array $user, string $reason): bool
   }
 }
 
+function sendAssessmentReturnedEmail(PDO $db, array $user, string $schoolYear, string $remarks): bool
+{
+  $safeName = htmlspecialchars($user['full_name'], ENT_QUOTES, 'UTF-8');
+  $safeYear = htmlspecialchars($schoolYear, ENT_QUOTES, 'UTF-8');
+  $safeRemarks = nl2br(htmlspecialchars($remarks, ENT_QUOTES, 'UTF-8'));
+  $html = '<!doctype html><html><body style="margin:0;background:#f4f7f5;font-family:Arial,sans-serif;color:#23352a;">'
+    . '<div style="max-width:620px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;">'
+    . '<div style="background:#103b1e;color:#fff;padding:24px 28px;"><strong>DIHS SBM Portal</strong><br>'
+    . '<span style="font-size:12px;opacity:.8;">Assessment returned for revision</span></div>'
+    . '<div style="padding:28px;"><p>Hello <strong>' . $safeName . '</strong>,</p>'
+    . '<p>The SBM Coordinator returned the assessment for <strong>SY ' . $safeYear . '</strong> for revision.</p>'
+    . '<div style="background:#fff8e8;border-left:4px solid #d97706;padding:14px 16px;margin:18px 0;">'
+    . '<strong>Reason for return</strong><br>' . $safeRemarks . '</div>'
+    . '<p>Please review the remarks and revise your assigned indicators or evidence as needed.</p>'
+    . '<p><strong>If your assessment is already complete, simply click the Submit button again.</strong> '
+    . 'We apologize for the notification.</p>'
+    . '<p style="color:#6b7b70;font-size:12px;margin-top:28px;">This is an automated message from the DIHS SBM Portal.</p>'
+    . '</div></div></body></html>';
+
+  $mail = new PHPMailer(true);
+  try {
+    _configureMailer($mail);
+    $mail->addAddress($user['email'], $user['full_name']);
+    $mail->isHTML(true);
+    $mail->Subject = 'SBM Assessment Returned for Revision — SY ' . $schoolYear;
+    $mail->Body = $html;
+    $mail->AltBody = "Hello {$user['full_name']},\n\n"
+      . "The SBM Coordinator returned the assessment for SY {$schoolYear} for revision.\n\n"
+      . "Reason: {$remarks}\n\n"
+      . "If your assessment is already complete, simply click the Submit button again. "
+      . "We apologize for the notification.";
+    $mail->send();
+    $db->prepare("INSERT INTO email_logs (user_id,email_type,recipient_email,status) VALUES (?,'assessment_returned',?,'sent')")
+      ->execute([$user['user_id'], $user['email']]);
+    return true;
+  } catch (Exception $e) {
+    $errMsg = $mail->ErrorInfo ?: $e->getMessage();
+    $db->prepare("INSERT INTO email_logs (user_id,email_type,recipient_email,status,error_message) VALUES (?,'assessment_returned',?,'failed',?)")
+      ->execute([$user['user_id'], $user['email'], $errMsg]);
+    error_log('SBM Assessment Return Email Error: ' . $errMsg);
+    return false;
+  }
+}
+
 function _configureMailer(PHPMailer $mail): void
 {
   $mail->isSMTP();
