@@ -27,6 +27,34 @@ header('Content-Type: application/json');
 
 
 
+function detectEvidenceCategory(string $mimeType, string $extension): string
+{
+    if (strncmp($mimeType, 'image/', 6) === 0) {
+        return 'photo';
+    }
+    if (in_array($mimeType, [
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    ], true) || in_array($extension, ['ppt', 'pptx'], true)) {
+        return 'report';
+    }
+    if (in_array($mimeType, [
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ], true) || in_array($extension, ['xls', 'xlsx'], true)) {
+        return 'record';
+    }
+    if (in_array($mimeType, [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain',
+    ], true) || in_array($extension, ['pdf', 'doc', 'docx', 'txt'], true)) {
+        return 'document';
+    }
+    return 'other';
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['ok' => false, 'msg' => 'Invalid request.']);
     exit;
@@ -190,13 +218,9 @@ if ($action === 'upload_attachment') {
         exit;
     }
 
-    $category = $_POST['category'] ?? 'other';
     $replaceAttId = (int) ($_POST['replace_attachment_id'] ?? 0);
     $replaceReason = trim($_POST['replace_reason'] ?? '');
-
-    $allowedCats = ['photo', 'document', 'report', 'certificate', 'record', 'other'];
-    if (!in_array($category, $allowedCats))
-        $category = 'other';
+    $category = detectEvidenceCategory($mimeType, $ext);
 
     // If replacing an existing file, mark old one as superseded
     $parentId = null;

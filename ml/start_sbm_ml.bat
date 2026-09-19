@@ -14,8 +14,8 @@ cd /d "C:\xampp\htdocs\sbm\ml"
 if not exist "venv64\Scripts\activate.bat" (
     echo [ERROR] 64-bit virtual environment not found!
     echo Run this to create it:
-    echo   C:\Users\Pat\AppData\Local\Programs\Python\Python311\python.exe -m venv venv64
-    echo   venv64\Scripts\pip install -r requirements.txt --prefer-binary
+    echo   py -3.11 -m venv venv64
+    echo   venv64\Scripts\python.exe -m pip install -r requirements.txt --prefer-binary
     pause
     exit /b 1
 )

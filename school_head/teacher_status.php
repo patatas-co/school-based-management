@@ -41,13 +41,24 @@ $filteredTotal     = 0;
 $currentSY         = $db->query("SELECT label FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 
 if ($cycle) {
+  $latestTeacherSubmissionJoin = "
+    LEFT JOIN (
+      SELECT ts1.*
+      FROM teacher_submissions ts1
+      INNER JOIN (
+        SELECT cycle_id, teacher_id, MAX(submission_id) AS submission_id
+        FROM teacher_submissions
+        GROUP BY cycle_id, teacher_id
+      ) latest_ts ON latest_ts.submission_id = ts1.submission_id
+    ) ts ON ts.teacher_id = u.user_id AND ts.cycle_id = ?
+  ";
+
     $totStmt = $db->prepare("
         SELECT
           COUNT(*) AS total,
           SUM(CASE WHEN ts.status = 'submitted' THEN 1 ELSE 0 END) AS submitted
         FROM users u
-        LEFT JOIN teacher_submissions ts
-            ON ts.teacher_id = u.user_id AND ts.cycle_id = ?
+    $latestTeacherSubmissionJoin
         WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active'
     ");
     $totStmt->execute([$cycle['cycle_id'], $schoolId]);
@@ -73,8 +84,7 @@ if ($cycle) {
     $filtStmt = $db->prepare("
         SELECT COUNT(*)
         FROM users u
-        LEFT JOIN teacher_submissions ts
-            ON ts.teacher_id = u.user_id AND ts.cycle_id = ?
+        $latestTeacherSubmissionJoin
         WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active'
         $searchSQL $filterSQL
     ");
@@ -96,8 +106,7 @@ if ($cycle) {
                ts.submitted_at,
                ts.response_count
         FROM users u
-        LEFT JOIN teacher_submissions ts
-            ON ts.teacher_id = u.user_id AND ts.cycle_id = ?
+        $latestTeacherSubmissionJoin
         WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active'
         $searchSQL $filterSQL
         ORDER BY

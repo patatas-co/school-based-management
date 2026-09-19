@@ -181,7 +181,15 @@ if ($cycle) {
                (SELECT COUNT(*) FROM teacher_responses tr WHERE tr.cycle_id=? AND tr.teacher_id=u.user_id) live_count,
                (SELECT COUNT(*) FROM teacher_indicator_assignments tia WHERE tia.teacher_id=u.user_id) assigned_count
         FROM users u
-        LEFT JOIN teacher_submissions ts ON ts.teacher_id=u.user_id AND ts.cycle_id=?
+        LEFT JOIN (
+          SELECT ts1.*
+          FROM teacher_submissions ts1
+          INNER JOIN (
+            SELECT cycle_id, teacher_id, MAX(submission_id) AS submission_id
+            FROM teacher_submissions
+            GROUP BY cycle_id, teacher_id
+          ) latest_ts ON latest_ts.submission_id = ts1.submission_id
+        ) ts ON ts.teacher_id=u.user_id AND ts.cycle_id=?
         WHERE u.school_id=? AND u.role='teacher' AND u.status='active'
         ORDER BY ts.status DESC, u.full_name ASC
     ");
@@ -2155,20 +2163,93 @@ include __DIR__ . '/../includes/header.php';
       border-bottom: 1px solid var(--n-100);
     }
   }
+
+  .return-revision-toast {
+    position: fixed;
+    top: 76px;
+    right: 20px;
+    z-index: 1100;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: min(380px, calc(100vw - 40px));
+    padding: 13px 14px;
+    border: 1px solid #FDE68A;
+    border-left: 3px solid #D97706;
+    border-radius: 8px;
+    background: #FFFBEB;
+    color: #78350F;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .12);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
+  .return-revision-toast[hidden] {
+    display: none !important;
+  }
+
+  .return-revision-toast-icon {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+    color: #D97706;
+  }
+
+  .return-revision-toast-content {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .return-revision-toast-title {
+    display: block;
+    margin-bottom: 2px;
+    color: #92400E;
+    font-weight: 700;
+  }
+
+  .return-revision-toast-close {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    margin: -3px -4px 0 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #92400E;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .return-revision-toast-close:hover,
+  .return-revision-toast-close:focus-visible {
+    background: #FEF3C7;
+    outline: 2px solid #D97706;
+    outline-offset: 1px;
+  }
+
+  @media (max-width: 560px) {
+    .return-revision-toast {
+      top: 64px;
+      right: 12px;
+      width: calc(100vw - 24px);
+    }
+  }
 </style>
 
 <?php if ($cycle && in_array($cycle['status'], ['returned', 'in_progress'], true) && !empty($cycle['return_remarks'])): ?>
-  <div
-    style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:9px;background:#FEF3C7;border:1px solid #FDE68A;margin-bottom:16px;font-size:13px;">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-      style="width:15px;height:15px;flex-shrink:0;margin-top:1px;">
+  <div id="returnRevisionToast" class="return-revision-toast" role="alert" aria-live="polite">
+    <svg class="return-revision-toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="8" x2="12" y2="12" />
       <line x1="12" y1="16" x2="12.01" y2="16" />
     </svg>
-    <div style="color:#92400E;">
-      <strong>Assessment Returned for Revision</strong> — <?= e($cycle['return_remarks']) ?>
+    <div class="return-revision-toast-content">
+      <span class="return-revision-toast-title">Returned for revision</span>
+      <span><?= e($cycle['return_remarks']) ?></span>
     </div>
+    <button type="button" class="return-revision-toast-close" aria-label="Dismiss revision notice" title="Dismiss">&times;</button>
   </div>
 <?php endif; ?>
 
@@ -2277,21 +2358,21 @@ include __DIR__ . '/../includes/header.php';
     </div>
 
   <?php if ($cycle && $cycle['status'] === 'submitted'): ?>
-    <div class="card" style="margin-bottom:20px;border:1px solid var(--blue-200);background:var(--blue-50);">
-      <div class="card-body" style="padding:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+    <div class="card" style="margin-bottom:20px;border:1px solid var(--n200);background:var(--white);box-shadow:none;">
+      <div class="card-body" style="padding:12px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
         <div style="flex:1;min-width:220px;">
-          <div style="font-size:14px;font-weight:800;color:var(--n-800);">Assessment Ready for Review</div>
-          <div style="font-size:12.5px;color:var(--n-600);margin-top:3px;">
+          <div style="font-size:13px;font-weight:700;color:var(--n800);">Assessment ready for review</div>
+          <div style="font-size:12px;color:var(--n500);margin-top:2px;">
             The School Head has submitted the assessment. Review the scores and validate to complete and lock this cycle.
           </div>
         </div>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-danger" onclick="openReturnCycleModal(<?= (int) $cycle['cycle_id'] ?>)">
-            <?= svgIcon('arrow-left') ?> Return for Revision
+          <button class="btn btn-secondary btn-sm" onclick="openReturnCycleModal(<?= (int) $cycle['cycle_id'] ?>)">
+            Return for Revision
           </button>
-          <button class="btn btn-success" onclick="validateAndCompleteCycle(<?= (int) $cycle['cycle_id'] ?>)">
-            <?= svgIcon('check-circle') ?> Validate & Complete Cycle
+          <button class="btn btn-primary btn-sm" onclick="validateAndCompleteCycle(<?= (int) $cycle['cycle_id'] ?>)">
+            Validate & Complete Cycle
           </button>
         </div>
       </div>
@@ -2654,6 +2735,34 @@ include __DIR__ . '/../includes/header.php';
     var title = document.getElementById('progressCardTitle');
     if (title) title.textContent = progressTitles[idx] || '';
   }
+
+  (function initReturnRevisionToast() {
+    const toast = document.getElementById('returnRevisionToast');
+    const closeButton = toast?.querySelector('.return-revision-toast-close');
+    if (!toast || !closeButton) return;
+
+    const storageKey = 'sbm-return-revision-dismissed-<?= (int) ($cycle['cycle_id'] ?? 0) ?>';
+    let dismissed = false;
+    try {
+      dismissed = sessionStorage.getItem(storageKey) === '1';
+    } catch (error) {
+      dismissed = false;
+    }
+
+    if (dismissed) {
+      toast.hidden = true;
+      return;
+    }
+
+    closeButton.addEventListener('click', () => {
+      toast.hidden = true;
+      try {
+        sessionStorage.setItem(storageKey, '1');
+      } catch (error) {
+        // The toast remains dismissible even when browser storage is unavailable.
+      }
+    });
+  })();
   </script>
 
   <div style="display:none;">
@@ -3603,14 +3712,29 @@ function updateIndicatorTrendChart(dimId) {
 }
 
 function openReturnCycleModal(cycleId) {
-  const remarks = prompt('Explain what needs to be corrected before resubmission:');
-  if (remarks === null) return;
-  if (!remarks.trim()) {
+  const modal = document.getElementById('returnCycleModal');
+  if (!modal) return;
+  modal.dataset.cycleId = cycleId;
+  document.getElementById('returnRemarksInput').value = '';
+  modal.style.display = 'flex';
+  document.getElementById('returnRemarksInput').focus();
+}
+
+function closeReturnCycleModal() {
+  document.getElementById('returnCycleModal').style.display = 'none';
+}
+
+function confirmReturnCycle() {
+  const modal = document.getElementById('returnCycleModal');
+  const remarksInput = document.getElementById('returnRemarksInput');
+  const remarks = remarksInput.value.trim();
+  if (!remarks) {
+    remarksInput.focus();
     toast('Return remarks are required.', 'warning');
     return;
   }
-
-  returnCycleForRevision(cycleId, remarks.trim());
+  closeReturnCycleModal();
+  returnCycleForRevision(modal.dataset.cycleId, remarks);
 }
 
 async function returnCycleForRevision(cycleId, remarks) {
@@ -4153,6 +4277,28 @@ async function returnCycleForRevision(cycleId, remarks) {
     <div style="display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--n-200,#E2E8F0);">
       <button class="btn btn-secondary" onclick="closeValidateCycleModal()">Cancel</button>
       <button class="btn btn-success" onclick="confirmValidateCycle()">Validate & Complete</button>
+    </div>
+  </div>
+</div>
+
+<div id="returnCycleModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)closeReturnCycleModal()">
+  <div style="background:#fff;border-radius:14px;max-width:480px;width:90%;box-shadow:0 20px 50px rgba(0,0,0,.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--n-200,#E2E8F0);">
+      <span style="font-size:16px;font-weight:700;color:var(--n-900,#0F172A);">Return for Revision</span>
+      <button type="button" aria-label="Close" onclick="closeReturnCycleModal()" style="background:none;border:none;cursor:pointer;color:var(--n-500,#64748B);font-size:20px;line-height:1;">&times;</button>
+    </div>
+    <div style="padding:22px;">
+      <p style="font-size:14px;color:var(--n-700,#334155);line-height:1.5;margin-bottom:16px;">
+        Explain what needs to be corrected before the assessment is resubmitted.
+      </p>
+      <label for="returnRemarksInput" style="font-size:12.5px;font-weight:600;color:var(--n-600,#475569);display:block;margin-bottom:6px;">
+        Revision remarks <span style="color:#DC2626;">*</span>
+      </label>
+      <textarea id="returnRemarksInput" rows="3" required placeholder="Add the corrections needed…" style="width:100%;border:1px solid var(--n-200,#E2E8F0);border-radius:8px;padding:10px 12px;font-size:13.5px;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--n-200,#E2E8F0);">
+      <button type="button" class="btn btn-secondary" onclick="closeReturnCycleModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="confirmReturnCycle()">Return for Revision</button>
     </div>
   </div>
 </div>

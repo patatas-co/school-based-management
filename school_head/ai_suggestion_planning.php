@@ -530,23 +530,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
 $syId     = (int)($_GET['sy'] ?? $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn());
 $schoolId = SCHOOL_ID;
 
-// -- Dimension scores (for the improvement plan's dimension picker) --
-$stDimScores = $db->prepare("
-  SELECT d.dimension_id, d.dimension_no, d.dimension_name, d.color_hex,
-         ROUND(AVG(ds.percentage), 1) avg_pct
-  FROM sbm_dimensions d
-  LEFT JOIN sbm_dimension_scores ds
-    ON d.dimension_id = ds.dimension_id
-    AND ds.cycle_id IN (
-      SELECT c.cycle_id FROM sbm_cycles c
-      WHERE c.sy_id = ?
-        AND c.status IN ('validated','finalized','completed')
-    )
-  GROUP BY d.dimension_id
-  ORDER BY d.dimension_no
+// -- Merge dimensions and computed scores before rendering the picker --
+$activeFormVersionId = (int) $db->query(
+  "SELECT version_id FROM form_versions WHERE is_active = 1 LIMIT 1"
+)->fetchColumn();
+
+$dimensionStmt = $db->prepare("
+  SELECT dimension_id, dimension_no, dimension_name
+  FROM sbm_dimensions
+  WHERE form_version_id = ?
+  ORDER BY dimension_no
+ ");
+$dimensionStmt->execute([$activeFormVersionId]);
+$dimensionRows = $dimensionStmt->fetchAll();
+
+$scoreStmt = $db->prepare("
+  SELECT ds.dimension_id, ROUND(AVG(ds.percentage), 1) AS score
+  FROM sbm_dimension_scores ds
+  JOIN sbm_cycles c ON c.cycle_id = ds.cycle_id
+  WHERE c.school_id = ?
+    AND c.sy_id = ?
+    AND c.status IN ('validated', 'finalized', 'completed')
+  GROUP BY ds.dimension_id
 ");
-$stDimScores->execute([$syId]);
-$dimScores = $stDimScores->fetchAll();
+$scoreStmt->execute([$schoolId, $syId]);
+$scoresByDimensionId = [];
+foreach ($scoreStmt->fetchAll() as $scoreRow) {
+  $scoresByDimensionId[(int) $scoreRow['dimension_id']] = (float) $scoreRow['score'];
+}
+
+$dimScores = [];
+foreach ($dimensionRows as $dimension) {
+  $dimensionId = (int) $dimension['dimension_id'];
+  $score = $scoresByDimensionId[$dimensionId] ?? null;
+  $dimScores[] = [
+    'dimension_id' => $dimensionId,
+    'dimension_no' => (int) $dimension['dimension_no'],
+    'dimension_name' => $dimension['dimension_name'],
+    'score' => $score,
+    'needs_improvement' => $score !== null && $score < 70,
+  ];
+}
 
 // -- Weak indicators (rating <= 2.5) for the improvement plan's indicator picker --
 $weakQ = $db->prepare("
@@ -1024,8 +1048,8 @@ include __DIR__.'/../includes/header.php';
               <div class="tag-dropdown" id="dimTagDropdown">
                 <?php foreach ($dimScores as $d): ?>
                   <div class="tag-option" data-id="<?= $d['dimension_id'] ?>" data-name="D<?= $d['dimension_no'] ?>">
-                    D<?= $d['dimension_no'] ?> - <?= e($d['dimension_name']) ?> (<?= $d['avg_pct'] ?>%)
-                    <?= ($d['avg_pct'] < 50) ? '⚠️' : '' ?>
+                    D<?= $d['dimension_no'] ?> - <?= e($d['dimension_name']) ?>
+                    (<?= $d['score'] === null ? 'No data' : number_format($d['score'], 1) . '%' ?>)<?= $d['score'] === null || $d['needs_improvement'] ? ' ⚠️' : '' ?>
                   </div>
                 <?php endforeach; ?>
               </div>

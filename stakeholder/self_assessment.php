@@ -314,16 +314,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $cycleInfo = $db->prepare("SELECT school_id, sy_id FROM sbm_cycles WHERE cycle_id=?");
         $cycleInfo->execute([$cycleId]);
         $cycleInfo = $cycleInfo->fetch();
-        $db->prepare("
-            INSERT INTO stakeholder_submissions
-                (cycle_id,stakeholder_id,school_id,sy_id,
-                 status,submitted_at,response_count)
-            VALUES (?,?,?,?,'submitted',NOW(),?)
-            ON DUPLICATE KEY UPDATE
-                status         = 'submitted',
-                submitted_at   = NOW(),
-                response_count = VALUES(response_count)
-        ")->execute([$cycleId, $uid, $cycleInfo['school_id'], $cycleInfo['sy_id'], $answered]);
+        $submissionStmt = $db->prepare(
+            "SELECT submission_id FROM stakeholder_submissions
+             WHERE cycle_id=? AND stakeholder_id=?
+             ORDER BY submission_id DESC LIMIT 1"
+        );
+        $submissionStmt->execute([$cycleId, $uid]);
+        $submissionId = $submissionStmt->fetchColumn();
+        if ($submissionId) {
+            $db->prepare(
+                "UPDATE stakeholder_submissions
+                 SET status='submitted', submitted_at=NOW(), response_count=?
+                 WHERE submission_id=?"
+            )->execute([$answered, $submissionId]);
+        } else {
+            $db->prepare(
+                "INSERT INTO stakeholder_submissions
+                 (cycle_id,stakeholder_id,school_id,sy_id,status,submitted_at,response_count)
+                 VALUES (?,?,?,?,'submitted',NOW(),?)"
+            )->execute([$cycleId, $uid, $cycleInfo['school_id'], $cycleInfo['sy_id'], $answered]);
+        }
 
         echo json_encode([
             'ok' => true,
@@ -371,8 +381,10 @@ if ($cycle) {
 $mySubmission = null;
 if ($cycle) {
     $st = $db->prepare("
-        SELECT * FROM stakeholder_submissions 
+        SELECT * FROM stakeholder_submissions
         WHERE cycle_id=? AND stakeholder_id=?
+        ORDER BY submission_id DESC
+        LIMIT 1
     ");
     $st->execute([$cycle['cycle_id'], $uid]);
     $mySubmission = $st->fetch();

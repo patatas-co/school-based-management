@@ -116,34 +116,42 @@ function formatFileSize(int $bytes): string
 }
 function fileIconHtml(string $mime): string
 {
-  if (strncmp($mime, 'image/', 6) === 0)
-    return '🖼️';
-  if ($mime === 'application/pdf')
-    return '📄';
-  if (strpos($mime, 'word') !== false)
-    return '📝';
-  if (strpos($mime, 'sheet') !== false || strpos($mime, 'excel') !== false)
-    return '📊';
-  if (strpos($mime, 'presentation') !== false || strpos($mime, 'powerpoint') !== false)
-    return '📊';
-  return '📎';
+  return '';
+}
+
+function evidenceCategoryForFile(string $mimeType, string $fileName): string
+{
+  $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+  if (strncmp($mimeType, 'image/', 6) === 0) {
+    return 'photo';
+  }
+  if (strpos($mimeType, 'presentation') !== false || in_array($extension, ['ppt', 'pptx'], true)) {
+    return 'report';
+  }
+  if (strpos($mimeType, 'sheet') !== false || strpos($mimeType, 'excel') !== false || in_array($extension, ['xls', 'xlsx'], true)) {
+    return 'record';
+  }
+  if ($mimeType === 'application/pdf' || strpos($mimeType, 'word') !== false || $mimeType === 'text/plain' || in_array($extension, ['pdf', 'doc', 'docx', 'txt'], true)) {
+    return 'document';
+  }
+  return 'other';
 }
 
 function categoryLabel(string $cat): string
 {
   switch ($cat) {
     case 'photo':
-      return '📷 Photo';
+      return 'Photo';
     case 'document':
-      return '📄 Document';
+      return 'Document';
     case 'report':
-      return '📊 Report';
+      return 'Report';
     case 'certificate':
-      return '🏅 Certificate';
+      return 'Certificate';
     case 'record':
-      return '🗂️ Record';
+      return 'Record';
     default:
-      return '📎 Other';
+      return 'Other';
   }
 }
 
@@ -245,6 +253,65 @@ function roleLabel(string $role): string
 
   .ev-file-row:hover {
     background: var(--n50);
+  }
+
+  #evTable {
+    overflow: hidden;
+  }
+
+  #evTable thead tr {
+    background: var(--white) !important;
+    border-bottom: 1px solid var(--n200) !important;
+  }
+
+  #evTable th {
+    padding: 10px 14px !important;
+    color: var(--n500) !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: .04em !important;
+  }
+
+  #evTable td {
+    padding: 11px 14px !important;
+    vertical-align: middle;
+  }
+
+  #evTable .ev-table-row:hover {
+    background: var(--n50) !important;
+  }
+
+  .ev-file-mark {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--n400);
+    flex-shrink: 0;
+  }
+
+  .ev-plain-label {
+    color: var(--n700);
+    font-size: 12px;
+  }
+
+  .ev-category-label {
+    color: var(--n600);
+    font-size: 12px;
+  }
+
+  .ev-action-button {
+    width: 28px !important;
+    height: 28px !important;
+    padding: 0;
+    border: 1px solid var(--n200) !important;
+    border-radius: 6px !important;
+    background: var(--white) !important;
+    color: var(--n600) !important;
+  }
+
+  .ev-action-button:hover {
+    background: var(--n100) !important;
+    color: var(--n900) !important;
   }
 
   .ev-file-icon {
@@ -409,18 +476,19 @@ function roleLabel(string $role): string
         </thead>
         <tbody id="evTableBody">
           <?php foreach ($allAttachments as $file): ?>
+            <?php $displayCategory = evidenceCategoryForFile($file['mime_type'], $file['original_name']); ?>
             <tr class="ev-table-row"
               data-name="<?= strtolower(e($file['original_name'])) ?>"
               data-uploader="<?= strtolower(e($file['uploader_name'])) ?>"
               data-department="<?= strtolower(e($file['department'] ?? '')) ?>"
               data-indicator="<?= strtolower(e($file['indicator_code'] . ' ' . $file['indicator_text'])) ?>"
               data-role="<?= e($file['uploader_role'] ?? '') ?>"
-              data-category="<?= e($file['category'] ?? 'other') ?>"
+              data-category="<?= e($displayCategory) ?>"
               style="border-bottom:1px solid var(--n100);transition:background .12s;">
               <!-- File -->
               <td style="padding:12px 14px;max-width:220px;">
                 <div style="display:flex;align-items:center;gap:8px;">
-                  <span style="font-size:20px;flex-shrink:0;"><?= fileIconHtml($file['mime_type']) ?></span>
+                  <span class="ev-file-mark" aria-hidden="true"></span>
                   <div style="overflow:hidden;">
                     <div style="font-size:13px;font-weight:600;color:var(--n900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;" title="<?= e($file['original_name']) ?>">
                       <?= e($file['original_name']) ?>
@@ -433,7 +501,7 @@ function roleLabel(string $role): string
               </td>
               <!-- Indicator -->
               <td style="padding:12px 14px;text-align:center;">
-                <span style="font-family:monospace;font-size:11px;font-weight:700;color:var(--n500);background:var(--n100);border-radius:4px;padding:3px 8px;display:inline-block;">
+                <span class="ev-plain-label">
                   <?= e($file['indicator_code']) ?>
                 </span>
               </td>
@@ -445,7 +513,7 @@ function roleLabel(string $role): string
               <!-- Department -->
               <td style="padding:12px 14px;white-space:nowrap;">
                 <?php if (!empty($file['department'])): ?>
-                  <span style="display:inline-flex;align-items:center;padding:3px 9px;border-radius:6px;font-size:11.5px;font-weight:600;background:var(--n100);color:var(--n700);">
+                  <span class="ev-plain-label">
                     <?= e($file['department']) ?>
                   </span>
                 <?php else: ?>
@@ -454,11 +522,8 @@ function roleLabel(string $role): string
               </td>
               <!-- Category -->
               <td style="padding:12px 14px;white-space:nowrap;">
-                <span style="display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;
-                  background:<?= categoryColor($file['category'] ?? 'other') ?>18;
-                  color:<?= categoryColor($file['category'] ?? 'other') ?>;
-                  border:1px solid <?= categoryColor($file['category'] ?? 'other') ?>33;">
-                  <?= categoryLabel($file['category'] ?? 'other') ?>
+                <span class="ev-category-label">
+                  <?= categoryLabel($displayCategory) ?>
                 </span>
               </td>
               <!-- Date & Time -->
@@ -477,9 +542,7 @@ function roleLabel(string $role): string
                   <!-- Preview -->
                   <button onclick="openEvPreview('../includes/serve_attachment.php?id=<?= $file['attachment_id'] ?>','<?= e(addslashes($file['original_name'])) ?>','<?= e($file['mime_type']) ?>')"
                     title="Preview"
-                    style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue)22;transition:background .12s;cursor:pointer;"
-                    onmouseover="this.style.background='var(--blue)';this.style.color='#fff';"
-                    onmouseout="this.style.background='var(--blue-bg)';this.style.color='var(--blue)';">
+                    class="ev-action-button">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                     </svg>
@@ -487,9 +550,7 @@ function roleLabel(string $role): string
                   <!-- Download -->
                   <a href="../includes/serve_attachment.php?id=<?= $file['attachment_id'] ?>" download="<?= e($file['original_name']) ?>"
                     title="Download"
-                    style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal)22;transition:background .12s;text-decoration:none;"
-                    onmouseover="this.style.background='var(--teal)';this.style.color='#fff';"
-                    onmouseout="this.style.background='var(--teal-bg)';this.style.color='var(--teal)';">
+                    class="ev-action-button">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                     </svg>
@@ -639,12 +700,7 @@ function roleLabel(string $role): string
   }
 
   function mimeToIcon(mime) {
-    if (mime.startsWith('image/')) return '🖼️';
-    if (mime === 'application/pdf') return '📄';
-    if (mime.includes('word')) return '📝';
-    if (mime.includes('sheet') || mime.includes('excel')) return '📊';
-    if (mime.includes('presentation') || mime.includes('powerpoint')) return '📊';
-    return '📎';
+    return '';
   }
 
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEvPreview(); });

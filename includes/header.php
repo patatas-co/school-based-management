@@ -3013,16 +3013,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         <input type="file" id="attachInput_${indicatorId}" style="display:none;"
                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
                onchange="uploadAttachment(this, ${indicatorId}, ${cycleId})">
-        <select id="attCat_${indicatorId}" style="margin-top:6px;width:100%;padding:6px 10px;
-            border:1px solid var(--n200);border-radius:6px;font-size:12.5px;
-            background:var(--white);color:var(--n700);">
-          <option value="other">📎 Other</option>
-          <option value="photo">📷 Photo / Visual Evidence</option>
-          <option value="document">📄 Document</option>
-          <option value="report">📊 Report / Summary</option>
-          <option value="certificate">🏅 Certificate / Award</option>
-          <option value="record">🗂️ Record / Registry</option>
-        </select>
+        <span id="attCat_${indicatorId}" data-category="other" style="display:block;margin-top:6px;
+            font-size:12.5px;color:var(--n600);">Category: detected automatically</span>
         <span style="font-size:11px;color:var(--n400);margin-left:8px;display:block;margin-top:6px;">
           Max 10MB · JPG, PNG, PDF, DOC, XLS, PPT, TXT
         </span>
@@ -3044,6 +3036,20 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
 
         function _e(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
+        function detectAttachmentCategory(file) {
+          const type = file.type || '';
+          const ext = (file.name.split('.').pop() || '').toLowerCase();
+          if (type.startsWith('image/')) return 'photo';
+          if (type.includes('presentation') || ['ppt', 'pptx'].includes(ext)) return 'report';
+          if (type.includes('sheet') || type.includes('excel') || ['xls', 'xlsx'].includes(ext)) return 'record';
+          if (type === 'application/pdf' || type.includes('word') || type === 'text/plain' || ['pdf', 'doc', 'docx', 'txt'].includes(ext)) return 'document';
+          return 'other';
+        }
+
+        function evidenceCategoryLabel(category) {
+          return category.charAt(0).toUpperCase() + category.slice(1);
+        }
+
         async function uploadAttachment(input, indicatorId, cycleId) {
           const file = input.files[0]; if (!file) return;
           await uploadAttachmentFile(file, indicatorId, cycleId);
@@ -3056,8 +3062,12 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
           fd.append('action', 'upload_attachment');
           fd.append('csrf_token', csrf);
           fd.append('indicator_id', indicatorId);
+          const detectedCategory = detectAttachmentCategory(file);
           const catEl = document.getElementById('attCat_' + indicatorId);
-          if (catEl) fd.append('category', catEl.value);
+          if (catEl) {
+            catEl.dataset.category = detectedCategory;
+            catEl.textContent = 'Category: ' + evidenceCategoryLabel(detectedCategory);
+          }
           fd.append('cycle_id', cycleId);
           fd.append('attachment', file);
 

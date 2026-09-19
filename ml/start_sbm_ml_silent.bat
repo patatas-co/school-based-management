@@ -5,6 +5,6 @@
 cd /d "C:\xampp\htdocs\sbm\ml"
 
 :: Run Flask hidden (no console window)
-start /min "" "venv\Scripts\python.exe" app.py
+start /min "" "venv64\Scripts\python.exe" app.py
 
 exit

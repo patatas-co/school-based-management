@@ -227,16 +227,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $cycleInfo->execute([$cycleId]);
         $cycleInfo = $cycleInfo->fetch();
 
-        $db->prepare("
-    INSERT INTO teacher_submissions 
-        (cycle_id, teacher_id, school_id, sy_id, status, 
-         submitted_at, response_count)
-    VALUES (?, ?, ?, ?, 'submitted', NOW(), ?)
-    ON DUPLICATE KEY UPDATE
-        status         = 'submitted',
-        submitted_at   = NOW(),
-        response_count = VALUES(response_count)
-")->execute([$cycleId, $uid, $cycleInfo['school_id'], $cycleInfo['sy_id'], $answered]);
+        $submissionStmt = $db->prepare(
+            "SELECT submission_id FROM teacher_submissions
+             WHERE cycle_id=? AND teacher_id=?
+             ORDER BY submission_id DESC LIMIT 1"
+        );
+        $submissionStmt->execute([$cycleId, $uid]);
+        $submissionId = $submissionStmt->fetchColumn();
+        if ($submissionId) {
+            $db->prepare(
+                "UPDATE teacher_submissions
+                 SET status='submitted', submitted_at=NOW(), response_count=?
+                 WHERE submission_id=?"
+            )->execute([$answered, $submissionId]);
+        } else {
+            $db->prepare(
+                "INSERT INTO teacher_submissions
+                 (cycle_id, teacher_id, school_id, sy_id, status, submitted_at, response_count)
+                 VALUES (?, ?, ?, ?, 'submitted', NOW(), ?)"
+            )->execute([$cycleId, $uid, $cycleInfo['school_id'], $cycleInfo['sy_id'], $answered]);
+        }
 
         $db->prepare("UPDATE teacher_responses SET status='submitted' WHERE cycle_id=? AND teacher_id=?")
             ->execute([$cycleId, $uid]);
@@ -354,8 +364,10 @@ $cycleIsLocked = $cycle && in_array(
 $mySubCheck = null;
 if ($cycle) {
     $subQ = $db->prepare("
-        SELECT status FROM teacher_submissions 
+        SELECT status FROM teacher_submissions
         WHERE cycle_id=? AND teacher_id=?
+        ORDER BY submission_id DESC
+        LIMIT 1
     ");
     $subQ->execute([$cycle['cycle_id'], $uid]);
     $mySubCheck = $subQ->fetchColumn();
@@ -648,9 +660,11 @@ include __DIR__ . '/../includes/header.php';
 
 <?php
 $subCheck = $db->prepare("
-    SELECT status, submitted_at 
-    FROM teacher_submissions 
+    SELECT status, submitted_at
+    FROM teacher_submissions
     WHERE cycle_id=? AND teacher_id=?
+    ORDER BY submission_id DESC
+    LIMIT 1
 ");
 $subCheck->execute([isset($cycle['cycle_id']) ? $cycle['cycle_id'] : 0, $uid]);
 $mySubmission = $subCheck->fetch();
@@ -678,24 +692,13 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
 
 <!-- ── NOTICE ── -->
 <?php if ($cycle && !empty($cycle['return_remarks'])): ?>
-<div class="alert alert-warning" style="margin-bottom:16px;">
-    <?= svgIcon('alert-circle') ?>
-    <span>
-        <strong>Assessment Returned for Revision.</strong>
-        <?= e($cycle['return_remarks']) ?>
-        Please revise your assigned indicators and submit them again.
-    </span>
+<style>.teacher-revision-note[hidden]{display:none!important;}</style>
+<div id="teacherRevisionNote" class="teacher-revision-note" style="display:flex;align-items:baseline;gap:8px;margin:0 0 16px;padding:7px 10px;border-left:3px solid #D97706;color:var(--n600);font-size:12.5px;line-height:1.45;">
+    <strong style="color:#92400E;white-space:nowrap;">Revision requested</strong>
+    <span><?= e($cycle['return_remarks']) ?></span>
+    <button type="button" aria-label="Dismiss revision notice" title="Dismiss" onclick="dismissTeacherRevisionNote()" style="margin-left:auto;padding:0 4px;border:0;background:transparent;color:var(--n500);font-size:18px;line-height:1;cursor:pointer;">&times;</button>
 </div>
 <?php endif; ?>
-
-<div class="alert alert-info" style="margin-bottom:16px;">
-    <?= svgIcon('info') ?>
-    <span>
-        You are answering <strong><?= $totalInds ?> teacher-assigned indicators</strong>.
-        Only the <strong>School Head</strong> can submit the final assessment.
-        Your inputs are saved automatically.
-    </span>
-</div>
 
 <?php if ($isLocked): ?>
     <div class="alert alert-warning" style="margin-bottom:16px;">
@@ -884,6 +887,29 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
 <?php endif; // end $iSubmitted check ?>
 
 <script>
+    function dismissTeacherRevisionNote() {
+        const note = document.getElementById('teacherRevisionNote');
+        if (!note) return;
+        note.hidden = true;
+        try {
+            sessionStorage.setItem('sbm-teacher-revision-dismissed-<?= (int) ($cycle['cycle_id'] ?? 0) ?>', '1');
+        } catch (error) {
+            // The notice remains dismissible when browser storage is unavailable.
+        }
+    }
+
+    (function restoreTeacherRevisionNoteState() {
+        const note = document.getElementById('teacherRevisionNote');
+        if (!note) return;
+        try {
+            if (sessionStorage.getItem('sbm-teacher-revision-dismissed-<?= (int) ($cycle['cycle_id'] ?? 0) ?>') === '1') {
+                note.hidden = true;
+            }
+        } catch (error) {
+            // Keep the notice visible when browser storage is unavailable.
+        }
+    })();
+
     // ── State ──────────────────────────────────────────────────
     let currentRatings = <?= json_encode(array_map(fn($r) => $r['rating'], $responses)) ?>;
 
