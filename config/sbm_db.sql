@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 12, 2026 at 05:10 AM
+-- Generation Time: Sep 22, 2026 at 07:09 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -1739,7 +1739,105 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (1758, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-12 02:59:04'),
 (1759, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-12 03:06:06'),
 (1760, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-12 03:06:23'),
-(1761, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-12 03:06:34');
+(1761, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-12 03:06:34'),
+(1762, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-12 03:35:48'),
+(1763, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-12 03:36:11'),
+(1764, 46, 'publish_form_version', 'manage_form', 'Published form version 3 (ID: 11)', '::1', '2026-09-12 03:53:27'),
+(1765, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-13 00:59:14'),
+(1766, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-13 03:49:31'),
+(1767, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-13 03:49:44'),
+(1768, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-13 03:50:35'),
+(1769, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-13 10:46:23'),
+(1770, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-13 10:48:28'),
+(1771, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-13 10:51:22'),
+(1772, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-13 10:58:14'),
+(1773, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-13 11:07:49'),
+(1774, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-13 11:09:48'),
+(1775, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-13 11:10:26'),
+(1776, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-13 11:17:01'),
+(1777, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-13 11:17:47'),
+(1778, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-13 11:17:56'),
+(1779, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-13 16:44:35'),
+(1780, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-14 01:05:38'),
+(1781, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-14 01:16:41'),
+(1782, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-14 01:17:09'),
+(1783, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-14 01:18:26'),
+(1784, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-14 01:23:00'),
+(1785, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-14 01:26:13'),
+(1786, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-14 01:28:55'),
+(1787, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-14 01:29:10'),
+(1788, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-14 01:31:53'),
+(1789, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-14 01:32:00'),
+(1790, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-14 01:33:01'),
+(1791, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-14 01:33:18'),
+(1792, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-17 10:37:49'),
+(1793, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-17 10:38:25'),
+(1794, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-17 10:39:30'),
+(1795, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-17 10:41:36'),
+(1796, 2, 'login', 'auth', 'User logged in', '::1', '2026-09-18 06:36:51'),
+(1797, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-18 06:57:24'),
+(1798, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-18 07:14:48'),
+(1799, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-18 07:18:09'),
+(1800, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:35:24'),
+(1801, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:35:46'),
+(1802, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:36:19'),
+(1803, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:37:19'),
+(1804, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:38:35'),
+(1805, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:40:12'),
+(1806, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-09-18 08:45:14'),
+(1807, 15, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:45:35'),
+(1808, 15, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 15 submitted for cycle 32', '::1', '2026-09-18 08:46:29'),
+(1809, 2, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:46:36'),
+(1810, 2, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 2 submitted for cycle 32', '::1', '2026-09-18 08:47:10'),
+(1811, 12, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:47:25'),
+(1812, 12, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 12 submitted for cycle 32', '::1', '2026-09-18 08:47:54'),
+(1813, 14, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:48:05'),
+(1814, 14, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 14 submitted for cycle 32', '::1', '2026-09-18 08:48:36'),
+(1815, 13, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:48:49'),
+(1816, 13, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 13 submitted for cycle 32', '::1', '2026-09-18 08:49:21'),
+(1817, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:49:28'),
+(1818, 37, 'submit_assessment', 'self_assessment', 'Submitted SBM assessment cycle 32', '::1', '2026-09-18 08:54:49'),
+(1819, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:54:55'),
+(1820, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:55:21'),
+(1821, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-18 08:56:50'),
+(1822, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-18 09:23:36'),
+(1823, 14, 'login', 'auth', 'User logged in', '::1', '2026-09-18 09:23:52');
+INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, `ip_address`, `created_at`) VALUES
+(1824, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-18 09:26:21'),
+(1825, 15, 'login', 'auth', 'User logged in', '::1', '2026-09-18 09:28:41'),
+(1826, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-18 09:29:40'),
+(1827, 15, 'login', 'auth', 'User logged in', '::1', '2026-09-18 09:30:18'),
+(1828, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-18 09:30:51'),
+(1829, 15, 'login', 'auth', 'User logged in', '::1', '2026-09-18 09:31:06'),
+(1830, 15, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 15 submitted for cycle 32', '::1', '2026-09-18 09:34:32'),
+(1831, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-18 09:38:40'),
+(1832, 74, 'approve_user', 'users', 'Approved registration for user ID:79 (status=active)', '::1', '2026-09-18 09:38:54'),
+(1833, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-18 09:39:20'),
+(1834, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-18 09:45:10'),
+(1835, 74, 'toggle_user_status', 'users', 'User ID 79 status changed to inactive', '::1', '2026-09-18 09:45:20'),
+(1836, 74, 'toggle_user_status', 'users', 'User ID 79 status changed to archived', '::1', '2026-09-18 09:45:24'),
+(1837, 74, 'update_user', 'users', 'Updated user ID:79', '::1', '2026-09-18 09:45:38'),
+(1838, 2, 'login', 'auth', 'User logged in', '::1', '2026-09-19 03:29:56'),
+(1839, 2, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 2 submitted for cycle 32', '::1', '2026-09-19 03:30:05'),
+(1840, 12, 'login', 'auth', 'User logged in', '::1', '2026-09-19 03:30:14'),
+(1841, 12, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 12 submitted for cycle 32', '::1', '2026-09-19 03:30:20'),
+(1842, 14, 'login', 'auth', 'User logged in', '::1', '2026-09-19 03:30:28'),
+(1843, 14, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 14 submitted for cycle 32', '::1', '2026-09-19 03:30:35'),
+(1844, 13, 'login', 'auth', 'User logged in', '::1', '2026-09-19 03:30:44'),
+(1845, 13, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 13 submitted for cycle 32', '::1', '2026-09-19 03:30:50'),
+(1846, 13, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 13 submitted for cycle 32', '::1', '2026-09-19 03:30:58'),
+(1847, 15, 'login', 'auth', 'User logged in', '::1', '2026-09-19 03:31:14'),
+(1848, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-20 01:16:43'),
+(1849, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-20 01:17:42'),
+(1850, 46, 'login', 'auth', 'User logged in', '::1', '2026-09-20 01:17:52'),
+(1851, 15, 'login', 'auth', 'User logged in', '::1', '2026-09-20 01:18:25'),
+(1852, 2, 'login', 'auth', 'User logged in', '::1', '2026-09-20 01:18:37'),
+(1853, 12, 'login', 'auth', 'User logged in', '::1', '2026-09-20 01:18:54'),
+(1854, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-20 01:20:43'),
+(1855, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-20 01:21:02'),
+(1856, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-20 02:19:11'),
+(1857, 37, 'login', 'auth', 'User logged in', '::1', '2026-09-21 15:20:28'),
+(1858, 74, 'login', 'auth', 'User logged in', '::1', '2026-09-21 15:20:44');
 
 -- --------------------------------------------------------
 
@@ -1760,7 +1858,7 @@ CREATE TABLE `ai_suggestion_usage` (
 --
 
 INSERT INTO `ai_suggestion_usage` (`user_id`, `usage_count`, `last_generated_at`, `last_recommendation`, `reset_date`) VALUES
-(37, 3, '2026-08-09 06:41:27', '{\"text\":\"Given your school\'s current SBM data, it\'s clear that **Improving Curriculum and Teaching Quality** is crucial, as your scores in this dimension are lower than expected, at 50.5%. This is an area where focused efforts can yield significant improvements, especially considering the decline in overall SBM score from the last cycle.\\n\\n* Consider revisiting and refining your curriculum delivery strategies to better align with DepEd Order No. 007, s. 2024, emphasizing innovative and inclusive teaching methods.\\n* Implement regular teacher training and mentoring programs to enhance instructional delivery, particularly for subjects with notable gaps in student performance.\\n\\n**Enhancing the Learning Environment** is also vital, with a score of 50.7%, indicating room for growth in creating a supportive and conducive space for learning. For indicator 6.4, ensuring that basic facilities such as water, electricity, and internet are not just available but also well-maintained is essential.\\n\\n* Develop a maintenance schedule for school facilities to prevent disruptions and ensure a safe learning environment, as outlined in DepEd guidelines.\\n* Engage with the community and local stakeholders to explore potential partnerships for facility improvements and resource sharing.\\n\\n**Strengthening Leadership and Governance** is critical, given the maturing level of 46.3%. This involves not just administrative tasks but also strategic planning and stakeholder engagement. For indicators like 4.1 and 4.2, having a functional School Governance Council (SGC) and an operationalized strategic plan is key.\\n\\n* Review and update the school\'s strategic plan to reflect current needs and goals, ensuring it is operationalized through a clear implementation plan.\\n* Reactivate or strengthen the School Governance Council to enhance decision-making processes and community involvement, aligning with the principles of DepEd Order No. 007, s. 2024.\\n\\nThe single biggest factor in reversing the decline and improving SBM scores is **consistent and focused effort on priority areas**, particularly those identified as weak indicators. By addressing these areas systematically, Dasmari\\u00f1as Integrated High School can regain its momentum and achieve a higher level of maturity in its School-Based Management practices.\",\"blocks\":[{\"confidence_level\":\"Low Confidence\",\"confidence_pct\":41.2,\"factors\":[\"1 indicator identified as below target\",\"87% respondent agreement between School Head and Teacher ratings\",\"This issue appears newly emerging (not consistently flagged in prior cycles)\",\"Assessment data is 100% complete\"],\"indicator_codes\":[\"50.7\",\"6.4\"],\"insufficient_data\":false,\"title\":\"Enhancing the Learning Environment\"},{\"confidence_level\":\"Low Confidence\",\"confidence_pct\":51.1,\"factors\":[\"2 indicators identified as below target\",\"Consistent performance issue across prior assessment cycles\",\"Assessment data is 100% complete\"],\"indicator_codes\":[\"4.1\",\"4.2\",\"46.3\"],\"insufficient_data\":false,\"title\":\"Strengthening Leadership and Governance\"}]}', '2026-08-09');
+(37, 1, '2026-09-13 10:48:48', '{\"text\":\"Given your school\'s current SBM data, it\'s clear that **Improving Curriculum and Teaching Quality** is crucial, as your scores in this dimension are lower than expected, at 50.5%. This is an area where focused efforts can yield significant improvements, especially considering the decline in overall SBM score from the last cycle.\\n\\n* Consider revisiting and refining your curriculum delivery strategies to better align with DepEd Order No. 007, s. 2024, emphasizing innovative and inclusive teaching methods.\\n* Implement regular teacher training and mentoring programs to enhance instructional delivery, particularly for subjects with notable gaps in student performance.\\n\\n**Enhancing the Learning Environment** is also vital, with a score of 50.7%, indicating room for growth in creating a supportive and conducive space for learning. For indicator 6.4, ensuring that basic facilities such as water, electricity, and internet are not just available but also well-maintained is essential.\\n\\n* Develop a maintenance schedule for school facilities to prevent disruptions and ensure a safe learning environment, as outlined in DepEd guidelines.\\n* Engage with the community and local stakeholders to explore potential partnerships for facility improvements and resource sharing.\\n\\n**Strengthening Leadership and Governance** is critical, given the maturing level of 46.3%. This involves not just administrative tasks but also strategic planning and stakeholder engagement. For indicators like 4.1 and 4.2, having a functional School Governance Council (SGC) and an operationalized strategic plan is key.\\n\\n* Review and update the school\'s strategic plan to reflect current needs and goals, ensuring it is operationalized through a clear implementation plan.\\n* Reactivate or strengthen the School Governance Council to enhance decision-making processes and community involvement, aligning with the principles of DepEd Order No. 007, s. 2024.\\n\\nThe single biggest factor in reversing the decline and improving SBM scores is **consistent and focused effort on priority areas**, particularly those identified as weak indicators. By addressing these areas systematically, Dasmari\\u00f1as Integrated High School can regain its momentum and achieve a higher level of maturity in its School-Based Management practices.\",\"blocks\":[{\"confidence_level\":\"Low Confidence\",\"confidence_pct\":41.2,\"factors\":[\"1 indicator identified as below target\",\"87% respondent agreement between School Head and Teacher ratings\",\"This issue appears newly emerging (not consistently flagged in prior cycles)\",\"Assessment data is 100% complete\"],\"indicator_codes\":[\"50.7\",\"6.4\"],\"insufficient_data\":false,\"title\":\"Enhancing the Learning Environment\"},{\"confidence_level\":\"Low Confidence\",\"confidence_pct\":51.1,\"factors\":[\"2 indicators identified as below target\",\"Consistent performance issue across prior assessment cycles\",\"Assessment data is 100% complete\"],\"indicator_codes\":[\"4.1\",\"4.2\",\"46.3\"],\"insufficient_data\":false,\"title\":\"Strengthening Leadership and Governance\"}]}', '2026-09-13');
 
 -- --------------------------------------------------------
 
@@ -1934,7 +2032,8 @@ CREATE TABLE `email_logs` (
 --
 
 INSERT INTO `email_logs` (`log_id`, `user_id`, `email_type`, `recipient_email`, `status`, `error_message`, `sent_at`) VALUES
-(29, 46, 'account_creation', 'mendozacharles11011@gmail.com', 'sent', NULL, '2026-04-01 02:35:53');
+(29, 46, 'account_creation', 'mendozacharles11011@gmail.com', 'sent', NULL, '2026-04-01 02:35:53'),
+(84, 74, 'password_reset', 'ariascharles00@gmail.com', 'sent', NULL, '2026-09-18 09:43:00');
 
 -- --------------------------------------------------------
 
@@ -2041,6 +2140,20 @@ CREATE TABLE `improvement_plans` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `improvement_plans`
+--
+
+INSERT INTO `improvement_plans` (`plan_id`, `school_id`, `cycle_id`, `dimension_id`, `indicator_id`, `priority_level`, `objective`, `strategy`, `person_responsible`, `target_date`, `resources_needed`, `expected_output`, `status`, `workflow_status`, `current_owner_role`, `current_owner_user_id`, `last_action_by`, `last_action_at`, `remarks`, `created_by`, `submitted_by`, `submitted_at`, `approved_by`, `approved_at`, `validated_by`, `validated_at`, `created_at`, `updated_at`) VALUES
+(60, 1, 28, 3, 19, 'Medium', 'The school aims to develop and implement a revised strategic plan that aligns with its vision and mission, and includes specific, measurable goals and objectives, by the end of the next academic year. This plan will be formulated through a collaborative process involving all stakeholders, ensuring ownership and commitment to its implementation and attainment of its objectives.', 'The school will revise its strategic plan to include specific, measurable goals and objectives that align with its vision and mission, as mandated by DepEd Order No. 007, s. 2024. This revision process will be inclusive, engaging all stakeholders to foster ownership and commitment, and will be led by the School Head in collaboration with the school\'s planning team. The revised strategic plan will be finalized and disseminated to all stakeholders within a specified timeframe to ensure a unified direction for the school.', 'SBM Coordinator', '2026-08-25', 'collaboration with other stakeholders', NULL, 'planned', 'submitted', 'school_head', NULL, NULL, NULL, NULL, 37, 37, '2026-08-09 09:07:56', NULL, NULL, NULL, NULL, '2026-08-05 03:37:15', '2026-08-09 09:07:56'),
+(61, 1, 30, 40, 255, 'High', 'Improve Grade 6, 10, and 12 learner proficiency monitoring for end-of-quarter review.', 'Conduct fortnightly learner progress reviews, provide targeted teacher support, and document intervention results.', 'School Head and SBM Coordinator', '2026-10-31', 'Progress monitoring records, teacher meeting time, and intervention materials.', 'Documented progress review and measurable learner intervention results.', 'planned', 'finalized', NULL, NULL, 46, '2026-09-13 19:33:49', NULL, 37, 37, '2026-09-13 11:09:35', 46, '2026-09-13 19:33:08', 46, '2026-09-13 19:33:49', '2026-09-13 10:49:46', '2026-09-13 11:33:49');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `improvement_plan_history`
+--
+
 CREATE TABLE `improvement_plan_history` (
   `history_id` int(11) NOT NULL,
   `plan_id` int(11) NOT NULL,
@@ -2051,19 +2164,21 @@ CREATE TABLE `improvement_plan_history` (
   `actor_id` int(11) NOT NULL,
   `remarks` text DEFAULT NULL,
   `snapshot_json` longtext NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`history_id`),
-  UNIQUE KEY `uq_plan_version` (`plan_id`,`version_no`),
-  KEY `idx_plan_history_plan` (`plan_id`),
-  KEY `idx_plan_history_actor` (`actor_id`)
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Dumping data for table `improvement_plans`
+-- Dumping data for table `improvement_plan_history`
 --
 
-INSERT INTO `improvement_plans` (`plan_id`, `school_id`, `cycle_id`, `dimension_id`, `indicator_id`, `priority_level`, `objective`, `strategy`, `person_responsible`, `target_date`, `resources_needed`, `expected_output`, `status`, `workflow_status`, `remarks`, `created_by`, `submitted_by`, `submitted_at`, `created_at`, `updated_at`) VALUES
-(60, 1, 28, 3, 19, 'Medium', 'The school aims to develop and implement a revised strategic plan that aligns with its vision and mission, and includes specific, measurable goals and objectives, by the end of the next academic year. This plan will be formulated through a collaborative process involving all stakeholders, ensuring ownership and commitment to its implementation and attainment of its objectives.', 'The school will revise its strategic plan to include specific, measurable goals and objectives that align with its vision and mission, as mandated by DepEd Order No. 007, s. 2024. This revision process will be inclusive, engaging all stakeholders to foster ownership and commitment, and will be led by the School Head in collaboration with the school\'s planning team. The revised strategic plan will be finalized and disseminated to all stakeholders within a specified timeframe to ensure a unified direction for the school.', 'SBM Coordinator', '2026-08-25', 'collaboration with other stakeholders', NULL, 'planned', 'submitted', NULL, 37, 37, '2026-08-09 09:07:56', '2026-08-05 03:37:15', '2026-08-09 09:07:56');
+INSERT INTO `improvement_plan_history` (`history_id`, `plan_id`, `version_no`, `action`, `from_status`, `to_status`, `actor_id`, `remarks`, `snapshot_json`, `created_at`) VALUES
+(1, 60, 1, 'migration_snapshot', NULL, 'submitted', 37, 'Initial workflow history snapshot', '{\"plan_id\": 60, \"school_id\": 1, \"cycle_id\": 28, \"dimension_id\": 3, \"indicator_id\": 19, \"priority_level\": \"Medium\", \"objective\": \"The school aims to develop and implement a revised strategic plan that aligns with its vision and mission, and includes specific, measurable goals and objectives, by the end of the next academic year. This plan will be formulated through a collaborative process involving all stakeholders, ensuring ownership and commitment to its implementation and attainment of its objectives.\", \"strategy\": \"The school will revise its strategic plan to include specific, measurable goals and objectives that align with its vision and mission, as mandated by DepEd Order No. 007, s. 2024. This revision process will be inclusive, engaging all stakeholders to foster ownership and commitment, and will be led by the School Head in collaboration with the school\'s planning team. The revised strategic plan will be finalized and disseminated to all stakeholders within a specified timeframe to ensure a unified direction for the school.\", \"person_responsible\": \"SBM Coordinator\", \"target_date\": \"2026-08-25\", \"resources_needed\": \"collaboration with other stakeholders\", \"expected_output\": null, \"workflow_status\": \"submitted\"}', '2026-09-13 10:59:10'),
+(2, 61, 1, 'migration_snapshot', NULL, 'submitted', 37, 'Initial submission', '{\"plan_id\": 61, \"school_id\": 1, \"cycle_id\": 30, \"dimension_id\": 40, \"indicator_id\": 255, \"priority_level\": \"High\", \"objective\": \"TEST PLAN - Improve Grade 6, 10, and 12 learner proficiency monitoring for end-of-quarter review.\", \"strategy\": \"TEST PLAN - Conduct fortnightly learner progress reviews, provide targeted teacher support, and document intervention results.\", \"person_responsible\": \"TEST - School Head and SBM Coordinator\", \"target_date\": \"2026-10-31\", \"resources_needed\": \"TEST - Progress monitoring records, teacher meeting time, and intervention materials.\", \"expected_output\": \"TEST - Documented progress review and measurable learner intervention results.\", \"workflow_status\": \"submitted\"}', '2026-09-13 10:59:10'),
+(4, 61, 2, 'coordinator_revision', 'submitted', 'returned_to_school_head', 46, 'Coordinator revised the plan to include a documented baseline and quarterly target.', '{\"plan_id\":61,\"school_id\":1,\"cycle_id\":30,\"dimension_id\":40,\"indicator_id\":255,\"priority_level\":\"High\",\"objective\":\"TEST PLAN - Improve Grade 6, 10, and 12 learner proficiency monitoring for end-of-quarter review. Coordinator revision: include documented baseline and quarterly target.\",\"strategy\":\"TEST PLAN - Conduct fortnightly learner progress reviews, provide targeted teacher support, and document intervention results.\",\"person_responsible\":\"TEST - School Head and SBM Coordinator\",\"target_date\":\"2026-10-31\",\"resources_needed\":\"TEST - Progress monitoring records, teacher meeting time, and intervention materials.\",\"expected_output\":\"TEST - Documented progress review and measurable learner intervention results.\",\"status\":\"planned\",\"workflow_status\":\"returned_to_school_head\",\"current_owner_role\":\"school_head\",\"current_owner_user_id\":null,\"last_action_by\":46,\"last_action_at\":\"2026-09-13 19:04:42\",\"remarks\":\"Coordinator test revision: add a documented baseline and quarterly target before implementation.\",\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-09-13 10:50:11\",\"approved_by\":null,\"approved_at\":null,\"created_at\":\"2026-09-13 18:49:46\",\"updated_at\":\"2026-09-13 19:04:42\"}', '2026-09-13 11:04:42'),
+(5, 61, 3, 'school_head_revision', 'returned_to_school_head', 'returned_to_school_head', 37, NULL, '{\"plan_id\":61,\"school_id\":1,\"cycle_id\":30,\"dimension_id\":40,\"indicator_id\":255,\"priority_level\":\"High\",\"objective\":\"TEST PLAN - Improve Grade 6, 10, and 12 learner proficiency monitoring for end-of-quarter review. Coordinator revision: include documented baseline and quarterly target.\",\"strategy\":\"TEST PLAN - Conduct fortnightly learner progress reviews, provide targeted teacher support, and document intervention results. \\r\\n\\r\\nTEST DOC\",\"person_responsible\":\"TEST - School Head and SBM Coordinator\",\"target_date\":\"2026-10-31\",\"resources_needed\":\"TEST - Progress monitoring records, teacher meeting time, and intervention materials.\",\"expected_output\":\"TEST - Documented progress review and measurable learner intervention results.\",\"status\":\"planned\",\"workflow_status\":\"returned_to_school_head\",\"current_owner_role\":\"school_head\",\"current_owner_user_id\":null,\"last_action_by\":37,\"last_action_at\":\"2026-09-13 19:09:29\",\"remarks\":\"Coordinator test revision: add a documented baseline and quarterly target before implementation.\",\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-09-13 10:50:11\",\"approved_by\":null,\"approved_at\":null,\"created_at\":\"2026-09-13 18:49:46\",\"updated_at\":\"2026-09-13 19:09:29\"}', '2026-09-13 11:09:29'),
+(6, 61, 4, 'school_head_resubmitted', 'returned_to_school_head', 'resubmitted_to_coordinator', 37, NULL, '{\"plan_id\":61,\"school_id\":1,\"cycle_id\":30,\"dimension_id\":40,\"indicator_id\":255,\"priority_level\":\"High\",\"objective\":\"TEST PLAN - Improve Grade 6, 10, and 12 learner proficiency monitoring for end-of-quarter review. Coordinator revision: include documented baseline and quarterly target.\",\"strategy\":\"TEST PLAN - Conduct fortnightly learner progress reviews, provide targeted teacher support, and document intervention results. \\r\\n\\r\\nTEST DOC\",\"person_responsible\":\"TEST - School Head and SBM Coordinator\",\"target_date\":\"2026-10-31\",\"resources_needed\":\"TEST - Progress monitoring records, teacher meeting time, and intervention materials.\",\"expected_output\":\"TEST - Documented progress review and measurable learner intervention results.\",\"status\":\"planned\",\"workflow_status\":\"resubmitted_to_coordinator\",\"current_owner_role\":\"sbm_coordinator\",\"current_owner_user_id\":null,\"last_action_by\":37,\"last_action_at\":\"2026-09-13 19:09:35\",\"remarks\":\"Coordinator test revision: add a documented baseline and quarterly target before implementation.\",\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-09-13 11:09:35\",\"approved_by\":null,\"approved_at\":null,\"created_at\":\"2026-09-13 18:49:46\",\"updated_at\":\"2026-09-13 19:09:35\"}', '2026-09-13 11:09:35'),
+(7, 61, 5, 'coordinator_approved', 'resubmitted_to_coordinator', 'approved', 46, NULL, '{\"plan_id\":61,\"school_id\":1,\"cycle_id\":30,\"dimension_id\":40,\"indicator_id\":255,\"priority_level\":\"High\",\"objective\":\"Improve Grade 6, 10, and 12 learner proficiency monitoring for end-of-quarter review.\",\"strategy\":\"Conduct fortnightly learner progress reviews, provide targeted teacher support, and document intervention results.\",\"person_responsible\":\"School Head and SBM Coordinator\",\"target_date\":\"2026-10-31\",\"resources_needed\":\"Progress monitoring records, teacher meeting time, and intervention materials.\",\"expected_output\":\"Documented progress review and measurable learner intervention results.\",\"status\":\"planned\",\"workflow_status\":\"approved\",\"current_owner_role\":\"sbm_coordinator\",\"current_owner_user_id\":null,\"last_action_by\":46,\"last_action_at\":\"2026-09-13 19:33:08\",\"remarks\":null,\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-09-13 11:09:35\",\"approved_by\":46,\"approved_at\":\"2026-09-13 19:33:08\",\"validated_by\":null,\"validated_at\":null,\"created_at\":\"2026-09-13 18:49:46\",\"updated_at\":\"2026-09-13 19:33:08\"}', '2026-09-13 11:33:08'),
+(8, 61, 6, 'coordinator_validated', 'approved', 'finalized', 46, NULL, '{\"plan_id\":61,\"school_id\":1,\"cycle_id\":30,\"dimension_id\":40,\"indicator_id\":255,\"priority_level\":\"High\",\"objective\":\"Improve Grade 6, 10, and 12 learner proficiency monitoring for end-of-quarter review.\",\"strategy\":\"Conduct fortnightly learner progress reviews, provide targeted teacher support, and document intervention results.\",\"person_responsible\":\"School Head and SBM Coordinator\",\"target_date\":\"2026-10-31\",\"resources_needed\":\"Progress monitoring records, teacher meeting time, and intervention materials.\",\"expected_output\":\"Documented progress review and measurable learner intervention results.\",\"status\":\"planned\",\"workflow_status\":\"finalized\",\"current_owner_role\":null,\"current_owner_user_id\":null,\"last_action_by\":46,\"last_action_at\":\"2026-09-13 19:33:49\",\"remarks\":null,\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-09-13 11:09:35\",\"approved_by\":46,\"approved_at\":\"2026-09-13 19:33:08\",\"validated_by\":46,\"validated_at\":\"2026-09-13 19:33:49\",\"created_at\":\"2026-09-13 18:49:46\",\"updated_at\":\"2026-09-13 19:33:49\"}', '2026-09-13 11:33:49');
 
 -- --------------------------------------------------------
 
@@ -2197,7 +2312,8 @@ CREATE TABLE `password_setup_tokens` (
 --
 
 INSERT INTO `password_setup_tokens` (`token_id`, `user_id`, `token`, `type`, `expires_at`, `used_at`, `created_at`) VALUES
-(36, 46, '25de0e85006db5c333e8d45d3733be2eff8b27e9fa2207f55e070ffac278a993', 'setup', '2026-04-03 10:35:08', '2026-04-01 10:40:39', '2026-04-01 02:35:08');
+(36, 46, '25de0e85006db5c333e8d45d3733be2eff8b27e9fa2207f55e070ffac278a993', 'setup', '2026-04-03 10:35:08', '2026-04-01 10:40:39', '2026-04-01 02:35:08'),
+(94, 74, '3d4b549e9dbd359386438fbc75782556566f55fb9d2806322076972339cc9ded', 'reset', '2026-09-18 18:12:55', NULL, '2026-09-18 09:42:55');
 
 -- --------------------------------------------------------
 
@@ -3588,15 +3704,14 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `employee_id`, `department`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`, `contact_number`, `profile_picture`, `rejection_reason`, `reviewed_by`, `reviewed_at`) VALUES
-(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, 'English', '2026-08-19 14:46:37', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, 'English', '2026-08-19 14:47:21', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-08-19 14:47:58', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-08-19 14:48:42', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-08-27 14:10:03', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-09-12 11:06:06', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg', NULL, NULL, NULL),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-09-12 11:06:34', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL, NULL, NULL, NULL),
-(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-09-12 11:06:23', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(79, 'josejose', NULL, 'josesaint975@gmail.com', 'Jose Bethlehem', NULL, 'pending', 1, '100-456-789', 'Filipino', NULL, '2026-08-17 08:37:29', 0, NULL, NULL, NULL, 1, NULL, 'uploads/avatars/avatar_79_1786955849.jpg', NULL, NULL, NULL);
+(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, 'English', '2026-09-20 09:18:37', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, 'English', '2026-09-20 09:18:54', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-09-19 11:30:44', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-09-19 11:30:28', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-09-20 09:18:25', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-09-21 23:20:28', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg', NULL, NULL, NULL),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-09-20 09:17:52', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, NULL, NULL, NULL, NULL),
+(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-09-21 23:20:44', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -3791,6 +3906,15 @@ ALTER TABLE `improvement_plans`
   ADD KEY `improvement_plans_ibfk_5` (`created_by`),
   ADD KEY `idx_workflow_status` (`workflow_status`),
   ADD KEY `improvement_plans_ibfk_6` (`submitted_by`);
+
+--
+-- Indexes for table `improvement_plan_history`
+--
+ALTER TABLE `improvement_plan_history`
+  ADD PRIMARY KEY (`history_id`),
+  ADD UNIQUE KEY `uq_plan_version` (`plan_id`,`version_no`),
+  ADD KEY `idx_plan_history_plan` (`plan_id`),
+  ADD KEY `idx_plan_history_actor` (`actor_id`);
 
 --
 -- Indexes for table `indicator_evidence_requirements`
@@ -4065,7 +4189,7 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1762;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1859;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`
@@ -4077,13 +4201,13 @@ ALTER TABLE `analytics_snapshots`
 -- AUTO_INCREMENT for table `cycle_audit_log`
 --
 ALTER TABLE `cycle_audit_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT for table `cycle_evaluators`
 --
 ALTER TABLE `cycle_evaluators`
-  MODIFY `evaluator_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `evaluator_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `cycle_evaluator_status_log`
@@ -4107,7 +4231,7 @@ ALTER TABLE `departments`
 -- AUTO_INCREMENT for table `email_logs`
 --
 ALTER TABLE `email_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=82;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=85;
 
 --
 -- AUTO_INCREMENT for table `evidence_audit_log`
@@ -4119,7 +4243,7 @@ ALTER TABLE `evidence_audit_log`
 -- AUTO_INCREMENT for table `form_versions`
 --
 ALTER TABLE `form_versions`
-  MODIFY `version_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `version_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `grading_periods`
@@ -4131,7 +4255,13 @@ ALTER TABLE `grading_periods`
 -- AUTO_INCREMENT for table `improvement_plans`
 --
 ALTER TABLE `improvement_plans`
-  MODIFY `plan_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
+  MODIFY `plan_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
+
+--
+-- AUTO_INCREMENT for table `improvement_plan_history`
+--
+ALTER TABLE `improvement_plan_history`
+  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `indicator_evidence_requirements`
@@ -4167,7 +4297,7 @@ ALTER TABLE `ml_training_snapshots`
 -- AUTO_INCREMENT for table `password_setup_tokens`
 --
 ALTER TABLE `password_setup_tokens`
-  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
+  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
 
 --
 -- AUTO_INCREMENT for table `registration_requests`
@@ -4191,31 +4321,31 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `sbm_cycles`
 --
 ALTER TABLE `sbm_cycles`
-  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `sbm_dimensions`
 --
 ALTER TABLE `sbm_dimensions`
-  MODIFY `dimension_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
+  MODIFY `dimension_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
 -- AUTO_INCREMENT for table `sbm_dimension_scores`
 --
 ALTER TABLE `sbm_dimension_scores`
-  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1399;
+  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1461;
 
 --
 -- AUTO_INCREMENT for table `sbm_indicators`
 --
 ALTER TABLE `sbm_indicators`
-  MODIFY `indicator_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=297;
+  MODIFY `indicator_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=404;
 
 --
 -- AUTO_INCREMENT for table `sbm_responses`
 --
 ALTER TABLE `sbm_responses`
-  MODIFY `response_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1031;
+  MODIFY `response_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1118;
 
 --
 -- AUTO_INCREMENT for table `sbm_workflow_phases`
@@ -4245,7 +4375,7 @@ ALTER TABLE `school_workflow_status`
 -- AUTO_INCREMENT for table `school_years`
 --
 ALTER TABLE `school_years`
-  MODIFY `sy_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `sy_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT for table `stakeholder_indicator_assignments`
@@ -4281,13 +4411,13 @@ ALTER TABLE `teacher_indicator_assignments`
 -- AUTO_INCREMENT for table `teacher_responses`
 --
 ALTER TABLE `teacher_responses`
-  MODIFY `tr_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2627;
+  MODIFY `tr_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2847;
 
 --
 -- AUTO_INCREMENT for table `teacher_submissions`
 --
 ALTER TABLE `teacher_submissions`
-  MODIFY `submission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=113;
+  MODIFY `submission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=124;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -4386,8 +4516,8 @@ ALTER TABLE `improvement_plans`
 -- Constraints for table `improvement_plan_history`
 --
 ALTER TABLE `improvement_plan_history`
-  ADD CONSTRAINT `fk_plan_history_plan` FOREIGN KEY (`plan_id`) REFERENCES `improvement_plans` (`plan_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_plan_history_actor` FOREIGN KEY (`actor_id`) REFERENCES `users` (`user_id`);
+  ADD CONSTRAINT `fk_plan_history_actor` FOREIGN KEY (`actor_id`) REFERENCES `users` (`user_id`),
+  ADD CONSTRAINT `fk_plan_history_plan` FOREIGN KEY (`plan_id`) REFERENCES `improvement_plans` (`plan_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `indicator_evidence_requirements`
