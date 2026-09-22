@@ -212,7 +212,7 @@ def _call_groq(prompt: str) -> str:
     if not api_key:
         raise RuntimeError("GROQ_API_KEY is missing. Set it in the ML service environment.")
 
-    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
     client = OpenAI(
         api_key=api_key,
@@ -340,7 +340,7 @@ def _call_groq_json(prompt: str) -> str:
     if not api_key:
         raise RuntimeError("GROQ_API_KEY is missing. Set it in the ML service environment.")
 
-    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
     client = OpenAI(
         api_key=api_key,
