@@ -171,6 +171,7 @@ function hasAccess(string $module, ?string $role = null): bool
 
 function requireAccess(string $module): void
 {
+    requireLogin();
     if (!hasAccess($module)) {
         $role = $_SESSION['role'] ?? 'guest';
         if (!empty($_SERVER['HTTP_X_REQUESTED_WITH'])) {

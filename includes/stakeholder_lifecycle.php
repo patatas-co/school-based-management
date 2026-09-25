@@ -92,25 +92,14 @@ function sendStakeholderWelcomeEmail(
     $setupLink = baseUrl() . '/set_password.php?token=' . urlencode($token);
     $expiry = ($_ENV['SBM_TOKEN_EXPIRY_HOURS'] ?? 48) . ' hours';
 
-    $html = _buildStakeholderWelcomeHtml(
-        $user['full_name'],
-        $user['email'],
-        $setupLink,
-        $expiry,
-        $syLabel,
-        $startDate,
-        $endDate,
-        $schoolName,
-        $resend
-    );
+    $html = buildWelcomeEmailHtml($user['full_name'], $user['email'], $setupLink, $expiry);
 
     $mail = new PHPMailer(true);
     try {
         _configureMailer($mail);
         $mail->addAddress($user['email'], $user['full_name']);
         $mail->isHTML(true);
-        $mail->Subject = ($resend ? '[Reminder] ' : '') .
-            "Your Evaluator Access for {$schoolName} SBM Assessment (SY {$syLabel})";
+        $mail->Subject = ($resend ? '[Reminder] ' : '') . 'Your DIHS SBM Portal account is ready';
         $mail->Body = $html;
         $mail->AltBody = _stakeholderWelcomePlainText(
             $user['full_name'],

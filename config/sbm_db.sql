@@ -2387,6 +2387,7 @@ CREATE TABLE `roles` (
   `color` varchar(20) NOT NULL DEFAULT '#16A34A',
   `description` varchar(255) DEFAULT NULL,
   `is_system` tinyint(1) NOT NULL DEFAULT 0,
+  `status` enum('enabled','disabled') NOT NULL DEFAULT 'enabled',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -2394,13 +2395,13 @@ CREATE TABLE `roles` (
 -- Dumping data for table `roles`
 --
 
-INSERT INTO `roles` (`id`, `slug`, `label`, `color`, `description`, `is_system`, `created_at`) VALUES
-(1, 'system_admin', 'System Admin', '#7C3AED', NULL, 1, '2026-06-05 09:36:29'),
-(2, 'school_head', 'School Head', '#166534', NULL, 1, '2026-06-05 09:36:29'),
-(3, 'sbm_coordinator', 'SBM Coordinator', '#2563EB', NULL, 1, '2026-06-05 09:36:29'),
-(4, 'teacher', 'School Teacher', '#0D9488', NULL, 1, '2026-06-05 09:36:29'),
-(5, 'external_stakeholder', 'External Stakeholder', '#D97706', NULL, 1, '2026-06-05 09:36:29'),
-(11, 'tambay', 'Tambay', '#64748B', 'Yelo', 0, '2026-06-07 11:42:07');
+INSERT INTO `roles` (`id`, `slug`, `label`, `color`, `description`, `is_system`, `status`, `created_at`) VALUES
+(1, 'system_admin', 'System Admin', '#7C3AED', NULL, 1, 'enabled', '2026-06-05 09:36:29'),
+(2, 'school_head', 'School Head', '#166534', NULL, 1, 'enabled', '2026-06-05 09:36:29'),
+(3, 'sbm_coordinator', 'SBM Coordinator', '#2563EB', NULL, 1, 'enabled', '2026-06-05 09:36:29'),
+(4, 'teacher', 'School Teacher', '#0D9488', NULL, 1, 'enabled', '2026-06-05 09:36:29'),
+(5, 'external_stakeholder', 'External Stakeholder', '#D97706', NULL, 1, 'enabled', '2026-06-05 09:36:29'),
+(11, 'tambay', 'Tambay', '#64748B', 'Yelo', 0, 'enabled', '2026-06-07 11:42:07');
 
 -- --------------------------------------------------------
 

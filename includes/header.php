@@ -796,6 +796,10 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       padding: 24px;
     }
 
+    .page.settings-page {
+      padding-top: 16px !important;
+    }
+
     /* ── DESIGN COMPONENTS ── */
     .page-head {
       display: flex;
@@ -2274,7 +2278,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       display: none;
       flex-direction: column;
       padding-left: 36px;
-      gap: 2px;
+      gap: 0;
       margin-bottom: 2px;
     }
     .sb-submenu.open { display: flex; }
@@ -2282,20 +2286,15 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
     .sb-sub-item {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 7px 10px;
-      border-radius: 7px;
+      padding: 6px 0;
       font-size: 13px;
       font-weight: 500;
       color: var(--sb-text);
       text-decoration: none;
-      transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+      transition: color var(--dur) var(--ease);
     }
-    .sb-sub-item:hover { background: #F1F5F9; color: var(--sb-text-hover); }
-    .sb-sub-item.active { background: var(--sb-active-bg); color: #166534; font-weight: 600; }
-    .sb-sub-dot {
-      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-    }
+    .sb-sub-item:hover { color: var(--sb-text-hover); }
+    .sb-sub-item.active { color: #166534; font-weight: 600; }
     .sb.collapsed .sb-submenu { display: none !important; }
 
     /* ── Collapsed flyout submenu ── */
@@ -2548,7 +2547,41 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
           $isPlanSection = ($_GET['section'] ?? '') === 'improvement_plans';
           $isActive = basename($item[1]) === basename($_SERVER['PHP_SELF']) && ($isPlanNav ? $isPlanSection : !($item[1] === 'coordinator/dashboard.php' && $isPlanSection));
           $__isPendingItem = $item[1] === 'system_admin/pending_requests.php';
+          $__isSettingsItem = $item[0] === 'System Settings' && basename($item[1]) === 'settings.php';
+          $__settingsSection = $_GET['section'] ?? 'school_years';
+          if (!in_array($__settingsSection, ['school_years', 'maturity_bands', 'assessment_cycle', 'system_information'], true)) {
+            $__settingsSection = 'school_years';
+          }
           ?>
+          <?php if ($__isSettingsItem): ?>
+            <div class="sb-item sb-item-toggle <?= $isActive ? 'active open' : '' ?>" role="button" tabindex="0"
+              onclick="toggleSbSubmenu(this)" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); toggleSbSubmenu(this); }"
+              data-label="<?= e($item[0]) ?>" aria-expanded="<?= $isActive ? 'true' : 'false' ?>">
+              <span class="sb-icon"><?= $__icon($item[2]) ?></span>
+              <span class="sb-label"><?= e($item[0]) ?></span>
+              <svg class="sb-chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              <span class="sb-flyout">
+                <span><?= e($item[0]) ?></span>
+              </span>
+            </div>
+            <div class="sb-submenu <?= $isActive ? 'open' : '' ?>">
+              <?php
+              $__settingsLinks = [
+                ['School Year', 'school_years'],
+                ['Maturity Level Bands', 'maturity_bands'],
+                ['Assessment Cycle & Access Window', 'assessment_cycle'],
+                ['System Information', 'system_information'],
+              ];
+              foreach ($__settingsLinks as $__settingsLink):
+                $__settingsActive = $isActive && $__settingsSection === $__settingsLink[1];
+                ?>
+                <a href="<?= $__base ?>/school_head/settings.php?section=<?= e($__settingsLink[1]) ?>"
+                  class="sb-sub-item <?= $__settingsActive ? 'active' : '' ?>">
+                  <span><?= e($__settingsLink[0]) ?></span>
+                </a>
+              <?php endforeach; ?>
+            </div>
+          <?php else: ?>
           <a href="<?= $__base ?>/<?= e($item[1]) ?>" class="sb-item <?= $isActive ? 'active' : '' ?>"
             data-label="<?= e($item[0]) ?>">
             <span class="sb-icon"><?= $__icon($item[2]) ?></span>
@@ -2560,6 +2593,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
               <span class="sb-nav-badge" style="margin-left:auto;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;background:#FEF3C7;color:#D97706;flex-shrink:0;"><?= $__pendingImprovementPlansCount ?></span>
             <?php endif; ?>
           </a>
+          <?php endif; ?>
         <?php endforeach; ?>
       <?php endforeach; ?>
     </nav>
@@ -2659,7 +2693,7 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       </div>
     </header>
 
-    <main class="page" id="mainPage">
+    <main class="page <?= $__currentFile === 'settings.php' ? 'settings-page' : '' ?>" id="mainPage">
 
       <?php
       $__svgJs = json_encode($__svgPaths, JSON_HEX_TAG);
@@ -2703,7 +2737,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         function toggleSbSubmenu(el) {
           const sb = document.getElementById('sidebar');
           if (sb && sb.classList.contains('collapsed')) return; // flyout handles collapsed
-          el.classList.toggle('open');
+          const isOpen = el.classList.toggle('open');
+          el.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
           const sub = el.nextElementSibling;
           if (sub && sub.classList.contains('sb-submenu')) {
             sub.classList.toggle('open');

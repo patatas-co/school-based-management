@@ -13,13 +13,12 @@ $pageTitle = 'Manage Roles';
 $activePage = 'manage_roles.php';
 include __DIR__ . '/../includes/header.php';
 
-$roles = $db->query("SELECT id,slug,label,color,description,is_system,(SELECT COUNT(*) FROM users u WHERE u.role = roles.slug COLLATE utf8mb4_unicode_ci) AS user_count FROM roles ORDER BY CASE slug WHEN 'system_admin' THEN 1 WHEN 'school_head' THEN 2 WHEN 'sbm_coordinator' THEN 3 WHEN 'teacher' THEN 4 WHEN 'external_stakeholder' THEN 5 ELSE 6 END ASC, label ASC")->fetchAll(PDO::FETCH_ASSOC);
+$roles = $db->query("SELECT id,slug,label,color,description,is_system,status,(SELECT COUNT(*) FROM users u WHERE u.role = roles.slug COLLATE utf8mb4_unicode_ci) AS user_count FROM roles ORDER BY CASE slug WHEN 'system_admin' THEN 1 WHEN 'school_head' THEN 2 WHEN 'sbm_coordinator' THEN 3 WHEN 'teacher' THEN 4 WHEN 'external_stakeholder' THEN 5 ELSE 6 END ASC, label ASC")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!-- Add Role -->
 <div class="card" style="box-shadow:none;border:1px solid var(--n-150,#e5e7eb);margin-bottom:16px;">
   <div style="display:flex;align-items:center;gap:8px;padding:16px 20px;border-bottom:1px solid var(--n-100,#f1f5f9);">
-    <?= svgIcon('plus') ?>
     <span style="font-size:14px;font-weight:700;color:var(--n-800,#1e293b);">Add Role</span>
   </div>
   <div style="padding:20px;">
@@ -57,6 +56,7 @@ $roles = $db->query("SELECT id,slug,label,color,description,is_system,(SELECT CO
           <tr>
             <th>Role</th>
             <th>Users</th>
+            <th>Status</th>
             <th style="text-align:center;">Actions</th>
           </tr>
         </thead>
@@ -67,20 +67,23 @@ $roles = $db->query("SELECT id,slug,label,color,description,is_system,(SELECT CO
                 <span style="font-weight:600;color:#0F172A;"><?= e($r['label']) ?></span>
               </td>
               <td><?= (int)$r['user_count'] ?> user<?= (int)$r['user_count'] === 1 ? '' : 's' ?></td>
+              <td>
+                <span style="font-size:11px;font-weight:700;color:<?= $r['status'] === 'enabled' ? '#166534' : '#991B1B' ?>;background:<?= $r['status'] === 'enabled' ? '#DCFCE7' : '#FEE2E2' ?>;padding:3px 10px;border-radius:999px;">
+                  <?= ucfirst(e($r['status'])) ?>
+                </span>
+              </td>
               <td style="text-align:center;">
                 <div style="display:flex;align-items:center;justify-content:center;gap:5px;">
-                  <?php if ((int)$r['is_system'] === 1): ?>
-                    <span style="font-size:10px;font-weight:700;color:#94A3B8;background:#F1F5F9;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em;">System</span>
-                  <?php else: ?>
-                    <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px;"
-                      onclick="openEditRoleModal(<?= (int)$r['id'] ?>,'<?= e(addslashes($r['label'])) ?>','<?= e(addslashes($r['description'])) ?>')">
-                      <?= svgIcon('edit', '', 'width:13px;height:13px;') ?> Edit
-                    </button>
-                    <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px;color:#DC2626;"
-                      onclick="deleteRoleRow(<?= (int)$r['id'] ?>,'<?= e(addslashes($r['label'])) ?>')">
-                      <?= svgIcon('trash', '', 'width:13px;height:13px;') ?> Delete
-                    </button>
-                  <?php endif; ?>
+                  <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px;"
+                    onclick="openEditRoleModal(<?= (int)$r['id'] ?>,'<?= e(addslashes($r['label'])) ?>','<?= e(addslashes($r['description'])) ?>')"
+                    title="Edit role" aria-label="Edit role">
+                    <?= svgIcon('edit', '', 'width:13px;height:13px;') ?>
+                  </button>
+                  <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px;color:<?= $r['status'] === 'enabled' ? '#DC2626' : '#166534' ?>;"
+                    onclick="toggleRoleStatus(<?= (int)$r['id'] ?>,'<?= e(addslashes($r['label'])) ?>','<?= e($r['status']) ?>')"
+                    title="<?= $r['status'] === 'enabled' ? 'Disable role' : 'Enable role' ?>" aria-label="<?= $r['status'] === 'enabled' ? 'Disable role' : 'Enable role' ?>">
+                    <?= $r['status'] === 'enabled' ? svgIcon('x', '', 'width:13px;height:13px;') : svgIcon('check', '', 'width:13px;height:13px;') ?>
+                  </button>
                 </div>
               </td>
             </tr>
@@ -142,9 +145,10 @@ $roles = $db->query("SELECT id,slug,label,color,description,is_system,(SELECT CO
     }
   }
 
-  async function deleteRoleRow(id, label) {
-    if (!confirm(`Delete role "${label}"? This cannot be undone.`)) return;
-    const r = await apiPost('users.php', { action: 'delete_role', id });
+  async function toggleRoleStatus(id, label, status) {
+    const action = status === 'enabled' ? 'disable' : 'enable';
+    if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} role "${label}"?`)) return;
+    const r = await apiPost('users.php', { action: 'toggle_role_status', id });
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) setTimeout(() => location.reload(), 500);
   }

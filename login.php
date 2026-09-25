@@ -32,6 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
   $err = $_GET['err'] ?? '';
   if ($err === 'deactivated') {
     $error = 'This account has been deactivated. Please contact the System Admin for support.';
+  } elseif ($err === 'role_disabled') {
+    $error = 'This account role is currently disabled. Please contact the System Admin for support.';
   } elseif ($err === 'not_started') {
     if (!empty($_GET['start'])) {
       $startFormatted = date('M j, Y, g:i A', strtotime($_GET['start']));
@@ -61,11 +63,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pass = $_POST['password'] ?? '';
     if ($uname && $pass) {
       $db = getDB();
-      $stmt = $db->prepare("SELECT * FROM users WHERE (username=? OR email=?) LIMIT 1");
+      $stmt = $db->prepare("SELECT u.*, r.status AS role_status FROM users u LEFT JOIN roles r ON r.slug COLLATE utf8mb4_general_ci = u.role COLLATE utf8mb4_general_ci WHERE (u.username=? OR u.email=?) LIMIT 1");
       $stmt->execute([$uname, $uname]);
       $row = $stmt->fetch();
       if ($row && $row['status'] === 'inactive') {
         $error = 'This account has been deactivated. Please contact the System Admin for support.';
+      } elseif ($row && ($row['role_status'] ?? 'disabled') !== 'enabled') {
+        $error = 'This account role is currently disabled. Please contact the System Admin for support.';
       } elseif ($row && $row['status'] === 'active' && $row['password'] && password_verify($pass, $row['password'])) {
         unset($_SESSION['login_attempts'], $_SESSION['login_last_attempt']);
 

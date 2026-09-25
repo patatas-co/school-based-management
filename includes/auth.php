@@ -19,7 +19,7 @@ function sessionIsValid(): bool
 
     try {
         $db = getDB();
-        $stmt = $db->prepare("SELECT user_id, username, email, full_name, role, status, school_id, profile_picture, contact_number, department FROM users WHERE user_id=? LIMIT 1");
+        $stmt = $db->prepare("SELECT u.user_id, u.username, u.email, u.full_name, u.role, u.status, u.school_id, u.profile_picture, u.contact_number, u.department, r.status AS role_status FROM users u LEFT JOIN roles r ON r.slug COLLATE utf8mb4_general_ci = u.role COLLATE utf8mb4_general_ci WHERE u.user_id=? LIMIT 1");
         $stmt->execute([(int) $_SESSION['user_id']]);
         $user = $stmt->fetch();
     } catch (Exception $e) {
@@ -27,6 +27,11 @@ function sessionIsValid(): bool
     }
 
     if (!$user || ($user['status'] ?? '') !== 'active') {
+        return false;
+    }
+
+    if (($user['role_status'] ?? 'disabled') !== 'enabled') {
+        $_SESSION['auth_failure'] = 'role_disabled';
         return false;
     }
 
@@ -50,12 +55,13 @@ function requireLogin(): void
     }
 
     if (!sessionIsValid()) {
+        $failure = $_SESSION['auth_failure'] ?? 'deactivated';
         session_unset();
         session_destroy();
         session_start();
         session_regenerate_id(true);
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-        header('Location: ' . baseUrl() . '/login.php?err=deactivated');
+        header('Location: ' . baseUrl() . '/login.php?err=' . rawurlencode($failure));
         exit;
     }
 }

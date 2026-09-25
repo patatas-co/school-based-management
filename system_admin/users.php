@@ -282,7 +282,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // ----------------------------
 
     $stmt = $db->prepare("
-      SELECT u.user_id, u.full_name, u.email, u.status,
+      SELECT u.user_id, u.full_name, u.email, u.username, u.status,
              ce.is_active, ce.deactivated_at, ce.reactivated_at,
              ss.status AS submission_status, ss.submitted_at, ss.response_count
       FROM cycle_evaluators ce
@@ -529,8 +529,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 if ($action === 'list_roles') {
   $hierarchyOrder = ['system_admin','school_head','sbm_coordinator','teacher','external_stakeholder'];
   $placeholders = implode(',', array_fill(0, count($hierarchyOrder), '?'));
-  $rows = $db->prepare("SELECT id,slug,label,color,description,is_system FROM roles ORDER BY CASE slug " . implode(' ', array_map(fn($s,$i) => "WHEN '$s' THEN $i", $hierarchyOrder, array_keys($hierarchyOrder))) . " ELSE 99 END ASC")->execute([]);
-  $rows = $db->query("SELECT id,slug,label,color,description,is_system,(SELECT COUNT(*) FROM users u WHERE u.role = roles.slug COLLATE utf8mb4_unicode_ci) AS user_count FROM roles ORDER BY CASE slug WHEN 'system_admin' THEN 1 WHEN 'school_head' THEN 2 WHEN 'sbm_coordinator' THEN 3 WHEN 'teacher' THEN 4 WHEN 'external_stakeholder' THEN 5 ELSE 6 END ASC, label ASC")->fetchAll(PDO::FETCH_ASSOC);
+  $rows = $db->query("SELECT id,slug,label,color,description,is_system,status,(SELECT COUNT(*) FROM users u WHERE u.role = roles.slug COLLATE utf8mb4_unicode_ci) AS user_count FROM roles ORDER BY CASE slug WHEN 'system_admin' THEN 1 WHEN 'school_head' THEN 2 WHEN 'sbm_coordinator' THEN 3 WHEN 'teacher' THEN 4 WHEN 'external_stakeholder' THEN 5 ELSE 6 END ASC, label ASC")->fetchAll(PDO::FETCH_ASSOC);
   echo json_encode(['ok' => true, 'data' => $rows]); exit;
 }
 
@@ -541,12 +540,12 @@ if ($action === 'save_role') {
   $desc  = trim($_POST['description'] ?? '');
   if (!$label) { echo json_encode(['ok' => false, 'msg' => 'Label is required.']); exit; }
   if ($id) {
-    $db->prepare("UPDATE roles SET label=?,color=?,description=? WHERE id=? AND is_system=0")->execute([$label, $color, $desc, $id]);
+    $db->prepare("UPDATE roles SET label=?,color=?,description=? WHERE id=?")->execute([$label, $color, $desc, $id]);
     echo json_encode(['ok' => true, 'msg' => 'Role updated.']); exit;
   } else {
     $slug = preg_replace('/[^a-z0-9]+/', '_', strtolower($label));
     try {
-      $db->prepare("INSERT INTO roles (slug,label,color,is_system,description) VALUES (?,?,?,0,?)")->execute([$slug, $label, $color, $desc]);
+      $db->prepare("INSERT INTO roles (slug,label,color,is_system,status,description) VALUES (?,?,?,0,'enabled',?)")->execute([$slug, $label, $color, $desc]);
       echo json_encode(['ok' => true, 'msg' => 'Role added.', 'slug' => $slug, 'description' => $desc]); exit;
     } catch (PDOException $e) {
       echo json_encode(['ok' => false, 'msg' => 'Role slug already exists. Try a different name.']); exit;
@@ -554,19 +553,16 @@ if ($action === 'save_role') {
   }
 }
 
-if ($action === 'delete_role') {
+if ($action === 'toggle_role_status') {
   $id = intval($_POST['id'] ?? 0);
-  $role = $db->prepare("SELECT slug,is_system FROM roles WHERE id=?");
+  $role = $db->prepare("SELECT slug,label,status FROM roles WHERE id=?");
   $role->execute([$id]);
   $r = $role->fetch(PDO::FETCH_ASSOC);
   if (!$r) { echo json_encode(['ok' => false, 'msg' => 'Role not found.']); exit; }
-  if ($r['is_system']) { echo json_encode(['ok' => false, 'msg' => 'System roles cannot be deleted.']); exit; }
-  $inUse = $db->prepare("SELECT COUNT(*) FROM users WHERE role=?")->execute([$r['slug']]);
-  $count = $db->prepare("SELECT COUNT(*) FROM users WHERE role=?");
-  $count->execute([$r['slug']]);
-  if ($count->fetchColumn() > 0) { echo json_encode(['ok' => false, 'msg' => 'Cannot delete — role is assigned to users.']); exit; }
-  $db->prepare("DELETE FROM roles WHERE id=? AND is_system=0")->execute([$id]);
-  echo json_encode(['ok' => true, 'msg' => 'Role deleted.']); exit;
+  $newStatus = $r['status'] === 'enabled' ? 'disabled' : 'enabled';
+  $db->prepare("UPDATE roles SET status=? WHERE id=?")->execute([$newStatus, $id]);
+  logActivity('toggle_role_status', 'roles', "Changed role {$r['slug']} status to {$newStatus}");
+  echo json_encode(['ok' => true, 'msg' => $r['label'] . ' is now ' . ucfirst($newStatus) . '.', 'status' => $newStatus]); exit;
 }
   exit;
 }
@@ -585,7 +581,7 @@ $sf = $_GET['status'] ?? '';
 
 // User Accounts only shows processed accounts — pending/rejected registrations
 // live exclusively on the Pending Requests page now.
-$sql = "SELECT u.user_id,u.username,u.email,u.full_name,u.role,u.status,u.school_id,u.last_login,u.created_at,u.email_verified,u.force_password_change,u.profile_picture,u.department,s.school_name FROM users u LEFT JOIN schools s ON u.school_id=s.school_id WHERE u.status NOT IN ('pending','rejected')";
+$sql = "SELECT u.user_id,u.username,u.email,u.full_name,u.role,u.status,u.school_id,u.last_login,u.created_at,u.email_verified,u.force_password_change,u.profile_picture,u.department,s.school_name FROM users u LEFT JOIN schools s ON u.school_id=s.school_id WHERE u.status NOT IN ('pending','rejected') AND u.role <> 'external_stakeholder'";
 $p = [];
 if ($q) {
   $qE = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($q)) . '%';
@@ -628,7 +624,6 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
 
 <div class="card" style="box-shadow:none;border:1px solid var(--n-150,#e5e7eb);margin-bottom:16px;">
   <div style="display:flex;align-items:center;gap:8px;padding:16px 20px;border-bottom:1px solid var(--n-100,#f1f5f9);">
-    <?= svgIcon('plus') ?>
     <span style="font-size:14px;font-weight:700;color:var(--n-800,#1e293b);">Add User</span>
   </div>
   <div style="padding:20px;">

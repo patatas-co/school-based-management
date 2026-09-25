@@ -134,9 +134,6 @@ $_allRoles = $db->query("SELECT slug,label,color,description FROM roles ORDER BY
         value="<?= e($q) ?>" autocomplete="off"
         style="width:100%;">
     </div>
-    <span style="padding:4px 11px;border-radius:999px;font-size:12px;font-weight:700;background:#FEF3C7;color:#D97706;margin-left:auto;">
-      <?= (int) $pendingUsersCount ?> Pending
-    </span>
   </div>
 
   <?php if (!$pendingRows): ?>
