@@ -260,9 +260,9 @@ $_allDepts = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
     .panel-right {
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      justify-content: center;
       align-items: center;
-      padding: 32px 64px 56px;
+      padding: 56px 64px;
       background: #FAFDFB;
       position: relative;
       box-sizing: border-box;
@@ -320,27 +320,6 @@ $_allDepts = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
       height: 15px;
       flex-shrink: 0;
       margin-top: 2px;
-    }
-
-    .notice-box {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      background: var(--g50);
-      border: 1px solid var(--g200);
-      color: var(--g700);
-      border-radius: 10px;
-      padding: 12px 13px;
-      font-size: 13px;
-      margin-bottom: 22px;
-      line-height: 1.55;
-    }
-
-    .notice-box svg {
-      width: 16px;
-      height: 16px;
-      flex-shrink: 0;
-      margin-top: 1px;
     }
 
     .field {
@@ -479,30 +458,6 @@ $_allDepts = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
       box-shadow: 0 8px 24px rgba(21, 128, 61, .3);
     }
 
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--mid);
-      text-decoration: none;
-      margin-bottom: 24px;
-      padding: 6px 12px 6px 0;
-      border-radius: 8px;
-      transition: all .2s ease;
-    }
-
-    .back-link:hover {
-      color: var(--green);
-      transform: translateX(-2px);
-    }
-
-    .back-link svg {
-      width: 15px;
-      height: 15px;
-    }
-
     .form-footer {
       text-align: center;
       margin-top: 24px;
@@ -547,6 +502,27 @@ $_allDepts = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
       margin: 0 auto 28px;
     }
 
+    .success-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(13, 17, 23, .45);
+    }
+
+    .success-modal {
+      width: min(100%, 460px);
+      padding: 32px;
+      border: 1px solid var(--g200);
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 20px 60px rgba(13, 17, 23, .2);
+      text-align: center;
+    }
+
     @media (max-width:900px) {
       .layout {
         grid-template-columns: 1fr;
@@ -575,8 +551,8 @@ $_allDepts = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
       <div class="left-body">
         <img src="assets/seal.png" alt="Dasmariñas Integrated High School"
           style="width:200px;height:200px;object-fit:contain;margin-bottom:28px;">
-        <span class="eyebrow">School-Based Management Monitoring System</span>
-        <h1 class="headline">Dasmariñas Integrated <br>High School</h1>
+        <span class="eyebrow"><?= e(SCHOOL_NAME) ?></span>
+        <h1 class="headline">School-Based Management<br>Monitoring System</h1>
       </div>
     </div>
 
@@ -585,26 +561,22 @@ $_allDepts = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
       <div class="form-wrap">
 
         <?php if ($success): ?>
-          <div class="success-panel">
-            <div class="success-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
+          <div class="success-modal-backdrop" role="presentation">
+            <div class="success-modal" role="dialog" aria-modal="true" aria-labelledby="registrationSuccessTitle">
+              <div class="success-panel">
+                <div class="success-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                </div>
+                <div class="success-title" id="registrationSuccessTitle">Registration Submitted</div>
+                <p class="success-sub">Your account request will be reviewed by the System Administrator. Your role and account status will be assigned after approval.</p>
+                <a href="login.php" class="btn-login" style="text-decoration:none;">Back to Sign In</a>
+              </div>
             </div>
-            <div class="success-title">Registration Submitted</div>
-            <p class="success-sub">Your account request has been submitted and is awaiting review by the System Administrator. You'll receive an email with a link to set your password once your account is approved.</p>
-            <a href="login.php" class="btn-login" style="text-decoration:none;">Back to Sign In</a>
           </div>
         <?php else: ?>
-
-          <a href="login.php" class="back-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-            Back to Sign In
-          </a>
 
           <div class="form-title">Register Account</div>
           <div class="form-sub">Request access to the SBM Monitoring Portal.</div>
@@ -623,15 +595,6 @@ $_allDepts = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
               </ul>
             </div>
           <?php endif; ?>
-
-          <div class="notice-box">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="16" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg>
-            <span>Your account request will be reviewed by the System Administrator. Your role and account status will be assigned after approval.</span>
-          </div>
 
           <form method="post" action="register.php" enctype="multipart/form-data" autocomplete="off" novalidate>
             <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
@@ -698,6 +661,11 @@ $_allDepts = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
 
             <button class="btn-login" type="submit">Submit Registration</button>
           </form>
+
+          <div style="text-align:center;margin-top:18px;">
+            <span style="font-size:13px;color:var(--mid);">Already have an account?</span>
+            <a href="login.php" style="font-size:13px;font-weight:600;color:var(--green);text-decoration:none;margin-left:4px;">Sign in</a>
+          </div>
 
         <?php endif; ?>
 

@@ -611,8 +611,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="left-body">
         <img src="assets/seal.png" alt="Dasmariñas Integrated High School"
           style="width:200px;height:200px;object-fit:contain;margin-bottom:28px;">
-        <span class="eyebrow">School-Based Management Monitoring System</span>
-        <h1 class="headline" style="font-size:clamp(22px,3vw,36px);line-height:1.25;margin-top:10px;">Dasmariñas Integrated <br>High School</h1>
+        <span class="eyebrow"><?= e(SCHOOL_NAME) ?></span>
+        <h1 class="headline" style="font-size:clamp(22px,3vw,36px);line-height:1.25;margin-top:10px;">School-Based Management<br>Monitoring System</h1>
       </div>
     </div>
 
