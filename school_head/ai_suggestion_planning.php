@@ -687,11 +687,17 @@ if (!$cycle && $schoolId) {
 }
 
 $pageTitle = 'AI Suggestion Planning'; $activePage = 'ai_suggestion_planning.php';
+if (($planningView ?? 'ai_suggestions') === 'improvement_plans') {
+  $pageTitle = 'Improvement Plans';
+  $activePage = 'improvement_plans.php';
+}
+$isImprovementPlansPage = ($planningView ?? 'ai_suggestions') === 'improvement_plans';
 include __DIR__.'/../includes/header.php';
 ?>
 <div class="page-head"></div>
 
 <?php if ($cycle): ?>
+<?php if (!$isImprovementPlansPage): ?>
 <div class="card" style="margin-bottom:18px;">
   <div class="card-body" style="padding:20px 24px;">
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;">
@@ -748,7 +754,9 @@ include __DIR__.'/../includes/header.php';
   </div>
   <div id="aiUsageMsg" style="display:none;padding:10px 28px 18px 28px;font-size:12.5px;color:var(--red);"></div>
 </div>
+<?php endif; ?>
 
+<?php if ($isImprovementPlansPage): ?>
 <?php if ($isSubmitted || $isReturned): ?>
 <div class="card" style="margin-bottom:18px;border-color:var(--green-200, #bbf7d0);background:var(--green-50, #f0fdf4);">
   <div class="card-body" style="padding:20px 24px;">
@@ -859,8 +867,10 @@ include __DIR__.'/../includes/header.php';
     </div>
   <?php endif; ?>
 </div>
+<?php endif; ?>
 <?php else: ?>
 
+<?php if (!$isImprovementPlansPage): ?>
 <div class="card" style="margin-bottom:18px;">
   <div class="card-body" style="padding:20px 24px;">
     <p style="font-size:13px;color:var(--n-500);">
@@ -926,8 +936,16 @@ include __DIR__.'/../includes/header.php';
     </div>
   <?php endif; ?>
 </div>
+<?php else: ?>
+<div class="card" style="margin-bottom:18px;">
+  <div class="card-body" style="padding:20px 24px;">
+    <p style="font-size:13px;color:var(--n-500);">No assessment cycle is available for the current school year. Improvement plans will appear here once a cycle is underway.</p>
+  </div>
+</div>
+<?php endif; ?>
 <?php endif; ?>
 
+<?php if ($isImprovementPlansPage): ?>
 <!-- ── SUBMIT CONFIRMATION MODAL ── -->
 <div id="submitConfirmModal" class="modal-overlay">
   <div class="modal-content" style="width:440px;">
@@ -1126,6 +1144,7 @@ include __DIR__.'/../includes/header.php';
   </div>
 </div>
 
+<?php endif; ?>
 <style>
 .ai-suggest-content {
   font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
@@ -1617,6 +1636,7 @@ include __DIR__.'/../includes/header.php';
 </style>
 
 <script>
+const IS_IMPROVEMENT_PLANS_PAGE = <?= $isImprovementPlansPage ? 'true' : 'false' ?>;
 /** Renders AI text as a formal, structured report (Claude-style formatting) */
 function renderConfidenceBadge(block) {
   if (!block) return '';
@@ -1803,7 +1823,9 @@ async function initIpFieldUsageState() {
     console.error('Failed to load IP field usage status', err);
   }
 }
-document.addEventListener('DOMContentLoaded', initIpFieldUsageState);
+if (IS_IMPROVEMENT_PLANS_PAGE) {
+  document.addEventListener('DOMContentLoaded', initIpFieldUsageState);
+}
 
 /** Enables/disables the header "💡 Suggest" links based on selection
  *  AND remaining daily quota (3 objective / 3 strategy). Also refreshes
@@ -2045,7 +2067,7 @@ function initTagSelect(prefix, options, onUpdate) {
   };
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+if (IS_IMPROVEMENT_PLANS_PAGE) document.addEventListener('DOMContentLoaded', () => {
   const dimOptions = Array.from(document.querySelectorAll('#dimTagDropdown .tag-option')).map(opt => ({
     id: opt.getAttribute('data-id'),
     name: opt.getAttribute('data-name')
@@ -2393,7 +2415,9 @@ async function initAiUsageState() {
     console.error('Failed to load AI usage status', err);
   }
 }
-document.addEventListener('DOMContentLoaded', initAiUsageState);
+if (!IS_IMPROVEMENT_PLANS_PAGE) {
+  document.addEventListener('DOMContentLoaded', initAiUsageState);
+}
 
 async function loadAISuggestionsPlan() {
   const body = document.getElementById('aiSuggestBody');

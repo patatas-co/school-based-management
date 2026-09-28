@@ -95,7 +95,10 @@ define('SBM_NAV', [
             [
                 ['Workflow Overview', 'school_head/workflow.php', 'trending-up'],
                 ['Evidence & MOV', 'school_head/evidence.php', 'paperclip'],
-                ['AI Suggestion Planning', 'school_head/ai_suggestion_planning.php', 'target'],
+                ['SBM Planning', 'target', [
+                    ['AI Suggestion Planning', 'school_head/ai_suggestion_planning.php', 'sparkles'],
+                    ['Improvement Plans', 'school_head/improvement_plans.php', 'clipboard'],
+                ]],
             ]
         ],
     ],

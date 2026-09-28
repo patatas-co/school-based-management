@@ -95,10 +95,11 @@ if (!$isModal) include dirname($__configPath) . '/../includes/header.php';
 
 /* Hero card */
 .profile-hero {
-    background-color: #081a08;
+    background-color: var(--n-50);
+    border: 1px solid var(--n-200);
     border-radius: var(--radius-lg);
     padding: 36px 36px 32px;
-    color: #fff;
+    color: var(--n-900);
     display: flex;
     align-items: center;
     gap: 28px;
@@ -106,6 +107,7 @@ if (!$isModal) include dirname($__configPath) . '/../includes/header.php';
     position: relative;
     overflow: hidden;
     flex-wrap: wrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
 }
 
 
@@ -117,60 +119,42 @@ if (!$isModal) include dirname($__configPath) . '/../includes/header.php';
 }
 .avatar-ring {
     width: 90px; height: 90px;
-    border-radius: 22px;
-    background: rgba(255,255,255,.12);
-    border: 2.5px solid rgba(255,255,255,.25);
+    border-radius: 50%;
+    background: var(--n-100);
+    border: 2.5px solid var(--n-150);
     display: flex; align-items: center; justify-content: center;
     font-family: var(--font-display);
     font-size: 32px; font-weight: 800;
-    color: #fff;
+    color: var(--n-600);
     overflow: hidden;
     position: relative;
     transition: border-color 200ms;
 }
 .avatar-ring img {
     width:100%; height:100%; object-fit:cover;
-    border-radius:20px;
+    border-radius:50%;
 }
 .avatar-zone:hover .avatar-ring {
-    border-color: rgba(74,222,128,.65);
+    border-color: var(--n-300);
 }
-.avatar-edit-btn {
-    position: absolute;
-    bottom: -5px; right: -5px;
-    width: 28px; height: 28px;
-    border-radius: 8px;
-    background: #16A34A;
-    border: 2px solid #0d260d;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    transition: background 150ms, transform 150ms;
-    box-shadow: 0 2px 8px rgba(0,0,0,.4);
-}
-.avatar-edit-btn:hover { background:#15803D; transform:scale(1.1); }
-.avatar-edit-btn svg { width:13px; height:13px; stroke:#fff; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 
 .hero-meta { position:relative; z-index:1; flex:1; min-width:0; }
 .hero-name {
     font-family: var(--font-display);
     font-size: 24px; font-weight: 800; letter-spacing:-.4px;
     margin-bottom: 5px; line-height: 1.15;
+    color: var(--n-900);
 }
 .hero-role {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 12px; border-radius: 999px;
-    font-size: 11.5px; font-weight: 700;
-    background: rgba(255,255,255,.10);
-    border: 1px solid rgba(255,255,255,.18);
-    color: rgba(255,255,255,.85);
+    font-size: 13px; font-weight: 500;
+    color: var(--n-500);
     margin-bottom: 10px;
 }
-.hero-role-dot { width:6px; height:6px; border-radius:50%; }
 .hero-stats {
     display: flex; gap: 16px; flex-wrap: wrap;
-    font-size: 12px; color: rgba(255,255,255,.5);
+    font-size: 12px; color: var(--n-500);
 }
-.hero-stat strong { color: rgba(255,255,255,.85); font-weight: 600; }
+.hero-stat strong { color: var(--n-700); font-weight: 600; }
 
 /* Section cards */
 .profile-section {
@@ -314,46 +298,25 @@ body { background: transparent; font-family: 'Inter', -apple-system, sans-serif;
   <!-- HERO -->
   <div class="profile-hero">
     <div class="avatar-zone" onclick="document.getElementById('avatarFileInput').click();" title="Click to change photo">
-      <div class="avatar-ring" id="avatarRingHero" style="background:<?= e($__roleColor) ?>22;border-color:<?= e($__roleColor) ?>44;">
+      <div class="avatar-ring" id="avatarRingHero">
         <?php if (!empty($user['profile_picture'])): ?>
               <img src="<?= e(baseUrl() . '/' . $user['profile_picture']) ?>?v=<?= time() ?>" id="heroAvatarImg" alt="Profile">
         <?php else: ?>
-              <span id="heroAvatarInitials" style="color:<?= e($__roleColor) ?>;"><?= e($__initials) ?></span>
+              <span id="heroAvatarInitials"><?= e($__initials) ?></span>
         <?php endif; ?>
-      </div>
-      <div class="avatar-edit-btn">
-        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </div>
     </div>
     <div class="hero-meta">
       <div class="hero-name" id="heroName"><?= e($user['full_name']) ?></div>
-      <div class="hero-role">
-        <span class="hero-role-dot" style="background:<?= e($__roleColor) ?>;"></span>
-        <?= e($__roleLabel) ?>
-      </div>
+      <div class="hero-role"><?= e($__roleLabel) ?></div>
       <div class="hero-stats">
-        <span>@<?= e($user['username']) ?></span>
-        <span>·</span>
-        <span><strong><?= e($user['email']) ?></strong></span>
-        <?php if ($user['last_login']): ?>
-              <span>·</span>
-              <span>Last login: <strong><?= timeAgo($user['last_login']) ?></strong></span>
-        <?php endif; ?>
+        <span><?= e($user['email']) ?></span>
       </div>
     </div>
   </div>
 
   <!-- ═══════ PERSONAL INFORMATION ═══════ -->
   <div class="profile-section" style="margin-bottom:32px;">
-    <div class="ps-head">
-      <div class="ps-icon" style="background:var(--brand-100);color:var(--brand-700);">
-        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      </div>
-      <div class="ps-head-text">
-        <div class="ps-head-title">Personal Information</div>
-        <div class="ps-head-sub">Update your name and contact details</div>
-      </div>
-    </div>
     <div class="ps-body">
 
       <!-- Avatar Upload -->
@@ -422,7 +385,6 @@ body { background: transparent; font-family: 'Inter', -apple-system, sans-serif;
           <div class="pf-group">
             <label>Role</label>
             <div class="pf-readonly">
-              <span style="width:8px;height:8px;border-radius:50%;background:<?= e($__roleColor) ?>;flex-shrink:0;"></span>
               <?= e($__roleLabel) ?>
             </div>
           </div>

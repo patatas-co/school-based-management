@@ -2278,6 +2278,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
       display: none;
       flex-direction: column;
       padding-left: 36px;
+      padding-top: 4px;
+      padding-bottom: 4px;
       gap: 0;
       margin-bottom: 2px;
     }
@@ -2447,7 +2449,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
         <div class="sb-avatar sb-profile-avatar" style="background:<?= $__roleColor ?>;overflow:hidden;">
           <?php if (!empty($__me['profile_picture'])): ?>
             <img src="<?= e($__base . '/' . $__me['profile_picture']) ?>?v=<?= time() ?>"
-              style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Avatar">
+              style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Avatar"
+              onerror="this.style.display='none'">
           <?php else: ?><?= e($__initials) ?><?php endif; ?>
         </div>
         <div class="sb-edit-badge" onclick="event.stopPropagation();openProfileModal();" title="Edit profile"
@@ -2548,6 +2551,17 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
           $isActive = basename($item[1]) === basename($_SERVER['PHP_SELF']) && ($isPlanNav ? $isPlanSection : !($item[1] === 'coordinator/dashboard.php' && $isPlanSection));
           $__isPendingItem = $item[1] === 'system_admin/pending_requests.php';
           $__isSettingsItem = $item[0] === 'System Settings' && basename($item[1]) === 'settings.php';
+          $__isSubmenuItem = isset($item[2]) && is_array($item[2]);
+          $__submenuItems = $__isSubmenuItem ? $item[2] : [];
+          if ($__isSubmenuItem) {
+            $isActive = false;
+            foreach ($__submenuItems as $__submenuItem) {
+              if (basename($__submenuItem[1]) === basename($_SERVER['PHP_SELF'])) {
+                $isActive = true;
+                break;
+              }
+            }
+          }
           $__settingsSection = $_GET['section'] ?? 'school_years';
           if (!in_array($__settingsSection, ['school_years', 'maturity_bands', 'assessment_cycle', 'system_information'], true)) {
             $__settingsSection = 'school_years';
@@ -2581,6 +2595,25 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
                 </a>
               <?php endforeach; ?>
             </div>
+          <?php elseif ($__isSubmenuItem): ?>
+            <div class="sb-item sb-item-toggle <?= $isActive ? 'active open' : '' ?>" role="button" tabindex="0"
+              onclick="toggleSbSubmenu(this)" onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); toggleSbSubmenu(this); }"
+              data-label="<?= e($item[0]) ?>" aria-expanded="<?= $isActive ? 'true' : 'false' ?>">
+              <span class="sb-icon"><?= $__icon($item[1]) ?></span>
+              <span class="sb-label"><?= e($item[0]) ?></span>
+              <svg class="sb-chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              <span class="sb-flyout">
+                <span><?= e($item[0]) ?></span>
+              </span>
+            </div>
+            <div class="sb-submenu <?= $isActive ? 'open' : '' ?>">
+              <?php foreach ($__submenuItems as $__submenuItem): ?>
+                <a href="<?= $__base ?>/<?= e($__submenuItem[1]) ?>"
+                  class="sb-sub-item <?= basename($__submenuItem[1]) === basename($_SERVER['PHP_SELF']) ? 'active' : '' ?>">
+                  <span><?= e($__submenuItem[0]) ?></span>
+                </a>
+              <?php endforeach; ?>
+            </div>
           <?php else: ?>
           <a href="<?= $__base ?>/<?= e($item[1]) ?>" class="sb-item <?= $isActive ? 'active' : '' ?>"
             data-label="<?= e($item[0]) ?>">
@@ -2605,7 +2638,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
           <div class="sb-avatar" style="background:<?= $__roleColor ?>;overflow:hidden;">
             <?php if (!empty($__me['profile_picture'])): ?>
               <img src="<?= e($__base . '/' . $__me['profile_picture']) ?>?v=<?= time() ?>"
-                style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Avatar">
+                style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Avatar"
+                onerror="this.style.display='none'">
             <?php else: ?><?= e($__initials) ?><?php endif; ?>
           </div>
           <div onclick="event.stopPropagation();openProfileModal();" title="Edit profile"
@@ -2625,7 +2659,8 @@ $__sbCollapsed = ($_COOKIE['sb_collapsed'] ?? 'false') === 'true';
             style="background:<?= $__roleColor ?>;width:36px;height:36px;font-size:13px;overflow:hidden;">
             <?php if (!empty($__me['profile_picture'])): ?>
               <img src="<?= e($__base . '/' . $__me['profile_picture']) ?>?v=<?= time() ?>"
-                style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Avatar">
+                style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Avatar"
+                onerror="this.style.display='none'">
             <?php else: ?>  <?= e($__initials) ?><?php endif; ?>
           </div>
           <div style="flex:1;min-width:0;">
