@@ -93,6 +93,12 @@ $__roleLabel = [
   'teacher' => 'Teacher / Evaluator',
   'external_stakeholder' => 'External Stakeholder',
 ][$__role] ?? ucwords(str_replace('_', ' ', $__role));
+try {
+  $roleLabelStmt = getDB()->prepare("SELECT label FROM roles WHERE slug = ? LIMIT 1");
+  $roleLabelStmt->execute([$__role]);
+  $__roleLabel = $roleLabelStmt->fetchColumn() ?: $__roleLabel;
+} catch (\Throwable $e) {
+}
 
 // ── Role accent color ─────────────────────────────────────────
 $__roleColor = [

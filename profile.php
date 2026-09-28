@@ -67,6 +67,9 @@ $__roleLabel = [
     'teacher' => 'Teacher / Evaluator',
     'external_stakeholder' => 'External Stakeholder',
 ][$user['role']] ?? ucwords(str_replace('_', ' ', $user['role']));
+$roleLabelStmt = $db->prepare("SELECT label FROM roles WHERE slug = ? LIMIT 1");
+$roleLabelStmt->execute([$user['role']]);
+$__roleLabel = $roleLabelStmt->fetchColumn() ?: $__roleLabel;
 
 $__roleColor = [
     'system_admin' => '#7C3AED',

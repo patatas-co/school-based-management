@@ -620,6 +620,10 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
 ?>
 
 <style>
+  .p-select-placeholder {
+    color: var(--n-800);
+    font-weight: 700;
+  }
 </style>
 
 <div class="card" style="box-shadow:none;border:1px solid var(--n-150,#e5e7eb);margin-bottom:16px;">
@@ -660,14 +664,14 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
       <div class="fg">
         <label>Role *</label>
         <div class="p-select p-select-fluid" id="pCRoleDropdown">
-          <input type="hidden" id="c_role" value="teacher">
+          <input type="hidden" id="c_role" value="">
           <div class="p-select-trigger" onclick="togglePSelect(event, 'pCRoleDropdown')">
-            <span class="p-select-val" id="pCRoleLabel">Teacher</span>
+            <span class="p-select-val p-select-placeholder" id="pCRoleLabel">Select role</span>
             <?= svgIcon('chevron-down', '', 'width:16px;height:16px;stroke:var(--n-400);') ?>
           </div>
           <div class="p-select-menu">
             <?php foreach ($_allRoles as $r): ?>
-              <div class="p-select-item <?= $r['slug'] === 'teacher' ? 'active' : '' ?>" data-val="<?= e($r['slug']) ?>"
+              <div class="p-select-item" data-val="<?= e($r['slug']) ?>"
                 onclick="setCRole('<?= e($r['slug']) ?>', '<?= e($r['label']) ?>')">
                 <div class="p-item-content">
                   <div class="p-item-title"><?= e($r['label']) ?></div>
@@ -1584,6 +1588,7 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
 
   async function createUser() {
     const d = { action: 'create', full_name: $('c_name'), username: $('c_user'), email: $('c_email'), role: $('c_role'), status: $('c_status'), school_id: $('c_school'), employee_id: $('c_empid'), department: $('c_dept') };
+    if (!d.role) { toast('Please select a role.', 'warning'); return; }
     const r = await apiPost('users.php', d);
     toast(r.msg, r.ok ? 'ok' : 'err');
     if (r.ok) { ['c_name', 'c_user', 'c_email', 'c_empid', 'c_dept'].forEach(id => $v(id, '')); setTimeout(() => location.reload(), 800); }
@@ -1803,7 +1808,9 @@ $_allDepts   = $_allDepts->fetchAll(PDO::FETCH_COLUMN);
   // mCreate helpers
   function setCRole(v, l) {
     $v('c_role', v);
-    document.getElementById('pCRoleLabel').textContent = l;
+    const label = document.getElementById('pCRoleLabel');
+    label.textContent = l;
+    label.classList.remove('p-select-placeholder');
     document.querySelectorAll('#pCRoleDropdown .p-select-item').forEach(i => i.classList.toggle('active', i.dataset.val === v));
     closeAllPSelects();
   }

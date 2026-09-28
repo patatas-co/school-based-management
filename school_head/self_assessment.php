@@ -81,15 +81,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         echo json_encode(['ok' => false, 'msg' => 'No active school year found.']);
         exit;
       }
-      $check = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
+      $check = $db->prepare("SELECT cycle_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?");
       $check->execute([$schoolId, $syId]);
-      if ($check->fetchColumn()) {
+      $existingCycle = $check->fetch();
+      if ($existingCycle && $existingCycle['status'] !== 'draft') {
         echo json_encode(['ok' => false, 'msg' => 'Assessment cycle already exists.']);
         exit;
       }
       try {
-        $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")->execute([$syId, $schoolId]);
-        $newCycleId = $db->lastInsertId();
+        if ($existingCycle) {
+          $newCycleId = (int) $existingCycle['cycle_id'];
+          $db->prepare("UPDATE sbm_cycles SET status='in_progress', started_at=NOW() WHERE cycle_id=? AND status='draft'")
+            ->execute([$newCycleId]);
+        } else {
+          $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")
+            ->execute([$syId, $schoolId]);
+          $newCycleId = (int) $db->lastInsertId();
+        }
         // Initialize dimension scores (active form version only)
         $dimIdsStmt = $db->prepare("SELECT dimension_id FROM sbm_dimensions WHERE form_version_id=?");
         $dimIdsStmt->execute([$activeFormVersionId]);
@@ -148,43 +156,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $cycleRow = $cycleStmt->fetch();
 
       if (!$cycleRow) {
-        try {
-          $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")->execute([$syId, $schoolId]);
-          $cycleId = $db->lastInsertId();
-          // Initialize dimension scores (active form version only)
-          $dimIdsStmt = $db->prepare("SELECT dimension_id FROM sbm_dimensions WHERE form_version_id=?");
-          $dimIdsStmt->execute([$activeFormVersionId]);
-          $dimIds = $dimIdsStmt->fetchAll(PDO::FETCH_COLUMN);
-          foreach ($dimIds as $dId) {
-            $db->prepare("INSERT IGNORE INTO sbm_dimension_scores (cycle_id, school_id, dimension_id, raw_score, max_score, percentage) VALUES (?, ?, ?, 0, 0, 0)")
-              ->execute([$cycleId, $schoolId, $dId]);
-          }
-        } catch (\PDOException $e) {
-          if ($e->getCode() === '23000') {
-            $retry = $db->prepare("SELECT cycle_id FROM sbm_cycles WHERE school_id=? AND sy_id=?");
-            $retry->execute([$schoolId, $syId]);
-            $cycleId = $retry->fetchColumn();
-            if (!$cycleId) {
-              echo json_encode(['ok' => false, 'msg' => 'Failed to initialize assessment cycle. Please refresh and try again.']);
-              exit;
-            }
-          } else {
-            throw $e;
-          }
-        }
-        if (empty($cycleId)) {
-          echo json_encode(['ok' => false, 'msg' => 'Failed to initialize assessment cycle. Please refresh and try again.']);
-          exit;
-        }
-      } else {
-        $cycleId = $cycleRow['cycle_id'];
-        if ((int) $cycleRow['school_id'] !== (int) $schoolId) {
-          echo json_encode(['ok' => false, 'msg' => 'Access denied.']);
-          exit;
-        }
-        if ($cycleRow['status'] === 'draft') {
-          $db->prepare("UPDATE sbm_cycles SET status='in_progress',started_at=NOW() WHERE cycle_id=?")->execute([$cycleId]);
-        }
+        echo json_encode(['ok' => false, 'msg' => 'No active assessment cycle. Start the assessment before saving ratings.']);
+        exit;
+      }
+      $cycleId = (int) $cycleRow['cycle_id'];
+      if ((int) $cycleRow['school_id'] !== (int) $schoolId) {
+        echo json_encode(['ok' => false, 'msg' => 'Access denied.']);
+        exit;
+      }
+      if (!in_array($cycleRow['status'], ['in_progress', 'returned'], true)) {
+        echo json_encode(['ok' => false, 'msg' => 'Assessment is not open for ratings.']);
+        exit;
       }
 
       $db->prepare("INSERT INTO sbm_responses (cycle_id,indicator_id,school_id,rating,evidence_text,rated_by)
@@ -558,36 +540,6 @@ $cycle = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
 $cycle->execute([$schoolId, $syId]);
 $cycle = $cycle->fetch();
 
-// ── AUTO-START: create the cycle the moment today enters the Self-Assessment window ──
-if (!$cycle && isWithinAssessmentWindow($assessmentWindow) && $assessmentWindow['start']) {
-  try {
-    $db->prepare("INSERT INTO sbm_cycles (sy_id,school_id,status,started_at) VALUES (?,?,'in_progress',NOW())")
-      ->execute([$syId, $schoolId]);
-    $newCycleId = $db->lastInsertId();
-    $dimIdsStmt = $db->prepare("SELECT dimension_id FROM sbm_dimensions WHERE form_version_id=?");
-    $dimIdsStmt->execute([$activeFormVersionId]);
-    $dimIds = $dimIdsStmt->fetchAll(PDO::FETCH_COLUMN);
-    foreach ($dimIds as $dId) {
-      $db->prepare("INSERT IGNORE INTO sbm_dimension_scores (cycle_id, school_id, dimension_id, raw_score, max_score, percentage) VALUES (?, ?, ?, 0, 0, 0)")
-        ->execute([$newCycleId, $schoolId, $dId]);
-    }
-    logActivity('start_assessment', 'self_assessment', "Auto-started SBM assessment cycle (Self-Assessment window opened).");
-
-    $cycle = $db->prepare("SELECT * FROM sbm_cycles WHERE cycle_id=?");
-    $cycle->execute([$newCycleId]);
-    $cycle = $cycle->fetch();
-  } catch (\PDOException $e) {
-    // Race condition guard: another request may have just created it
-    if ($e->getCode() === '23000') {
-      $cycle = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
-      $cycle->execute([$schoolId, $syId]);
-      $cycle = $cycle->fetch();
-    } else {
-      throw $e;
-    }
-  }
-}
-
 $responses = [];
 if ($cycle) {
   $r = $db->prepare("SELECT * FROM sbm_responses WHERE cycle_id=?");
@@ -608,7 +560,7 @@ $isLocked = $cycle && in_array($cycle['status'], ['submitted', 'validated', 'fin
 $isFinalized = $cycle && $cycle['status'] === 'finalized';
 $isCoordinator = ($_SESSION['role'] === 'sbm_coordinator');
 // Coordinator is always effectively locked (view-only)
-$canEdit = !$isLocked && !$isCoordinator;
+$canEdit = $cycle && $cycle['status'] !== 'draft' && !$isLocked && !$isCoordinator;
 
 // The School Head can rate every indicator; coordinators retain the configured
 // SH_RATEABLE_CODES view for monitoring.
@@ -1779,7 +1731,7 @@ foreach ($grouped as $dimNo => $inds) {
 <!-- ── PAGE HEAD ──────────────────────────────────────────── -->
 <div class="page-head" style="justify-content:flex-end;margin-bottom:16px;">
   <div class="page-head-actions">
-    <?php if (!$cycle): ?>
+    <?php if (!$cycle || $cycle['status'] === 'draft'): ?>
       <?php if (hasAccess('start_assessment')): ?>
         <button class="btn btn-primary" onclick="openModal('mStartAssessment')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -1821,7 +1773,7 @@ foreach ($grouped as $dimNo => $inds) {
   </div>
 <?php endif; ?>
 
-<?php if (!$cycle): ?>
+<?php if (!$cycle || $cycle['status'] === 'draft'): ?>
   <div class="card" style="margin-bottom: 24px;">
     <div class="card-body" style="padding: 60px 20px; text-align: center;">
       <div
@@ -1833,8 +1785,8 @@ foreach ($grouped as $dimNo => $inds) {
       </div>
       <h3 style="font-size: 22px; font-weight: 800; color: var(--n800); margin-bottom: 12px;">Start New Assessment Cycle
       </h3>
-      <p style="font-size: 15px; color: var(--n500); max-width: 480px; margin: 0 auto 30px; line-height: 1.6;">There is
-        currently no active assessment cycle for this school year.<?php if (hasAccess('start_assessment')): ?> Click the
+      <p style="font-size: 15px; color: var(--n500); max-width: 480px; margin: 0 auto 30px; line-height: 1.6;"><?php if ($cycle): ?>The assessment cycle is configured but has not been started.<?php else: ?>There is
+        currently no active assessment cycle for this school year.<?php endif; ?><?php if (hasAccess('start_assessment')): ?> Click the
           button below to explicitly start the assessment. This will instantly make the indicators available for all active
           teachers to answer.<?php else: ?> Please wait for the School Head to start the assessment cycle.<?php endif; ?>
       </p>

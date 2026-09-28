@@ -481,9 +481,6 @@ include __DIR__ . '/../includes/header.php';
       <button class="btn btn-secondary" onclick="openConfigModal()">
         <?= svgIcon('settings') ?> Configure Schedule
       </button>
-      <button class="btn btn-primary" onclick="openModal('mMilestone');resetMilestone()">
-        <?= svgIcon('plus') ?> Add Milestone
-      </button>
     <?php endif; ?>
   </div>
 </div>
