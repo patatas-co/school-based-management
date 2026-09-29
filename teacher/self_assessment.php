@@ -131,11 +131,6 @@ $assignStmt = $db->prepare("SELECT indicator_code FROM teacher_indicator_assignm
 $assignStmt->execute([$uid, $cycleId]);
 $assignedCodes = $assignStmt->fetchAll(PDO::FETCH_COLUMN);
 
-// Fallback to all teacher codes if none specifically assigned
-if (empty($assignedCodes)) {
-    $assignedCodes = getRoleIndicatorCodes($db, $activeFormVersionId, 'teacher');
-}
-
 // ── AJAX HANDLERS ─────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
@@ -192,6 +187,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             echo json_encode([
                 'ok' => false,
                 'msg' => 'This assessment has already been submitted. Your responses are locked.'
+            ]);
+            exit;
+        }
+
+        if (empty($assignedCodes)) {
+            echo json_encode([
+                'ok' => false,
+                'msg' => 'No indicators have been assigned to you for this cycle. Please contact your School Head or SBM Coordinator.'
             ]);
             exit;
         }
@@ -710,6 +713,11 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
 
 
 <!-- ── STICKY DIMENSION STEP PROGRESS ────────────────────── -->
+<?php if (empty($indicators)): ?>
+    <div class="alert alert-info" style="margin-bottom:16px;">
+        No indicators have been assigned to you for this cycle. Please contact your School Head or SBM Coordinator.
+    </div>
+<?php else: ?>
 <?php $dimNosList = array_keys($grouped); $firstDimNo = $dimNosList[0] ?? null; ?>
 <div id="dimTabs" class="dim-tabs-row">
     <?php foreach ($grouped as $dimNo => $inds): ?>
@@ -859,10 +867,11 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
 
     </div>
 <?php endforeach; ?>
+<?php endif; ?>
 
 <!-- ── BOTTOM SUBMIT ── -->
 <div style="text-align:center;padding:24px 0 32px;">
-    <?php if (!$isLocked): ?>
+    <?php if (!$isLocked && $totalInds > 0): ?>
         <button class="btn btn-primary" style="padding:12px 36px;font-size:15px;" id="submitBtn"
             onclick="submitMyAssessment()">
             <?= svgIcon('check') ?> Submit to School Head
@@ -875,7 +884,7 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
             Make sure all <?= $totalInds ?> indicators are rated first.
         </p>
 
-    <?php else: ?>
+    <?php elseif ($totalInds > 0): ?>
         <p style="font-size:13px;color:var(--n500);">
             This assessment cycle is
             <strong><?= e($cycle['status'] ?? '') ?></strong>.

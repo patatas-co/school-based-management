@@ -4130,7 +4130,7 @@ ALTER TABLE `system_settings`
 --
 ALTER TABLE `teacher_indicator_assignments`
   ADD PRIMARY KEY (`assignment_id`),
-  ADD UNIQUE KEY `unique_teacher_indicator` (`teacher_id`,`indicator_code`),
+  ADD UNIQUE KEY `unique_teacher_cycle_indicator` (`teacher_id`,`indicator_code`,`cycle_id`),
   ADD KEY `assigned_by` (`assigned_by`);
 
 --

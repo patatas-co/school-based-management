@@ -569,8 +569,7 @@ foreach ($allActiveInds as $ind) {
                 <input type="hidden" name="action" value="save_assignments">
 
                 <div style="margin-bottom:16px;font-size:13px;color:var(--n600);">
-                    Select the specific indicators you want this teacher to evaluate. If you leave all unchecked, the
-                    teacher will default to evaluating ALL teacher-applicable indicators.
+                    Select the indicators you want this teacher to evaluate. If none are selected, no indicators will be assigned.
                 </div>
 
                 <div style="display:flex;gap:10px;margin-bottom:16px;">
@@ -658,7 +657,7 @@ foreach ($allActiveInds as $ind) {
             <div>
                 <div style="font-size:13px;font-weight:700;color:var(--n700);margin-bottom:8px;">
                     Step 3 — Choose Indicators to Assign
-                    <span style="font-size:12px;font-weight:400;color:var(--n500);">(Leave all unchecked to default to all applicable)</span>
+                    <span style="font-size:12px;font-weight:400;color:var(--n500);">(Leave all unchecked to assign none)</span>
                 </div>
                 <div style="display:flex;gap:8px;margin-bottom:10px;">
                     <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllBulkIndicators(true)">Select All</button>
