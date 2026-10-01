@@ -41,7 +41,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
       $cycleIdForStatus,
       (int) ($_SESSION['school_id'] ?? 0)
     );
-    $cards = buildLowRaterCards($summaryData['summaries'], $summaryData['display_names']);
+    $cards = buildLowRaterCards(
+      $summaryData['summaries'],
+      $summaryData['display_names'],
+      $db,
+      $cycleIdForStatus,
+      (int) ($_SESSION['school_id'] ?? 0)
+    );
     if ($cards) {
       $stored = json_decode((string) $usageStatus['last_recommendation'], true);
       if (is_array($stored) && isset($stored['text']) && is_string($stored['text'])) {
@@ -138,7 +144,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
     }
   }
 
-  $lowRaterCards = buildLowRaterCards($teacherSummariesAjax, $teacherDisplayNamesAjax);
+  $lowRaterCards = buildLowRaterCards(
+    $teacherSummariesAjax,
+    $teacherDisplayNamesAjax,
+    $db,
+    $teacherCycleIdAjax,
+    $schoolIdAjax
+  );
   foreach ($lowRaterCards as &$lowRaterCard) {
     $teacherId = (int) ($lowRaterCard['block']['teacher_user_id'] ?? 0);
     $lowRaterCard['block']['indicator_codes'] = array_values(array_unique(

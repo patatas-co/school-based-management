@@ -5,8 +5,8 @@
  * Called after assessment finalization or from the analytics dashboard.
  */
 
-define('ML_SERVICE_URL', getenv('ML_SERVICE_URL') ?: 'http://127.0.0.1:5001');
-define('ML_SECRET',      getenv('ML_SECRET')      ?: 'sbm-ml-secret-change-in-production');
+define('ML_SERVICE_URL', $_ENV['ML_SERVICE_URL'] ?? getenv('ML_SERVICE_URL') ?: 'http://127.0.0.1:5001');
+define('ML_SECRET',      $_ENV['ML_SECRET'] ?? getenv('ML_SECRET') ?: '');
 
 function ml_post(string $endpoint, array $payload): ?array
 {

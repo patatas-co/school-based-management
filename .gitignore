@@ -17,6 +17,8 @@ ml/venv/
 ml/venv64/
 ml/env/
 ml/__pycache__/
+__pycache__/
+*.pyc
 ml/*.egg-info/
 ml/dist/
 ml/build/
@@ -30,6 +32,8 @@ ml/*.joblib
 ml/*.h5
 ml/*.model
 ml/models/
+
+# Evaluation reports are tracked; trained model artifacts remain local.
 
 # PHP / Composer
 vendor/

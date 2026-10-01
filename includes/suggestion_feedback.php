@@ -171,15 +171,15 @@ function saveSuggestionGeneration(
         $insertItem = $isSynthetic
             ? $db->prepare("
                 INSERT INTO ai_suggestion_items
-                    (generation_id, item_index, source, title, body_text, indicator_codes,
+                    (generation_id, item_index, source, detector_type, title, body_text, indicator_codes,
                      confidence, teacher_user_id, teacher_label, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ")
             : $db->prepare("
                 INSERT INTO ai_suggestion_items
-                    (generation_id, item_index, source, title, body_text, indicator_codes,
+                    (generation_id, item_index, source, detector_type, title, body_text, indicator_codes,
                      confidence, teacher_user_id, teacher_label, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
             ");
         foreach ($sections as $itemIndex => $section) {
             $title = (string) $section['title'];
@@ -190,8 +190,14 @@ function saveSuggestionGeneration(
             $block = $matchingBlockIndex !== null && is_array($blocks[$matchingBlockIndex] ?? null)
                 ? $blocks[$matchingBlockIndex]
                 : [];
-            $isTeacherOutlier = ($block['source'] ?? '') === 'deterministic_low_rater';
-            $source = $isTeacherOutlier ? 'rule_teacher_outlier' : 'llm';
+            $isTeacherOutlier = in_array(
+                $block['source'] ?? '',
+                ['deterministic_low_rater', 'ml_teacher_outlier'],
+                true
+            );
+            $source = ($block['source'] ?? '') === 'ml_teacher_outlier'
+                ? 'ml_teacher_outlier'
+                : ($isTeacherOutlier ? 'rule_teacher_outlier' : 'llm');
             $teacherUserId = $isTeacherOutlier ? (int) ($block['teacher_user_id'] ?? 0) : 0;
             $teacherLabel = $isTeacherOutlier
                 ? 'Teacher ' . $teacherUserId
@@ -214,6 +220,7 @@ function saveSuggestionGeneration(
                 $generationId,
                 $itemIndex,
                 $source,
+                $isTeacherOutlier ? ($block['detector_type'] ?? null) : null,
                 $storedTitle,
                 $storedBody,
                 json_encode($indicatorCodes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
@@ -286,7 +293,7 @@ function sfAttachLatestGenerationItems(
     $outlierItems = [];
     foreach ($itemsStmt->fetchAll(PDO::FETCH_ASSOC) as $item) {
         $item['indicator_codes'] = json_decode((string) $item['indicator_codes'], true) ?: [];
-        if ($item['source'] === 'rule_teacher_outlier') {
+        if (in_array($item['source'], ['rule_teacher_outlier', 'ml_teacher_outlier'], true)) {
             $outlierItems[(int) $item['teacher_user_id']] = $item;
         } else {
             $itemsByTitle[(string) $item['title']][] = $item;
@@ -298,7 +305,7 @@ function sfAttachLatestGenerationItems(
             continue;
         }
         $item = null;
-        if (($block['source'] ?? '') === 'deterministic_low_rater') {
+        if (in_array($block['source'] ?? '', ['deterministic_low_rater', 'ml_teacher_outlier'], true)) {
             $item = $outlierItems[(int) ($block['teacher_user_id'] ?? 0)] ?? null;
         } elseif (!empty($itemsByTitle[$block['title'] ?? ''])) {
             $item = array_shift($itemsByTitle[$block['title']]);
@@ -306,7 +313,7 @@ function sfAttachLatestGenerationItems(
         if ($item !== null) {
             $block['suggestion_item_id'] = (int) $item['item_id'];
             $block['indicator_codes'] = $item['indicator_codes'];
-            if ($item['source'] === 'rule_teacher_outlier') {
+            if (in_array($item['source'], ['rule_teacher_outlier', 'ml_teacher_outlier'], true)) {
                 $block['teacher_user_id'] = (int) $item['teacher_user_id'];
                 $block['teacher_label'] = $item['teacher_label'];
             }

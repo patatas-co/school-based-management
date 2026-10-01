@@ -1,50 +1,118 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/ml_service.php';
+
+function detectTeacherOutliers(PDO $db, int $cycleId, int $schoolId): array
+{
+    $teacherQ = $db->prepare("
+        SELECT cycle_id, teacher_id, indicator_id, rating
+        FROM teacher_responses
+        WHERE cycle_id = ? AND school_id = ? AND status = 'submitted'
+        ORDER BY teacher_id, indicator_id
+    ");
+    $teacherQ->execute([$cycleId, $schoolId]);
+    $headQ = $db->prepare("
+        SELECT indicator_id, rating
+        FROM sbm_responses
+        WHERE cycle_id = ? AND school_id = ?
+    ");
+    $headQ->execute([$cycleId, $schoolId]);
+    $headRatings = [];
+    foreach ($headQ->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $headRatings[(string) $row['indicator_id']] = (float) $row['rating'];
+    }
+    $byTeacher = [];
+    foreach ($teacherQ->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $id = (int) $row['teacher_id'];
+        $byTeacher[$id] ??= [
+            'cycle_id' => $cycleId, 'teacher_id' => $id, 'ratings' => [],
+            'school_head_ratings' => $headRatings,
+        ];
+        $byTeacher[$id]['ratings'][(string) $row['indicator_id']] = (float) $row['rating'];
+    }
+    if (count($byTeacher) < 3) {
+        return ['available' => false, 'fallback' => true, 'outliers' => []];
+    }
+    $teachers = array_values($byTeacher);
+    foreach ($teachers as &$teacher) {
+        $peerMeans = [];
+        foreach (array_keys($teacher['ratings']) as $indicator) {
+            $values = [];
+            foreach ($teachers as $peer) {
+                if ($peer['teacher_id'] !== $teacher['teacher_id']
+                    && isset($peer['ratings'][$indicator])) {
+                    $values[] = $peer['ratings'][$indicator];
+                }
+            }
+            if ($values) {
+                $peerMeans[] = array_sum($values) / count($values);
+            }
+        }
+        $teacher['peer_differences'] = [];
+        foreach (array_keys($teacher['ratings']) as $indicator) {
+            $values = [];
+            foreach ($teachers as $peer) {
+                if ($peer['teacher_id'] !== $teacher['teacher_id']
+                    && isset($peer['ratings'][$indicator])) {
+                    $values[] = $peer['ratings'][$indicator];
+                }
+            }
+            if ($values) {
+                $teacher['peer_differences'][] = abs(
+                    $teacher['ratings'][$indicator] - array_sum($values) / count($values)
+                );
+            }
+        }
+        $teacher['other_teachers_mean_rating'] = $peerMeans
+            ? array_sum($peerMeans) / count($peerMeans) : null;
+    }
+    unset($teacher);
+    $response = ml_post('/api/teacher_outliers', ['teacher_cycles' => $teachers]);
+    if (!is_array($response) || empty($response['available'])) {
+        return ['available' => false, 'fallback' => true, 'outliers' => []];
+    }
+    return ['available' => true, 'fallback' => false, 'outliers' => $response['outliers'] ?? []];
+}
+
+function buildTeacherOutlierCard(array $outlier, string $displayName): array
+{
+    $type = (string) ($outlier['anomaly_type'] ?? 'unclassified');
+    $label = 'Teacher ' . (int) ($outlier['teacher_id'] ?? 0);
+    $score = is_numeric($outlier['anomaly_score'] ?? null)
+        ? (float) $outlier['anomaly_score']
+        : 0.0;
+    $features = is_array($outlier['supporting_numbers'] ?? null) ? $outlier['supporting_numbers'] : [];
+    $peerGap = (float) ($features['peer_mean_abs_difference'] ?? 0.0);
+    // This is an interpretable unusualness indicator, not a probability.
+    $forestContribution = min(30.0, max(0.0, $score) * 300.0);
+    $confidencePct = min(100.0, max(0.0, round(50.0 + $forestContribution + min(20.0, $peerGap * 20.0), 1)));
+    if ($type === 'constant') $confidencePct = min($confidencePct, 65.0);
+    $confidenceLevel = $confidencePct >= 80 ? 'High Confidence' : ($confidencePct >= 60 ? 'Moderate Confidence' : 'Low Confidence');
+    $reason = [
+        'all_low' => 'may reflect disengagement, misunderstanding of the scale, or real concerns',
+        'all_high' => 'may reflect leniency or misunderstanding of the scale',
+        'mostly_low' => 'almost all ratings were at the lowest level and may reflect disengagement, misunderstanding of the scale, or real concerns',
+        'mostly_high' => 'almost all ratings were at the highest level and may reflect leniency or misunderstanding of the scale',
+        'erratic' => 'ratings may be unrelated to peers',
+        'constant' => 'identical ratings may mean the form was completed quickly',
+    ][$type] ?? 'may benefit from a supportive review of the rating pattern';
+    $title = 'Hold a supportive conversation with ' . $displayName;
+    $text = "**$title** This teacher's rating pattern $reason. Treat this as an exploratory signal, not a judgment or probability of misconduct.\n\n- Arrange a private one-on-one and begin by listening without judgment.\n- Ask what shaped the ratings and whether the teacher has concerns or needs support.\n- Review the rating scale together using concrete examples.";
+    return ['text' => $text, 'block' => ['title' => $title, 'source' => 'ml_teacher_outlier', 'teacher_user_id' => (int) $outlier['teacher_id'], 'teacher_label' => $label, 'detector_type' => $type, 'confidence_pct' => $confidencePct, 'confidence_level' => $confidenceLevel, 'confidence_note' => 'This reflects how unusual the ratings are and is not a probability.', 'factors' => ['Anomaly score: ' . number_format($score, 4), 'Peer mean absolute difference: ' . number_format($peerGap, 2) . ' rating points.'], 'indicator_codes' => []]];
+}
+
 function buildLowRaterRecommendationCard(array $teacherSummary, string $displayName): ?array
 {
     $assignedCount = (int) ($teacherSummary['assigned_indicator_count'] ?? 0);
     $ratedCount = (int) ($teacherSummary['rated_indicator_count'] ?? 0);
-    if (
-        empty($teacherSummary['low_rater'])
-        || $assignedCount < 1
-        || $ratedCount !== $assignedCount
-    ) {
-        return null;
-    }
-
+    if (empty($teacherSummary['low_rater']) || $assignedCount < 1 || $ratedCount !== $assignedCount) return null;
     $confidencePct = round(($ratedCount / $assignedCount) * 100, 1);
-    if ($confidencePct >= 80) {
-        $confidenceLevel = 'High Confidence';
-    } elseif ($confidencePct >= 60) {
-        $confidenceLevel = 'Moderate Confidence';
-    } else {
-        $confidenceLevel = 'Low Confidence';
-    }
-
+    $confidenceLevel = $confidencePct >= 80 ? 'High Confidence' : ($confidencePct >= 60 ? 'Moderate Confidence' : 'Low Confidence');
     $title = 'Hold a supportive conversation with ' . $displayName;
-    $text = "**$title** Every one of this teacher's $assignedCount assigned indicators was rated at the lowest level (1). This pattern can reflect disengagement, misunderstanding of the rating scale, or real concerns. Treat the conversation as exploratory and supportive, not punitive.\n\n"
-        . "- Arrange a private one-on-one and begin by listening without judgment.\n"
-        . "- Ask open questions about what shaped the ratings and whether the teacher has concerns or needs support.\n"
-        . "- Review the rating scale together and compare it with a few concrete examples.";
-
-    return [
-        'text' => $text,
-        'block' => [
-            'title' => $title,
-            'source' => 'deterministic_low_rater',
-            'insufficient_data' => false,
-            'confidence_pct' => $confidencePct,
-            'confidence_level' => $confidenceLevel,
-            'factors' => [
-                "$ratedCount of $assignedCount assigned indicators have recorded ratings.",
-                'Every recorded rating for this teacher is 1.',
-            ],
-            'indicator_codes' => [],
-        ],
-    ];
+    $text = "**$title** Every one of this teacher's $assignedCount assigned indicators was rated at the lowest level (1). This pattern can reflect disengagement, misunderstanding of the rating scale, or real concerns. Treat the conversation as exploratory and supportive, not punitive.\n\n- Arrange a private one-on-one and begin by listening without judgment.\n- Ask open questions about what shaped the ratings and whether the teacher has concerns or needs support.\n- Review the rating scale together and compare it with a few concrete examples.";
+    return ['text' => $text, 'block' => ['title' => $title, 'source' => 'deterministic_low_rater', 'insufficient_data' => false, 'confidence_pct' => $confidencePct, 'confidence_level' => $confidenceLevel, 'factors' => ["$ratedCount of $assignedCount assigned indicators have recorded ratings.", 'Every recorded rating for this teacher is 1.'], 'indicator_codes' => []]];
 }
-
 function getTeacherRatingSummaryData(PDO $db, int $cycleId, int $schoolId): array
 {
     $formVersionId = 0;
@@ -122,10 +190,37 @@ function getTeacherRatingSummaryData(PDO $db, int $cycleId, int $schoolId): arra
     return ['summaries' => $summaries, 'display_names' => $displayNames];
 }
 
-function buildLowRaterCards(array $teacherSummaries, array $teacherDisplayNames): array
+function buildLowRaterCards(
+    array $teacherSummaries,
+    array $teacherDisplayNames,
+    ?PDO $db = null,
+    int $cycleId = 0,
+    int $schoolId = 0
+): array
 {
     $cards = [];
+    $mlOutliers = [];
+    $mlAvailable = false;
+    if ($db !== null && $cycleId > 0 && $schoolId > 0) {
+        $detected = detectTeacherOutliers($db, $cycleId, $schoolId);
+        $mlAvailable = !empty($detected['available']);
+        foreach ($detected['outliers'] as $outlier) {
+            $id = (int) ($outlier['teacher_id'] ?? 0);
+            $mlOutliers[$id] = buildTeacherOutlierCard(
+                $outlier,
+                $teacherDisplayNames['Teacher ' . $id] ?? 'Teacher ' . $id
+            );
+        }
+    }
     foreach ($teacherSummaries as $teacherSummary) {
+        $teacherId = (int) $teacherSummary['user_id'];
+        if (isset($mlOutliers[$teacherId])) {
+            $cards[] = $mlOutliers[$teacherId];
+            continue;
+        }
+        if ($mlAvailable) {
+            continue;
+        }
         if (empty($teacherSummary['low_rater'])) {
             continue;
         }

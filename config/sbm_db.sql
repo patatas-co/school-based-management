@@ -4720,6 +4720,7 @@ CREATE TABLE IF NOT EXISTS ai_suggestion_items (
   generation_id BIGINT UNSIGNED NOT NULL,
   item_index INT UNSIGNED NOT NULL,
   source ENUM('llm','rule_teacher_outlier') NOT NULL DEFAULT 'llm',
+  detector_type VARCHAR(30) DEFAULT NULL,
   title VARCHAR(255) NOT NULL,
   body_text LONGTEXT NOT NULL,
   indicator_codes JSON DEFAULT NULL,
@@ -4735,6 +4736,32 @@ CREATE TABLE IF NOT EXISTS ai_suggestion_items (
   CONSTRAINT fk_ai_suggestion_item_teacher
     FOREIGN KEY (teacher_user_id) REFERENCES users (user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @sf_detector_column_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'ai_suggestion_items'
+    AND column_name = 'detector_type'
+);
+SET @sf_sql = IF(@sf_detector_column_exists = 0,
+  'ALTER TABLE ai_suggestion_items ADD COLUMN detector_type VARCHAR(30) DEFAULT NULL AFTER source',
+  'DO 0');
+PREPARE sf_stmt FROM @sf_sql;
+EXECUTE sf_stmt;
+DEALLOCATE PREPARE sf_stmt;
+
+-- Idempotent ML teacher-outlier source migration; existing sources remain valid.
+SET @sf_source_enum = (
+  SELECT COLUMN_TYPE FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'ai_suggestion_items'
+    AND column_name = 'source'
+);
+SET @sf_sql = IF(@sf_source_enum IS NOT NULL
+  AND @sf_source_enum NOT LIKE '%ml_teacher_outlier%',
+  'ALTER TABLE ai_suggestion_items MODIFY source ENUM(''llm'',''rule_teacher_outlier'',''ml_teacher_outlier'') NOT NULL DEFAULT ''llm''',
+  'DO 0');
+PREPARE sf_stmt FROM @sf_sql;
+EXECUTE sf_stmt;
+DEALLOCATE PREPARE sf_stmt;
 
 SET @sf_column_exists = (
   SELECT COUNT(*) FROM information_schema.columns
