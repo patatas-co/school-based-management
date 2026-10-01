@@ -2514,7 +2514,7 @@ include __DIR__ . '/../includes/header.php';
 
 <!-- Charts row -->
   <!-- Dimension trend over time -->
-  <?php if (count($trendSYLabels) >= 2): ?>
+  <?php if (count($trendSYLabels) >= 1): ?>
     <div class="chart-card" style="margin-bottom:18px;">
       <div class="chart-card-head">
   <span class="chart-card-title">Dimension Trend</span>
@@ -3657,7 +3657,7 @@ function sizeTrendInner(innerEl, wrapperEl, pointCount) {
 
 function renderDimensionTrendChart() {
   const canvas = document.getElementById('anDimTrendChart');
-  if (!canvas || anTrendSYLabels.length < 2) return;
+  if (!canvas || anTrendSYLabels.length < 1) return;
 
   const { labels } = getTrendWindow();
   const wrapperEl = document.getElementById('dimTrendScrollWrap');

@@ -3,6 +3,7 @@ ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/assessment_scoring.php';
 function buildInPlaceholders(array $arr): string
 {
   return implode(',', array_fill(0, count($arr), '?'));
@@ -419,97 +420,10 @@ function isTeacherHandled(string $code): bool
 
 function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId, int $schoolId): void
 {
-  $dimId = $db->prepare("SELECT dimension_id FROM sbm_indicators WHERE indicator_id=?");
-  $dimId->execute([$indicatorId]);
-  $dimId = $dimId->fetchColumn();
-
-  $inds = $db->prepare("SELECT indicator_id, indicator_code FROM sbm_indicators WHERE dimension_id=? AND is_active=1");
-  $inds->execute([$dimId]);
-  $inds = $inds->fetchAll();
-
-  $rawTotal = 0;
-  $maxTotal = 0;
-
-  // Each evaluator group has equal weight:
-  // School Head rating, teacher-group average, external-group average.
-  $teacherCodes = array_merge(
-    TEACHER_ONLY_CODES,
-    SH_TEACHER_CODES,
-    SH_TCH_EXT_CODES,
-    TCH_EXT_CODES
-  );
-
-  $externalCodes = array_merge(
-    SH_EXT_CODES,
-    SH_TCH_EXT_CODES,
-    TCH_EXT_CODES
-  );
-
-  $shRatingStmt = $db->prepare(
-    "SELECT rating
-     FROM sbm_responses
-     WHERE cycle_id=? AND indicator_id=? AND school_id=?"
-  );
-
-  $teacherAverageStmt = $db->prepare(
-    "SELECT AVG(rating)
-     FROM teacher_responses
-     WHERE cycle_id=? AND indicator_id=?"
-  );
-
-  $externalAverageStmt = $db->prepare(
-    "SELECT AVG(rating)
-     FROM stakeholder_responses
-     WHERE cycle_id=? AND indicator_id=?"
-  );
-
-  foreach ($inds as $ind) {
-    $code = $ind['indicator_code'];
-    $ratings = [];
-
-    // The School Head provides the school's rating for every indicator.
-    $needsSchoolHead = true;
-
-    $needsTeachers = in_array($code, $teacherCodes, true);
-    $needsExternal = in_array($code, $externalCodes, true);
-
-    if ($needsSchoolHead) {
-      $shRatingStmt->execute([$cycleId, $ind['indicator_id'], $schoolId]);
-      $shRating = $shRatingStmt->fetchColumn();
-
-      if ($shRating !== false && $shRating !== null) {
-        $ratings[] = (float) $shRating;
-      }
-    }
-
-    if ($needsTeachers) {
-      $teacherAverageStmt->execute([$cycleId, $ind['indicator_id']]);
-      $teacherAverage = $teacherAverageStmt->fetchColumn();
-
-      if ($teacherAverage !== false && $teacherAverage !== null) {
-        $ratings[] = (float) $teacherAverage;
-      }
-    }
-
-    if ($needsExternal) {
-      $externalAverageStmt->execute([$cycleId, $ind['indicator_id']]);
-      $externalAverage = $externalAverageStmt->fetchColumn();
-
-      if ($externalAverage !== false && $externalAverage !== null) {
-        $ratings[] = (float) $externalAverage;
-      }
-    }
-
-    // Provisional: average only the evaluator groups that have submitted.
-    // Final validation should require all required evaluator groups.
-    if ($ratings) {
-      $rawTotal += array_sum($ratings) / count($ratings);
-      $maxTotal += 4;
-    }
-  }
-
-  $rawTotal = round($rawTotal, 2);
-  $pct = $maxTotal > 0 ? round(($rawTotal / $maxTotal) * 100, 2) : 0;
+  $dimensionStmt = $db->prepare("SELECT dimension_id FROM sbm_indicators WHERE indicator_id=?");
+  $dimensionStmt->execute([$indicatorId]);
+  $dimensionId = (int) $dimensionStmt->fetchColumn();
+  $score = calculateSbmDimensionScore($db, $cycleId, $dimensionId, $schoolId);
 
   $db->prepare("
         INSERT INTO sbm_dimension_scores (cycle_id, school_id, dimension_id, raw_score, max_score, percentage)
@@ -519,7 +433,14 @@ function recomputeDimScoreWithOverrides(PDO $db, int $cycleId, int $indicatorId,
             max_score=VALUES(max_score),
             percentage=VALUES(percentage),
             computed_at=NOW()
-    ")->execute([$cycleId, $schoolId, $dimId, $rawTotal, $maxTotal, $pct]);
+    ")->execute([
+      $cycleId,
+      $schoolId,
+      $score['dimension_id'],
+      $score['raw_score'],
+      $score['max_score'],
+      $score['percentage'],
+    ]);
 
   // overall_score is only computed on submission, not during live rating
 }
@@ -1729,27 +1650,15 @@ foreach ($grouped as $dimNo => $inds) {
 ?>
 
 <!-- ── PAGE HEAD ──────────────────────────────────────────── -->
+<?php if ($cycle && $cycle['status'] !== 'draft' && $isLocked): ?>
 <div class="page-head" style="justify-content:flex-end;margin-bottom:16px;">
   <div class="page-head-actions">
-    <?php if (!$cycle || $cycle['status'] === 'draft'): ?>
-      <?php if (hasAccess('start_assessment')): ?>
-        <button class="btn btn-primary" onclick="openModal('mStartAssessment')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" style="width:16px;height:16px;margin-right:6px;">
-            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-          </svg>
-          Start Assessment
-        </button>
-      <?php endif; ?>
-    <?php elseif (!$isLocked): ?>
-      <!-- top Submit Assessment button removed; bottom button remains -->
-    <?php else: ?>
-      <span class="pill pill-<?= e($cycle['status']) ?>" style="font-size:13px;padding:6px 14px;">
-        <?= ucfirst(str_replace('_', ' ', $cycle['status'])) ?>
-      </span>
-    <?php endif; ?>
+    <span class="pill pill-<?= e($cycle['status']) ?>" style="font-size:13px;padding:6px 14px;">
+      <?= ucfirst(str_replace('_', ' ', $cycle['status'])) ?>
+    </span>
   </div>
 </div>
+<?php endif; ?>
 
 <?php if ($isFinalized): ?>
   <div class="alert alert-info" style="margin-bottom:16px;">

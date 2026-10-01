@@ -56,10 +56,32 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     forecast  = analysis.get("forecast", {})
     by_rating = analysis.get("by_rating", {})
     history   = analysis.get("history", [])
+    teacher_summaries = analysis.get("teacher_summaries", []) or []
 
     weakest_dims = gap.get("weakest_dimensions", [])
     top_topics   = comments.get("top_topics", [])
     urgent       = comments.get("has_urgent", False)
+    flagged_teachers = [
+        teacher for teacher in teacher_summaries
+        if teacher.get("low_rater") is True
+    ]
+    teacher_summary_lines = (
+        json.dumps(teacher_summaries, ensure_ascii=False)
+        if teacher_summaries else "  (none available)"
+    )
+    teacher_guidance = ""
+    if flagged_teachers:
+        flagged_labels = ", ".join(
+            str(teacher.get("label", "a flagged teacher"))
+            for teacher in flagged_teachers
+        )
+        teacher_guidance = (
+            f"\nAt least one assigned teacher rated every assigned indicator exactly 1: {flagged_labels}. "
+            "Include a supportive one-on-one conversation with each flagged teacher as an exploratory next step. "
+            "Explain that an all-low pattern may reflect disengagement, a misunderstanding of the rating scale, "
+            "or real concerns that deserve attention; do not assume which explanation applies. "
+            "Keep the conversation non-punitive, curious, and focused on listening and support."
+        )
 
     # --- Historical context block ---
     if history and len(history) >= 2:
@@ -172,6 +194,10 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
 
     Stakeholder Remarks: {topic_line}
     Urgent issues: {"YES" if urgent else "None"}
+
+    Teacher rating summaries (neutral labels only; do not infer or invent names):
+    {teacher_summary_lines}
+    {teacher_guidance}
 
     Remember: natural conversational prose, bold topic headers, bullet points for actions,
     short paragraphs, closing statement (not a question). Reference DepEd Order No. 007, s. 2024 where relevant.
@@ -570,10 +596,10 @@ def split_into_confidence_blocks(raw_text: str, analysis: dict) -> list:
 def _build_ip_field_prompt(field_type: str, indicator_code: str, indicator_text: str,
                             dimension_name: str, snippet: str) -> str:
     """
-    Builds a focused prompt that turns ONE already-generated AI recommendation
+    Builds a focused prompt that turns already-generated AI recommendation
     snippet into an Objective or Strategy for a School Improvement Plan.
     Uses ONLY the matched snippet as context — never the full article, and
-    never another indicator's content.
+    never content outside the selected indicators.
     """
     if field_type == "objective":
         task = (
@@ -592,12 +618,15 @@ def _build_ip_field_prompt(field_type: str, indicator_code: str, indicator_text:
     prompt = textwrap.dedent(f"""
     You are an SBM improvement specialist for Philippine public schools.
 
-    A School Head selected this indicator for a School Improvement Plan:
-    Dimension: {dimension_name}
-    Indicator: [{indicator_code}] {indicator_text}
+    A School Head selected these indicators for one School Improvement Plan:
+    Dimension(s): {dimension_name}
+    Indicator code(s): {indicator_code}
+    Indicator descriptions:
+    {indicator_text}
 
-    Below is the ONLY relevant recommendation already shown to the School Head.
-    Use ONLY this content as context. Do not reference any other dimension or
+    Below are the relevant recommendations already shown to the School Head.
+    Use ONLY these recommendations as context. Address the selected indicators
+    together in one coherent plan. Do not reference any other dimension or
     indicator, and do not introduce issues not mentioned below.
 
     ---
@@ -620,7 +649,7 @@ def generate_ip_field(
 ) -> dict:
     """
     Entry point for the Add Improvement Plan modal's "Generate Objective" /
-    "Generate Strategy" buttons. Turns a single matched AI-suggestion snippet
+    "Generate Strategy" buttons. Turns matched AI-suggestion snippets
     into a ready-to-edit Objective or Strategy.
     """
     prompt = _build_ip_field_prompt(field_type, indicator_code, indicator_text, dimension_name, snippet)

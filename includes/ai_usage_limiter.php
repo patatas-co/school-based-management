@@ -1,7 +1,7 @@
 <?php
 // includes/ai_usage_limiter.php
 // Server-side enforcement of AI Suggestion generation limits.
-// - AI_USAGE_DAILY_LIMIT generations per user per UTC day.
+// - Daily quotas reset on the Asia/Manila calendar day.
 // - AI_USAGE_COOLDOWN_SECONDS between consecutive generations.
 // Race-condition safe via row-level locking (SELECT ... FOR UPDATE).
 
@@ -17,13 +17,22 @@ define('AI_IP_FIELD_DAILY_LIMIT', 3);
 // each import costs one LLM call over a potentially large document.
 define('DOC_IMPORT_DAILY_LIMIT', 10);
 
+function aiUsageQuotaDate(?DateTimeInterface $instant = null): string
+{
+    $timeZone = new DateTimeZone('Asia/Manila');
+    $manilaTime = $instant === null
+        ? new DateTimeImmutable('now', $timeZone)
+        : DateTimeImmutable::createFromInterface($instant)->setTimezone($timeZone);
+    return $manilaTime->format('Y-m-d');
+}
+
 /**
  * Read-only status check (no locking, no mutation). Used to restore
  * button/timer state on page load without consuming a generation.
  */
 function aiUsageGetStatus(PDO $db, int $userId): array
 {
-    $todayUtc = gmdate('Y-m-d');
+    $todayManila = aiUsageQuotaDate();
 
     $stmt = $db->prepare("SELECT usage_count, last_generated_at, reset_date, last_recommendation FROM ai_suggestion_usage WHERE user_id = ? LIMIT 1");
     $stmt->execute([$userId]);
@@ -35,7 +44,7 @@ function aiUsageGetStatus(PDO $db, int $userId): array
     $lastRecommendation = $row['last_recommendation'] ?? null;
     $lastGeneratedAtRaw = $row['last_generated_at'] ?? null;
 
-    if (!$row || $row['reset_date'] !== $todayUtc) {
+    if (!$row || $row['reset_date'] !== $todayManila) {
         return [
             'used' => 0,
             'remaining' => AI_USAGE_DAILY_LIMIT,
@@ -79,13 +88,13 @@ function aiUsageSaveRecommendation(PDO $db, int $userId, string $text): void
  */
 function ipFieldUsageGetStatus(PDO $db, int $userId, string $fieldType): array
 {
-    $todayUtc = gmdate('Y-m-d');
+    $todayManila = aiUsageQuotaDate();
 
     $stmt = $db->prepare("SELECT usage_count, reset_date FROM ip_field_usage WHERE user_id = ? AND field_type = ? LIMIT 1");
     $stmt->execute([$userId, $fieldType]);
     $row = $stmt->fetch();
 
-    if (!$row || $row['reset_date'] !== $todayUtc) {
+    if (!$row || $row['reset_date'] !== $todayManila) {
         return [
             'used' => 0,
             'remaining' => AI_IP_FIELD_DAILY_LIMIT,
@@ -109,7 +118,7 @@ function ipFieldUsageGetStatus(PDO $db, int $userId, string $fieldType): array
  */
 function docImportCheckAndConsume(PDO $db, int $userId): array
 {
-    $todayUtc = gmdate('Y-m-d');
+    $todayManila = aiUsageQuotaDate();
 
     $db->beginTransaction();
     try {
@@ -119,9 +128,9 @@ function docImportCheckAndConsume(PDO $db, int $userId): array
 
         if (!$row) {
             $ins = $db->prepare("INSERT INTO doc_import_usage (user_id, usage_count, reset_date) VALUES (?, 0, ?)");
-            $ins->execute([$userId, $todayUtc]);
+            $ins->execute([$userId, $todayManila]);
             $usageCount = 0;
-        } elseif ($row['reset_date'] !== $todayUtc) {
+        } elseif ($row['reset_date'] !== $todayManila) {
             $usageCount = 0;
         } else {
             $usageCount = (int) $row['usage_count'];
@@ -140,7 +149,7 @@ function docImportCheckAndConsume(PDO $db, int $userId): array
 
         $newCount = $usageCount + 1;
         $upd = $db->prepare("UPDATE doc_import_usage SET usage_count = ?, reset_date = ? WHERE user_id = ?");
-        $upd->execute([$newCount, $todayUtc, $userId]);
+        $upd->execute([$newCount, $todayManila, $userId]);
 
         $db->commit();
 
@@ -163,7 +172,7 @@ function docImportCheckAndConsume(PDO $db, int $userId): array
  */
 function ipFieldUsageCheckAndConsume(PDO $db, int $userId, string $fieldType): array
 {
-    $todayUtc = gmdate('Y-m-d');
+    $todayManila = aiUsageQuotaDate();
 
     $db->beginTransaction();
     try {
@@ -173,9 +182,9 @@ function ipFieldUsageCheckAndConsume(PDO $db, int $userId, string $fieldType): a
 
         if (!$row) {
             $ins = $db->prepare("INSERT INTO ip_field_usage (user_id, field_type, usage_count, reset_date) VALUES (?, ?, 0, ?)");
-            $ins->execute([$userId, $fieldType, $todayUtc]);
+            $ins->execute([$userId, $fieldType, $todayManila]);
             $usageCount = 0;
-        } elseif ($row['reset_date'] !== $todayUtc) {
+        } elseif ($row['reset_date'] !== $todayManila) {
             $usageCount = 0;
         } else {
             $usageCount = (int) $row['usage_count'];
@@ -195,7 +204,7 @@ function ipFieldUsageCheckAndConsume(PDO $db, int $userId, string $fieldType): a
 
         $newCount = $usageCount + 1;
         $upd = $db->prepare("UPDATE ip_field_usage SET usage_count = ?, reset_date = ? WHERE user_id = ? AND field_type = ?");
-        $upd->execute([$newCount, $todayUtc, $userId, $fieldType]);
+        $upd->execute([$newCount, $todayManila, $userId, $fieldType]);
 
         $db->commit();
 
@@ -217,7 +226,7 @@ function ipFieldUsageCheckAndConsume(PDO $db, int $userId, string $fieldType): a
  */
 function aiUsageCheckAndConsume(PDO $db, int $userId): array
 {
-    $todayUtc = gmdate('Y-m-d');
+    $todayManila = aiUsageQuotaDate();
 
     $db->beginTransaction();
     try {
@@ -227,10 +236,10 @@ function aiUsageCheckAndConsume(PDO $db, int $userId): array
 
         if (!$row) {
             $ins = $db->prepare("INSERT INTO ai_suggestion_usage (user_id, usage_count, last_generated_at, reset_date) VALUES (?, 0, NULL, ?)");
-            $ins->execute([$userId, $todayUtc]);
+            $ins->execute([$userId, $todayManila]);
             $usageCount = 0;
             $lastGeneratedAt = null;
-        } elseif ($row['reset_date'] !== $todayUtc) {
+        } elseif ($row['reset_date'] !== $todayManila) {
             $usageCount = 0;
             $lastGeneratedAt = null;
         } else {
@@ -270,8 +279,9 @@ function aiUsageCheckAndConsume(PDO $db, int $userId): array
 
         // ── Allowed: consume ──
         $newCount = $usageCount + 1;
+        // Keep the cooldown instant in UTC; reset_date follows the Manila quota day.
         $upd = $db->prepare("UPDATE ai_suggestion_usage SET usage_count = ?, last_generated_at = UTC_TIMESTAMP(), reset_date = ? WHERE user_id = ?");
-        $upd->execute([$newCount, $todayUtc, $userId]);
+        $upd->execute([$newCount, $todayManila, $userId]);
 
         $db->commit();
 

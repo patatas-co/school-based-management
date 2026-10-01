@@ -5,6 +5,9 @@ require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
 require_once __DIR__.'/../includes/ai_usage_limiter.php';
 require_once __DIR__.'/../includes/improvement_plan_workflow.php';
+require_once __DIR__.'/../includes/ai_recommendation_helpers.php';
+require_once __DIR__.'/../includes/suggestion_payload.php';
+require_once __DIR__.'/../includes/suggestion_feedback.php';
 requireRole('school_head', 'sbm_coordinator');
 $db = getDB();
 
@@ -18,11 +21,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_i
   echo json_encode(['success' => true, 'history' => $h->fetchAll(PDO::FETCH_ASSOC)]);
   exit;
 }
-
 // ── AI USAGE STATUS (read-only, used to restore button/timer state on page load) ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_ai_usage_status') {
   header('Content-Type: application/json');
-  echo json_encode(aiUsageGetStatus($db, $currentUserId));
+  $usageStatus = aiUsageGetStatus($db, $currentUserId);
+  $syIdForStatus = (int) ($_POST['sy_id'] ?? 0);
+  if ($syIdForStatus > 0 && !empty($usageStatus['last_recommendation'])) {
+    $cycleQ = $db->prepare("
+      SELECT cycle_id
+      FROM sbm_cycles
+      WHERE school_id = ? AND sy_id = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+    ");
+    $cycleQ->execute([(int) ($_SESSION['school_id'] ?? 0), $syIdForStatus]);
+    $cycleIdForStatus = (int) ($cycleQ->fetchColumn() ?: 0);
+    $summaryData = getTeacherRatingSummaryData(
+      $db,
+      $cycleIdForStatus,
+      (int) ($_SESSION['school_id'] ?? 0)
+    );
+    $cards = buildLowRaterCards($summaryData['summaries'], $summaryData['display_names']);
+    if ($cards) {
+      $stored = json_decode((string) $usageStatus['last_recommendation'], true);
+      if (is_array($stored) && isset($stored['text']) && is_string($stored['text'])) {
+        $storedResponse = [
+          'recommendations' => $stored['text'],
+          'blocks' => is_array($stored['blocks'] ?? null) ? $stored['blocks'] : [],
+        ];
+      } else {
+        $storedResponse = [
+          'recommendations' => (string) $usageStatus['last_recommendation'],
+          'blocks' => [],
+        ];
+      }
+      $storedResponse = mergeLowRaterCardsIntoRecommendation($storedResponse, $cards);
+      $storedResponse['blocks'] = sfAttachLatestGenerationItems(
+        $db,
+        $currentUserId,
+        (int) ($_SESSION['school_id'] ?? 0),
+        $cycleIdForStatus,
+        $storedResponse['blocks']
+      );
+      $usageStatus['last_recommendation'] = json_encode([
+        'text' => $storedResponse['recommendations'],
+        'blocks' => $storedResponse['blocks'],
+      ]);
+    }
+    if (!$cards && $cycleIdForStatus > 0) {
+      $stored = json_decode((string) $usageStatus['last_recommendation'], true);
+      if (is_array($stored) && isset($stored['text']) && is_string($stored['text'])) {
+        $usageStatus['last_recommendation'] = json_encode([
+          'text' => $stored['text'],
+          'blocks' => sfAttachLatestGenerationItems(
+            $db,
+            $currentUserId,
+            (int) ($_SESSION['school_id'] ?? 0),
+            $cycleIdForStatus,
+            is_array($stored['blocks'] ?? null) ? $stored['blocks'] : []
+          ),
+        ]);
+      }
+    }
+  }
+  echo json_encode($usageStatus);
   exit;
 }
 
@@ -48,185 +110,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
   $schoolIdAjax = (int) ($_SESSION['school_id'] ?? 0);
   $syIdAjax = (int) ($_POST['sy_id'] ?? 0);
 
-  $sQ = $db->prepare("SELECT school_name FROM schools WHERE school_id = ?");
-  $sQ->execute([$schoolIdAjax]);
-  $schoolName = $sQ->fetchColumn() ?: 'School';
-
-  $syQ = $db->prepare("SELECT label FROM school_years WHERE sy_id = ?");
-  $syQ->execute([$syIdAjax]);
-  $syLabelAjax = $syQ->fetchColumn() ?: 'Unknown';
-
-  $dimQ = $db->prepare("
-        SELECT d.dimension_no, d.dimension_name, ROUND(AVG(ds.percentage), 1) as avg_pct
-        FROM sbm_dimensions d
-        LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
-        LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
-        GROUP BY d.dimension_id ORDER BY d.dimension_no
-    ");
-  $dimQ->execute([$syIdAjax, $schoolIdAjax]);
-  $dimScoresAjax = [];
-  foreach ($dimQ->fetchAll() as $row) {
-    $dimScoresAjax[] = [
-      'dimension_name' => $row['dimension_name'],
-      'score' => (float) $row['avg_pct'],
-      'maturity' => sbmMaturityLevel(floatval($row['avg_pct']))['label']
-    ];
-  }
-
-  $weakQ = $db->prepare("
-        SELECT i.indicator_code, i.indicator_text, ROUND(AVG(all_r.rating), 2) as rating
-        FROM (
-            SELECT cycle_id, indicator_id, rating FROM sbm_responses
-            UNION ALL
-            SELECT cycle_id, indicator_id, rating FROM teacher_responses
-        ) AS all_r
-        JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
-        JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
-        WHERE c.sy_id = ? AND c.school_id = ?
-        GROUP BY i.indicator_id
-        HAVING rating < 2.5
-        ORDER BY rating ASC
-    ");
-  $weakQ->execute([$syIdAjax, $schoolIdAjax]);
-  $byRatingAjax = ['1' => [], '2' => []];
-  foreach ($weakQ->fetchAll() as $row) {
-    $r = (int) floor($row['rating']);
-    if ($r < 1) $r = 1;
-    if ($r > 2) $r = 2;
-    $byRatingAjax[strval($r)][] = [
-      'code' => $row['indicator_code'],
-      'text' => $row['indicator_text'],
-      'rating' => (float) $row['rating']
-    ];
-  }
-
-  $histQ = $db->prepare("
-        SELECT overall_score FROM sbm_cycles 
-        WHERE school_id = ? AND status IN ('validated','finalized','completed') AND sy_id != ? 
-        ORDER BY created_at DESC LIMIT 3
-    ");
-  $histQ->execute([$schoolIdAjax, $syIdAjax]);
-  $historyAjax = $histQ->fetchAll();
-
-  // ── Respondent Consistency data: compare School-Head-pool vs Teacher-pool
-  // average ratings per weak indicator, so we can measure agreement between
-  // respondent groups rather than just a single pooled average. ──
-  $weakCodes = array_merge(
-    array_column($byRatingAjax['1'] ?? [], 'code'),
-    array_column($byRatingAjax['2'] ?? [], 'code')
-  );
-  $respondentConsistencyAjax = [];
-  if (!empty($weakCodes)) {
-    $ph = implode(',', array_fill(0, count($weakCodes), '?'));
-    $consQ = $db->prepare("
-      SELECT i.indicator_code,
-             ROUND(AVG(sr.rating), 2) AS sh_avg,
-             (SELECT ROUND(AVG(tr.rating), 2) FROM teacher_responses tr
-                JOIN sbm_cycles tc ON tr.cycle_id = tc.cycle_id
-                WHERE tr.indicator_id = i.indicator_id AND tc.sy_id = ? AND tc.school_id = ?) AS teacher_avg
-      FROM sbm_responses sr
-      JOIN sbm_indicators i ON sr.indicator_id = i.indicator_id
-      JOIN sbm_cycles c ON sr.cycle_id = c.cycle_id
-      WHERE c.sy_id = ? AND c.school_id = ? AND i.indicator_code IN ($ph)
-      GROUP BY i.indicator_id
-    ");
-    $consQ->execute(array_merge([$syIdAjax, $schoolIdAjax, $syIdAjax, $schoolIdAjax], $weakCodes));
-    foreach ($consQ->fetchAll() as $row) {
-      if ($row['sh_avg'] !== null && $row['teacher_avg'] !== null) {
-        $respondentConsistencyAjax[$row['indicator_code']] = [
-          'sh_avg' => (float) $row['sh_avg'],
-          'teacher_avg' => (float) $row['teacher_avg'],
-        ];
-      }
-    }
-  }
-
-  // ── Historical Evidence: was this same indicator also rated weak (<2.5)
-  // in prior cycles for this school? Checked over the same last-3-cycles window. ──
-  $indicatorHistoryAjax = [];
-  if (!empty($weakCodes)) {
-    $ph2 = implode(',', array_fill(0, count($weakCodes), '?'));
-    $indHistQ = $db->prepare("
-      SELECT i.indicator_code, c.sy_id, ROUND(AVG(all_r.rating), 2) AS rating
-      FROM (
-        SELECT cycle_id, indicator_id, rating FROM sbm_responses
-        UNION ALL
-        SELECT cycle_id, indicator_id, rating FROM teacher_responses
-      ) AS all_r
-      JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
-      JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
-      WHERE c.school_id = ? AND c.sy_id != ? AND c.status IN ('validated','finalized','completed')
-        AND i.indicator_code IN ($ph2)
-      GROUP BY i.indicator_id, c.sy_id
-      ORDER BY c.created_at DESC
-    ");
-    $indHistQ->execute(array_merge([$schoolIdAjax, $syIdAjax], $weakCodes));
-    foreach ($indHistQ->fetchAll() as $row) {
-      $indicatorHistoryAjax[$row['indicator_code']][] = (float) $row['rating'];
-    }
-  }
-
-  // ── Data Completeness: rated indicators vs total active indicators for
-  // the active form version, scoped to this cycle. ──
-  $activeFormVersionIdAjax = (int) $db->query("SELECT version_id FROM form_versions WHERE is_active=1 LIMIT 1")->fetchColumn();
-  $totalIndStmtAjax = $db->prepare("SELECT COUNT(*) FROM sbm_indicators WHERE is_active=1 AND form_version_id=?");
-  $totalIndStmtAjax->execute([$activeFormVersionIdAjax]);
-  $totalIndAjax = (int) $totalIndStmtAjax->fetchColumn();
-  $ratedIndQ = $db->prepare("
-    SELECT COUNT(DISTINCT all_r.indicator_id) FROM (
-      SELECT cycle_id, indicator_id FROM sbm_responses
-      UNION ALL
-      SELECT cycle_id, indicator_id FROM teacher_responses
-    ) AS all_r
-    JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
-    WHERE c.sy_id = ? AND c.school_id = ?
-  ");
-  $ratedIndQ->execute([$syIdAjax, $schoolIdAjax]);
-  $ratedIndAjax = (int) $ratedIndQ->fetchColumn();
-  $dataCompletenessAjax = $totalIndAjax > 0 ? round(($ratedIndAjax / $totalIndAjax) * 100, 1) : 0;
-
-  $scoreQ = $db->prepare("
-        SELECT overall_score, maturity_level FROM sbm_cycles 
-        WHERE school_id = ? AND sy_id = ? AND status IN ('validated','finalized','completed')
-        ORDER BY created_at DESC LIMIT 1
-    ");
-  $scoreQ->execute([$schoolIdAjax, $syIdAjax]);
-  $scoreDataAjax = $scoreQ->fetch();
-  $overallScoreAjax = $scoreDataAjax ? (float) $scoreDataAjax['overall_score'] : 0;
-  $overallMaturityAjax = $scoreDataAjax ? $scoreDataAjax['maturity_level'] : 'N/A';
-
-  $payload = [
-    'school_name' => $schoolName,
-    'sy_label' => $syLabelAjax,
-    'analysis' => [
-      'gap_analysis' => [
-        'average_score' => $overallScoreAjax,
-        'overall_maturity' => $overallMaturityAjax,
-        'weakest_dimensions' => array_slice($dimScoresAjax, 0, 3)
-      ],
-      'by_rating' => $byRatingAjax,
-      'history' => $historyAjax,
-      'comment_summary' => ['top_topics' => [], 'has_urgent' => false],
-      'respondent_consistency' => $respondentConsistencyAjax,
-      'indicator_history' => $indicatorHistoryAjax,
-      'data_completeness' => $dataCompletenessAjax
-    ]
-  ];
-
+  $suggestionDataAjax = buildAiSuggestionPayload($db, $schoolIdAjax, $syIdAjax);
+  $teacherCycleIdAjax = $suggestionDataAjax['cycle_id'];
+  $teacherSummariesAjax = $suggestionDataAjax['teacher_summaries'];
+  $teacherDisplayNamesAjax = $suggestionDataAjax['teacher_display_names'];
+  $lowRaterIndicatorCodes = $suggestionDataAjax['low_rater_indicator_codes'];
+  $payload = $suggestionDataAjax['payload'];
   $response = ml_post('/api/recommend', $payload);
   $response = $response ?: [
     'recommendations' => "I'm sorry, I'm having trouble connecting to my central intelligence. Please check if the ML service is running.",
     'error' => 'Service Unavailable'
   ];
 
-  // Persist the successful result (raw text + per-block confidence data) so
+  // Replace neutral model labels only in the local display response, never in
+  // the request sent to the ML service.
+  if (!empty($teacherDisplayNamesAjax)) {
+    if (isset($response['recommendations']) && is_string($response['recommendations'])) {
+      $response['recommendations'] = strtr($response['recommendations'], $teacherDisplayNamesAjax);
+    }
+    if (isset($response['blocks']) && is_array($response['blocks'])) {
+      foreach ($response['blocks'] as &$recommendationBlock) {
+        if (isset($recommendationBlock['title']) && is_string($recommendationBlock['title'])) {
+          $recommendationBlock['title'] = strtr($recommendationBlock['title'], $teacherDisplayNamesAjax);
+        }
+      }
+      unset($recommendationBlock);
+    }
+  }
+
+  $lowRaterCards = buildLowRaterCards($teacherSummariesAjax, $teacherDisplayNamesAjax);
+  foreach ($lowRaterCards as &$lowRaterCard) {
+    $teacherId = (int) ($lowRaterCard['block']['teacher_user_id'] ?? 0);
+    $lowRaterCard['block']['indicator_codes'] = array_values(array_unique(
+      $lowRaterIndicatorCodes[$teacherId] ?? []
+    ));
+  }
+  unset($lowRaterCard);
+  $response = mergeLowRaterCardsIntoRecommendation($response, $lowRaterCards);
+
+  // Persist the successful result (text + per-block confidence data) so
   // it survives refresh/logout. Stored as a JSON envelope; renderStoredRecommendation()
   // handles both this new format and legacy plain-text values already saved.
   if (!empty($response['recommendations']) && empty($response['error'])) {
-    aiUsageSaveRecommendation($db, $currentUserId, json_encode([
-      'text' => $response['recommendations'],
-      'blocks' => $response['blocks'] ?? [],
-    ]));
+    try {
+      $response = saveSuggestionGeneration(
+        $db,
+        $currentUserId,
+        $schoolIdAjax,
+        $teacherCycleIdAjax,
+        $payload,
+        $response,
+        $teacherDisplayNamesAjax
+      );
+    } catch (Throwable $e) {
+      error_log('Suggestion generation persistence failed: ' . $e->getMessage());
+      http_response_code(500);
+      echo json_encode([
+        'error' => 'Suggestion persistence failed',
+        'message' => 'The suggestions were generated but could not be saved. Please try again.',
+      ]);
+      exit;
+    }
+  } elseif ($lowRaterCards) {
+    try {
+      saveSuggestionGeneration(
+        $db,
+        $currentUserId,
+        $schoolIdAjax,
+        $teacherCycleIdAjax,
+        $payload,
+        [
+          'recommendations' => implode("\n\n", array_column($lowRaterCards, 'text')),
+          'blocks' => array_column($lowRaterCards, 'block'),
+        ],
+        $teacherDisplayNamesAjax,
+        false
+      );
+    } catch (Throwable $e) {
+      error_log('Teacher-outlier suggestion persistence failed: ' . $e->getMessage());
+    }
   }
 
   $response['remaining'] = $usageCheck['remaining'];
@@ -347,6 +309,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
   $res = trim($_POST['resources_needed'] ?? '');
   $output = trim($_POST['expected_output'] ?? '');
   $priority = $_POST['priority_level'] ?? 'Medium';
+  $suggestionItemId = (int) ($_POST['suggestion_item_id'] ?? 0);
+  $suggestionBaselineText = null;
 
   if ($obj === '' || $strat === '') {
     echo json_encode(['success' => false, 'message' => 'Objective and Strategy are required.']);
@@ -361,6 +325,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     echo json_encode(['success' => false, 'message' => 'No assessment cycle found for this year. Please create one first.']);
     exit;
   }
+  if ($suggestionItemId > 0) {
+    $suggestionStmt = $db->prepare("
+      SELECT i.body_text
+      FROM ai_suggestion_items i
+      JOIN ai_suggestion_generations g ON g.generation_id = i.generation_id
+      WHERE i.item_id = ? AND g.school_id = ? AND g.cycle_id = ?
+      LIMIT 1
+    ");
+    $suggestionStmt->execute([$suggestionItemId, $schoolIdIp, $cycleIdIp]);
+    $suggestionBaselineText = $suggestionStmt->fetchColumn();
+    if ($suggestionBaselineText === false) {
+      echo json_encode(['success' => false, 'message' => 'The selected AI suggestion is no longer available for this assessment cycle.']);
+      exit;
+    }
+  } else {
+    $suggestionItemId = 0;
+  }
 
   // ── One-and-done guard: can't add drafts to an already-submitted batch ──
   $returnedPlanQ = $db->prepare("SELECT COUNT(*) FROM improvement_plans WHERE cycle_id = ? AND workflow_status = ?");
@@ -372,7 +353,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
 
   $db->beginTransaction();
   try {
-    $ins = $db->prepare("INSERT INTO improvement_plans (school_id, cycle_id, dimension_id, indicator_id, priority_level, objective, strategy, person_responsible, target_date, resources_needed, expected_output, workflow_status, current_owner_role, current_owner_user_id, last_action_by, last_action_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'school_head', ?, ?, NOW(), ?)");
+    $ins = $db->prepare("INSERT INTO improvement_plans (school_id, cycle_id, dimension_id, indicator_id, priority_level, objective, strategy, person_responsible, target_date, resources_needed, expected_output, workflow_status, current_owner_role, current_owner_user_id, last_action_by, last_action_at, created_by, suggestion_item_id, suggestion_baseline_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'school_head', ?, ?, NOW(), ?, ?, ?)");
 
     $inserted = 0;
     $newPlanIds = [];
@@ -384,7 +365,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
       $dId = $dimQ->fetchColumn();
       if (!$dId) continue;
 
-      $ins->execute([$schoolIdIp, $cycleIdIp, $dId, $indId, $priority, $obj, $strat, $person ?: null, $target ?: null, $res ?: null, $output ?: null, IP_STATUS_DRAFT, $currentUserId, $currentUserId]);
+      $ins->execute([$schoolIdIp, $cycleIdIp, $dId, $indId, $priority, $obj, $strat, $person ?: null, $target ?: null, $res ?: null, $output ?: null, IP_STATUS_DRAFT, $currentUserId, $currentUserId, $currentUserId, $suggestionItemId ?: null, $suggestionBaselineText]);
       $newPlanIds[] = (int) $db->lastInsertId();
       $inserted++;
     }
@@ -408,6 +389,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
 // ── UPDATE IMPROVEMENT PLAN (draft-only) ────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_improvement_plan') {
   header('Content-Type: application/json');
+  if (($_SESSION['role'] ?? '') !== 'school_head') {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Only the School Head can edit improvement plans.']);
+    exit;
+  }
   $schoolIdIp = (int) ($_SESSION['school_id'] ?? 1);
   $planId = (int) ($_POST['plan_id'] ?? 0);
   $obj = trim($_POST['objective'] ?? '');
@@ -514,7 +500,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
     $fromStatus = $hasReturned ? IP_STATUS_RETURNED : IP_STATUS_DRAFT;
     $toStatus = $hasReturned ? IP_STATUS_RESUBMITTED : IP_STATUS_SUBMITTED;
     $schoolHead = $currentUserId;
-    $upd = $db->prepare("UPDATE improvement_plans SET workflow_status = ?, current_owner_role = 'sbm_coordinator', current_owner_user_id = NULL, submitted_by = ?, submitted_at = UTC_TIMESTAMP(), last_action_by = ?, last_action_at = NOW() WHERE cycle_id = ? AND workflow_status = ?");
+    $upd = $db->prepare("UPDATE improvement_plans SET workflow_status = ?, current_owner_role = 'sbm_coordinator', current_owner_user_id = NULL, submitted_by = ?, submitted_at = NOW(), last_action_by = ?, last_action_at = NOW() WHERE cycle_id = ? AND workflow_status = ?");
     $upd->execute([$toStatus, $currentUserId, $currentUserId, $cycleIdIp, $fromStatus]);
 
     $db->commit();
@@ -1085,6 +1071,7 @@ include __DIR__.'/../includes/header.php';
               </div>
             </div>
             <input type="hidden" name="indicator_ids" id="indIdsInput" required>
+            <input type="hidden" name="suggestion_item_id" id="suggestionItemIdInput" value="">
           </div>
           <div class="grid2">
             <div class="form-group">
@@ -1706,7 +1693,6 @@ function parseAILogicToHtml(text, blocks) {
       finalHtml += '<li>' + inlineFormat(trimmed.substring(2)) + '</li>';
       return;
     }
-
     if (inList) { finalHtml += '</ul>'; inList = false; }
 
     if (trimmed === '---') {
@@ -1765,6 +1751,7 @@ function stripTrailingQuestion(text) {
 // Holds the raw AI Suggestions text (not the HTML) so we can extract
 // the exact section that matches the selected indicator.
 let currentAiRawText = '';
+let currentSuggestionItems = [];
 
 /** Splits the raw AI text into blocks at each bold header, then returns
  *  the ONE block that mentions the given indicator code — or null. */
@@ -1793,12 +1780,12 @@ function extractIndicatorSnippet(rawText, indicatorCode) {
   return match ? match.trim() : null;
 }
 
-/** Returns { indicator_id, indicator_code, indicator_text, dimension_name }
- *  only when exactly ONE indicator is currently selected. */
-function getSelectedIndicatorMeta() {
+/** Returns metadata for every currently selected indicator. */
+function getSelectedIndicatorMetas() {
   const ids = (document.getElementById('indIdsInput').value || '').split(',').filter(Boolean);
-  if (ids.length !== 1) return null;
-  return weakIndicatorsBase.find(wi => String(wi.indicator_id) === ids[0]) || null;
+  return ids
+    .map(id => weakIndicatorsBase.find(wi => String(wi.indicator_id) === id))
+    .filter(Boolean);
 }
 
 // ── IP FIELD (Objective/Strategy) usage state — 3 generations each per day ──
@@ -1833,17 +1820,15 @@ if (IS_IMPROVEMENT_PLANS_PAGE) {
 function updateAiFieldButtons() {
   const dimSelected = !!(document.getElementById('dimIdsInput').value);
   const ids = (document.getElementById('indIdsInput').value || '').split(',').filter(Boolean);
-  const meta = getSelectedIndicatorMeta();
+  const metas = getSelectedIndicatorMetas();
 
   const objBtn = document.getElementById('genObjectiveBtn');
   const stratBtn = document.getElementById('genStrategyBtn');
-  const selectionReady = dimSelected && ids.length === 1 && !!meta;
+  const selectionReady = dimSelected && ids.length > 0 && metas.length === ids.length;
 
   let hint = '';
   if (!dimSelected || ids.length === 0) {
     hint = 'Select a Dimension and Indicator to enable AI suggestions.';
-  } else if (ids.length > 1) {
-    hint = 'Select a single Indicator to use AI suggestions.';
   }
 
   objBtn.disabled = !selectionReady || ipFieldLimitReached('objective');
@@ -1864,18 +1849,39 @@ function updateIpAiUsageNote() {
 }
 
 async function generateIpField(fieldType) {
-  const meta = getSelectedIndicatorMeta();
-  if (!meta) return;
+  const metas = getSelectedIndicatorMetas();
+  if (!metas.length) return;
 
   const btn = document.getElementById(fieldType === 'objective' ? 'genObjectiveBtn' : 'genStrategyBtn');
   const statusEl = document.getElementById(fieldType + 'AiStatus');
   const textarea = document.querySelector(`#improvementPlanForm textarea[name="${fieldType}"]`);
 
-  const snippet = extractIndicatorSnippet(currentAiRawText, meta.indicator_code);
-  if (!snippet) {
-    statusEl.textContent = 'No AI suggestion found for this indicator yet — generate AI Suggestions above first.';
+  const matchedSnippets = metas.map(meta => ({
+    meta,
+    snippet: extractIndicatorSnippet(currentAiRawText, meta.indicator_code)
+  }));
+  const missingCodes = matchedSnippets.filter(item => !item.snippet).map(item => item.meta.indicator_code);
+  if (missingCodes.length) {
+    statusEl.textContent = 'Generate AI Suggestions above first; no matching suggestion was found for ' + missingCodes.join(', ') + '.';
     return;
   }
+  const snippet = matchedSnippets.length === 1
+    ? matchedSnippets[0].snippet
+    : matchedSnippets.map(item =>
+      `Indicator ${item.meta.indicator_code} (${item.meta.dimension_name}):\n${item.snippet}`
+    ).join('\n\n---\n\n');
+  const snippetHeading = matchedSnippets.length === 1 ? snippet.match(/^\*\*(.+?)\*\*/) : null;
+  const headingTitle = snippetHeading ? snippetHeading[1].trim() : '';
+  const suggestionBlock = currentSuggestionItems.find(block =>
+    block
+    && block.suggestion_item_id
+    && block.title === headingTitle
+  ) || (matchedSnippets.length === 1 && currentSuggestionItems.find(block =>
+    block
+    && block.suggestion_item_id
+    && Array.isArray(block.indicator_codes)
+    && block.indicator_codes.includes(matchedSnippets[0].meta.indicator_code)
+  ));
 
   const originalLabel = btn.textContent;
   btn.disabled = true;
@@ -1885,9 +1891,9 @@ async function generateIpField(fieldType) {
   const formData = new FormData();
   formData.append('action', 'generate_ip_field');
   formData.append('field_type', fieldType);
-  formData.append('indicator_code', meta.indicator_code);
-  formData.append('indicator_text', meta.indicator_text);
-  formData.append('dimension_name', meta.dimension_name);
+  formData.append('indicator_code', metas.map(meta => meta.indicator_code).join(', '));
+  formData.append('indicator_text', metas.map(meta => `[${meta.indicator_code}] ${meta.indicator_text}`).join('\n'));
+  formData.append('dimension_name', [...new Set(metas.map(meta => meta.dimension_name))].join(', '));
   formData.append('snippet', snippet);
 
   try {
@@ -1901,6 +1907,12 @@ async function generateIpField(fieldType) {
     if (data.success && data.text) {
       textarea.value = data.text.trim();
       autoGrowTextarea(textarea);
+      const provenanceInput = document.getElementById('suggestionItemIdInput');
+      if (provenanceInput && metas.length === 1 && suggestionBlock) {
+        provenanceInput.value = String(suggestionBlock.suggestion_item_id);
+      } else if (provenanceInput) {
+        provenanceInput.value = '';
+      }
     } else {
       statusEl.textContent = data.message || 'Could not generate content. Please try again.';
     }
@@ -2047,8 +2059,9 @@ function initTagSelect(prefix, options, onUpdate) {
   return {
     setOptions: (newOpts) => {
       options = newOpts;
+      const availableIds = new Set(newOpts.map(option => String(option.id)));
+      selected = selected.filter(id => availableIds.has(id));
       dropdown.innerHTML = '';
-      selected = [];
       newOpts.forEach(o => {
         const div = document.createElement('div');
         div.className = 'tag-option';
@@ -2085,7 +2098,11 @@ if (IS_IMPROVEMENT_PLANS_PAGE) document.addEventListener('DOMContentLoaded', () 
     updateAiFieldButtons();
   });
 
-  indTagControl = initTagSelect('ind', [], () => updateAiFieldButtons());
+  indTagControl = initTagSelect('ind', [], () => {
+    const provenanceInput = document.getElementById('suggestionItemIdInput');
+    if (provenanceInput) provenanceInput.value = '';
+    updateAiFieldButtons();
+  });
 });
 
 function manuallyAddImprovementPlan() {
@@ -2377,6 +2394,7 @@ function renderStoredRecommendation(recs, lastGeneratedAtUtc) {
   }
 
   const cleaned = stripTrailingQuestion(text);
+  currentSuggestionItems = Array.isArray(blocks) ? blocks : [];
   currentAiRawText = cleaned;
   body.innerHTML = cleaned
     ? parseAILogicToHtml(cleaned, blocks)
@@ -2393,6 +2411,7 @@ function renderStoredRecommendation(recs, lastGeneratedAtUtc) {
 async function initAiUsageState() {
   const formData = new FormData();
   formData.append('action', 'get_ai_usage_status');
+  formData.append('sy_id', '<?= (int) $syId ?>');
 
   try {
     const res = await fetch(window.location.href, { method: 'POST', body: formData });
@@ -2419,6 +2438,34 @@ if (!IS_IMPROVEMENT_PLANS_PAGE) {
   document.addEventListener('DOMContentLoaded', initAiUsageState);
 }
 
+async function initStoredSuggestionSourceForPlans() {
+  const formData = new FormData();
+  formData.append('action', 'get_ai_usage_status');
+  formData.append('sy_id', '<?= (int) $syId ?>');
+  try {
+    const res = await fetch(window.location.href, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!data.last_recommendation) return;
+    let parsed;
+    try {
+      parsed = JSON.parse(data.last_recommendation);
+    } catch (e) {
+      currentAiRawText = String(data.last_recommendation);
+      currentSuggestionItems = [];
+      return;
+    }
+    if (parsed && typeof parsed.text === 'string') {
+      currentAiRawText = stripTrailingQuestion(parsed.text);
+      currentSuggestionItems = Array.isArray(parsed.blocks) ? parsed.blocks : [];
+    }
+  } catch (err) {
+    console.error('Failed to load saved suggestion provenance', err);
+  }
+}
+if (IS_IMPROVEMENT_PLANS_PAGE) {
+  document.addEventListener('DOMContentLoaded', initStoredSuggestionSourceForPlans);
+}
+
 async function loadAISuggestionsPlan() {
   const body = document.getElementById('aiSuggestBody');
   const btn = document.getElementById('genAiSuggestBtn');
@@ -2428,6 +2475,7 @@ async function loadAISuggestionsPlan() {
   btn.disabled = true;
   btn.textContent = 'Generating...';
   showAiUsageMsg('');
+  currentSuggestionItems = [];
   body.innerHTML = '<p style="font-size:13px;color:var(--n-500);">Analyzing your SBM data...</p>';
 
   const formData = new FormData();
@@ -2453,7 +2501,16 @@ async function loadAISuggestionsPlan() {
     }
 
     if (data.error) {
-      body.innerHTML = '<p style="font-size:13px;color:var(--red);">Couldn\'t reach the analysis service. Please check if the ML service is running.</p>';
+      const lowRaterCardAvailable = Array.isArray(data.blocks)
+        && data.blocks.some(block => block && block.source === 'deterministic_low_rater');
+      if (lowRaterCardAvailable) {
+        const recs = stripTrailingQuestion(data.recommendations || '');
+        currentSuggestionItems = Array.isArray(data.blocks) ? data.blocks : [];
+        body.innerHTML = '<p style="font-size:13px;color:var(--red);">AI suggestions could not be generated. The data-based teacher follow-up below is still available.</p>'
+          + parseAILogicToHtml(recs, data.blocks);
+      } else {
+        body.innerHTML = '<p style="font-size:13px;color:var(--red);">Couldn\'t reach the analysis service. Please check if the ML service is running.</p>';
+      }
       setGenerateBtnState(false, 'Generate AI Suggestions');
       return;
     }

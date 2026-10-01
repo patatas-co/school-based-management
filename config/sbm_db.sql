@@ -4693,3 +4693,108 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+-- Background-only AI suggestion provenance and feedback tracking.
+CREATE TABLE IF NOT EXISTS ai_suggestion_generations (
+  generation_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  school_id INT NOT NULL,
+  cycle_id INT NOT NULL,
+  generated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_synthetic TINYINT(1) DEFAULT 0,
+  backend_used VARCHAR(60) DEFAULT NULL,
+  input_payload_hash CHAR(64) NOT NULL,
+  PRIMARY KEY (generation_id),
+  KEY idx_ai_suggestion_generations_school_cycle (school_id, cycle_id, generated_at),
+  KEY idx_ai_suggestion_generations_user (user_id),
+  CONSTRAINT fk_ai_suggestion_generation_user
+    FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
+  CONSTRAINT fk_ai_suggestion_generation_school
+    FOREIGN KEY (school_id) REFERENCES schools (school_id) ON DELETE CASCADE,
+  CONSTRAINT fk_ai_suggestion_generation_cycle
+    FOREIGN KEY (cycle_id) REFERENCES sbm_cycles (cycle_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ai_suggestion_items (
+  item_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  generation_id BIGINT UNSIGNED NOT NULL,
+  item_index INT UNSIGNED NOT NULL,
+  source ENUM('llm','rule_teacher_outlier') NOT NULL DEFAULT 'llm',
+  title VARCHAR(255) NOT NULL,
+  body_text LONGTEXT NOT NULL,
+  indicator_codes JSON DEFAULT NULL,
+  confidence DECIMAL(5,2) DEFAULT NULL,
+  teacher_user_id INT DEFAULT NULL,
+  teacher_label VARCHAR(40) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (item_id),
+  UNIQUE KEY uq_ai_suggestion_generation_item (generation_id, item_index),
+  KEY idx_ai_suggestion_items_teacher (teacher_user_id),
+  CONSTRAINT fk_ai_suggestion_item_generation
+    FOREIGN KEY (generation_id) REFERENCES ai_suggestion_generations (generation_id) ON DELETE CASCADE,
+  CONSTRAINT fk_ai_suggestion_item_teacher
+    FOREIGN KEY (teacher_user_id) REFERENCES users (user_id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @sf_column_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'improvement_plans'
+    AND column_name = 'suggestion_item_id'
+);
+SET @sf_sql = IF(@sf_column_exists = 0,
+  'ALTER TABLE improvement_plans ADD COLUMN suggestion_item_id BIGINT UNSIGNED DEFAULT NULL',
+  'DO 0');
+PREPARE sf_stmt FROM @sf_sql;
+EXECUTE sf_stmt;
+DEALLOCATE PREPARE sf_stmt;
+
+SET @sf_column_exists = (
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'improvement_plans'
+    AND column_name = 'suggestion_baseline_text'
+);
+SET @sf_sql = IF(@sf_column_exists = 0,
+  'ALTER TABLE improvement_plans ADD COLUMN suggestion_baseline_text LONGTEXT DEFAULT NULL',
+  'DO 0');
+PREPARE sf_stmt FROM @sf_sql;
+EXECUTE sf_stmt;
+DEALLOCATE PREPARE sf_stmt;
+
+SET @sf_index_exists = (
+  SELECT COUNT(*) FROM information_schema.statistics
+  WHERE table_schema = DATABASE() AND table_name = 'improvement_plans'
+    AND index_name = 'idx_improvement_plans_suggestion_item'
+);
+SET @sf_sql = IF(@sf_index_exists = 0,
+  'ALTER TABLE improvement_plans ADD KEY idx_improvement_plans_suggestion_item (suggestion_item_id)',
+  'DO 0');
+PREPARE sf_stmt FROM @sf_sql;
+EXECUTE sf_stmt;
+DEALLOCATE PREPARE sf_stmt;
+
+SET @sf_constraint_exists = (
+  SELECT COUNT(*) FROM information_schema.referential_constraints
+  WHERE constraint_schema = DATABASE()
+    AND constraint_name = 'fk_improvement_plan_suggestion_item'
+);
+SET @sf_sql = IF(@sf_constraint_exists = 0,
+  'ALTER TABLE improvement_plans ADD CONSTRAINT fk_improvement_plan_suggestion_item FOREIGN KEY (suggestion_item_id) REFERENCES ai_suggestion_items (item_id) ON DELETE SET NULL',
+  'DO 0');
+PREPARE sf_stmt FROM @sf_sql;
+EXECUTE sf_stmt;
+DEALLOCATE PREPARE sf_stmt;
+
+-- Synthetic assessment anomaly metadata; this table is never included in AI payloads.
+CREATE TABLE IF NOT EXISTS `seed_ground_truth` (
+  `ground_truth_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `cycle_id` int(11) NOT NULL,
+  `sy_id` int(11) NOT NULL,
+  `school_year_label` varchar(20) NOT NULL,
+  `evaluator_id` int(11) NOT NULL,
+  `anomaly_type` varchar(30) NOT NULL,
+  `is_preexisting` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`ground_truth_id`),
+  UNIQUE KEY `uq_seed_ground_truth_cycle_evaluator` (`cycle_id`,`evaluator_id`),
+  KEY `idx_seed_ground_truth_sy` (`sy_id`,`school_year_label`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

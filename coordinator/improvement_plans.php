@@ -66,30 +66,8 @@ include __DIR__ . '/../includes/header.php';
             $status = $plan['workflow_status'];
             $canReview = in_array($status, [IP_STATUS_SUBMITTED, IP_STATUS_RESUBMITTED], true);
             $canValidate = $status === IP_STATUS_APPROVED;
-            $isEditing = (int) ($_GET['edit'] ?? 0) === (int) $plan['plan_id'];
             $history = $historyByPlan[$plan['plan_id']] ?? [];
         ?>
-          <?php if ($isEditing): ?>
-          <tr style="background:var(--brand-50);">
-            <form id="plan-edit-<?= (int) $plan['plan_id'] ?>" class="plan-edit-form" data-plan-id="<?= (int) $plan['plan_id'] ?>">
-              <td><strong><?= e(ipStatusLabel($status)) ?></strong><br><small>Will return to School Head on save.</small></td>
-              <td>D<?= (int) $plan['dimension_no'] ?><br><small><?= e($plan['dimension_name']) ?></small></td>
-              <td><?= e($plan['indicator_code'] ?: 'General') ?></td>
-              <td><textarea name="objective" required class="form-control" rows="5"><?= e($plan['objective']) ?></textarea></td>
-              <td><textarea name="strategy" required class="form-control" rows="5"><?= e($plan['strategy']) ?></textarea></td>
-              <td><input name="target_date" type="date" class="form-control ip-date-input" value="<?= e($plan['target_date']) ?>"></td>
-              <td><input name="person_responsible" class="form-control" value="<?= e($plan['person_responsible']) ?>"></td>
-              <td style="min-width:190px;">
-                <input type="hidden" name="resources_needed" value="<?= e($plan['resources_needed']) ?>">
-                <input type="hidden" name="expected_output" value="<?= e($plan['expected_output']) ?>">
-                <select name="priority_level" class="form-control" style="margin-bottom:8px;"><option <?= $plan['priority_level']==='High'?'selected':'' ?>>High</option><option <?= $plan['priority_level']==='Medium'?'selected':'' ?>>Medium</option><option <?= $plan['priority_level']==='Low'?'selected':'' ?>>Low</option></select>
-                <textarea name="remarks" class="form-control" rows="3" placeholder="Revision remarks" required></textarea>
-                <button class="btn btn-primary" type="submit" form="plan-edit-<?= (int) $plan['plan_id'] ?>" style="margin-top:8px;">Save &amp; Return</button>
-                <a class="btn btn-secondary" href="improvement_plans.php" style="margin-top:8px;">Cancel</a>
-              </td>
-            </form>
-          </tr>
-          <?php else: ?>
           <tr class="ip-plan-row">
             <td>
               <span class="ip-stage-label"><?= e(ipStatusLabel($status)) ?></span><br>
@@ -110,8 +88,7 @@ include __DIR__ . '/../includes/header.php';
             <td><?= $plan['target_date'] ? e(date('M j, Y', strtotime($plan['target_date']))) : '—' ?></td>
             <td><?= e($plan['person_responsible'] ?: '—') ?></td>
             <td style="min-width:190px;">
-              <?php if ($canReview): ?><a class="btn btn-secondary btn-sm" title="Edit the plan and return it with your revision remarks." href="?edit=<?= (int) $plan['plan_id'] ?>">Edit &amp; Return</a><small class="action-help">Changes fields, then sends it to School Head.</small><?php endif; ?>
-              <?php if ($canReview): ?><details class="return-panel"><summary class="btn btn-secondary btn-sm" title="Return the plan without changing its content.">Return</summary><textarea class="return-remarks form-control" rows="2" placeholder="Required return remarks"></textarea><button class="btn btn-secondary btn-sm submit-return" data-id="<?= (int) $plan['plan_id'] ?>">Send Return</button><small class="action-help">Sends it back unchanged for review.</small></details><?php endif; ?>
+              <?php if ($canReview): ?><button type="button" class="btn btn-secondary btn-sm return-plan" title="Return the plan without changing its content." data-id="<?= (int) $plan['plan_id'] ?>" data-dimension="D<?= (int) $plan['dimension_no'] ?>" data-indicator="<?= e($plan['indicator_code'] ?: 'General') ?>">Return</button><small class="action-help">Sends it back unchanged for review.</small><?php endif; ?>
               <?php if ($canReview): ?><button class="btn btn-success btn-sm approve-plan" title="Approve means the content is accepted and ready for the separate validation step." data-id="<?= (int) $plan['plan_id'] ?>">Approve</button><?php endif; ?>
               <?php if ($canValidate): ?><button class="btn btn-success btn-sm validate-plan" title="Validate records the final validation event and moves the plan to Finalized." data-id="<?= (int) $plan['plan_id'] ?>">Validate</button><?php endif; ?>
               <button type="button" class="history-trigger" aria-expanded="false" onclick='openHistoryPopover(this, <?= json_encode(array_map(static function ($item) {
@@ -125,7 +102,6 @@ include __DIR__ . '/../includes/header.php';
               }, $history), JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>History (<?= count($history) ?>)</button>
             </td>
           </tr>
-          <?php endif; ?>
         <?php endforeach; ?>
         </tbody>
       </table>
@@ -158,10 +134,36 @@ include __DIR__ . '/../includes/header.php';
   </div>
 </div>
 
+<div id="returnRemarksModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="returnRemarksTitle" aria-describedby="returnRemarksHelp">
+  <div class="modal-content return-remarks-modal-content">
+    <div class="modal-form-side">
+      <div class="modal-header">
+        <div class="modal-title" id="returnRemarksTitle">Return Improvement Plan</div>
+        <button type="button" class="btn btn-ghost" style="padding:4px;" onclick="closeReturnRemarksModal()" aria-label="Close">&times;</button>
+      </div>
+      <form id="returnRemarksForm">
+        <div class="modal-body">
+          <p id="returnPlanContext" class="return-plan-context"></p>
+          <label class="return-remarks-label" for="returnRemarksInput">What should the School Head revise?</label>
+          <p id="returnRemarksHelp" class="return-remarks-help">Your comments will be included in the plan history.</p>
+          <textarea id="returnRemarksInput" class="form-control return-remarks-input" rows="5" placeholder="Describe the changes or clarifications needed…" required></textarea>
+          <div id="returnRemarksError" class="return-remarks-error" role="alert" aria-live="polite"></div>
+        </div>
+        <div class="modal-footer">
+          <div style="flex:1"></div>
+          <button type="button" class="return-cancel-button" onclick="closeReturnRemarksModal()">Cancel</button>
+          <button type="submit" id="sendReturnButton" class="return-submit-button">Send Return</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <style>
  .modal-overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.4);backdrop-filter:blur(2px);z-index:2000}.modal-content{width:600px;max-width:calc(100vw - 40px);background:#fff;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.2);overflow:hidden;display:flex;flex-direction:column;animation:modalSlideUp .3s ease-out}.modal-form-side{display:flex;flex-direction:column;max-height:85vh}.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:#f8fafc;border-bottom:1px solid var(--n-200)}.modal-title{font-size:16px;font-weight:700;color:var(--n-900)}.modal-body{padding:20px;overflow-y:auto;max-height:calc(100vh - 200px)}.modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--n-200)}@keyframes modalSlideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
  .history-trigger{display:block;margin-top:8px;padding:0;border:0;background:none;color:var(--n-700);font:inherit;font-size:11px;cursor:pointer;text-align:left}.history-trigger:hover{text-decoration:underline}.history-popover{position:fixed;display:none;width:300px;max-width:calc(100vw - 24px);max-height:300px;overflow-y:auto;padding:8px 10px;background:#fff;border:1px solid var(--n-200);border-radius:6px;box-shadow:0 8px 24px rgba(15,23,42,.14);z-index:2100}.history-popover-list{font-size:11px;line-height:1.4}.history-popover-entry{padding:7px 0;border-bottom:1px solid var(--n-200)}.history-popover-entry:last-child{border-bottom:0}.history-popover-entry.current{position:relative;padding-left:12px}.history-popover-entry.current::before{content:"";position:absolute;left:1px;top:12px;width:5px;height:5px;border-radius:50%;background:var(--n-700)}.history-popover-version{font-weight:700;color:var(--n-900)}.history-popover-meta{color:var(--n-500)}.history-popover-remarks{margin-top:2px;color:var(--n-500);white-space:pre-wrap}
  .full-plan-trigger{display:block;margin-top:6px;padding:0;border:0;background:none;color:var(--n-700);font:inherit;font-size:11px;cursor:pointer;text-align:left;white-space:nowrap}.full-plan-trigger:hover{text-decoration:underline}.full-plan-modal-content{max-width:620px}.full-plan-modal-body{font-size:13.5px;line-height:1.6;color:var(--n-800)}.full-plan-modal-section{margin-bottom:16px}.full-plan-modal-section:last-child{margin-bottom:0}.full-plan-modal-section strong{display:block;margin-bottom:4px;color:var(--n-900);font-weight:700}.full-plan-modal-section div{white-space:pre-wrap;font-weight:400}
+ .return-remarks-modal-content{max-width:520px}.return-remarks-modal-content form{display:flex;flex-direction:column;min-height:0}.return-remarks-modal-content .modal-body{max-height:none}.return-plan-context{margin:0 0 16px;padding:10px 12px;border:1px solid var(--n-200);border-radius:8px;background:var(--n-50);color:var(--n-700);font-size:12.5px;font-weight:600}.return-remarks-label{display:block;margin-bottom:5px;color:var(--n-800);font-size:13px;font-weight:700}.return-remarks-help{margin:0 0 9px;color:var(--n-500);font-size:12px;line-height:1.5}.return-remarks-input{display:block;width:100%;min-height:140px;padding:11px 13px;border:1px solid var(--n-300);border-radius:9px;background:#fff;color:var(--n-800);font:inherit;font-size:13px;line-height:1.55;box-sizing:border-box;resize:vertical;outline:none;transition:border-color .15s,box-shadow .15s}.return-remarks-input::placeholder{color:var(--n-400);opacity:1}.return-remarks-input:hover{border-color:var(--n-400)}.return-remarks-input:focus{border-color:var(--brand-600);box-shadow:0 0 0 3px rgba(22,163,74,.12)}.return-remarks-error{min-height:0;margin-top:6px;color:#dc2626;font-size:12px}.return-remarks-error:empty{display:none}.return-remarks-modal-content .return-cancel-button,.return-remarks-modal-content .return-submit-button{min-height:38px;padding:8px 16px;border-radius:8px;font:inherit;font-size:12.5px;font-weight:700;line-height:1.2;cursor:pointer;transition:background .15s,border-color .15s,color .15s,box-shadow .15s,transform .15s}.return-remarks-modal-content .return-cancel-button{border:1px solid var(--n-300);background:#fff;color:var(--n-700)}.return-remarks-modal-content .return-cancel-button:hover{border-color:var(--n-400);background:var(--n-50)}.return-remarks-modal-content .return-submit-button{border:1px solid var(--green-700,#15803d);background:var(--green-700,#15803d);color:#fff;box-shadow:0 1px 2px rgba(15,23,42,.12)}.return-remarks-modal-content .return-submit-button:hover:not(:disabled){border-color:var(--green-800,#166534);background:var(--green-800,#166534);box-shadow:0 3px 8px rgba(21,128,61,.22);transform:translateY(-1px)}.return-remarks-modal-content .return-submit-button:focus-visible,.return-remarks-modal-content .return-cancel-button:focus-visible{outline:3px solid rgba(22,163,74,.25);outline-offset:2px}.return-remarks-modal-content .return-submit-button:disabled{cursor:wait;opacity:.65;box-shadow:none;transform:none}
 thead th{text-transform:none;font-size:11px;font-weight:500;letter-spacing:0.01em}.ip-status-badge{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#fef3c7;color:#b45309;white-space:nowrap}.ip-status-badge.finalized{background:#dcfce7;color:#15803d}.ip-status-badge.approved{background:#dbeafe;color:#1d4ed8}.ip-status-badge.returned{background:#ffedd5;color:#c2410c}.btn-sm{padding:5px 9px;font-size:11px;margin:2px 0}.action-help{display:block;color:var(--n-500);font-size:10px;line-height:1.3;margin:0 0 5px}.priority-pill{display:inline-flex;padding:3px 7px;border-radius:999px;font-size:11px;font-weight:600;box-shadow:none;line-height:1.3}.priority-high{background:#fef2f2;color:#b91c1c}.priority-medium{background:#fef3c7;color:#b45309}.priority-low{background:#e0f2fe;color:#0369a1}.plan-clamp{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:4px 0 8px;color:var(--n-700);font-weight:400}.plan-detail{display:grid;gap:11px}.plan-detail-row{margin:0}.plan-detail-label{display:block;font-size:11px;font-weight:700;color:var(--n-700);text-transform:none;letter-spacing:0.01em}.plan-detail-copy{display:block;color:var(--n-700);font-weight:400;line-height:1.55}.full-plan summary{cursor:pointer;color:var(--n-700);font-size:11px;margin-top:6px}.full-plan div{max-width:340px;padding:10px;background:var(--n-50);border-radius:6px;margin-top:5px}.full-plan p{margin:3px 0 9px;line-height:1.45}.full-plan .plan-detail-block{margin:0 0 9px}.full-plan .plan-detail-copy{margin-top:4px}.history-summary{cursor:pointer;color:var(--n-700);font-size:11px}.history-panel{margin-top:8px}.plan-history-list{margin-top:7px;font-size:11px;line-height:1.45}.history-item{padding:6px 0;border-bottom:1px solid var(--n-200);color:var(--n-500)}.history-current{border-left:2px solid var(--n-500);padding-left:7px;color:var(--n-800);background:transparent}.history-muted{color:var(--n-500)}.history-person{color:var(--n-500)}.history-remark{color:var(--n-600)}.history-version{font-weight:700;color:var(--n-900)}.history-current .history-version{font-weight:700}.ip-plan-row{background:#fff}.ip-plan-row td{border-top:1px solid var(--n-200)}.ip-plan-row .ip-dimension-cell,.ip-plan-row .ip-indicator-cell{font-size:12px;font-weight:700;color:var(--n-800);text-decoration:none}.ip-plan-row .ip-indicator-cell{color:var(--n-800)}.ip-stage-label{font-size:11px;color:var(--n-800);font-weight:600;white-space:nowrap}.ip-date-input{min-width:142px;color-scheme:light}.plan-detail-label,.plan-detail-block .plan-detail-label{font-weight:700}.plan-detail-copy{font-weight:400}.history-current strong{font-weight:700}.history-muted strong{font-weight:600}.history-item .history-person,.history-item .history-remark{font-weight:400}
 </style>
 <script>
@@ -265,18 +267,66 @@ async function postPlanAction(action, planId, remarks = '') {
   if (!data.ok) throw new Error(data.msg || 'Action failed.');
   return data;
 }
-document.querySelectorAll('.plan-edit-form').forEach(form => form.addEventListener('submit', async event => {
+let returnPlanId = null;
+
+function openReturnRemarksModal(button) {
+  returnPlanId = button.dataset.id;
+  document.getElementById('returnPlanContext').textContent =
+    `${button.dataset.dimension} · Indicator ${button.dataset.indicator}`;
+  document.getElementById('returnRemarksForm').reset();
+  document.getElementById('returnRemarksError').textContent = '';
+  document.getElementById('returnRemarksModal').style.display = 'flex';
+  document.getElementById('returnRemarksInput').focus();
+}
+
+function closeReturnRemarksModal() {
+  const modal = document.getElementById('returnRemarksModal');
+  if (modal.dataset.submitting === 'true') return;
+  modal.style.display = 'none';
+  returnPlanId = null;
+}
+
+document.querySelectorAll('.return-plan').forEach(button => button.addEventListener('click', () => {
+  openReturnRemarksModal(button);
+}));
+
+document.getElementById('returnRemarksModal').addEventListener('click', event => {
+  if (event.target === event.currentTarget) closeReturnRemarksModal();
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') closeReturnRemarksModal();
+});
+
+document.getElementById('returnRemarksForm').addEventListener('submit', async event => {
   event.preventDefault();
-  const data = new FormData(form);
-  data.append('action', 'coordinator_update_improvement_plan');
-  data.append('plan_id', form.dataset.planId);
-  try { const response = await fetch('dashboard.php', {method:'POST', body:data}); const result = await response.json(); if (!result.ok) throw new Error(result.msg); location.href = 'improvement_plans.php'; } catch (error) { alert(error.message); }
-}));
-document.querySelectorAll('.submit-return').forEach(button => button.addEventListener('click', async () => {
-  const remarks = button.closest('.return-panel').querySelector('.return-remarks').value.trim();
-  if (!remarks) { alert('Return remarks are required.'); return; }
-  try { await postPlanAction('coordinator_return_improvement_plan', button.dataset.id, remarks); location.reload(); } catch (error) { alert(error.message); }
-}));
+  const form = event.currentTarget;
+  const remarksInput = document.getElementById('returnRemarksInput');
+  const error = document.getElementById('returnRemarksError');
+  const sendButton = document.getElementById('sendReturnButton');
+  const remarks = remarksInput.value.trim();
+
+  if (!remarks) {
+    remarksInput.setCustomValidity('Please enter return remarks.');
+    form.reportValidity();
+    remarksInput.addEventListener('input', () => remarksInput.setCustomValidity(''), { once: true });
+    return;
+  }
+  remarksInput.setCustomValidity('');
+  if (!returnPlanId) return;
+
+  error.textContent = '';
+  sendButton.disabled = true;
+  document.getElementById('returnRemarksModal').dataset.submitting = 'true';
+  try {
+    await postPlanAction('coordinator_return_improvement_plan', returnPlanId, remarks);
+    location.reload();
+  } catch (requestError) {
+    error.textContent = requestError.message || 'Unable to return this plan. Please try again.';
+    sendButton.disabled = false;
+    delete document.getElementById('returnRemarksModal').dataset.submitting;
+  }
+});
 document.querySelectorAll('.approve-plan').forEach(button => button.addEventListener('click', async () => {
   if (!confirm('Approve this Improvement Plan? It will move to the separate Validate step.')) return;
   try { await postPlanAction('coordinator_approve_improvement_plan', button.dataset.id); location.reload(); } catch (error) { alert(error.message); }

@@ -47,6 +47,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), 
   $planId = (int) ($_POST['plan_id'] ?? 0);
   $actorId = (int) ($_SESSION['user_id'] ?? 0);
   $action = $_POST['action'];
+  if ($action === 'coordinator_update_improvement_plan') {
+    http_response_code(403);
+    echo json_encode(['ok' => false, 'msg' => 'Coordinator edits are disabled. Return the plan to the School Head for revisions.']);
+    exit;
+  }
   $q = $db->prepare("SELECT * FROM improvement_plans WHERE plan_id = ? AND school_id = ? LIMIT 1");
   $q->execute([$planId, SCHOOL_ID]);
   $plan = $q->fetch(PDO::FETCH_ASSOC);
@@ -2391,7 +2396,7 @@ include __DIR__ . '/../includes/header.php';
   <!-- ━━━━━━━━━━━ PROGRESS VIEW ━━━━━━━━━━━ -->
 
  <!-- Dimension trend over time -->
-  <?php if (count($trendSYLabels) >= 2): ?>
+  <?php if (count($trendSYLabels) >= 1): ?>
     <div class="chart-card" style="margin-bottom:18px;">
       <div class="chart-card-head">
   <span class="chart-card-title">Dimension Trend</span>
@@ -3431,7 +3436,7 @@ function sizeTrendInner(innerEl, wrapperEl, pointCount) {
 
 function renderDimensionTrendChart() {
   const canvas = document.getElementById('anDimTrendChart');
-  if (!canvas || anTrendSYLabels.length < 2) return;
+  if (!canvas || anTrendSYLabels.length < 1) return;
 
   const { labels } = getTrendWindow();
   const wrapperEl = document.getElementById('dimTrendScrollWrap');

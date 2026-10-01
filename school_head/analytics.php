@@ -3,6 +3,7 @@ ob_start();
 // school_head/analytics.php — Performance Insights
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/analytics_snapshots.php';
 
 // If School Head, redirect to the new integrated view on Dashboard
 if ($_SESSION['role'] === 'school_head') {
@@ -199,35 +200,7 @@ try {
     ");
   $unsnapped->execute([SCHOOL_ID]);
   foreach ($unsnapped->fetchAll() as $uc) {
-    $dscores = $db->prepare("
-            SELECT ds.dimension_id, ds.percentage, ds.raw_score, ds.max_score,
-                   d.dimension_no, d.dimension_name
-            FROM sbm_dimension_scores ds
-            JOIN sbm_dimensions d ON ds.dimension_id = d.dimension_id
-            WHERE ds.cycle_id = ?
-        ");
-    $dscores->execute([$uc['cycle_id']]);
-    foreach ($dscores->fetchAll() as $ds) {
-      $db->prepare("
-                INSERT IGNORE INTO analytics_snapshots
-                    (school_id, cycle_id, sy_id, sy_label, dimension_id, dimension_no,
-                     dimension_name, percentage, raw_score, max_score, overall_score, maturity_level)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-            ")->execute([
-            $uc['school_id'],
-            $uc['cycle_id'],
-            $uc['sy_id'],
-            $uc['sy_label'],
-            $ds['dimension_id'],
-            $ds['dimension_no'],
-            $ds['dimension_name'],
-            $ds['percentage'],
-            $ds['raw_score'],
-            $ds['max_score'],
-            $uc['overall_score'],
-            $uc['maturity_level'],
-          ]);
-    }
+    saveAnalyticsSnapshotsForCycle($db, (int) $uc['cycle_id']);
   }
 } catch (\Exception $e) {
   // analytics_snapshots table may not exist yet — silently skip

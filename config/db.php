@@ -51,6 +51,7 @@ define('SCHOOL_HEAD', 'Maria Santos');
 function getDB(): PDO
 {
     static $pdo = null;
+    static $schoolYearSyncDone = false;
     if ($pdo !== null) {
         try {
             // test connection is alive
@@ -69,5 +70,12 @@ function getDB(): PDO
         ]);
         $pdo->exec("SET time_zone = '+08:00'");
     }
+
+    if (!$schoolYearSyncDone) {
+        require_once __DIR__ . '/../includes/school_year.php';
+        syncActiveSchoolYear($pdo);
+        $schoolYearSyncDone = true;
+    }
+
     return $pdo;
 }

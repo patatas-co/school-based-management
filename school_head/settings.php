@@ -14,61 +14,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   header('Content-Type: application/json; charset=UTF-8');
   verifyCsrf();
   if ($_POST['action'] === 'save_sy') {
-    $label = trim($_POST['label'] ?? '');
+    $labelInput = $_POST['label'] ?? '';
+    $label = is_string($labelInput) ? trim($labelInput) : '';
     if ($label === '') {
       echo json_encode(['ok' => false, 'msg' => 'School year label is required.']);
       exit;
     }
-    // Validate date format if provided
     $dateStart = null;
     $dateEnd = null;
-    if (!empty($_POST['date_start'])) {
-      $dateStart = DateTime::createFromFormat('Y-m-d', $_POST['date_start']) ? $_POST['date_start'] : null;
+    $startInput = $_POST['date_start'] ?? '';
+    if (!is_string($startInput)) {
+      echo json_encode(['ok' => false, 'msg' => 'Enter a valid start date.']);
+      exit;
     }
-    if (!empty($_POST['date_end'])) {
-      $dateEnd = DateTime::createFromFormat('Y-m-d', $_POST['date_end']) ? $_POST['date_end'] : null;
+    $startInput = trim($startInput);
+    if ($startInput !== '') {
+      $parsedStart = DateTimeImmutable::createFromFormat('!Y-m-d', $startInput);
+      $startErrors = DateTimeImmutable::getLastErrors();
+      if (
+        !$parsedStart
+        || ($startErrors !== false && ($startErrors['warning_count'] > 0 || $startErrors['error_count'] > 0))
+        || $parsedStart->format('Y-m-d') !== $startInput
+      ) {
+        echo json_encode(['ok' => false, 'msg' => 'Enter a valid start date.']);
+        exit;
+      }
+      $dateStart = $parsedStart->format('Y-m-d');
     }
-    if ($dateStart && $dateEnd && $dateStart > $dateEnd) {
+    $endInput = $_POST['date_end'] ?? '';
+    if (!is_string($endInput)) {
+      echo json_encode(['ok' => false, 'msg' => 'Enter a valid end date.']);
+      exit;
+    }
+    $endInput = trim($endInput);
+    if ($endInput !== '') {
+      $parsedEnd = DateTimeImmutable::createFromFormat('!Y-m-d', $endInput);
+      $endErrors = DateTimeImmutable::getLastErrors();
+      if (
+        !$parsedEnd
+        || ($endErrors !== false && ($endErrors['warning_count'] > 0 || $endErrors['error_count'] > 0))
+        || $parsedEnd->format('Y-m-d') !== $endInput
+      ) {
+        echo json_encode(['ok' => false, 'msg' => 'Enter a valid end date.']);
+        exit;
+      }
+      $dateEnd = $parsedEnd->format('Y-m-d');
+    }
+    if ($dateStart && $dateEnd && $dateEnd <= $dateStart) {
       echo json_encode(['ok' => false, 'msg' => 'End date must be after the start date.']);
-      exit;
-    }
-    $db->prepare("INSERT INTO school_years (label,date_start,date_end,is_current) VALUES (?,?,?,0)")
-      ->execute([$label, $dateStart, $dateEnd]);
-    echo json_encode(['ok' => true, 'msg' => 'School year saved.']);
-    exit;
-  }
-  if ($_POST['action'] === 'set_current_sy') {
-    $id = (int) ($_POST['id'] ?? 0);
-    if (!$id) {
-      echo json_encode(['ok' => false, 'msg' => 'Invalid school year.']);
-      exit;
-    }
-
-    $exists = $db->prepare("SELECT sy_id, label, is_current FROM school_years WHERE sy_id = ? LIMIT 1");
-    $exists->execute([$id]);
-    $syRow = $exists->fetch();
-    if (!$syRow) {
-      echo json_encode(['ok' => false, 'msg' => 'School year not found.']);
-      exit;
-    }
-
-    if ((int) $syRow['is_current'] === 1) {
-      echo json_encode(['ok' => true, 'msg' => 'That school year is already active.']);
       exit;
     }
 
     $db->beginTransaction();
     try {
-      $db->exec("UPDATE school_years SET is_current = 0");
-      $db->prepare("UPDATE school_years SET is_current = 1 WHERE sy_id = ?")->execute([$id]);
+      $duplicate = $db->prepare(
+        "SELECT sy_id FROM school_years WHERE label = ? LIMIT 1 FOR UPDATE"
+      );
+      $duplicate->execute([$label]);
+      if ($duplicate->fetchColumn()) {
+        $db->rollBack();
+        echo json_encode(['ok' => false, 'msg' => 'A school year with this label already exists.']);
+        exit;
+      }
+
+      $db->prepare("INSERT INTO school_years (label,date_start,date_end,is_current) VALUES (?,?,?,0)")
+        ->execute([$label, $dateStart, $dateEnd]);
+      $newSchoolYearId = (int) $db->lastInsertId();
+      $db->exec("UPDATE school_years SET is_current = 0 WHERE is_current = 1");
+      $db->prepare("UPDATE school_years SET is_current = 1 WHERE sy_id = ?")
+        ->execute([$newSchoolYearId]);
       $db->commit();
-      echo json_encode(['ok' => true, 'msg' => 'Active school year updated to ' . $syRow['label'] . '.']);
-    } catch (\Throwable $e) {
+    } catch (PDOException $e) {
       if ($db->inTransaction()) {
         $db->rollBack();
       }
-      echo json_encode(['ok' => false, 'msg' => 'Failed to switch the active school year.']);
+      if ($e->getCode() === '23000') {
+        echo json_encode(['ok' => false, 'msg' => 'A school year with this label already exists.']);
+        exit;
+      }
+      throw $e;
+    } catch (Throwable $e) {
+      if ($db->inTransaction()) {
+        $db->rollBack();
+      }
+      throw $e;
     }
+
+    echo json_encode(['ok' => true, 'msg' => 'School year saved.']);
     exit;
   }
   if ($_POST['action'] === 'archive_sy') {
@@ -111,6 +143,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       exit;
     }
     echo json_encode(['ok' => true, 'msg' => 'School year restored.']);
+    exit;
+  }
+  if ($_POST['action'] === 'restore_all_archived_sy') {
+    try {
+      $db->beginTransaction();
+      $restoredCount = $db->exec('UPDATE school_years SET is_archived = 0 WHERE is_archived = 1');
+      $db->commit();
+    } catch (Throwable $e) {
+      if ($db->inTransaction()) {
+        $db->rollBack();
+      }
+      throw $e;
+    }
+    echo json_encode([
+      'ok' => true,
+      'msg' => $restoredCount === 1
+        ? '1 school year restored.'
+        : "$restoredCount school years restored.",
+      'restored_count' => $restoredCount,
+    ]);
     exit;
   }
   if ($_POST['action'] === 'save_maturity') {
@@ -171,6 +223,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
   if ($_POST['action'] === 'get_school_years') {
     $active = $db->query("SELECT sy_id, label, date_start, date_end, is_current, is_archived FROM school_years WHERE is_archived = 0 ORDER BY sy_id DESC")->fetchAll();
     $archived = $db->query("SELECT sy_id, label, date_start, date_end, is_current, is_archived FROM school_years WHERE is_archived = 1 ORDER BY sy_id DESC")->fetchAll();
+    foreach ($active as &$schoolYear) {
+      $schoolYear['status'] = schoolYearStatus($schoolYear);
+    }
+    unset($schoolYear);
+    foreach ($archived as &$schoolYear) {
+      $schoolYear['status'] = schoolYearStatus($schoolYear);
+    }
+    unset($schoolYear);
     echo json_encode(['ok' => true, 'active' => $active, 'archived' => $archived]);
     exit;
   }
@@ -333,7 +393,9 @@ function renderSchoolYearTable(array $years, bool $archived): void
           <td><?= e($sy['label']) ?></td>
           <td class="sy-date"><?= $sy['date_start'] ? date('M d, Y', strtotime($sy['date_start'])) : '—' ?></td>
           <td class="sy-date"><?= $sy['date_end'] ? date('M d, Y', strtotime($sy['date_end'])) : 'Ongoing' ?></td>
-          <td class="sy-status"><?php if ((int)$sy['is_current'] === 1): ?><span class="pill pill-active">Current</span><?php elseif (!$archived): ?>Available<?php endif; ?></td>
+          <?php $status = schoolYearStatus($sy); ?>
+          <?php $statusClass = $status === 'Current' ? 'active' : strtolower($status); ?>
+          <td class="sy-status"><span class="pill pill-<?= $statusClass ?>"><?= e($status) ?></span></td>
           <td class="sy-actions">
             <?php if ($archived): ?>
               <button class="btn btn-secondary btn-sm" title="Restore" aria-label="Restore school year"
@@ -341,10 +403,6 @@ function renderSchoolYearTable(array $years, bool $archived): void
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
               </button>
             <?php elseif ((int)$sy['is_current'] !== 1): ?>
-              <button class="btn btn-primary btn-sm" title="Set Current" aria-label="Set current school year"
-                onclick="setCurrentSY(<?= (int)$sy['sy_id'] ?>,<?= htmlspecialchars(json_encode($sy['label']), ENT_QUOTES, 'UTF-8') ?>)">
-                <?= svgIcon('check') ?>
-              </button>
               <button class="btn btn-danger btn-sm" title="Archive" aria-label="Archive school year"
                 onclick="delSY(<?= (int)$sy['sy_id'] ?>,<?= htmlspecialchars(json_encode($sy['label']), ENT_QUOTES, 'UTF-8') ?>)">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
@@ -356,6 +414,7 @@ function renderSchoolYearTable(array $years, bool $archived): void
       </tbody>
     </table>
   </div>
+  <div class="sy-pagination" data-sy-pagination="<?= $archived ? 'archived' : 'active' ?>"></div>
   <?php
 }
 ?>
@@ -371,7 +430,15 @@ function renderSchoolYearTable(array $years, bool $archived): void
   .sy-table td:first-child { font-weight: 700; color: var(--n-900); }
   .sy-table .sy-date { color: var(--n-500); font-size: 12px; }
   .sy-table .sy-status { color: var(--n-400); font-size: 12px; }
+  .sy-table .pill-upcoming { background:var(--blue-bg);color:var(--blue);border-color:#BFDBFE; }
+  .sy-table .pill-past { background:var(--n-100);color:var(--n-500);border-color:var(--n-200); }
   .sy-table .sy-actions { text-align: center; white-space: nowrap; }
+  .sy-pagination { display:flex; align-items:center; justify-content:flex-end; gap:6px; padding:12px 20px; }
+  .sy-pagination:empty { display:none; }
+  .sy-pagination-info { margin-right:auto; color:var(--n-500); font-size:12px; }
+  .sy-pagination button { min-width:32px; height:32px; padding:0 9px; border:1px solid var(--n-200); border-radius:7px; background:#fff; color:var(--n-700); cursor:pointer; }
+  .sy-pagination button:hover:not(:disabled), .sy-pagination button[aria-current="page"] { border-color:var(--brand-500); color:var(--brand-700); background:var(--brand-50,#f0fdf4); }
+  .sy-pagination button:disabled { opacity:.45; cursor:not-allowed; }
   .sy-list-card { margin-top:20px; }
   @media (max-width: 760px) {
     .sy-create-grid, .sy-create-dates { grid-template-columns:1fr; }
@@ -502,6 +569,9 @@ function renderSchoolYearTable(array $years, bool $archived): void
       <div class="sy-list-toolbar" id="syArchivedToolbar" style="<?= count($archivedSyears) ? '' : 'display:none;' ?>">
         <button class="btn btn-secondary btn-sm" id="btnToggleArchivedSY" onclick="toggleArchivedSY()" style="<?= count($archivedSyears) ? '' : 'display:none;' ?>">
           View Archived (<?= count($archivedSyears) ?>)
+        </button>
+        <button class="btn btn-primary btn-sm" id="btnRestoreAllArchivedSY" onclick="restoreAllArchivedSY()" style="display:none;">
+          Restore All
         </button>
       </div>
       <div id="syActiveList">
@@ -696,7 +766,7 @@ function renderSchoolYearTable(array $years, bool $archived): void
 <div class="overlay" id="mRestoreSY">
   <div class="modal" style="max-width:460px;">
     <div class="modal-head">
-      <span class="modal-title">Restore School Year</span>
+      <span class="modal-title" id="restoreSYTitle">Restore School Year</span>
       <button class="modal-close" onclick="closeModal('mRestoreSY')"><?= svgIcon('x') ?></button>
     </div>
     <div class="modal-body">
@@ -704,32 +774,7 @@ function renderSchoolYearTable(array $years, bool $archived): void
     </div>
     <div class="modal-foot">
       <button class="btn btn-secondary" onclick="closeModal('mRestoreSY')">Cancel</button>
-      <button class="btn btn-primary" type="button" onclick="confirmRestoreSY()">Yes, Restore</button>
-    </div>
-  </div>
-</div>
-
-<!-- Maturity Bands Modal -->
-<div class="overlay" id="mSetCurrentSY">
-  <div class="modal" style="max-width:460px;">
-    <div class="modal-head">
-      <span class="modal-title">
-        Set Current School Year
-      </span>
-      <button class="modal-close" onclick="closeModal('mSetCurrentSY')">
-        <?= svgIcon('x') ?>
-      </button>
-    </div>
-    <div class="modal-body">
-      <p id="setCurrentSYText" style="font-size:14.5px; color:var(--n700); line-height:1.5;"></p>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-secondary" onclick="closeModal('mSetCurrentSY')">
-        Cancel
-      </button>
-      <button class="btn btn-primary" type="button" onclick="confirmSetCurrentSY()">
-        Yes, Set Current
-      </button>
+      <button class="btn btn-primary" id="confirmRestoreSYButton" type="button" onclick="confirmRestoreSY()">Yes, Restore</button>
     </div>
   </div>
 </div>
@@ -906,6 +951,8 @@ function renderSchoolYearTable(array $years, bool $archived): void
   }
 
   // ── School Years ──────────────────────────────────────────────────
+  const schoolYearPageSize = 10;
+  const schoolYearCurrentPages = { active: 1, archived: 1 };
   function escapeSY(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char]);
   }
@@ -927,11 +974,42 @@ function renderSchoolYearTable(array $years, bool $archived): void
       if (archived) {
         actions = `<button class="btn btn-secondary btn-sm" title="Restore" aria-label="Restore school year" onclick="unarchiveSY(${Number(sy.sy_id)},${jsLabel})"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>`;
       } else if (Number(sy.is_current) !== 1) {
-        actions = `<button class="btn btn-primary btn-sm" title="Set Current" aria-label="Set current school year" onclick="setCurrentSY(${Number(sy.sy_id)},${jsLabel})">${svgI('check')}</button><button class="btn btn-danger btn-sm" title="Archive" aria-label="Archive school year" onclick="delSY(${Number(sy.sy_id)},${jsLabel})"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></button>`;
+        actions = `<button class="btn btn-danger btn-sm" title="Archive" aria-label="Archive school year" onclick="delSY(${Number(sy.sy_id)},${jsLabel})"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></button>`;
       }
-      return `<tr><td>${label}</td><td class="sy-date">${formatSYDate(sy.date_start, false)}</td><td class="sy-date">${formatSYDate(sy.date_end, true)}</td><td class="sy-status">${Number(sy.is_current) === 1 ? '<span class="pill pill-active">Current</span>' : (archived ? '' : 'Available')}</td><td class="sy-actions">${actions}</td></tr>`;
+      const status = escapeSY(sy.status || (Number(sy.is_current) === 1 ? 'Current' : 'Past'));
+      const statusClass = status === 'Current' ? 'active' : status.toLowerCase();
+      return `<tr><td>${label}</td><td class="sy-date">${formatSYDate(sy.date_start, false)}</td><td class="sy-date">${formatSYDate(sy.date_end, true)}</td><td class="sy-status"><span class="pill pill-${statusClass}">${status}</span></td><td class="sy-actions">${actions}</td></tr>`;
     }).join('');
-    target.innerHTML = `<div class="tbl-wrap"><table class="tbl-enhanced sy-table" style="width:100%;"><thead><tr><th>School Year</th><th>Start Date</th><th>End Date</th><th>Status</th><th style="text-align:center;">Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    target.innerHTML = `<div class="tbl-wrap"><table class="tbl-enhanced sy-table" style="width:100%;"><thead><tr><th>School Year</th><th>Start Date</th><th>End Date</th><th>Status</th><th style="text-align:center;">Actions</th></tr></thead><tbody>${rows}</tbody></table></div><div class="sy-pagination" data-sy-pagination="${archived ? 'archived' : 'active'}"></div>`;
+    applySYTablePagination(target, archived ? 'archived' : 'active');
+  }
+  function applySYTablePagination(target, listName) {
+    const rows = Array.from(target.querySelectorAll('.sy-table tbody tr'));
+    const pagination = target.querySelector('[data-sy-pagination]');
+    const pageCount = Math.ceil(rows.length / schoolYearPageSize);
+    const page = Math.min(schoolYearCurrentPages[listName], Math.max(1, pageCount));
+    schoolYearCurrentPages[listName] = page;
+
+    rows.forEach((row, index) => {
+      row.style.display = index >= (page - 1) * schoolYearPageSize && index < page * schoolYearPageSize ? '' : 'none';
+    });
+    if (!pagination || pageCount <= 1) {
+      if (pagination) pagination.innerHTML = '';
+      return;
+    }
+
+    const start = (page - 1) * schoolYearPageSize + 1;
+    const end = Math.min(page * schoolYearPageSize, rows.length);
+    const pageButtons = Array.from({ length: pageCount }, (_, index) => {
+      const pageNumber = index + 1;
+      return `<button type="button" ${pageNumber === page ? 'aria-current="page"' : ''} aria-label="Page ${pageNumber}" onclick="goToSYPage('${listName}',${pageNumber})">${pageNumber}</button>`;
+    }).join('');
+    pagination.innerHTML = `<span class="sy-pagination-info">Showing ${start}-${end} of ${rows.length}</span><button type="button" aria-label="Previous page" ${page === 1 ? 'disabled' : ''} onclick="goToSYPage('${listName}',${page - 1})">‹</button>${pageButtons}<button type="button" aria-label="Next page" ${page === pageCount ? 'disabled' : ''} onclick="goToSYPage('${listName}',${page + 1})">›</button>`;
+  }
+  function goToSYPage(listName, page) {
+    schoolYearCurrentPages[listName] = page;
+    const target = document.getElementById(listName === 'archived' ? 'syArchivedList' : 'syActiveList');
+    applySYTablePagination(target, listName);
   }
   async function refreshSchoolYears(forceActive = false) {
     const r = await apiPost('settings.php', { action: 'get_school_years' });
@@ -940,6 +1018,7 @@ function renderSchoolYearTable(array $years, bool $archived): void
     renderSYTable(r.archived || [], true);
     const btn = document.getElementById('btnToggleArchivedSY');
     const toolbar = document.getElementById('syArchivedToolbar');
+    const restoreAllBtn = document.getElementById('btnRestoreAllArchivedSY');
     if (btn) {
       const archivedCount = (r.archived || []).length;
       btn.dataset.viewLabel = `View Archived (${archivedCount})`;
@@ -949,6 +1028,7 @@ function renderSchoolYearTable(array $years, bool $archived): void
       document.getElementById('syActiveList').style.display = shouldShowArchived ? 'none' : '';
       document.getElementById('syArchivedList').style.display = shouldShowArchived ? '' : 'none';
       btn.textContent = shouldShowArchived ? 'Back to Active' : btn.dataset.viewLabel;
+      if (restoreAllBtn) restoreAllBtn.style.display = shouldShowArchived && archivedCount ? '' : 'none';
       sessionStorage.setItem('sy_view', shouldShowArchived ? 'archived' : 'active');
     }
   }
@@ -974,46 +1054,62 @@ function renderSchoolYearTable(array $years, bool $archived): void
   }
   function unarchiveSY(id, label) {
     document.getElementById('mRestoreSY').dataset.id = id;
+    document.getElementById('mRestoreSY').dataset.restoreAll = '0';
+    document.getElementById('restoreSYTitle').textContent = 'Restore School Year';
     document.getElementById('restoreSYText').textContent = `Are you sure you want to restore "${label}" to the active list?`;
+    document.getElementById('confirmRestoreSYButton').textContent = 'Yes, Restore';
+    openModal('mRestoreSY');
+  }
+  function restoreAllArchivedSY() {
+    const count = document.querySelectorAll('#syArchivedList tbody tr').length;
+    if (!count) {
+      toast('There are no archived school years to restore.', 'err');
+      return;
+    }
+    document.getElementById('mRestoreSY').dataset.id = '';
+    document.getElementById('mRestoreSY').dataset.restoreAll = '1';
+    document.getElementById('restoreSYTitle').textContent = 'Restore All School Years';
+    document.getElementById('restoreSYText').textContent = `Restore all ${count} archived school years to the active list? This will not change the current school year.`;
+    document.getElementById('confirmRestoreSYButton').textContent = 'Yes, Restore All';
     openModal('mRestoreSY');
   }
   async function confirmRestoreSY() {
-    const id = document.getElementById('mRestoreSY').dataset.id;
-    if (!id) {
+    const modal = document.getElementById('mRestoreSY');
+    const restoreAll = modal.dataset.restoreAll === '1';
+    const id = modal.dataset.id;
+    if (!restoreAll && !id) {
       toast('No archived school year was selected.', 'err');
       return;
     }
-    const r = await apiPost('settings.php', { action: 'unarchive_sy', id });
+    const r = await apiPost('settings.php', restoreAll
+      ? { action: 'restore_all_archived_sy' }
+      : { action: 'unarchive_sy', id });
     toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) { closeModal('mRestoreSY'); await refreshSchoolYears(true); }
+    if (r.ok) {
+      closeModal('mRestoreSY');
+      modal.dataset.restoreAll = '0';
+      await refreshSchoolYears(restoreAll);
+    }
   }
   function toggleArchivedSY(forceView) {
     const active = document.getElementById('syActiveList');
     const archived = document.getElementById('syArchivedList');
     const btn = document.getElementById('btnToggleArchivedSY');
+    const restoreAllBtn = document.getElementById('btnRestoreAllArchivedSY');
     const showingArchived = forceView ? forceView !== 'archived' : archived.style.display !== 'none';
     active.style.display = showingArchived ? '' : 'none';
     archived.style.display = showingArchived ? 'none' : '';
     btn.textContent = showingArchived ? btn.dataset.viewLabel : 'Back to Active';
+    if (restoreAllBtn) restoreAllBtn.style.display = showingArchived ? 'none' : '';
     sessionStorage.setItem('sy_view', showingArchived ? 'active' : 'archived');
   }
   (function () {
+    applySYTablePagination(document.getElementById('syActiveList'), 'active');
+    applySYTablePagination(document.getElementById('syArchivedList'), 'archived');
     const btn = document.getElementById('btnToggleArchivedSY');
     if (!btn) return;
     btn.dataset.viewLabel = btn.textContent.trim();
     if (sessionStorage.getItem('sy_view') === 'archived') toggleArchivedSY('active');
   })();
-  function setCurrentSY(id, label) {
-    document.getElementById('mSetCurrentSY').dataset.id = id;
-    document.getElementById('setCurrentSYText').textContent = `Set "${label}" as the current school year?`;
-    openModal('mSetCurrentSY');
-  }
-  async function confirmSetCurrentSY() {
-    const id = document.getElementById('mSetCurrentSY').dataset.id;
-    closeModal('mSetCurrentSY');
-    const r = await apiPost('settings.php', { action: 'set_current_sy', id });
-    toast(r.msg, r.ok ? 'ok' : 'err');
-    if (r.ok) await refreshSchoolYears();
-  }
 </script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

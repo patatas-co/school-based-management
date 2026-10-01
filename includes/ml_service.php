@@ -33,6 +33,56 @@ function ml_post(string $endpoint, array $payload): ?array
     return json_decode($body, true);
 }
 
+function ml_post_detailed(string $endpoint, array $payload): array
+{
+    $retryAfterHeader = null;
+    $ch = curl_init(ML_SERVICE_URL . $endpoint);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'X-ML-Secret: ' . ML_SECRET,
+        ],
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_HEADERFUNCTION => static function ($curl, string $header) use (&$retryAfterHeader): int {
+            if (stripos($header, 'Retry-After:') === 0) {
+                $retryAfterHeader = trim(substr($header, strlen('Retry-After:')));
+            }
+            return strlen($header);
+        },
+    ]);
+
+    $rawBody = curl_exec($ch);
+    $transportError = curl_error($ch);
+    $httpStatus = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    $retryAfter = null;
+    if ($retryAfterHeader !== null) {
+        if (ctype_digit($retryAfterHeader)) {
+            $retryAfter = (int) $retryAfterHeader;
+        } else {
+            $retryAt = strtotime($retryAfterHeader);
+            if ($retryAt !== false) {
+                $retryAfter = max(0, $retryAt - time());
+            }
+        }
+    }
+
+    $rawBody = is_string($rawBody) ? $rawBody : '';
+    $decodedBody = $rawBody !== '' ? json_decode($rawBody, true) : null;
+    return [
+        'http_status' => $httpStatus,
+        'body' => is_array($decodedBody) ? $decodedBody : null,
+        'raw_body' => $rawBody,
+        'transport_error' => $transportError !== '' ? $transportError : null,
+        'retry_after' => $retryAfter,
+    ];
+}
+
 /**
  * Triggered after a cycle is finalized/submitted.
  * Stores results in MySQL via ml_recommendations + ml_predictions tables.
