@@ -85,15 +85,13 @@ function buildAiSuggestionPayload(
 
     if ($historicalCutoffYear === null) {
         $dimensionStmt = $db->prepare("
-            SELECT d.dimension_no, d.dimension_name, ROUND(AVG(ds.percentage), 1) AS avg_pct
-            FROM sbm_dimensions d
-            LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
-            LEFT JOIN sbm_cycles c
-              ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
-            GROUP BY d.dimension_id
+            SELECT d.dimension_no, d.dimension_name, ROUND(ds.percentage, 1) AS avg_pct
+            FROM sbm_dimension_scores ds
+            JOIN sbm_dimensions d ON d.dimension_id = ds.dimension_id
+            WHERE ds.cycle_id = ? AND ds.school_id = ?
             ORDER BY d.dimension_no
         ");
-        $dimensionStmt->execute([$syId, $schoolId]);
+        $dimensionStmt->execute([$cycleId, $schoolId]);
     } else {
         $dimensionStmt = $db->prepare("
             SELECT d.dimension_no, d.dimension_name, ROUND(ds.percentage, 1) AS avg_pct
@@ -105,11 +103,53 @@ function buildAiSuggestionPayload(
         $dimensionStmt->execute([$cycleId, $schoolId]);
     }
     $dimensionScores = [];
+    $currentYearOrder = (int) substr((string) $schoolYearLabel, 0, 4);
     foreach ($dimensionStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         $dimensionScores[] = [
+            'dimension_no' => count($dimensionScores) + 1,
             'dimension_name' => $row['dimension_name'],
             'score' => (float) $row['avg_pct'],
             'maturity' => sbmMaturityLevel((float) $row['avg_pct'])['label'],
+        ];
+    }
+
+    $dimensionRows = [];
+    foreach ($dimensionScores as $dimension) {
+        $dimensionRows[] = [
+            'dimension_no' => $dimension['dimension_no'],
+            'dimension_name' => $dimension['dimension_name'],
+            'dimension_score' => $dimension['score'],
+            'school_year_order' => $currentYearOrder,
+        ];
+    }
+
+    $earlierDimensionStmt = $db->prepare("
+        SELECT d.dimension_no, d.dimension_name, AVG(ds.percentage) AS dimension_score,
+               CAST(LEFT(sy.label, 4) AS UNSIGNED) AS school_year_order
+        FROM sbm_dimension_scores ds
+        JOIN sbm_dimensions d ON d.dimension_id = ds.dimension_id
+        JOIN sbm_cycles c ON c.cycle_id = ds.cycle_id
+        JOIN school_years sy ON sy.sy_id = c.sy_id
+        WHERE c.school_id = ?
+          AND c.status IN ('validated', 'finalized', 'completed')
+          AND c.cycle_id = (
+              SELECT MAX(c2.cycle_id)
+              FROM sbm_cycles c2
+              WHERE c2.school_id = c.school_id
+                AND c2.sy_id = c.sy_id
+                AND c2.status IN ('validated', 'finalized', 'completed')
+          )
+          AND CAST(LEFT(sy.label, 4) AS UNSIGNED) < ?
+        GROUP BY d.dimension_no, d.dimension_name, sy.sy_id, sy.label
+        ORDER BY school_year_order, d.dimension_no
+    ");
+    $earlierDimensionStmt->execute([$schoolId, $currentYearOrder]);
+    foreach ($earlierDimensionStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $dimensionRows[] = [
+            'dimension_no' => (int) $row['dimension_no'],
+            'dimension_name' => $row['dimension_name'],
+            'dimension_score' => (float) $row['dimension_score'],
+            'school_year_order' => (int) $row['school_year_order'],
         ];
     }
 
@@ -350,7 +390,9 @@ function buildAiSuggestionPayload(
                     'average_score' => $score ? (float) $score['overall_score'] : 0,
                     'overall_maturity' => $score ? $score['maturity_level'] : 'N/A',
                     'weakest_dimensions' => array_slice($dimensionScores, 0, 3),
+                    'all_dimensions' => $dimensionScores,
                 ],
+                'dimension_rows' => $dimensionRows,
                 'by_rating' => $byRating,
                 'history' => $history,
                 'comment_summary' => ['top_topics' => [], 'has_urgent' => false],

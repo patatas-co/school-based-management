@@ -10,6 +10,24 @@ define('ML_SECRET',      $_ENV['ML_SECRET'] ?? getenv('ML_SECRET') ?: '');
 
 function ml_post(string $endpoint, array $payload): ?array
 {
+    if ($endpoint === '/api/recommend' && isset($payload['analysis']) && is_array($payload['analysis'])) {
+        $allDimensions = $payload['analysis']['gap_analysis']['all_dimensions']
+            ?? $payload['analysis']['gap_analysis']['weakest_dimensions']
+            ?? [];
+        if (is_array($allDimensions) && !isset($payload['analysis']['dimension_rows'])) {
+            $payload['analysis']['dimension_rows'] = array_map(
+                static function (array $dimension): array {
+                    return [
+                        'dimension_no' => $dimension['dimension_no'] ?? 0,
+                        'dimension_name' => $dimension['dimension_name'] ?? '',
+                        'score' => $dimension['score'] ?? null,
+                        'gap_from_avg' => $dimension['gap_from_avg'] ?? null,
+                    ];
+                },
+                array_values($allDimensions)
+            );
+        }
+    }
     $ch = curl_init(ML_SERVICE_URL . $endpoint);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -30,7 +48,12 @@ function ml_post(string $endpoint, array $payload): ?array
         error_log("ML service error: $error");
         return null;
     }
-    return json_decode($body, true);
+    $decoded = json_decode($body, true);
+    if (!is_array($decoded)) {
+        error_log("ML service returned invalid JSON from {$endpoint}");
+        return null;
+    }
+    return $decoded;
 }
 
 function ml_post_detailed(string $endpoint, array $payload): array
@@ -417,6 +440,8 @@ function runRuleBasedPipeline(array $payload): array
             'recommendations' => $recommendations,
             'backend_used'    => 'rule_based',
             'error'           => null,
+            'model_source'    => 'rule_fallback',
+            'confidence'      => 0.55,
         ],
     ];
 }

@@ -20,6 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env", override=True)
 load_dotenv(BASE_DIR.parent / ".env", override=True)
 
+from ml_classifier import dimension_model_metadata, predict_dimension_outlook
 # Debug: confirm key loaded
 import sys
 _key = os.getenv("GROQ_API_KEY", "")
@@ -85,10 +86,12 @@ def teacher_outliers():
 
 @app.route("/health")
 def health():
+    model_metadata = dimension_model_metadata()
     return jsonify({
         "status": "ok",
         "backend": LLM_BACKEND,
         "groq_key_present": bool(os.getenv("GROQ_API_KEY")),
+        **model_metadata,
     })
 
 
@@ -116,8 +119,15 @@ def recommend():
     if not auth(request):
         return jsonify({"error": "unauthorized"}), 401
     data   = request.get_json(force=True)
+    analysis = dict(data.get("analysis", {}))
+    gap_analysis = dict(analysis.get("gap_analysis", {}))
+    dimension_rows = analysis.get("dimension_rows")
+    if not isinstance(dimension_rows, list):
+        dimension_rows = gap_analysis.get("all_dimensions", [])
+    outlook = predict_dimension_outlook(dimension_rows)
+    analysis["dimension_outlook"] = outlook
     result = generate_recommendations(
-        analysis    = data.get("analysis", {}),
+        analysis    = analysis,
         school_name = data.get("school_name", "School"),
         sy_label    = data.get("sy_label", "2024-2025"),
         backend     = LLM_BACKEND,
@@ -182,6 +192,14 @@ def full_pipeline():
         "by_rating":       data.get("by_rating", {}),
         "history":         data.get("history", []),
     }
+    dimension_rows = []
+    for dimension_no, details in (data.get("dim_details", {}) or {}).items():
+        dimension_rows.append({
+            "dimension_no": dimension_no,
+            "dimension_name": details.get("dimension_name", ""),
+            "score": details.get("percentage"),
+        })
+    merged_analysis["dimension_outlook"] = predict_dimension_outlook(dimension_rows)
 
     recs = generate_recommendations(
         analysis    = merged_analysis,

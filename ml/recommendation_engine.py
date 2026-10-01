@@ -57,6 +57,7 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     by_rating = analysis.get("by_rating", {})
     history   = analysis.get("history", [])
     teacher_summaries = analysis.get("teacher_summaries", []) or []
+    dimension_outlook = analysis.get("dimension_outlook", []) or []
 
     weakest_dims = gap.get("weakest_dimensions", [])
     top_topics   = comments.get("top_topics", [])
@@ -82,6 +83,19 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
             "or real concerns that deserve attention; do not assume which explanation applies. "
             "Keep the conversation non-punitive, curious, and focused on listening and support."
         )
+    outlook_lines = "\n".join(
+        f"  - {item.get('dimension_name') or 'Dimension ' + str(item.get('dimension_no'))}: "
+        f"priority={item.get('priority', 'medium')}, "
+        f"decline risk={item.get('decline_risk', 'medium')}, "
+        f"confidence={item.get('confidence', 0):.2f}, "
+        f"source={item.get('model_source', 'rule_fallback')}, "
+        f"top factors={', '.join(item.get('top_factors', [])) or 'none'}"
+        for item in dimension_outlook
+    )
+    outlook_source = (
+        dimension_outlook[0].get("model_source", "rule_fallback")
+        if dimension_outlook else "rule_fallback"
+    )
 
     # --- Historical context block ---
     if history and len(history) >= 2:
@@ -188,6 +202,13 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
 
     Weakest Dimensions:
     {dim_lines if dim_lines else "  (none identified)"}
+
+    Dimension outlook:
+    {outlook_lines if outlook_lines else "  (none available)"}
+    Treat each dimension outlook's priority and decline risk as binding:
+    do not contradict them; explain them and use them to focus the advice.
+    The outlook source is "{outlook_source}". If it is "rule_fallback", do not
+    claim that a trained or learned model produced the outlook.
 
     Weak Indicators (Rated 1 or 2):
     {weak_ind_lines if weak_ind_lines else "  (none identified)"}
@@ -724,6 +745,7 @@ def generate_recommendations(
     Main entry point called by Flask.
     Returns generated text + metadata.
     """
+    dimension_outlook = analysis.get("dimension_outlook", []) or []
     prompt = _build_prompt(analysis, school_name, sy_label)
     error  = None
     text   = ""
@@ -766,10 +788,26 @@ def generate_recommendations(
         logging.error(f"Error computing recommendation confidence blocks: {e}")
         blocks = []
 
+    model_source = (
+        dimension_outlook[0].get("model_source", "rule_fallback")
+        if dimension_outlook else "rule_fallback"
+    )
+    confidence = (
+        round(min(float(item.get("confidence", 0.55)) for item in dimension_outlook), 3)
+        if dimension_outlook else 0.55
+    )
+    if model_source == "rule_fallback":
+        for block in blocks:
+            block["confidence_pct"] = 55
+            block["confidence_level"] = "Rule-based fallback"
+
     return {
         "recommendations": text,
         "blocks": blocks,
         "backend_used": backend,
         "error": error,
         "prompt_chars": len(prompt),
+        "model_source": model_source,
+        "confidence": confidence,
+        "dimension_outlook": dimension_outlook,
     }
