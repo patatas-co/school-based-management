@@ -2528,8 +2528,8 @@ include __DIR__ . '/../includes/header.php';
   <?php endif; ?>
 
  <!-- Charts row -->
-  <div class="grid2" style="margin-bottom:18px;align-items:start;grid-template-columns:1fr 1fr;">
-    <div class="chart-card" style="display:flex;flex-direction:column;height:535px;min-width:0;">
+  <div class="grid2" style="margin-bottom:18px;align-items:start;grid-template-columns:1fr;">
+    <div class="chart-card" style="display:none;flex-direction:column;height:535px;min-width:0;">
       <div class="chart-card-head">
         <span class="chart-card-title">Dimension Score Comparison</span>
         <div class="chart-dl-wrap">
@@ -2622,7 +2622,7 @@ include __DIR__ . '/../includes/header.php';
     <div id="progressPanelInner0">
       <?php if ($cycleHistory): ?>
         <div class="tbl-wrap">
-          <table class="tbl-enhanced">
+          <table class="tbl-enhanced" id="cycleHistoryTable">
             <thead>
               <tr>
                 <th>School Year</th>
@@ -2654,6 +2654,7 @@ include __DIR__ . '/../includes/header.php';
               <?php endforeach; ?>
             </tbody>
           </table>
+          <div id="cycleHistoryPagination" style="display:none;align-items:center;justify-content:flex-end;gap:5px;padding:12px 16px;border-top:1px solid var(--n-100);"></div>
         </div>
       <?php else: ?>
         <div class="empty-state"><div class="empty-title">No cycle history yet.</div></div>
@@ -2729,6 +2730,49 @@ include __DIR__ . '/../includes/header.php';
   </div>
 
   <script>
+    (function initCycleHistoryPagination() {
+      const table = document.getElementById('cycleHistoryTable');
+      const pagination = document.getElementById('cycleHistoryPagination');
+      if (!table || !pagination) return;
+
+      const rows = Array.from(table.querySelectorAll('tbody tr'));
+      const pageSize = 10;
+      const pageCount = Math.ceil(rows.length / pageSize);
+      if (pageCount <= 1) return;
+
+      let currentPage = 1;
+      const buttonStyle = 'border:1px solid var(--n-200);border-radius:6px;background:var(--white);color:var(--n-600);min-width:30px;height:30px;padding:0 8px;font-size:12px;cursor:pointer;';
+
+      function render() {
+        rows.forEach((row, index) => {
+          row.style.display = Math.floor(index / pageSize) + 1 === currentPage ? '' : 'none';
+        });
+        pagination.innerHTML = '';
+
+        const addButton = (label, page, disabled, active) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.textContent = label;
+          button.disabled = disabled;
+          button.style.cssText = buttonStyle + (active ? 'background:var(--brand-600);border-color:var(--brand-600);color:#fff;font-weight:700;' : '') + (disabled ? 'opacity:.45;cursor:not-allowed;' : '');
+          if (!disabled) button.addEventListener('click', () => {
+            currentPage = page;
+            render();
+          });
+          pagination.appendChild(button);
+        };
+
+        addButton('Previous', currentPage - 1, currentPage === 1, false);
+        for (let page = 1; page <= pageCount; page++) {
+          addButton(String(page), page, false, page === currentPage);
+        }
+        addButton('Next', currentPage + 1, currentPage === pageCount, false);
+        pagination.style.display = 'flex';
+      }
+
+      render();
+    })();
+
   const progressTitles = ['Assessment Cycle History', 'Weak This Cycle', 'Side-by-Side Comparison'];
   function switchProgressTab(idx) {
     for (var i = 0; i <= 2; i++) {

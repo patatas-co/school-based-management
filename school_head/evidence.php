@@ -8,16 +8,6 @@ $schoolId = $_SESSION['school_id'] ?? 0;
 // School year filter — default to current
 $allSY = $db->query("SELECT sy_id, label FROM school_years ORDER BY sy_id DESC")->fetchAll();
 
-// Only show school years that have at least one attachment
-$sysWithEvidence = $db->query("
-    SELECT DISTINCT sy.sy_id, sy.label
-    FROM school_years sy
-    JOIN sbm_cycles c ON c.sy_id = sy.sy_id
-    JOIN response_attachments ra ON ra.cycle_id = c.cycle_id
-    WHERE ra.deleted_at IS NULL AND ra.is_current_version = 1
-    ORDER BY sy.sy_id DESC
-")->fetchAll();
-
 $selectedSyId = (int)($_GET['sy_id'] ?? 0);
 if (!$selectedSyId) {
     $sy = $db->query("SELECT * FROM school_years WHERE is_current=1 LIMIT 1")->fetch();
@@ -393,6 +383,24 @@ function roleLabel(string $role): string
 
 <div class="page-head">
   <div class="page-head-actions">
+    <div class="p-select" id="evSySelect" style="width:160px;">
+      <div class="p-select-trigger" onclick="togglePSelect(event, 'evSySelect')">
+        <span class="p-select-val">
+          SY <?= e($sy['label'] ?? 'Select SY') ?>
+        </span>
+      </div>
+      <div class="p-select-menu">
+        <?php foreach ($allSY as $schoolYear): ?>
+          <div class="p-select-item <?= (int) $schoolYear['sy_id'] === (int) $syId ? 'selected' : '' ?>"
+            onclick="location.href='evidence.php?sy_id=<?= (int) $schoolYear['sy_id'] ?>'">
+            SY <?= e($schoolYear['label']) ?>
+            <?php if ((int) $schoolYear['sy_id'] === (int) $syId): ?>
+              <span class="p-select-check"></span>
+            <?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
   </div>
 </div>
 
