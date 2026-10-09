@@ -263,6 +263,7 @@ def predict_dimension_outlook(rows: list[dict[str, Any]]) -> list[dict[str, Any]
                 ),
             }
         outlook.append({
+            "dimension_id": int(row.get("dimension_id", 0)),
             "dimension_no": int(row.get("dimension_no", 0)),
             "dimension_name": row.get("dimension_name", ""),
             **item,

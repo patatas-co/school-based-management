@@ -51,6 +51,7 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     Includes historical trend data and forces indicator code references.
     """
     gap       = analysis.get("gap_analysis", {})
+    dimensions = gap.get("all_dimensions") or analysis.get("dimension_rows", [])
     weak      = analysis.get("weak_indicators", {})
     comments  = analysis.get("comment_summary", {})
     forecast  = analysis.get("forecast", {})
@@ -58,6 +59,14 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     history   = analysis.get("history", [])
     teacher_summaries = analysis.get("teacher_summaries", []) or []
     dimension_outlook = analysis.get("dimension_outlook", []) or []
+    previous_suggestions = analysis.get("previous_suggestions", []) or []
+    dimension_lines = "\n".join(
+        f"  - dimension_id={int(d.get('dimension_id', 0))}, "
+        f"dimension_no={int(d.get('dimension_no', 0))}, "
+        f"dimension_name={d.get('dimension_name', '')!r}, "
+        f"score={d.get('score', d.get('dimension_score', 'N/A'))}%"
+        for d in dimensions
+    )
 
     weakest_dims = gap.get("weakest_dimensions", [])
     top_topics   = comments.get("top_topics", [])
@@ -123,6 +132,90 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
         if forecast.get("forecast") else ""
     )
 
+    previous_by_dimension = {
+        int(item.get("dimension_no", 0)): item
+        for item in previous_suggestions
+        if int(item.get("dimension_no", 0)) > 0
+    }
+    previous_lines = []
+    for dimension in dimensions:
+        dimension_no = int(dimension.get("dimension_no", 0))
+        previous = previous_by_dimension.get(dimension_no)
+        prefix = (
+            f"  - dimension_no={dimension_no}, "
+            f"current dimension_id={int(dimension.get('dimension_id', 0))}: "
+        )
+        if previous is None:
+            previous_lines.append(prefix + "No previous-year suggestion or outcome is available.")
+            continue
+
+        if not previous.get("has_previous_suggestion", True):
+            score_change = previous.get("score_change")
+            if score_change is None:
+                score_result = "score change is unavailable"
+            else:
+                score_change = float(score_change)
+                direction = "improved" if score_change > 0 else ("declined" if score_change < 0 else "was unchanged")
+                score_result = f"score {direction} by {abs(score_change):.1f} points"
+            previous_score = previous.get("score_at_time")
+            current_score = previous.get("current_score")
+            previous_score_label = f"{float(previous_score):.1f}%" if previous_score is not None else "unknown"
+            current_score_label = f"{float(current_score):.1f}%" if current_score is not None else "unknown"
+            previous_lines.append(
+                prefix
+                + f"No saved AI suggestion was recorded last cycle. Result: score at the time "
+                + f"{previous_score_label}, current score {current_score_label}; {score_result}; "
+                + "there was no prior suggestion to adopt into an improvement plan."
+            )
+            continue
+
+        suggestion_text = str(previous.get("suggestion_text", "")).strip().rstrip(".!?")
+        score_change = previous.get("score_change")
+        if score_change is None:
+            score_result = "score change is unavailable"
+        else:
+            score_change = float(score_change)
+            direction = "improved" if score_change > 0 else ("declined" if score_change < 0 else "was unchanged")
+            score_result = f"score {direction} by {abs(score_change):.1f} points"
+        previous_score = previous.get("score_at_time")
+        current_score = previous.get("current_score")
+        previous_score_label = f"{float(previous_score):.1f}%" if previous_score is not None else "unknown"
+        current_score_label = f"{float(current_score):.1f}%" if current_score is not None else "unknown"
+        plan_result = "an improvement plan was created" if previous.get("plan_created") else "no improvement plan was created"
+        previous_lines.append(
+            prefix
+            + f"Last cycle you suggested: {suggestion_text}. "
+            + f"Result: score at the time {previous_score_label}, "
+            + f"current score {current_score_label}; {score_result}; {plan_result}."
+        )
+    previous_suggestion_lines = "\n".join(previous_lines)
+    improvement_cycle_guidance = (
+        "Previous-year suggestions and outcomes:\n"
+        + (previous_suggestion_lines or "  (none — generate as usual)")
+        + "\nRules for this cycle: Don't repeat suggestions that were adopted and worked; "
+        "replace suggestions that were ignored or followed by a score decline; build on what improved; "
+        "reference last year's result where relevant. Keep every suggestion strictly within its own listed "
+        "dimension's topic; never move curriculum advice into leadership, governance, or another dimension. "
+        "Use prior suggestions only for the matching dimension_no. "
+        "Do not put claims about last cycle, prior suggestions, score changes, or plan adoption in the new suggestion text; "
+        "put historical facts only in last_cycle_note. Never claim an indicator weakness or result not present in the supplied data. "
+        "If you continue any action from last cycle, explicitly state in last_cycle_note why it is being continued, "
+        "grounding that reason in the supplied score change and plan linkage without claiming causation. "
+        "If the prior suggestion was not adopted, replace its actions rather than repeating them, even when the score improved. "
+        "When no weak indicators are supplied for this dimension, do not invent indicator codes or gaps; propose a modest, "
+        "measurable action directly relevant to this dimension instead. "
+        "When a prior score declined, acknowledge the actual numeric dip using the supplied scores (for example, "
+        "'Score dipped from 78.8% to 78.1%') and adjust the advice to address evidence-backed gaps; do not merely "
+        "rephrase last year's suggestion. When a score improved, acknowledge the gain and build on actions supported "
+        "by the evidence. Do not claim the prior suggestion caused improvement unless an improvement plan was created. "
+        "For each dimension with any previous-cycle result, return exactly one concise sentence in last_cycle_note using this "
+        "format: 'Last cycle: [brief prior-suggestion takeaway]; Result: [score change and whether a plan was created].' "
+        "If the new suggestion deliberately continues an action, explain briefly in the prior-suggestion takeaway why it is "
+        "being continued (for example, the score improved and a plan was linked); do not imply the plan caused the change. "
+        "When a score exists but no prior suggestion was saved, clearly say no suggestion was recorded and report the "
+        "real score outcome; do not invent a suggestion or plan. Return null only when no previous-cycle suggestion or score exists."
+    )
+
     # --- Dimension summary ---
     dim_lines = "\n".join(
         f"  - {d['dimension_name']} ({d['score']}%, {d['maturity']})"
@@ -173,23 +266,33 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     - End with a brief closing statement summarizing the single biggest priority. Do NOT end with a question.
     - The tone should be warm, professional, and direct — not bureaucratic or robotic.
 
-    Here is an example of the EXACT style to follow:
+    For each assessment dimension below, write one concise suggestion. Keep the
+    title separate from the body. Body text should use natural prose and may use
+    lines beginning with "- " for actions. Do not include the title again in body.
 
-    Here are some targeted suggestions based on your school's current SBM data:
+    Exact dimensions for this assessment:
+    {dimension_lines if dimension_lines else "  (none provided)"}
 
-    **Focus on curriculum and teaching quality** Your scores in Dimension 1 suggest room to grow in instructional delivery. This is common in early assessment cycles.
+    Return ONLY valid JSON with exactly this shape:
+    {{
+      "suggestions": [
+        {{
+          "dimension_id": 123,
+          "title": "Short action-oriented title",
+          "text": "Context followed by specific actions.",
+          "last_cycle_note": "One sentence describing last year's result, or null when no previous data exists."
+        }}
+      ]
+    }}
 
-    - Consider scheduling monthly LAC sessions focused on remediation strategies for reading and numeracy gaps.
-    - Pair experienced teachers with newer ones through a peer-mentoring arrangement — even informal check-ins help.
-
-    **Build your child protection systems** Indicators around safe learning environments (indicator 2.1, 2.7) are flagged. These are foundational and worth addressing early.
-
-    - Convene or reactivate the Child Protection Committee within the next 6 weeks.
-    - Ensure the committee has clear terms of reference and a reporting pathway for incidents.
-
-    The single biggest factor in early SBM improvement is **consistent focus on a few priorities** — everything else becomes easier from there.
-
-    END OF EXAMPLE. Now generate advice for this school:
+    Include each listed dimension exactly once. Copy its integer dimension_id
+    exactly; do not infer IDs, use array positions, or assign a suggestion to a
+    different dimension. The dimension_name is the authoritative subject for
+    that entry. Do not include dimensions that are not listed.
+    Every title and action must fit that exact dimension_name; do not borrow
+    another dimension's subject matter or indicator codes. If continuing an action
+    from the matching prior suggestion, explain in last_cycle_note why it is being
+    continued using the supplied result.
 
     School: {school_name}
     School Year: {sy_label}
@@ -197,6 +300,8 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     Maturity Level: {gap.get('overall_maturity', 'N/A')}
     {history_line}
     {trend_line}
+
+    {improvement_cycle_guidance}
 
     Base your recommendations PRIMARILY on the weak indicators below.
 
@@ -220,12 +325,77 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     {teacher_summary_lines}
     {teacher_guidance}
 
-    Remember: natural conversational prose, bold topic headers, bullet points for actions,
-    short paragraphs, closing statement (not a question). Reference DepEd Order No. 007, s. 2024 where relevant.
-    Do NOT use numbered lists. Do NOT use section headers in brackets.
+    Keep each text field warm, professional, actionable, and concise. Reference
+    DepEd Order No. 007, s. 2024 where relevant. Return one suggestion per exact
+    listed dimension, using the JSON structure above and no surrounding prose.
+    Each suggestion MUST contain at least three distinct, concrete action bullets.
+    Every action must identify a responsible owner or role and a frequency or
+    deadline. Include a related indicator code when one is available in the supplied
+    data, and never invent a code. Do not treat a single document review as a full
+    suggestion.     unless the dimension score is already at least 87.5% (Advanced), the new
+    suggestion must not be shorter or less specific than an existing prior-year
+    suggestion; if an Advanced score justifies a shorter suggestion, state that
+    reason explicitly in last_cycle_note.
     """).strip()
 
     return prompt
+
+
+def _build_single_dimension_retry_prompt(
+    analysis: dict,
+    school_name: str,
+    sy_label: str,
+    dimension: dict,
+) -> str:
+    dimension_no = int(dimension.get("dimension_no", 0))
+    dimension_id = int(dimension.get("dimension_id", 0))
+    retry_analysis = dict(analysis)
+    gap = dict(analysis.get("gap_analysis", {}))
+    all_dimensions = gap.get("all_dimensions") or analysis.get("dimension_rows", [])
+    retry_dimensions = [
+        item for item in all_dimensions
+        if int(item.get("dimension_id", 0)) == dimension_id
+    ]
+    gap["all_dimensions"] = retry_dimensions
+    gap["weakest_dimensions"] = [
+        item for item in gap.get("weakest_dimensions", [])
+        if int(item.get("dimension_no", 0)) == dimension_no
+    ]
+    retry_analysis["gap_analysis"] = gap
+    retry_analysis["dimension_rows"] = retry_dimensions
+    retry_analysis["dimension_outlook"] = [
+        item for item in analysis.get("dimension_outlook", [])
+        if int(item.get("dimension_id", 0)) == dimension_id
+    ]
+    retry_analysis["previous_suggestions"] = [
+        item for item in analysis.get("previous_suggestions", [])
+        if int(item.get("dimension_no", 0)) == dimension_no
+    ]
+    weak_indicators = dict(analysis.get("weak_indicators", {}))
+    by_dimension = weak_indicators.get("by_dimension", {})
+    weak_indicators["by_dimension"] = {
+        key: value for key, value in by_dimension.items()
+        if str(key) == str(dimension_no)
+    }
+    retry_analysis["weak_indicators"] = weak_indicators
+    retry_analysis["by_rating"] = {}
+    retry_analysis["comment_summary"] = {}
+    return _build_prompt(retry_analysis, school_name, sy_label) + (
+        "\n\nThis is a single-dimension retry. Return exactly one suggestion for "
+        f"dimension_id={dimension_id} and dimension_no={dimension_no}. Make at "
+        "least three distinct concrete action bullets; each needs an owner or "
+        "role and a frequency or deadline."
+    )
+
+
+def _count_suggestion_actions(text: str) -> int:
+    normalized = re.sub(r"\s+-\s+(?=[\w“\"'])", "\n- ", text)
+    return len(re.findall(r"(?m)^\s*[-*]\s+\S", normalized))
+
+
+def _privacy_safe_backend(backend: str) -> str:
+    # Assessment-derived content must stay on the local Ollama service.
+    return "ollama"
 
 
 def _call_ollama(prompt: str, model: str = "llama3.2:3b") -> str:
@@ -337,18 +507,13 @@ def extract_form_from_document(raw_text: str, backend: str = "groq") -> dict:
     Sends extracted document text to the LLM and parses its JSON response
     into the dimensions/indicators structure used by the form editor.
     """
+    backend = _privacy_safe_backend(backend)
     prompt = _build_form_extraction_prompt(raw_text)
     error  = None
     parsed = {"dimensions": []}
 
     try:
-        if backend == "ollama":
-            text = _call_ollama(prompt)
-        elif backend == "openai":
-            text = _call_openai(prompt)
-        else:
-            text = _call_groq_json(prompt)
-            backend = "groq"
+        text = _call_ollama(prompt)
 
         # Strip markdown code fences if the model added them anyway.
         cleaned = text.strip()
@@ -673,18 +838,13 @@ def generate_ip_field(
     "Generate Strategy" buttons. Turns matched AI-suggestion snippets
     into a ready-to-edit Objective or Strategy.
     """
+    backend = _privacy_safe_backend(backend)
     prompt = _build_ip_field_prompt(field_type, indicator_code, indicator_text, dimension_name, snippet)
     error  = None
     text   = ""
 
     try:
-        if backend == "ollama":
-            text = _call_ollama(prompt)
-        elif backend == "openai":
-            text = _call_openai(prompt)
-        else:
-            text = _call_groq(prompt)
-            backend = "groq"
+        text = _call_ollama(prompt)
     except Exception as e:
         import logging
         import traceback
@@ -745,48 +905,105 @@ def generate_recommendations(
     Main entry point called by Flask.
     Returns generated text + metadata.
     """
+    configured_backend = backend
+    backend = _privacy_safe_backend(backend)
     dimension_outlook = analysis.get("dimension_outlook", []) or []
     prompt = _build_prompt(analysis, school_name, sy_label)
     error  = None
+    warning = None
     text   = ""
+    suggestions = []
+    gap_analysis = analysis.get("gap_analysis", {})
+    dimensions = gap_analysis.get("all_dimensions") or analysis.get("dimension_rows", [])
 
     try:
-        if backend == "ollama":
-            text = _call_ollama(prompt)
-        elif backend == "openai":
-            text = _call_openai(prompt)
-        # Default/Always fall back to Groq if not specified or explicitly requested
-        else:
-            text = _call_groq(prompt)
-            backend = "groq"
-            
+        text = _call_ollama(prompt)
+        suggestions = _parse_dimension_suggestions(
+            text, dimensions, analysis.get("previous_suggestions", [])
+        )
     except Exception as e:
         import logging
         import traceback
         tb = traceback.format_exc()
         logging.error(f"Error generating recommendations ({backend}): {e}\n{tb}")
         print(f"[ML ERROR] {backend} failed: {e}\n{tb}", flush=True)
-        error = str(e)
-        
-        # If the failure wasn't Groq, try Groq as a final attempt
-        if backend != "groq":
-            try:
-                text = _call_groq(prompt)
-                backend = "groq_fallback"
-                error = None # Recovered
-            except:
-                text = _rule_based_fallback(analysis)
-                backend = f"rule_based_error (was: {backend})"
-        else:
-            text = _rule_based_fallback(analysis)
-            backend = f"rule_based_error (was: {backend})"
+        warning = f"Local Ollama generation failed; rule-based suggestions need review: {e}"
+        suggestions = _rule_based_dimension_suggestions(analysis, dimensions)
+        for suggestion in suggestions:
+            suggestion["action_count"] = _count_suggestion_actions(suggestion["text"])
+            suggestion["needs_review"] = True
+            suggestion["review_reason"] = "The local model was unavailable; verify and expand this suggestion."
+            suggestion["model_version"] = "rule_based_local_fallback"
+        backend = "rule_based_local_fallback"
 
-    try:
-        blocks = split_into_confidence_blocks(text, analysis) if text and not error else []
-    except Exception as e:
-        import logging
-        logging.error(f"Error computing recommendation confidence blocks: {e}")
-        blocks = []
+    dimensions_by_id = {
+        int(dimension["dimension_id"]): dimension
+        for dimension in dimensions
+        if isinstance(dimension, dict) and str(dimension.get("dimension_id", "")).isdigit()
+    }
+    for suggestion in suggestions:
+        if not suggestion.get("needs_review"):
+            continue
+        dimension_id = int(suggestion["dimension_id"])
+        dimension = dimensions_by_id[dimension_id]
+        try:
+            retry_prompt = _build_single_dimension_retry_prompt(
+                analysis, school_name, sy_label, dimension
+            )
+            retry_text = _call_ollama(retry_prompt, model="llama3.2:3b")
+            retry_result = _parse_dimension_suggestions(
+                retry_text,
+                [dimension],
+                analysis.get("previous_suggestions", []),
+            )[0]
+            retry_count = _count_suggestion_actions(retry_result["text"])
+            original_count = int(suggestion.get("action_count", 0))
+            if retry_count >= 3:
+                retry_result["action_count"] = retry_count
+                retry_result["needs_review"] = False
+                retry_result["review_reason"] = None
+                retry_result["model_version"] = "llama3.2:3b"
+                suggestion.update(retry_result)
+            else:
+                if retry_count > original_count:
+                    suggestion.update(retry_result)
+                suggestion["action_count"] = max(original_count, retry_count)
+                suggestion["needs_review"] = True
+                suggestion.setdefault("model_version", "llama3.2:3b")
+                suggestion["review_reason"] = (
+                    f"Only {suggestion['action_count']} concrete action bullets were returned after one retry."
+                )
+        except Exception as retry_error:
+            import logging
+            logging.warning(
+                "Single-dimension retry failed for dimension_id %s: %s",
+                dimension_id,
+                retry_error,
+            )
+            suggestion["needs_review"] = True
+            suggestion.setdefault("model_version", "llama3.2:3b")
+            suggestion["review_reason"] = (
+                f"Fewer than three action bullets were returned; the one local retry failed: {retry_error}"
+            )
+
+    text = _format_dimension_suggestions(suggestions)
+
+    blocks = []
+    for suggestion in suggestions:
+        block_text = f"{suggestion['title']}\n{suggestion['text']}"
+        blocks.append({
+            "dimension_id": suggestion["dimension_id"],
+            "dimension_no": suggestion["dimension_no"],
+            "dimension_name": suggestion["dimension_name"],
+            "title": suggestion["title"],
+            "body_text": suggestion["text"],
+            "indicator_codes": suggestion.get("indicator_codes", []),
+            "action_count": suggestion.get("action_count", 0),
+            "needs_review": bool(suggestion.get("needs_review")),
+            "review_reason": suggestion.get("review_reason"),
+            "model_version": suggestion.get("model_version", "llama3.2:3b"),
+            **compute_recommendation_confidence(block_text, analysis),
+        })
 
     model_source = (
         dimension_outlook[0].get("model_source", "rule_fallback")
@@ -804,10 +1021,146 @@ def generate_recommendations(
     return {
         "recommendations": text,
         "blocks": blocks,
-        "backend_used": backend,
+        "suggestions": suggestions,
+        "backend_used": "llama3.2:3b" if backend == "ollama" else backend,
         "error": error,
+        "warning": warning,
+        "privacy_notice": (
+            "Remote model backends are disabled; generation uses local Ollama."
+            if configured_backend in {"groq", "openai"} else None
+        ),
         "prompt_chars": len(prompt),
         "model_source": model_source,
         "confidence": confidence,
         "dimension_outlook": dimension_outlook,
     }
+
+
+def _parse_dimension_suggestions(
+    raw_text: str,
+    dimensions: list[dict],
+    previous_suggestions: list[dict] | None = None,
+) -> list[dict]:
+    cleaned = raw_text.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", cleaned, flags=re.IGNORECASE)
+    parsed = json.loads(cleaned)
+    suggestions = parsed.get("suggestions") if isinstance(parsed, dict) else None
+    if not isinstance(suggestions, list):
+        raise ValueError("Recommendation JSON must contain a suggestions array.")
+
+    dimensions_by_id = {
+        int(dimension["dimension_id"]): dimension
+        for dimension in dimensions
+        if isinstance(dimension, dict) and str(dimension.get("dimension_id", "")).isdigit()
+    }
+    previous_by_dimension = {
+        int(item.get("dimension_no", 0)): item
+        for item in (previous_suggestions or [])
+        if isinstance(item, dict) and int(item.get("dimension_no", 0)) > 0
+    }
+    validated = []
+    seen_ids = set()
+    for suggestion in suggestions:
+        if not isinstance(suggestion, dict):
+            raise ValueError("Every recommendation must be a JSON object.")
+        dimension_id = suggestion.get("dimension_id")
+        if isinstance(dimension_id, bool) or not isinstance(dimension_id, int):
+            raise ValueError("Every recommendation must include an integer dimension_id.")
+        dimension = dimensions_by_id.get(dimension_id)
+        if dimension is None:
+            raise ValueError(f"Recommendation returned unknown dimension_id {dimension_id}.")
+        if dimension_id in seen_ids:
+            raise ValueError(f"Recommendation returned duplicate dimension_id {dimension_id}.")
+        title = str(suggestion.get("title", "")).strip()
+        body = str(suggestion.get("text", "")).strip()
+        if not title or not body:
+            raise ValueError(f"Recommendation for dimension_id {dimension_id} is missing title or text.")
+        action_count = _count_suggestion_actions(body)
+        last_cycle_note = suggestion.get("last_cycle_note")
+        has_previous = int(dimension.get("dimension_no", 0)) in previous_by_dimension
+        if has_previous and (not isinstance(last_cycle_note, str) or not last_cycle_note.strip()):
+            raise ValueError(f"Recommendation for dimension_id {dimension_id} is missing last_cycle_note.")
+        if has_previous:
+            note = last_cycle_note.strip()
+            if (
+                not note.startswith("Last cycle:")
+                or "; Result:" not in note
+                or "\n" in note
+                or note[-1:] not in ".!?"
+                or re.search(r"[.!?]\s+\S", note.rstrip(".!?"))
+            ):
+                raise ValueError(
+                    f"Recommendation for dimension_id {dimension_id} must return one formatted last_cycle_note sentence."
+                )
+        if not has_previous and last_cycle_note is not None:
+            raise ValueError(f"Recommendation for dimension_id {dimension_id} must use null last_cycle_note without prior data.")
+        seen_ids.add(dimension_id)
+        validated.append({
+            "dimension_id": dimension_id,
+            "dimension_no": int(dimension.get("dimension_no", 0)),
+            "dimension_name": str(dimension.get("dimension_name", "")),
+            "title": title,
+            "text": body,
+            "last_cycle_note": last_cycle_note.strip() if isinstance(last_cycle_note, str) else None,
+            "action_count": action_count,
+            "needs_review": action_count < 3,
+            "review_reason": (
+                f"Only {action_count} concrete action bullets were returned."
+                if action_count < 3 else None
+            ),
+            "model_version": "llama3.2:3b",
+        })
+    missing = set(dimensions_by_id) - seen_ids
+    if missing:
+        raise ValueError(f"Recommendation omitted dimension IDs: {', '.join(map(str, sorted(missing)))}.")
+    return validated
+
+
+def _format_dimension_suggestions(suggestions: list[dict]) -> str:
+    sections = ["Here are some targeted suggestions based on your school's current SBM data:"]
+    for suggestion in suggestions:
+        sections.append(f"**{suggestion['title']}**\n{suggestion['text']}")
+    return "\n\n".join(sections)
+
+
+def _rule_based_dimension_suggestions(analysis: dict, dimensions: list[dict]) -> list[dict]:
+    previous_by_dimension = {
+        int(item["dimension_no"]): item
+        for item in analysis.get("previous_suggestions", [])
+        if isinstance(item, dict) and str(item.get("dimension_no", "")).isdigit()
+    }
+    suggestions = []
+    for dimension in dimensions:
+        dimension_id = int(dimension.get("dimension_id", 0))
+        dimension_no = int(dimension.get("dimension_no", 0))
+        name = str(dimension.get("dimension_name", f"Dimension {dimension_id}"))
+        score = dimension.get("score", dimension.get("dimension_score", "N/A"))
+        prior = previous_by_dimension.get(dimension_no)
+        text = (
+            f"Review the current evidence and score for {name}, then select a focused, "
+            "measurable action with a responsible person and review date."
+        )
+        if prior:
+            text += " Build on the previous cycle's work without repeating actions that already succeeded."
+        suggestions.append({
+            "dimension_id": dimension_id,
+            "dimension_no": dimension_no,
+            "dimension_name": name,
+            "title": f"Strengthen {name}",
+            "text": f"{text} Current dimension score: {score}%.",
+            "last_cycle_note": (
+                "Last cycle: the prior suggestion was "
+                + ("adopted" if prior.get("plan_created") else "not adopted")
+                + "; Result: "
+                + (
+                    f"score {'improved' if float(prior['score_change']) > 0 else 'declined' if float(prior['score_change']) < 0 else 'was unchanged'} "
+                    f"by {abs(float(prior['score_change'])):.1f} points"
+                    if prior.get("score_change") is not None
+                    else "score change unavailable"
+                )
+                + f", and an improvement plan was {'created' if prior.get('plan_created') else 'not created'}."
+                if prior else None
+            ),
+        })
+    return suggestions

@@ -97,6 +97,7 @@ define('SBM_NAV', [
                 ['Evidence & MOV', 'school_head/evidence.php', 'paperclip'],
                 ['SBM Planning', 'target', [
                     ['AI Suggestion Planning', 'school_head/ai_suggestion_planning.php', 'sparkles'],
+                    ['Suggestion History', 'school_head/suggestion_history.php', 'clock'],
                     ['Improvement Plans', 'school_head/improvement_plans.php', 'clipboard'],
                 ]],
             ]

@@ -322,6 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
   $output = trim($_POST['expected_output'] ?? '');
   $priority = $_POST['priority_level'] ?? 'Medium';
   $suggestionItemId = (int) ($_POST['suggestion_item_id'] ?? 0);
+  $suggestionHistoryId = (int) ($_POST['suggestion_history_id'] ?? 0);
   $suggestionBaselineText = null;
 
   if ($obj === '' || $strat === '') {
@@ -378,7 +379,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
       if (!$dId) continue;
 
       $ins->execute([$schoolIdIp, $cycleIdIp, $dId, $indId, $priority, $obj, $strat, $person ?: null, $target ?: null, $res ?: null, $output ?: null, IP_STATUS_DRAFT, $currentUserId, $currentUserId, $currentUserId, $suggestionItemId ?: null, $suggestionBaselineText]);
-      $newPlanIds[] = (int) $db->lastInsertId();
+      $newPlanId = (int) $db->lastInsertId();
+      $newPlanIds[] = $newPlanId;
+      if ($suggestionHistoryId > 0) {
+        $historyUpdate = $db->prepare('UPDATE ai_suggestion_history SET adopted_plan_id = ? WHERE id = ? AND school_id = ? AND dimension_id = ?');
+        $historyUpdate->execute([$newPlanId, $suggestionHistoryId, $schoolIdIp, (int) $dId]);
+      }
       $inserted++;
     }
 
@@ -527,6 +533,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
 
 $syId     = (int)($_GET['sy'] ?? $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn());
 $schoolId = SCHOOL_ID;
+$prefillHistory = null;
+$prefillHistoryId = (int) ($_GET['prefill_history_id'] ?? 0);
+if ($prefillHistoryId > 0) {
+  $prefillQ = $db->prepare('SELECT * FROM ai_suggestion_history WHERE id = ? AND school_id = ? LIMIT 1');
+  $prefillQ->execute([$prefillHistoryId, $schoolId]);
+  $prefillHistory = $prefillQ->fetch(PDO::FETCH_ASSOC) ?: null;
+}
 
 // -- Merge dimensions and computed scores before rendering the picker --
 $activeFormVersionId = (int) $db->query(
@@ -1084,6 +1097,7 @@ include __DIR__.'/../includes/header.php';
             </div>
             <input type="hidden" name="indicator_ids" id="indIdsInput" required>
             <input type="hidden" name="suggestion_item_id" id="suggestionItemIdInput" value="">
+            <input type="hidden" name="suggestion_history_id" id="suggestionHistoryIdInput" value="<?= $prefillHistory ? (int) $prefillHistory['id'] : '' ?>">
           </div>
           <div class="grid2">
             <div class="form-group">
@@ -1718,8 +1732,12 @@ function parseAILogicToHtml(text, blocks) {
     const headingMatch = trimmed.match(/^\*\*(.+?)\*\*(.*)$/);
     if (headingMatch) {
       const title = headingMatch[1];
-      const badgeHtml = renderConfidenceBadge(blockByTitle[title]);
-      finalHtml += '<div class="ai-section-head"><h4>' + title + '</h4>' + badgeHtml + '</div>';
+      const sectionBlock = blockByTitle[title];
+      const reviewBadge = sectionBlock && sectionBlock.needs_review
+        ? '<span style="display:inline-flex;padding:3px 8px;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:10px;font-weight:700;">Needs review</span>'
+        : '';
+      const badgeHtml = renderConfidenceBadge(sectionBlock);
+      finalHtml += '<div class="ai-section-head"><h4>' + title + '</h4>' + reviewBadge + badgeHtml + '</div>';
       const rest = headingMatch[2].trim();
       if (rest) finalHtml += '<p>' + inlineFormat(rest) + '</p>';
       return;
@@ -1940,6 +1958,10 @@ async function generateIpField(fieldType) {
 
 // ── IMPROVEMENT PLAN: TAG MULTI-SELECT COMPONENT (moved from dashboard.php) ──
 const weakIndicatorsBase = <?= json_encode($weakIndicatorRows) ?>;
+const prefillSuggestionHistory = <?= json_encode(
+  $prefillHistory ?: null,
+  JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+) ?>;
 let dimTagControl, indTagControl;
 
 function initTagSelect(prefix, options, onUpdate) {
@@ -2084,6 +2106,10 @@ function initTagSelect(prefix, options, onUpdate) {
       });
       render();
     },
+    setSelected: (ids) => {
+      selected = ids.map(id => String(id)).filter(id => options.some(option => String(option.id) === id));
+      render();
+    },
     reset: () => {
       selected = [];
       input.value = '';
@@ -2115,6 +2141,24 @@ if (IS_IMPROVEMENT_PLANS_PAGE) document.addEventListener('DOMContentLoaded', () 
     if (provenanceInput) provenanceInput.value = '';
     updateAiFieldButtons();
   });
+  if (prefillSuggestionHistory) {
+    const dimensionId = String(prefillSuggestionHistory.dimension_id);
+    dimTagControl.setSelected([dimensionId]);
+    const indicatorIds = weakIndicatorsBase
+      .filter(indicator => String(indicator.dimension_id) === dimensionId)
+      .slice(0, 1)
+      .map(indicator => String(indicator.indicator_id));
+    indTagControl.setSelected(indicatorIds);
+    document.querySelector('#improvementPlanForm textarea[name="objective"]').value =
+      prefillSuggestionHistory.suggestion_text || '';
+    document.querySelector('#improvementPlanForm textarea[name="strategy"]').value =
+      'Implement and monitor this recommendation with the responsible SBM team, then review the dimension score in the next assessment cycle.';
+    document.querySelector('#improvementPlanForm select[name="priority_level"]').value =
+      prefillSuggestionHistory.priority_label || 'Medium';
+    autoGrowTextarea(document.querySelector('#improvementPlanForm textarea[name="objective"]'));
+    autoGrowTextarea(document.querySelector('#improvementPlanForm textarea[name="strategy"]'));
+    manuallyAddImprovementPlan();
+  }
 });
 
 function manuallyAddImprovementPlan() {

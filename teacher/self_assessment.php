@@ -42,7 +42,12 @@ $cycleCheck = $db->prepare("SELECT cycle_id, status FROM sbm_cycles WHERE school
 $cycleCheck->execute([$schoolId, $syId]);
 $cycleCheck = $cycleCheck->fetch();
 
-if (!$cycleCheck) {
+// A cycle row may be created in draft status while the School Head is
+// configuring the assessment. Teachers must not see or modify it until it
+// has been explicitly started.
+$cycleIsOpen = $cycleCheck && in_array($cycleCheck['status'], ['in_progress', 'returned'], true);
+
+if (!$cycleIsOpen) {
     $pageTitle = 'SBM Self-Assessment';
     $activePage = 'self_assessment.php';
     include __DIR__ . '/../includes/header.php';
@@ -154,8 +159,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             echo json_encode(['ok' => false, 'msg' => 'No active cycle.']);
             exit;
         }
-        if (in_array($cycleRow['status'], ['submitted', 'validated', 'finalized'])) {
-            echo json_encode(['ok' => false, 'msg' => 'Assessment is locked.']);
+        if (!in_array($cycleRow['status'], ['in_progress', 'returned'], true)) {
+            echo json_encode(['ok' => false, 'msg' => 'Assessment has not been started. Please wait for the School Head to start it.']);
             exit;
         }
 
@@ -183,10 +188,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             exit;
         }
 
-        if (in_array($status, ['submitted', 'validated'])) {
+        if (!in_array($status, ['in_progress', 'returned'], true)) {
             echo json_encode([
                 'ok' => false,
-                'msg' => 'This assessment has already been submitted. Your responses are locked.'
+                'msg' => 'Assessment has not been started. Please wait for the School Head to start it.'
             ]);
             exit;
         }
@@ -297,12 +302,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'msg' => 'No active assessment cycle yet. Please wait for the School Head to start the assessment.'
             ]);
             exit;
+        } elseif (!in_array($cycleRow['status'], ['in_progress', 'returned'], true)) {
+            echo json_encode([
+                'ok' => false,
+                'msg' => 'Assessment has not been started. Please wait for the School Head to start it.'
+            ]);
+            exit;
         } else {
-            $cycleId = $cycleRow['cycle_id'];
-            if (in_array($cycleRow['status'], ['submitted', 'validated', 'finalized'])) {
-                echo json_encode(['ok' => false, 'msg' => 'Assessment is locked. Cannot edit.']);
-                exit;
-            }
+            $cycleId = (int) $cycleRow['cycle_id'];
         }
 
         $db->prepare("INSERT INTO teacher_responses (cycle_id,indicator_id,school_id,teacher_id,rating,remarks)

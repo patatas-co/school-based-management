@@ -1,0 +1,26 @@
+-- Per-school, per-year repository of generated AI suggestions.
+CREATE TABLE IF NOT EXISTS ai_suggestion_history (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  school_id INT NOT NULL,
+  school_year VARCHAR(30) NOT NULL,
+  dimension_id INT NOT NULL,
+  suggestion_title VARCHAR(255) NOT NULL,
+  suggestion_text LONGTEXT NOT NULL,
+  priority_label VARCHAR(20) NOT NULL DEFAULT 'Medium',
+  decline_risk VARCHAR(20) NOT NULL DEFAULT 'medium',
+  data_status ENUM('sufficient','insufficient') NOT NULL DEFAULT 'insufficient',
+  score_at_time DECIMAL(5,2) DEFAULT NULL,
+  model_version VARCHAR(80) DEFAULT NULL,
+  is_final TINYINT(1) NOT NULL DEFAULT 0,
+  adopted_plan_id INT DEFAULT NULL,
+  generated_by INT NOT NULL,
+  generated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_ai_history_school_year (school_id, school_year),
+  KEY idx_ai_history_dimension (school_id, dimension_id, school_year),
+  KEY idx_ai_history_final (school_id, school_year, is_final),
+  CONSTRAINT fk_ai_history_school FOREIGN KEY (school_id) REFERENCES schools (school_id) ON DELETE CASCADE,
+  CONSTRAINT fk_ai_history_dimension FOREIGN KEY (dimension_id) REFERENCES sbm_dimensions (dimension_id) ON DELETE CASCADE,
+  CONSTRAINT fk_ai_history_plan FOREIGN KEY (adopted_plan_id) REFERENCES improvement_plans (plan_id) ON DELETE SET NULL,
+  CONSTRAINT fk_ai_history_user FOREIGN KEY (generated_by) REFERENCES users (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

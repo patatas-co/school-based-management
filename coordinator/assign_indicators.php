@@ -39,9 +39,17 @@ try {
     exit;
 }
 
-// Fetch dynamic, version-aware indicators for teachers
-$activeTeacherIndicators = getRoleIndicators($db, $activeFormVersionId, 'teacher');
-$activeTeacherCodes      = array_column($activeTeacherIndicators, 'indicator_code');
+// Coordinators may assign any active indicator to a teacher. The teacher's
+// assignment is the explicit scope for that assessment cycle.
+$activeTeacherStmt = $db->prepare("
+    SELECT indicator_code
+    FROM sbm_indicators
+    WHERE form_version_id = ? AND is_active = 1
+    ORDER BY sort_order ASC
+");
+$activeTeacherStmt->execute([$activeFormVersionId]);
+$activeTeacherCodes = $activeTeacherStmt->fetchAll(PDO::FETCH_COLUMN);
+$teacherRoleCodes = getRoleIndicatorCodes($db, $activeFormVersionId, 'teacher');
 
 // ── AJAX HANDLERS ────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -126,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (!empty($indicators)) {
                 $insert = $db->prepare("INSERT INTO teacher_indicator_assignments (teacher_id, indicator_code, assigned_by, cycle_id) VALUES (?, ?, ?, ?)");
                 foreach ($indicators as $code) {
-                    // Make sure it's a valid teacher indicator in active form version
+                    // Make sure it's a valid active indicator in the current form version.
                     if (in_array($code, $activeTeacherCodes)) {
                         $insert->execute([$teacherId, $code, $_SESSION['user_id'], $cycleId]);
                     }
@@ -246,8 +254,32 @@ $pageTitle = 'Assign Indicators';
 $activePage = 'assign_indicators.php';
 include __DIR__ . '/../includes/header.php';
 
-// Group active form version indicators by dimension
-$dbGrouped = getRoleIndicatorsGrouped($db, $activeFormVersionId, 'teacher');
+// Group all active form version indicators by dimension for teacher assignment.
+$dbGroupedStmt = $db->prepare("
+    SELECT
+        i.indicator_code,
+        i.indicator_text,
+        i.rater_role,
+        d.dimension_no,
+        d.dimension_name
+    FROM sbm_indicators i
+    JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
+    WHERE i.form_version_id = ? AND i.is_active = 1
+    ORDER BY d.dimension_no ASC, i.sort_order ASC
+");
+$dbGroupedStmt->execute([$activeFormVersionId]);
+$dbGroupedRows = $dbGroupedStmt->fetchAll(PDO::FETCH_ASSOC);
+$dbGrouped = [];
+foreach ($dbGroupedRows as $ind) {
+    $dimNo = (int) $ind['dimension_no'];
+    if (!isset($dbGrouped[$dimNo])) {
+        $dbGrouped[$dimNo] = [
+            'name' => $ind['dimension_name'],
+            'indicators' => []
+        ];
+    }
+    $dbGrouped[$dimNo]['indicators'][] = $ind;
+}
 $groupedIndicators = [];
 foreach ($dbGrouped as $dimNo => $dimInfo) {
     $groupedIndicators[$dimNo] = [
@@ -257,7 +289,8 @@ foreach ($dbGrouped as $dimNo => $dimInfo) {
     foreach ($dimInfo['indicators'] as $ind) {
         $groupedIndicators[$dimNo]['indicators'][] = [
             'code' => $ind['indicator_code'],
-            'text' => $ind['indicator_text']
+            'text' => $ind['indicator_text'],
+            'rater_role' => $ind['rater_role']
         ];
     }
 }
@@ -267,6 +300,7 @@ $dbAllIndicators = $db->prepare("
     SELECT
         i.indicator_code,
         i.indicator_text,
+        i.rater_role,
         d.dimension_no,
         d.dimension_name
     FROM sbm_indicators i
@@ -288,7 +322,8 @@ foreach ($allActiveInds as $ind) {
     }
     $allGrouped[$dimNo]['indicators'][] = [
         'code' => $ind['indicator_code'],
-        'text' => $ind['indicator_text']
+        'text' => $ind['indicator_text'],
+        'rater_role' => $ind['rater_role']
     ];
 }
 ?>
@@ -364,6 +399,72 @@ foreach ($allActiveInds as $ind) {
         font-size: 12px;
         color: var(--n500);
         margin-top: 3px;
+    }
+
+    .indicator-filter {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 38px;
+        padding: 0;
+        color: var(--n700);
+    }
+
+    .indicator-filter:focus-within {
+        outline: none;
+    }
+
+    .indicator-filter-copy {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .indicator-filter-label {
+        color: var(--n500);
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .indicator-filter select {
+        min-width: 285px;
+        height: 36px;
+        padding: 0 34px 0 11px;
+        border: 1px solid var(--n300);
+        border-radius: 8px;
+        background: #fff;
+        outline: 0;
+        color: var(--n800);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .indicator-filter select:hover {
+        border-color: var(--n400);
+    }
+
+    .indicator-filter select:focus {
+        border-color: var(--brand-500);
+        box-shadow: 0 0 0 3px rgba(22, 163, 74, .12);
+    }
+
+    @media (max-width: 560px) {
+        .indicator-filter {
+            display: flex;
+            width: 100%;
+        }
+
+        .indicator-filter-copy {
+            flex: 1;
+        }
+
+        .indicator-filter select {
+            min-width: 0;
+            flex: 1;
+        }
     }
 
     /* Modal specific overrides */
@@ -572,6 +673,17 @@ foreach ($allActiveInds as $ind) {
                     Select the indicators you want this teacher to evaluate. If none are selected, no indicators will be assigned.
                 </div>
 
+                <label class="indicator-filter" style="margin-bottom:16px;">
+                    <span class="indicator-filter-copy">
+                        <span class="indicator-filter-label">Display scope</span>
+                    <select id="individualIndicatorFilter" onchange="filterIndividualIndicators(this.value)"
+                        aria-label="Choose indicator display scope">
+                        <option value="all">All indicators and dimensions</option>
+                        <option value="role">Teacher role-scope indicators and dimensions</option>
+                    </select>
+                    </span>
+                </label>
+
                 <div style="display:flex;gap:10px;margin-bottom:16px;">
                     <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAll(true)">Select All</button>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAll(false)">Deselect
@@ -589,7 +701,8 @@ foreach ($allActiveInds as $ind) {
                             <?php foreach ($dim['indicators'] as $ind): ?>
                                 <label class="check-item">
                                     <input type="checkbox" name="indicators[]" value="<?= $ind['code'] ?>"
-                                        class="ind-chk dim-chk-<?= $dimId ?>">
+                                        class="ind-chk dim-chk-<?= $dimId ?>"
+                                        data-role-scope="<?= in_array($ind['code'], $teacherRoleCodes, true) ? '1' : '0' ?>">
                                     <div class="check-badge">[<?= $ind['code'] ?>]</div>
                                     <div style="flex:1;"><?= e($ind['text']) ?></div>
                                 </label>
@@ -635,6 +748,17 @@ foreach ($allActiveInds as $ind) {
                     <button class="bulk-role-tab"        data-role="external_stakeholder"   onclick="switchBulkRole('external_stakeholder', this)">External Stakeholders</button>
                 </div>
             </div>
+
+            <label class="indicator-filter">
+                <span class="indicator-filter-copy">
+                    <span class="indicator-filter-label">Display scope</span>
+                <select id="bulkIndicatorFilter" onchange="renderBulkIndicators(bulkCurrentRole)"
+                    aria-label="Choose indicator display scope">
+                    <option value="all">All indicators and dimensions</option>
+                    <option value="role">Selected role-scope indicators and dimensions</option>
+                </select>
+                </span>
+            </label>
 
             <!-- Step 2: Select Users -->
             <div>
@@ -692,14 +816,30 @@ foreach ($allActiveInds as $ind) {
     }
 
     function toggleAll(check) {
-        document.querySelectorAll('.ind-chk').forEach(el => el.checked = check);
+        document.querySelectorAll('.ind-chk').forEach(el => {
+            if (el.closest('label').style.display !== 'none') el.checked = check;
+        });
     }
 
     function toggleDim(dimId) {
         const boxes = document.querySelectorAll('.dim-chk-' + dimId);
         // If all are checked, uncheck them. Otherwise, check all.
-        const allChecked = Array.from(boxes).every(el => el.checked);
-        boxes.forEach(el => el.checked = !allChecked);
+        const visibleBoxes = Array.from(boxes).filter(el => el.closest('label').style.display !== 'none');
+        const allChecked = visibleBoxes.length > 0 && visibleBoxes.every(el => el.checked);
+        visibleBoxes.forEach(el => el.checked = !allChecked);
+    }
+
+    function filterIndividualIndicators(filter) {
+        document.querySelectorAll('#assignForm .indicator-group').forEach(group => {
+            let visibleCount = 0;
+            group.querySelectorAll('.check-item').forEach(item => {
+                const visible = filter === 'all'
+                    || item.querySelector('.ind-chk').dataset.roleScope === '1';
+                item.style.display = visible ? '' : 'none';
+                if (visible) visibleCount++;
+            });
+            group.style.display = visibleCount ? '' : 'none';
+        });
     }
 
     async function openAssignModal(teacherId, teacherName) {
@@ -708,6 +848,8 @@ foreach ($allActiveInds as $ind) {
 
         // reset checks
         toggleAll(false);
+        document.getElementById('individualIndicatorFilter').value = 'all';
+        filterIndividualIndicators('all');
 
         // fetch current assignments
         try {
@@ -886,12 +1028,17 @@ foreach ($allActiveInds as $ind) {
     function renderBulkIndicators(role) {
         const validCodes = ROLE_CODES[role] || [];
         const container  = document.getElementById('bulkIndicatorGroups');
+        const filter = document.getElementById('bulkIndicatorFilter').value;
+        const selectedCodes = new Set(
+            Array.from(container.querySelectorAll('.bulk-ind-chk:checked')).map(el => el.value)
+        );
 
         let html = '';
         for (const [dimId, dim] of Object.entries(ALL_GROUPED)) {
             // Only show indicators applicable to this role AND not already assigned to the single selected user
             const applicable = dim.indicators.filter(ind =>
-                validCodes.includes(ind.code) && !bulkExcludedCodes.includes(ind.code));
+                (filter === 'all' || validCodes.includes(ind.code))
+                && !bulkExcludedCodes.includes(ind.code));
             if (!applicable.length) continue;
 
             html += `
@@ -904,7 +1051,8 @@ foreach ($allActiveInds as $ind) {
                     <div class="indicator-group-body">
                         ${applicable.map(ind => `
                             <label class="check-item">
-                                <input type="checkbox" class="bulk-ind-chk bulk-dim-chk-${dimId}" value="${ind.code}">
+                                <input type="checkbox" class="bulk-ind-chk bulk-dim-chk-${dimId}" value="${ind.code}"
+                                    ${selectedCodes.has(ind.code) ? 'checked' : ''}>
                                 <div class="check-badge">[${ind.code}]</div>
                                 <div style="flex:1;">${escHtml(ind.text)}</div>
                             </label>

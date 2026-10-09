@@ -24,6 +24,180 @@ function sfTextSimilarity(string $baseline, string $current): float
     return max(0.0, min(1.0, $percentage / 100));
 }
 
+function sfHistorySuggestionBody(array $item): string
+{
+    $title = trim(str_replace('**', '', (string) ($item['suggestion_title'] ?? '')));
+    $body = trim(str_replace('**', '', (string) ($item['suggestion_text'] ?? '')));
+    if ($title !== '') {
+        $body = preg_replace(
+            '/^\s*' . preg_quote($title, '/') . '(?![\p{L}\p{N}])\s*/iu',
+            '',
+            $body,
+            1
+        ) ?? $body;
+    }
+    return trim($body);
+}
+
+function sfSuggestionActionSimilarity(array $baseline, array $current): float
+{
+    $stopWords = array_fill_keys([
+        'about', 'after', 'again', 'also', 'and', 'are', 'because', 'been', 'being',
+        'can', 'could', 'each', 'from', 'have', 'into', 'more', 'most', 'other',
+        'should', 'some', 'such', 'than', 'that', 'their', 'them', 'then', 'there',
+        'these', 'they', 'this', 'those', 'through', 'with', 'would', 'your',
+        'ensure', 'consider', 'develop', 'establish', 'implement', 'improve',
+        'provide', 'review', 'support', 'using',
+    ], true);
+    $extractActions = static function (array $item) use ($stopWords): array {
+        $body = sfHistorySuggestionBody($item);
+        preg_match_all('/(?:^|\s)-\s+(.+?)(?=(?:\s+-\s+)|$)/us', $body, $matches);
+        $actions = $matches[1] ?? [];
+        if (!$actions) {
+            $actions = preg_split('/(?<=[.!?])\s+/u', $body) ?: [];
+        }
+
+        $tokenSets = [];
+        foreach ($actions as $action) {
+            $normalized = sfNormalizeText((string) $action);
+            $tokens = array_values(array_unique(array_filter(
+                explode(' ', $normalized),
+                static fn(string $token): bool => strlen($token) >= 4
+                    && !isset($stopWords[$token])
+            )));
+            if ($tokens) {
+                $tokenSets[] = array_fill_keys($tokens, true);
+            }
+        }
+        return $tokenSets;
+    };
+
+    $oldActions = $extractActions($baseline);
+    $newActions = $extractActions($current);
+    if (!$oldActions || !$newActions) {
+        return 0.0;
+    }
+
+    $matches = 0;
+    $usedNewActions = [];
+    foreach ($oldActions as $oldTokens) {
+        $bestIndex = null;
+        $bestOverlap = 0.0;
+        foreach ($newActions as $index => $newTokens) {
+            if (isset($usedNewActions[$index])) {
+                continue;
+            }
+            $intersection = count(array_intersect_key($oldTokens, $newTokens));
+            $overlap = $intersection / min(count($oldTokens), count($newTokens));
+            if ($overlap > $bestOverlap) {
+                $bestOverlap = $overlap;
+                $bestIndex = $index;
+            }
+        }
+        if ($bestIndex !== null && $bestOverlap >= 0.55) {
+            $matches++;
+            $usedNewActions[$bestIndex] = true;
+        }
+    }
+
+    return $matches / max(count($oldActions), count($newActions));
+}
+
+function sfSuggestionDataStatus(PDO $db, int $schoolId, int $cycleId, int $dimensionId): string
+{
+    $stmt = $db->prepare("
+        SELECT
+            (SELECT ds.percentage
+             FROM sbm_dimension_scores ds
+             WHERE ds.cycle_id = ? AND ds.school_id = ? AND ds.dimension_id = d.dimension_id
+             LIMIT 1) AS dimension_score,
+            (SELECT COUNT(*)
+             FROM sbm_indicators i
+             WHERE i.dimension_id = d.dimension_id
+               AND i.form_version_id = d.form_version_id
+               AND i.is_active = 1) AS total_indicators,
+            (SELECT COUNT(DISTINCT answered.indicator_id)
+             FROM (
+                 SELECT cycle_id, school_id, indicator_id
+                 FROM sbm_responses
+                 WHERE cycle_id = ? AND school_id = ? AND rating IS NOT NULL
+                 UNION
+                 SELECT cycle_id, school_id, indicator_id
+                 FROM teacher_responses
+                 WHERE cycle_id = ? AND school_id = ? AND rating IS NOT NULL AND status = 'submitted'
+             ) answered
+             JOIN sbm_indicators i ON i.indicator_id = answered.indicator_id
+             WHERE i.dimension_id = d.dimension_id
+               AND i.form_version_id = d.form_version_id
+               AND i.is_active = 1) AS answered_indicators
+        FROM sbm_dimensions d
+        WHERE d.dimension_id = ?
+        LIMIT 1
+    ");
+    $stmt->execute([
+        $cycleId,
+        $schoolId,
+        $cycleId,
+        $schoolId,
+        $cycleId,
+        $schoolId,
+        $dimensionId,
+    ]);
+    $coverage = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$coverage || $coverage['dimension_score'] === null) {
+        return 'insufficient';
+    }
+
+    $totalIndicators = (int) $coverage['total_indicators'];
+    $answeredIndicators = (int) $coverage['answered_indicators'];
+    $minimumAnswered = (int) ceil($totalIndicators / 2);
+    return $totalIndicators > 0 && $answeredIndicators >= $minimumAnswered
+        ? 'sufficient'
+        : 'insufficient';
+}
+
+function sfBuildLastCycleNote(int $dimensionNo, ?array $previous): ?string
+{
+    if ($previous === null) {
+        return null;
+    }
+
+    $hasPreviousSuggestion = (bool) ($previous['has_previous_suggestion'] ?? !empty($previous['suggestion_title']));
+    $title = trim((string) ($previous['suggestion_title'] ?? ''));
+    $title = trim(preg_replace('/\s+/u', ' ', str_replace(['**', '"'], '', $title)) ?? $title);
+    $summary = $hasPreviousSuggestion && $title !== ''
+        ? '“' . $title . '”'
+        : "no saved AI suggestion was recorded for D{$dimensionNo}";
+
+    $previousScore = is_numeric($previous['score_at_time'] ?? null)
+        ? (float) $previous['score_at_time'] : null;
+    $currentScore = is_numeric($previous['current_score'] ?? null)
+        ? (float) $previous['current_score'] : null;
+    $change = is_numeric($previous['score_change'] ?? null)
+        ? round((float) $previous['score_change'], 1) : null;
+    if ($change === null) {
+        $result = 'score change unavailable';
+    } elseif ($change > 0) {
+        $result = 'score improved by ' . number_format($change, 1);
+    } elseif ($change < 0) {
+        $result = 'score declined by ' . number_format(abs($change), 1);
+    } else {
+        $result = 'score was unchanged';
+    }
+    if ($previousScore !== null && $currentScore !== null) {
+        $result .= ' from ' . number_format($previousScore, 1) . '% to ' . number_format($currentScore, 1) . '%';
+    }
+
+    if (!$hasPreviousSuggestion) {
+        $planOutcome = 'there was no prior suggestion to adopt into an improvement plan';
+    } else {
+        $planOutcome = !empty($previous['plan_created'])
+            ? 'an improvement plan was created'
+            : 'no improvement plan was created';
+    }
+    return "Last cycle: {$summary}; Result: {$result}, and {$planOutcome}.";
+}
+
 function sfRecommendationSections(string $text): array
 {
     $sections = [];
@@ -31,7 +205,7 @@ function sfRecommendationSections(string $text): array
     $currentLines = [];
 
     foreach (preg_split('/\R/', trim($text)) ?: [] as $line) {
-        if (preg_match('/^\s*\*\*(.+?)\*\*/', $line, $matches)) {
+        if (preg_match('/^\s*\*\*(.+?)\*\*(.*)$/', $line, $matches)) {
             if ($currentLines) {
                 $sections[] = [
                     'title' => $currentTitle ?: 'AI suggestion',
@@ -39,7 +213,7 @@ function sfRecommendationSections(string $text): array
                 ];
             }
             $currentTitle = trim($matches[1]);
-            $currentLines = [$line];
+            $currentLines = trim($matches[2]) !== '' ? [trim($matches[2])] : [];
             continue;
         }
         $currentLines[] = $line;
@@ -64,6 +238,7 @@ function sfSanitizeTeacherLabels(string $text, array $teacherDisplayNames): stri
     foreach ($teacherDisplayNames as $neutralLabel => $displayName) {
         $replacements[(string) $displayName] = (string) $neutralLabel;
     }
+
     return $replacements ? strtr($text, $replacements) : $text;
 }
 
@@ -235,6 +410,121 @@ function saveSuggestionGeneration(
             $itemId = (int) $db->lastInsertId();
             if ($matchingBlockIndex !== null) {
                 $blocks[$matchingBlockIndex]['suggestion_item_id'] = $itemId;
+            }
+        }
+
+        $historyTableStmt = $db->prepare("
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE table_schema = DATABASE() AND table_name = 'ai_suggestion_history'
+            ");
+        $historyTableStmt->execute();
+        if ((int) $historyTableStmt->fetchColumn() < 1) {
+            throw new RuntimeException(
+                'Suggestion history is not installed. Run config/migration_ai_suggestion_history.sql before generating suggestions.'
+            );
+        }
+        $reviewColumnStmt = $db->prepare("
+                SELECT COUNT(*)
+                FROM information_schema.columns
+                WHERE table_schema = DATABASE()
+                  AND table_name = 'ai_suggestion_history'
+                  AND column_name = 'needs_review'
+            ");
+        $reviewColumnStmt->execute();
+        if ((int) $reviewColumnStmt->fetchColumn() < 1) {
+            throw new RuntimeException(
+                'Suggestion review tracking is not installed. Run config/migration_ai_suggestion_history_review.sql before generating suggestions.'
+            );
+        }
+        $schoolYear = trim((string) ($payload['sy_label'] ?? ''));
+        $dimensionRows = $payload['analysis']['gap_analysis']['all_dimensions'] ?? [];
+        $dimensionOutlook = $response['dimension_outlook'] ?? [];
+        $outlookByDimension = [];
+        foreach ($dimensionOutlook as $outlook) {
+            $outlookByDimension[(int) ($outlook['dimension_id'] ?? 0)] = $outlook;
+        }
+        $suggestions = $response['suggestions'] ?? [];
+        if ($schoolYear !== '' && $dimensionRows && $suggestions) {
+            $dimensionsById = [];
+            foreach ($dimensionRows as $dimension) {
+                $dimensionId = (int) ($dimension['dimension_id'] ?? 0);
+                if ($dimensionId > 0) {
+                    $dimensionsById[$dimensionId] = $dimension;
+                }
+            }
+            $suggestionsByDimension = [];
+            foreach ($suggestions as $suggestion) {
+                $dimensionId = (int) ($suggestion['dimension_id'] ?? 0);
+                if (!isset($dimensionsById[$dimensionId])) {
+                    throw new RuntimeException('An AI suggestion returned an unknown dimension_id.');
+                }
+                if (isset($suggestionsByDimension[$dimensionId])) {
+                    throw new RuntimeException('The AI returned more than one suggestion for a dimension.');
+                }
+                if (trim((string) ($suggestion['title'] ?? '')) === ''
+                    || trim((string) ($suggestion['text'] ?? '')) === '') {
+                    throw new RuntimeException('An AI suggestion is missing its title or text.');
+                }
+                $suggestionsByDimension[$dimensionId] = $suggestion;
+            }
+            $previousByDimension = [];
+            foreach (($payload['analysis']['previous_suggestions'] ?? []) as $previous) {
+                if (is_array($previous) && (int) ($previous['dimension_no'] ?? 0) > 0) {
+                    $previousByDimension[(int) $previous['dimension_no']] = $previous;
+                }
+            }
+            $clearFinalStmt = $db->prepare(
+                'UPDATE ai_suggestion_history SET is_final = 0 WHERE school_id = ? AND school_year = ?'
+            );
+            $clearFinalStmt->execute([$schoolId, $schoolYear]);
+            $historyStmt = $db->prepare("
+                INSERT INTO ai_suggestion_history
+                  (school_id, school_year, dimension_id, suggestion_title, suggestion_text, last_cycle_note,
+                   priority_label, decline_risk, data_status, score_at_time, model_version,
+                   is_final, needs_review, generated_by, generated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, COALESCE(?, NOW()))
+            ");
+            foreach ($suggestionsByDimension as $dimensionId => $suggestion) {
+                $dimension = $dimensionsById[$dimensionId];
+                $outlook = $outlookByDimension[$dimensionId] ?? [];
+                $score = is_numeric($dimension['score'] ?? null)
+                    ? (float) $dimension['score']
+                    : (is_numeric($dimension['dimension_score'] ?? null) ? (float) $dimension['dimension_score'] : null);
+                $priority = ucfirst((string) ($outlook['priority'] ?? 'Medium'));
+                if (!in_array($priority, ['High', 'Medium', 'Low'], true)) {
+                    $priority = 'Medium';
+                }
+                $risk = strtolower((string) ($outlook['decline_risk'] ?? 'medium'));
+                if (!in_array($risk, ['high', 'medium', 'low'], true)) {
+                    $risk = 'medium';
+                }
+                $matchingBlock = [];
+                foreach ($blocks as $block) {
+                    if (is_array($block) && (int) ($block['dimension_id'] ?? 0) === $dimensionId) {
+                        $matchingBlock = $block;
+                        break;
+                    }
+                }
+                $historyStmt->execute([
+                    $schoolId,
+                    $schoolYear,
+                    $dimensionId,
+                    mb_substr(trim((string) $suggestion['title']), 0, 255),
+                    trim((string) $suggestion['text']),
+                    sfBuildLastCycleNote(
+                        (int) ($dimension['dimension_no'] ?? 0),
+                        $previousByDimension[(int) ($dimension['dimension_no'] ?? 0)] ?? null
+                    ),
+                    $priority,
+                    $risk,
+                    sfSuggestionDataStatus($db, $schoolId, $cycleId, $dimensionId),
+                    $score,
+                    mb_substr((string) ($suggestion['model_version'] ?? $response['backend_used'] ?? $response['model_source'] ?? 'unknown'), 0, 80),
+                    !empty($suggestion['needs_review']) ? 1 : 0,
+                    $userId,
+                    $generatedAt,
+                ]);
             }
         }
 

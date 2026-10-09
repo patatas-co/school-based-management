@@ -85,7 +85,7 @@ function buildAiSuggestionPayload(
 
     if ($historicalCutoffYear === null) {
         $dimensionStmt = $db->prepare("
-            SELECT d.dimension_no, d.dimension_name, ROUND(ds.percentage, 1) AS avg_pct
+            SELECT d.dimension_id, d.dimension_no, d.dimension_name, ROUND(ds.percentage, 1) AS avg_pct
             FROM sbm_dimension_scores ds
             JOIN sbm_dimensions d ON d.dimension_id = ds.dimension_id
             WHERE ds.cycle_id = ? AND ds.school_id = ?
@@ -94,7 +94,7 @@ function buildAiSuggestionPayload(
         $dimensionStmt->execute([$cycleId, $schoolId]);
     } else {
         $dimensionStmt = $db->prepare("
-            SELECT d.dimension_no, d.dimension_name, ROUND(ds.percentage, 1) AS avg_pct
+            SELECT d.dimension_id, d.dimension_no, d.dimension_name, ROUND(ds.percentage, 1) AS avg_pct
             FROM sbm_dimension_scores ds
             JOIN sbm_dimensions d ON d.dimension_id = ds.dimension_id
             WHERE ds.cycle_id = ? AND ds.school_id = ?
@@ -106,7 +106,8 @@ function buildAiSuggestionPayload(
     $currentYearOrder = (int) substr((string) $schoolYearLabel, 0, 4);
     foreach ($dimensionStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         $dimensionScores[] = [
-            'dimension_no' => count($dimensionScores) + 1,
+            'dimension_id' => (int) $row['dimension_id'],
+            'dimension_no' => (int) $row['dimension_no'],
             'dimension_name' => $row['dimension_name'],
             'score' => (float) $row['avg_pct'],
             'maturity' => sbmMaturityLevel((float) $row['avg_pct'])['label'],
@@ -116,11 +117,139 @@ function buildAiSuggestionPayload(
     $dimensionRows = [];
     foreach ($dimensionScores as $dimension) {
         $dimensionRows[] = [
+            'dimension_id' => $dimension['dimension_id'],
             'dimension_no' => $dimension['dimension_no'],
             'dimension_name' => $dimension['dimension_name'],
             'dimension_score' => $dimension['score'],
             'school_year_order' => $currentYearOrder,
         ];
+    }
+
+    $previousSuggestions = [];
+    $historyTableStmt = $db->prepare("
+        SELECT COUNT(*)
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = 'ai_suggestion_history'
+    ");
+    $historyTableStmt->execute();
+    $historyTableAvailable = (int) $historyTableStmt->fetchColumn() > 0;
+    $previousYearStmt = $db->prepare("
+        SELECT sy.label
+        FROM school_years sy
+        WHERE CAST(LEFT(sy.label, 4) AS UNSIGNED) = ?
+        ORDER BY sy.sy_id DESC
+        LIMIT 1
+    ");
+    $previousYearLabel = false;
+    if ($historyTableAvailable) {
+        $previousYearStmt->execute([$currentYearOrder - 1]);
+        $previousYearLabel = $previousYearStmt->fetchColumn();
+    }
+    if ($previousYearLabel !== false) {
+        $previousSuggestionsStmt = $db->prepare("
+            SELECT h.dimension_id AS previous_dimension_id, hd.dimension_no,
+                   h.suggestion_title, h.suggestion_text,
+                   h.priority_label, h.decline_risk, h.data_status,
+                   h.score_at_time, h.adopted_plan_id,
+                   (SELECT ROUND(AVG(ds2.percentage), 1)
+                    FROM sbm_dimension_scores ds2
+                    JOIN sbm_cycles c2 ON c2.cycle_id = ds2.cycle_id
+                    JOIN school_years sy2 ON sy2.sy_id = c2.sy_id
+                    JOIN sbm_dimensions d2 ON d2.dimension_id = ds2.dimension_id
+                    WHERE c2.school_id = h.school_id
+                      AND d2.dimension_no = hd.dimension_no
+                      AND sy2.label = ?
+                      AND c2.status IN ('validated', 'finalized', 'completed')
+                      AND c2.cycle_id = (
+                        SELECT c3.cycle_id
+                        FROM sbm_cycles c3
+                        JOIN school_years sy3 ON sy3.sy_id = c3.sy_id
+                        WHERE c3.school_id = h.school_id
+                          AND sy3.label = ?
+                          AND c3.status IN ('validated', 'finalized', 'completed')
+                        ORDER BY COALESCE(c3.finalized_at, c3.created_at) DESC, c3.cycle_id DESC
+                        LIMIT 1
+                      )) AS current_score
+            FROM ai_suggestion_history h
+            JOIN sbm_dimensions hd ON hd.dimension_id = h.dimension_id
+            WHERE h.school_id = ? AND h.school_year = ? AND h.is_final = 1
+            ORDER BY hd.dimension_no, h.id
+        ");
+        $previousSuggestionsStmt->execute([$schoolYearLabel, $schoolYearLabel, $schoolId, $previousYearLabel]);
+        foreach ($previousSuggestionsStmt->fetchAll(PDO::FETCH_ASSOC) as $previousSuggestion) {
+            $previousSuggestion['has_previous_suggestion'] = true;
+            $previousScore = $previousSuggestion['score_at_time'] !== null
+                ? (float) $previousSuggestion['score_at_time'] : null;
+            $currentScore = $previousSuggestion['current_score'] !== null
+                ? (float) $previousSuggestion['current_score'] : null;
+            $previousSuggestion['score_change'] = ($previousScore !== null && $currentScore !== null)
+                ? round($currentScore - $previousScore, 1) : null;
+            $previousSuggestion['plan_created'] = $previousSuggestion['adopted_plan_id'] !== null;
+            $previousSuggestion['adopted_and_worked'] = $previousSuggestion['plan_created']
+                && $previousSuggestion['score_change'] !== null
+                && $previousSuggestion['score_change'] > 0;
+            $previousSuggestions[] = $previousSuggestion;
+        }
+        $previousByDimension = [];
+        foreach ($previousSuggestions as $previousSuggestion) {
+            $previousByDimension[(int) $previousSuggestion['dimension_no']] = true;
+        }
+        $previousDimensionScoreStmt = $db->prepare("
+            SELECT ROUND(AVG(ds.percentage), 1)
+            FROM sbm_dimension_scores ds
+            JOIN sbm_cycles c ON c.cycle_id = ds.cycle_id
+            JOIN school_years sy ON sy.sy_id = c.sy_id
+            JOIN sbm_dimensions d ON d.dimension_id = ds.dimension_id
+            WHERE c.school_id = ?
+              AND sy.label = ?
+              AND d.dimension_no = ?
+              AND c.status IN ('validated', 'finalized', 'completed')
+              AND c.cycle_id = (
+                SELECT c_latest.cycle_id
+                FROM sbm_cycles c_latest
+                JOIN school_years sy_latest ON sy_latest.sy_id = c_latest.sy_id
+                WHERE c_latest.school_id = c.school_id
+                  AND sy_latest.label = ?
+                  AND c_latest.status IN ('validated', 'finalized', 'completed')
+                ORDER BY COALESCE(c_latest.finalized_at, c_latest.created_at) DESC,
+                         c_latest.cycle_id DESC
+                LIMIT 1
+              )
+        ");
+        foreach ($dimensionScores as $dimension) {
+            $dimensionNo = (int) $dimension['dimension_no'];
+            if (isset($previousByDimension[$dimensionNo])) {
+                continue;
+            }
+            $previousDimensionScoreStmt->execute([
+                $schoolId,
+                $previousYearLabel,
+                $dimensionNo,
+                $previousYearLabel,
+            ]);
+            $previousScoreValue = $previousDimensionScoreStmt->fetchColumn();
+            if ($previousScoreValue === false || $previousScoreValue === null) {
+                continue;
+            }
+            $previousScore = (float) $previousScoreValue;
+            $currentScore = (float) $dimension['score'];
+            $previousSuggestions[] = [
+                'previous_dimension_id' => null,
+                'dimension_no' => $dimensionNo,
+                'suggestion_title' => null,
+                'suggestion_text' => null,
+                'priority_label' => null,
+                'decline_risk' => null,
+                'data_status' => null,
+                'score_at_time' => $previousScore,
+                'current_score' => $currentScore,
+                'score_change' => round($currentScore - $previousScore, 1),
+                'adopted_plan_id' => null,
+                'plan_created' => false,
+                'adopted_and_worked' => false,
+                'has_previous_suggestion' => false,
+            ];
+        }
     }
 
     $earlierDimensionStmt = $db->prepare("
@@ -400,6 +529,7 @@ function buildAiSuggestionPayload(
                 'indicator_history' => $indicatorHistory,
                 'data_completeness' => $dataCompleteness,
                 'teacher_summaries' => $teacherSummaries,
+                'previous_suggestions' => $previousSuggestions,
             ],
         ],
     ];

@@ -5,7 +5,7 @@
 // - AI_USAGE_COOLDOWN_SECONDS between consecutive generations.
 // Race-condition safe via row-level locking (SELECT ... FOR UPDATE).
 
-define('AI_USAGE_DAILY_LIMIT', 6);
+define('AI_USAGE_DAILY_LIMIT', 12);
 define('AI_USAGE_COOLDOWN_SECONDS', 20);
 
 // Separate, smaller limit for the per-field "Generate Objective" /
