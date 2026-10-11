@@ -83,6 +83,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $db->exec("UPDATE school_years SET is_current = 0 WHERE is_current = 1");
       $db->prepare("UPDATE school_years SET is_current = 1 WHERE sy_id = ?")
         ->execute([$newSchoolYearId]);
+      $db->prepare(
+        "INSERT INTO system_settings (setting_key, setting_value)
+         VALUES ('active_school_year_override', ?)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)"
+      )->execute([(string) $newSchoolYearId]);
       $db->commit();
     } catch (PDOException $e) {
       if ($db->inTransaction()) {
@@ -101,6 +106,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     echo json_encode(['ok' => true, 'msg' => 'School year saved.']);
+    exit;
+  }
+  if ($_POST['action'] === 'set_active_sy') {
+    $id = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT);
+    if (!$id || $id < 1) {
+      echo json_encode(['ok' => false, 'msg' => 'Invalid school year.']);
+      exit;
+    }
+
+    $db->beginTransaction();
+    try {
+      $schoolYearStmt = $db->prepare(
+        'SELECT sy_id, label, is_archived FROM school_years WHERE sy_id = ? FOR UPDATE'
+      );
+      $schoolYearStmt->execute([$id]);
+      $schoolYear = $schoolYearStmt->fetch(PDO::FETCH_ASSOC);
+      if (!$schoolYear) {
+        $db->rollBack();
+        echo json_encode(['ok' => false, 'msg' => 'School year not found.']);
+        exit;
+      }
+      if ((int) $schoolYear['is_archived'] === 1) {
+        $db->rollBack();
+        echo json_encode([
+          'ok' => false,
+          'msg' => 'Restore this school year before setting it as active.',
+        ]);
+        exit;
+      }
+
+      $db->exec('UPDATE school_years SET is_current = 0 WHERE is_current = 1');
+      $activate = $db->prepare('UPDATE school_years SET is_current = 1 WHERE sy_id = ?');
+      $activate->execute([(int) $schoolYear['sy_id']]);
+      $db->prepare(
+        "INSERT INTO system_settings (setting_key, setting_value)
+         VALUES ('active_school_year_override', ?)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)"
+      )->execute([(string) $schoolYear['sy_id']]);
+      $db->commit();
+    } catch (Throwable $e) {
+      if ($db->inTransaction()) {
+        $db->rollBack();
+      }
+      throw $e;
+    }
+
+    echo json_encode([
+      'ok' => true,
+      'msg' => 'School year ' . $schoolYear['label'] . ' is now active.',
+    ]);
     exit;
   }
   if ($_POST['action'] === 'archive_sy') {
@@ -402,11 +457,17 @@ function renderSchoolYearTable(array $years, bool $archived): void
                 onclick="unarchiveSY(<?= (int)$sy['sy_id'] ?>,<?= htmlspecialchars(json_encode($sy['label']), ENT_QUOTES, 'UTF-8') ?>)">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
               </button>
-            <?php elseif ((int)$sy['is_current'] !== 1): ?>
-              <button class="btn btn-danger btn-sm" title="Archive" aria-label="Archive school year"
-                onclick="delSY(<?= (int)$sy['sy_id'] ?>,<?= htmlspecialchars(json_encode($sy['label']), ENT_QUOTES, 'UTF-8') ?>)">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-              </button>
+            <?php else: ?>
+              <?php if ((int)$sy['is_current'] !== 1): ?>
+                <button class="btn btn-primary btn-sm" title="Set active" aria-label="Set active school year"
+                  onclick="setActiveSY(<?= (int)$sy['sy_id'] ?>)">
+                  Set Active
+                </button>
+                <button class="btn btn-danger btn-sm" title="Archive" aria-label="Archive school year"
+                  onclick="delSY(<?= (int)$sy['sy_id'] ?>,<?= htmlspecialchars(json_encode($sy['label']), ENT_QUOTES, 'UTF-8') ?>)">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                </button>
+              <?php endif; ?>
             <?php endif; ?>
           </td>
         </tr>
@@ -974,7 +1035,7 @@ function renderSchoolYearTable(array $years, bool $archived): void
       if (archived) {
         actions = `<button class="btn btn-secondary btn-sm" title="Restore" aria-label="Restore school year" onclick="unarchiveSY(${Number(sy.sy_id)},${jsLabel})"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>`;
       } else if (Number(sy.is_current) !== 1) {
-        actions = `<button class="btn btn-danger btn-sm" title="Archive" aria-label="Archive school year" onclick="delSY(${Number(sy.sy_id)},${jsLabel})"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></button>`;
+        actions = `<button class="btn btn-primary btn-sm" title="Set active" aria-label="Set active school year" onclick="setActiveSY(${Number(sy.sy_id)})">Set Active</button> <button class="btn btn-danger btn-sm" title="Archive" aria-label="Archive school year" onclick="delSY(${Number(sy.sy_id)},${jsLabel})"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></button>`;
       }
       const status = escapeSY(sy.status || (Number(sy.is_current) === 1 ? 'Current' : 'Past'));
       const statusClass = status === 'Current' ? 'active' : status.toLowerCase();
@@ -1040,6 +1101,11 @@ function renderSchoolYearTable(array $years, bool $archived): void
       $v('sy_label', ''); $v('sy_start', ''); $v('sy_end', '');
       await refreshSchoolYears();
     }
+  }
+  async function setActiveSY(id) {
+    const r = await apiPost('settings.php', { action: 'set_active_sy', id });
+    toast(r.msg, r.ok ? 'ok' : 'err');
+    if (r.ok) await refreshSchoolYears();
   }
   function delSY(id, label) {
     document.getElementById('mArchiveSY').dataset.id = id;

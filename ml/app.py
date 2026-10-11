@@ -21,11 +21,12 @@ load_dotenv(BASE_DIR / ".env", override=True)
 load_dotenv(BASE_DIR.parent / ".env", override=True)
 
 from ml_classifier import dimension_model_metadata, predict_dimension_outlook
-# Debug: confirm key loaded
-import sys
-_key = os.getenv("GROQ_API_KEY", "")
 _backend = os.getenv("LLM_BACKEND", "rule_based")
-print(f"[STARTUP] LLM_BACKEND={_backend}, GROQ_API_KEY={'SET ('+_key[:8]+'...)' if _key else 'MISSING'}", flush=True)
+print(
+    f"[STARTUP] LLM_BACKEND={_backend}, "
+    f"GROQ_API_KEY_CONFIGURED={bool(os.getenv('GROQ_API_KEY'))}",
+    flush=True,
+)
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 

@@ -394,8 +394,37 @@ def _count_suggestion_actions(text: str) -> int:
 
 
 def _privacy_safe_backend(backend: str) -> str:
-    # Assessment-derived content must stay on the local Ollama service.
+    configured = backend.strip().lower()
+    if configured in {"groq", "ollama", "openai"}:
+        return configured
     return "ollama"
+
+
+def _backend_model_name(backend: str) -> str:
+    if backend == "groq":
+        return os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    if backend == "openai":
+        return os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    return os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+
+
+def _groq_max_tokens() -> int:
+    value = os.getenv("GROQ_MAX_TOKENS", "8192")
+    try:
+        max_tokens = int(value)
+    except ValueError as exc:
+        raise RuntimeError("GROQ_MAX_TOKENS must be an integer between 1 and 65536.") from exc
+    if not 1 <= max_tokens <= 65536:
+        raise RuntimeError("GROQ_MAX_TOKENS must be between 1 and 65536.")
+    return max_tokens
+
+
+def _call_backend(prompt: str, backend: str, json_mode: bool = False) -> str:
+    if backend == "groq":
+        return _call_groq(prompt, json_mode=json_mode)
+    if backend == "openai":
+        return _call_openai(prompt, model=_backend_model_name(backend))
+    return _call_ollama(prompt, model=_backend_model_name(backend))
 
 
 def _call_ollama(prompt: str, model: str = "llama3.2:3b") -> str:
@@ -421,7 +450,8 @@ def _call_openai(prompt: str, model: str = "gpt-4o-mini") -> str:
     )
     return response.choices[0].message.content.strip()
 
-def _call_groq(prompt: str) -> str:
+
+def _call_groq(prompt: str, json_mode: bool = False) -> str:
     """Call Groq API using OpenAI-compatible SDK."""
     from openai import OpenAI
 
@@ -439,9 +469,17 @@ def _call_groq(prompt: str) -> str:
         model=model,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.4,
-        max_tokens=800
+        max_tokens=_groq_max_tokens(),
+        **({"response_format": {"type": "json_object"}} if json_mode else {}),
     )
-    return response.choices[0].message.content.strip()
+    choice = response.choices[0]
+    content = choice.message.content
+    if not isinstance(content, str) or not content.strip():
+        raise RuntimeError(
+            "Groq returned an empty message "
+            f"(finish_reason={choice.finish_reason or 'unknown'}, model={response.model or model})."
+        )
+    return content.strip()
 
 
 def _build_form_extraction_prompt(raw_text: str) -> str:
@@ -513,7 +551,7 @@ def extract_form_from_document(raw_text: str, backend: str = "groq") -> dict:
     parsed = {"dimensions": []}
 
     try:
-        text = _call_ollama(prompt)
+        text = _call_backend(prompt, backend, json_mode=True)
 
         # Strip markdown code fences if the model added them anyway.
         cleaned = text.strip()
@@ -791,14 +829,15 @@ def _build_ip_field_prompt(field_type: str, indicator_code: str, indicator_text:
         task = (
             "Write ONE concise, measurable, professional objective statement for "
             "a School Improvement Plan describing WHAT the school aims to achieve. "
-            "Return only the objective text (1-2 sentences) — no bullet points, "
-            "headers, or preamble."
+            "Return only the objective text (1-2 sentences) in plain text — no bullet "
+            "points, headers, markdown, or JSON wrapper."
         )
     else:
         task = (
             "Write a formal implementation strategy describing HOW the objective "
-            "will be achieved. Return 1-3 concise sentences of prose — no bullet "
-            "points, headers, or preamble — suitable for a School Improvement Plan."
+            "will be achieved. Return 1-3 concise sentences of prose in plain text — "
+            "no bullet points, headers, markdown, or JSON wrapper — suitable for a "
+            "School Improvement Plan."
         )
 
     prompt = textwrap.dedent(f"""
@@ -844,7 +883,21 @@ def generate_ip_field(
     text   = ""
 
     try:
-        text = _call_ollama(prompt)
+        raw_text = _call_backend(prompt, backend, json_mode=False)
+        if isinstance(raw_text, str):
+            cleaned = raw_text.strip()
+            if cleaned.startswith("{") and cleaned.endswith("}"):
+                try:
+                    candidate = json.loads(cleaned)
+                    if isinstance(candidate, dict):
+                        for key in ("text", "objective", "strategy", "content"):
+                            value = candidate.get(key)
+                            if isinstance(value, str) and value.strip():
+                                cleaned = value.strip()
+                                break
+                except (TypeError, ValueError):
+                    pass
+            text = cleaned
     except Exception as e:
         import logging
         import traceback
@@ -915,24 +968,29 @@ def generate_recommendations(
     suggestions = []
     gap_analysis = analysis.get("gap_analysis", {})
     dimensions = gap_analysis.get("all_dimensions") or analysis.get("dimension_rows", [])
+    generation_succeeded = True
 
     try:
-        text = _call_ollama(prompt)
+        text = _call_backend(prompt, backend, json_mode=True)
         suggestions = _parse_dimension_suggestions(
             text, dimensions, analysis.get("previous_suggestions", [])
         )
+        model_name = _backend_model_name(backend)
+        for suggestion in suggestions:
+            suggestion["model_version"] = model_name
     except Exception as e:
         import logging
         import traceback
         tb = traceback.format_exc()
         logging.error(f"Error generating recommendations ({backend}): {e}\n{tb}")
         print(f"[ML ERROR] {backend} failed: {e}\n{tb}", flush=True)
-        warning = f"Local Ollama generation failed; rule-based suggestions need review: {e}"
+        warning = f"{backend} generation failed; rule-based suggestions need review: {e}"
+        generation_succeeded = False
         suggestions = _rule_based_dimension_suggestions(analysis, dimensions)
         for suggestion in suggestions:
             suggestion["action_count"] = _count_suggestion_actions(suggestion["text"])
             suggestion["needs_review"] = True
-            suggestion["review_reason"] = "The local model was unavailable; verify and expand this suggestion."
+            suggestion["review_reason"] = f"{backend} was unavailable; verify and expand this suggestion."
             suggestion["model_version"] = "rule_based_local_fallback"
         backend = "rule_based_local_fallback"
 
@@ -942,7 +1000,7 @@ def generate_recommendations(
         if isinstance(dimension, dict) and str(dimension.get("dimension_id", "")).isdigit()
     }
     for suggestion in suggestions:
-        if not suggestion.get("needs_review"):
+        if not generation_succeeded or not suggestion.get("needs_review"):
             continue
         dimension_id = int(suggestion["dimension_id"])
         dimension = dimensions_by_id[dimension_id]
@@ -950,7 +1008,11 @@ def generate_recommendations(
             retry_prompt = _build_single_dimension_retry_prompt(
                 analysis, school_name, sy_label, dimension
             )
-            retry_text = _call_ollama(retry_prompt, model="llama3.2:3b")
+            retry_text = _call_backend(
+                retry_prompt,
+                _privacy_safe_backend(configured_backend),
+                json_mode=True,
+            )
             retry_result = _parse_dimension_suggestions(
                 retry_text,
                 [dimension],
@@ -962,14 +1024,19 @@ def generate_recommendations(
                 retry_result["action_count"] = retry_count
                 retry_result["needs_review"] = False
                 retry_result["review_reason"] = None
-                retry_result["model_version"] = "llama3.2:3b"
+                retry_result["model_version"] = _backend_model_name(
+                    _privacy_safe_backend(configured_backend)
+                )
                 suggestion.update(retry_result)
             else:
                 if retry_count > original_count:
                     suggestion.update(retry_result)
                 suggestion["action_count"] = max(original_count, retry_count)
                 suggestion["needs_review"] = True
-                suggestion.setdefault("model_version", "llama3.2:3b")
+                suggestion.setdefault(
+                    "model_version",
+                    _backend_model_name(_privacy_safe_backend(configured_backend)),
+                )
                 suggestion["review_reason"] = (
                     f"Only {suggestion['action_count']} concrete action bullets were returned after one retry."
                 )
@@ -981,11 +1048,18 @@ def generate_recommendations(
                 retry_error,
             )
             suggestion["needs_review"] = True
-            suggestion.setdefault("model_version", "llama3.2:3b")
+            suggestion.setdefault(
+                "model_version",
+                _backend_model_name(_privacy_safe_backend(configured_backend)),
+            )
             suggestion["review_reason"] = (
-                f"Fewer than three action bullets were returned; the one local retry failed: {retry_error}"
+                f"Fewer than three action bullets were returned; the "
+                f"{configured_backend} retry failed: {retry_error}"
             )
 
+    from suggestion_ranker import rank_suggestions
+
+    suggestions, suggestion_ranking = rank_suggestions(suggestions, dimensions)
     text = _format_dimension_suggestions(suggestions)
 
     blocks = []
@@ -1001,7 +1075,15 @@ def generate_recommendations(
             "action_count": suggestion.get("action_count", 0),
             "needs_review": bool(suggestion.get("needs_review")),
             "review_reason": suggestion.get("review_reason"),
-            "model_version": suggestion.get("model_version", "llama3.2:3b"),
+            "model_version": suggestion.get(
+                "model_version",
+                "rule_based_local_fallback" if backend == "rule_based_local_fallback"
+                else _backend_model_name(_privacy_safe_backend(configured_backend)),
+            ),
+            **(
+                {"approval_score": suggestion["approval_score"]}
+                if "approval_score" in suggestion else {}
+            ),
             **compute_recommendation_confidence(block_text, analysis),
         })
 
@@ -1022,17 +1104,18 @@ def generate_recommendations(
         "recommendations": text,
         "blocks": blocks,
         "suggestions": suggestions,
-        "backend_used": "llama3.2:3b" if backend == "ollama" else backend,
+        "backend_used": _backend_model_name(backend) if backend in {"ollama", "groq", "openai"} else backend,
         "error": error,
         "warning": warning,
         "privacy_notice": (
-            "Remote model backends are disabled; generation uses local Ollama."
-            if configured_backend in {"groq", "openai"} else None
+            f"Assessment-derived content was sent to the external {configured_backend} service."
+            if _privacy_safe_backend(configured_backend) in {"groq", "openai"} else None
         ),
         "prompt_chars": len(prompt),
         "model_source": model_source,
         "confidence": confidence,
         "dimension_outlook": dimension_outlook,
+        "suggestion_ranking": suggestion_ranking,
     }
 
 
@@ -1078,23 +1161,13 @@ def _parse_dimension_suggestions(
             raise ValueError(f"Recommendation for dimension_id {dimension_id} is missing title or text.")
         action_count = _count_suggestion_actions(body)
         last_cycle_note = suggestion.get("last_cycle_note")
-        has_previous = int(dimension.get("dimension_no", 0)) in previous_by_dimension
-        if has_previous and (not isinstance(last_cycle_note, str) or not last_cycle_note.strip()):
-            raise ValueError(f"Recommendation for dimension_id {dimension_id} is missing last_cycle_note.")
+        dimension_no = int(dimension.get("dimension_no", 0))
+        previous = previous_by_dimension.get(dimension_no)
+        has_previous = previous is not None
         if has_previous:
-            note = last_cycle_note.strip()
-            if (
-                not note.startswith("Last cycle:")
-                or "; Result:" not in note
-                or "\n" in note
-                or note[-1:] not in ".!?"
-                or re.search(r"[.!?]\s+\S", note.rstrip(".!?"))
-            ):
-                raise ValueError(
-                    f"Recommendation for dimension_id {dimension_id} must return one formatted last_cycle_note sentence."
-                )
-        if not has_previous and last_cycle_note is not None:
-            raise ValueError(f"Recommendation for dimension_id {dimension_id} must use null last_cycle_note without prior data.")
+            last_cycle_note = _format_last_cycle_note(dimension_no, previous)
+        if not has_previous:
+            last_cycle_note = None
         seen_ids.add(dimension_id)
         validated.append({
             "dimension_id": dimension_id,
@@ -1122,6 +1195,47 @@ def _format_dimension_suggestions(suggestions: list[dict]) -> str:
     for suggestion in suggestions:
         sections.append(f"**{suggestion['title']}**\n{suggestion['text']}")
     return "\n\n".join(sections)
+
+
+def _format_last_cycle_note(dimension_no: int, previous: dict) -> str:
+    has_previous_suggestion = bool(
+        previous.get("has_previous_suggestion", bool(previous.get("suggestion_title")))
+    )
+    title = re.sub(
+        r"\s+",
+        " ",
+        str(previous.get("suggestion_title", "")).replace("**", "").replace('"', ""),
+    ).strip()
+    summary = (
+        f'"{title}"'
+        if has_previous_suggestion and title
+        else f"no saved AI suggestion was recorded for D{dimension_no}"
+    )
+    previous_score = previous.get("score_at_time")
+    current_score = previous.get("current_score")
+    change = previous.get("score_change")
+    if change is None:
+        result = "score change unavailable"
+    else:
+        change = float(change)
+        if change > 0:
+            result = f"score improved by {abs(change):.1f}"
+        elif change < 0:
+            result = f"score declined by {abs(change):.1f}"
+        else:
+            result = "score was unchanged"
+    if previous_score is not None and current_score is not None:
+        result += f" from {float(previous_score):.1f}% to {float(current_score):.1f}%"
+
+    if not has_previous_suggestion:
+        plan_outcome = "there was no prior suggestion to adopt into an improvement plan"
+    else:
+        plan_outcome = (
+            "an improvement plan was created"
+            if previous.get("plan_created")
+            else "no improvement plan was created"
+        )
+    return f"Last cycle: {summary}; Result: {result}, and {plan_outcome}."
 
 
 def _rule_based_dimension_suggestions(analysis: dict, dimensions: list[dict]) -> list[dict]:

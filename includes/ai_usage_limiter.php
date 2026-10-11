@@ -10,8 +10,8 @@ define('AI_USAGE_COOLDOWN_SECONDS', 20);
 
 // Separate, smaller limit for the per-field "Generate Objective" /
 // "Generate Strategy" buttons in the Improvement Plan modal — each
-// field type gets its own daily quota (3 + 3, not a shared pool of 3).
-define('AI_IP_FIELD_DAILY_LIMIT', 3);
+// field type gets its own daily quota (12 + 12, not a shared pool of 12).
+define('AI_IP_FIELD_DAILY_LIMIT', 12);
 
 // Separate daily quota for the "Import from Document" feature in Manage Form —
 // each import costs one LLM call over a potentially large document.

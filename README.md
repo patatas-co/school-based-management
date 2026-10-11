@@ -3,6 +3,14 @@
 
 Application timestamps are written in Asia/Manila local time, configured in `config/db.php` through PHP's timezone and the PDO MySQL session (`+08:00`). The exception is `ai_suggestion_usage.last_generated_at`, stored in UTC because the cooldown compares it with `time()`; the AI quota day itself follows the Asia/Manila calendar day. MySQL `TIMESTAMP` columns are stored internally as UTC and converted according to the session timezone, while `DATETIME` columns retain literal values. Standalone scripts must load `config/db.php`; the installed `php.ini` default is `Europe/Berlin`.
 
+## Active school year
+
+School Heads can manually set any non-archived school year as active from
+Settings → School Years. That selection persists across requests and takes
+precedence over the date-based active-year selection. Creating a new school
+year continues to make it active; if a saved manual selection is no longer
+valid, the application removes it and resumes date-based selection.
+
 ## Teacher rating anomaly detector
 
 The existing two decision trees in `ml/ml_classifier.py` use synthetic reference
@@ -14,6 +22,71 @@ Run `ml/venv64/Scripts/python.exe ml/teacher_outlier.py --retrain` to create a
 local model, or `--evaluate` to create the tracked JSON evaluation report.
 The evaluation data is synthetic, so its results demonstrate detection of the
 generated patterns and are not accuracy on real schools.
+
+### Learning to rank AI suggestions
+
+The configured LLM remains responsible for writing suggestions. Set
+`LLM_BACKEND=groq` in `ml/.env` to send assessment-derived prompts to Groq;
+the ML service must be restarted to reload environment changes. This sends
+school assessment content to an external provider. The response includes a
+privacy notice when Groq or OpenAI is selected. A separate CatBoost classifier
+can rank generated dimension suggestions using prior **real, linked**
+improvement-plan decisions; it does not fine-tune Groq or the LLM. Groq
+suggestion requests use JSON response mode and default to an 8,192-token output
+budget (`GROQ_MAX_TOKENS`, configurable from 1 to 65,536) to leave room for
+reasoning plus the structured suggestions. Empty or truncated Groq responses
+are reported as generation failures instead of being mistaken for valid JSON.
+The read-only
+training bridge in `ml/suggestion_ranker_data.php` excludes synthetic data and
+rule-based fallback generations, as well as unresolved drafts/submissions. A
+currently `finalized` plan is a positive label; a plan still `returned` is a
+negative workflow-outcome label. Returned plans can later change status, so
+these labels describe the current recorded decision, not a judgment that the
+underlying recommendation was inherently good or bad.
+
+The ranker stays inactive until there are at least 100 labeled suggestions and
+20 in each outcome class. It validates by holding out complete assessment
+cycles, so examples from a cycle cannot appear in both training and test folds;
+each fold must contain both outcome classes and at least two cycles must be
+available. It must reach balanced accuracy of at least 0.55 and beat the
+majority baseline by at least 0.05. Otherwise it leaves the current suggestion
+order unchanged. Its score is an estimated workflow-approval likelihood, not a
+calibrated probability or a measure of school outcomes.
+
+For isolated CatBoost testing, `ml/seed_catboost_demo.php` creates tagged
+synthetic examples from the existing school's dimensions, indicators, and one
+existing active teacher. It does not create schools, users, dimensions, or
+indicators. Synthetic generations remain marked `is_synthetic = 1` and are
+excluded from normal training. Only the explicit
+`--retrain --include-demo` option passes `catboost_demo_v1` rows through the
+bridge; this trains a separate `suggestion_ranker_demo.joblib` file and marks
+the output/model metadata with `demo_data: true`. Demo models are not used for
+normal inference. To test one explicitly, set
+`SUGGESTION_RANKER_USE_DEMO=1` in the ML service environment; its response is
+marked as demo-trained and is not reliable for production. Use
+`ml/cleanup_catboost_demo.php` to remove the tagged database rows and the demo
+model without deleting a real trained model. Seed and cleanup scripts are
+review-only until explicitly run.
+
+After installing `ml/requirements.txt`, evaluate and train from the ML service's
+configured database connection with:
+
+```text
+ml/venv64/Scripts/python.exe ml/suggestion_ranker.py --retrain
+```
+
+The synthetic demo-only equivalent is:
+
+```text
+php ml/seed_catboost_demo.php
+ml/venv64/Scripts/python.exe ml/suggestion_ranker.py --retrain --include-demo
+php ml/cleanup_catboost_demo.php
+```
+
+Review the JSON report before deploying. The saved model is loaded when each
+recommendation is ranked, so a service restart is not required. Retraining is
+deliberately explicit rather than triggered after every generation, so newly
+stored AI text is not mistaken for a successful training example.
 
 The post-hoc evaluation reports the detector and the card-trigger rules
 separately. all_low, all_high, mostly_low, mostly_high, and erratic require a

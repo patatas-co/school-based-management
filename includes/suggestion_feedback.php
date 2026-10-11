@@ -529,10 +529,17 @@ function saveSuggestionGeneration(
         }
 
         if ($saveLatestRecommendation) {
-            aiUsageSaveRecommendation($db, $userId, json_encode([
+            $latestRecommendation = [
                 'text' => $recommendationText,
                 'blocks' => $blocks,
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+            ];
+            if (is_array($response['suggestion_ranking'] ?? null)) {
+                $latestRecommendation['suggestion_ranking'] = $response['suggestion_ranking'];
+            }
+            aiUsageSaveRecommendation($db, $userId, json_encode(
+                $latestRecommendation,
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+            ));
         }
         if ($ownsTransaction) {
             $db->commit();

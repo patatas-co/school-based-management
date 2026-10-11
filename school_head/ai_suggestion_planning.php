@@ -54,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
         $storedResponse = [
           'recommendations' => $stored['text'],
           'blocks' => is_array($stored['blocks'] ?? null) ? $stored['blocks'] : [],
+          'suggestion_ranking' => is_array($stored['suggestion_ranking'] ?? null) ? $stored['suggestion_ranking'] : null,
         ];
       } else {
         $storedResponse = [
@@ -72,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
       $usageStatus['last_recommendation'] = json_encode([
         'text' => $storedResponse['recommendations'],
         'blocks' => $storedResponse['blocks'],
+        'suggestion_ranking' => $storedResponse['suggestion_ranking'] ?? null,
       ]);
     }
     if (!$cards && $cycleIdForStatus > 0) {
@@ -86,6 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
             $cycleIdForStatus,
             is_array($stored['blocks'] ?? null) ? $stored['blocks'] : []
           ),
+          'suggestion_ranking' => is_array($stored['suggestion_ranking'] ?? null) ? $stored['suggestion_ranking'] : null,
         ]);
       }
     }
@@ -1669,6 +1672,10 @@ function renderConfidenceBadge(block) {
       </div>`;
   }
 
+  if (block.confidence_level === 'Rule-based fallback') {
+    return '<div class="ai-conf-row"><span class="ai-conf-badge low">Rule-based estimate</span></div>';
+  }
+
   const levelClass = block.confidence_level === 'High Confidence' ? 'high'
     : block.confidence_level === 'Moderate Confidence' ? 'moderate' : 'low';
   const colorMap = { high: '#047857', moderate: '#B45309', low: '#B91C1C' };
@@ -1690,6 +1697,18 @@ function renderConfidenceBadge(block) {
     </div>`;
 }
 
+function renderApprovalLikelihood(block, suggestionRanking) {
+  const score = typeof block?.approval_score === 'number' && Number.isFinite(block.approval_score)
+    ? `<span class="ai-conf-badge moderate" title="Estimated chance this suggestion reaches finalized status, based on past finalized versus returned plans. Not a calibrated probability.">Approval likelihood: ${Math.round(block.approval_score * 100)}%</span>`
+    : '';
+  const demoLabel = score && suggestionRanking?.demo_data === true
+    ? '<span class="ai-conf-badge insufficient">Demo model: synthetic data, testing only</span>'
+    : '';
+  return score || demoLabel
+    ? `<div class="ai-conf-row">${score}${demoLabel}</div>`
+    : '';
+}
+
 function toggleConfPopover(e, el) {
   e.stopPropagation();
   const wasOpen = el.classList.contains('open');
@@ -1700,7 +1719,7 @@ document.addEventListener('click', () => {
   document.querySelectorAll('.ai-conf-info.open').forEach(o => o.classList.remove('open'));
 });
 
-function parseAILogicToHtml(text, blocks) {
+function parseAILogicToHtml(text, blocks, suggestionRanking) {
   blocks = blocks || [];
   const blockByTitle = {};
   blocks.forEach(b => { blockByTitle[b.title] = b; });
@@ -1737,7 +1756,8 @@ function parseAILogicToHtml(text, blocks) {
         ? '<span style="display:inline-flex;padding:3px 8px;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:10px;font-weight:700;">Needs review</span>'
         : '';
       const badgeHtml = renderConfidenceBadge(sectionBlock);
-      finalHtml += '<div class="ai-section-head"><h4>' + title + '</h4>' + reviewBadge + badgeHtml + '</div>';
+      const approvalHtml = renderApprovalLikelihood(sectionBlock, suggestionRanking);
+      finalHtml += '<div class="ai-section-head"><h4>' + title + '</h4>' + reviewBadge + approvalHtml + badgeHtml + '</div>';
       const rest = headingMatch[2].trim();
       if (rest) finalHtml += '<p>' + inlineFormat(rest) + '</p>';
       return;
@@ -1818,8 +1838,8 @@ function getSelectedIndicatorMetas() {
     .filter(Boolean);
 }
 
-// ── IP FIELD (Objective/Strategy) usage state — 3 generations each per day ──
-const ipFieldLimit = 3;
+// ── IP FIELD (Objective/Strategy) usage state — 12 generations each per day ──
+const ipFieldLimit = 12;
 let ipFieldRemaining = { objective: ipFieldLimit, strategy: ipFieldLimit };
 
 function ipFieldLimitReached(fieldType) {
@@ -1845,7 +1865,7 @@ if (IS_IMPROVEMENT_PLANS_PAGE) {
 }
 
 /** Enables/disables the header "💡 Suggest" links based on selection
- *  AND remaining daily quota (3 objective / 3 strategy). Also refreshes
+ *  AND remaining daily quota (12 objective / 12 strategy). Also refreshes
  *  the single usage note shown near the modal footer. */
 function updateAiFieldButtons() {
   const dimSelected = !!(document.getElementById('dimIdsInput').value);
@@ -2439,11 +2459,13 @@ function renderStoredRecommendation(recs, lastGeneratedAtUtc) {
   // recs may be the new JSON envelope {text, blocks} or a legacy plain string.
   let text = recs;
   let blocks = [];
+  let suggestionRanking = null;
   try {
     const parsed = JSON.parse(recs);
     if (parsed && typeof parsed === 'object' && 'text' in parsed) {
       text = parsed.text;
       blocks = parsed.blocks || [];
+      suggestionRanking = parsed.suggestion_ranking || null;
     }
   } catch (e) {
     // Not JSON — legacy plain-text value, render as-is with no badges.
@@ -2453,7 +2475,7 @@ function renderStoredRecommendation(recs, lastGeneratedAtUtc) {
   currentSuggestionItems = Array.isArray(blocks) ? blocks : [];
   currentAiRawText = cleaned;
   body.innerHTML = cleaned
-    ? parseAILogicToHtml(cleaned, blocks)
+    ? parseAILogicToHtml(cleaned, blocks, suggestionRanking)
     : '<p style="font-size:13px;color:var(--n-500);">Your performance is currently optimal with no critical gaps detected.</p>';
 
   if (lastGeneratedAtUtc) {
@@ -2563,7 +2585,7 @@ async function loadAISuggestionsPlan() {
         const recs = stripTrailingQuestion(data.recommendations || '');
         currentSuggestionItems = Array.isArray(data.blocks) ? data.blocks : [];
         body.innerHTML = '<p style="font-size:13px;color:var(--red);">AI suggestions could not be generated. The data-based teacher follow-up below is still available.</p>'
-          + parseAILogicToHtml(recs, data.blocks);
+          + parseAILogicToHtml(recs, data.blocks, data.suggestion_ranking || null);
       } else {
         body.innerHTML = '<p style="font-size:13px;color:var(--red);">Couldn\'t reach the analysis service. Please check if the ML service is running.</p>';
       }
@@ -2574,7 +2596,7 @@ async function loadAISuggestionsPlan() {
     const recs = stripTrailingQuestion(data.recommendations || '');
     currentAiRawText = recs;
     body.innerHTML = recs
-      ? parseAILogicToHtml(recs, data.blocks || [])
+      ? parseAILogicToHtml(recs, data.blocks || [], data.suggestion_ranking || null)
       : '<p style="font-size:13px;color:var(--n-500);">Your performance is currently optimal with no critical gaps detected.</p>';
 
     const now = new Date();
