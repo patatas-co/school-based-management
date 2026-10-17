@@ -110,10 +110,19 @@ $plans = [];
 if ($type === 'improvement') {
     $planStmt = $db->prepare("
         SELECT ip.*, d.dimension_name, d.color_hex,
-               i.indicator_code, i.indicator_text
+               COALESCE(plan_indicators.indicator_code, i.indicator_code) AS indicator_code,
+               COALESCE(plan_indicators.indicator_text, i.indicator_text) AS indicator_text
         FROM improvement_plans ip
         JOIN sbm_dimensions d ON ip.dimension_id = d.dimension_id
         LEFT JOIN sbm_indicators i ON ip.indicator_id = i.indicator_id
+        LEFT JOIN (
+          SELECT pii.plan_id,
+                 GROUP_CONCAT(DISTINCT si.indicator_code ORDER BY si.indicator_code SEPARATOR ', ') AS indicator_code,
+                 GROUP_CONCAT(DISTINCT si.indicator_text ORDER BY si.indicator_code SEPARATOR ' | ') AS indicator_text
+          FROM improvement_plan_indicators pii
+          JOIN sbm_indicators si ON si.indicator_id = pii.indicator_id
+          GROUP BY pii.plan_id
+        ) plan_indicators ON plan_indicators.plan_id = ip.plan_id
         WHERE ip.cycle_id = ?
         ORDER BY FIELD(ip.priority_level,'High','Medium','Low'), ip.created_at
     ");

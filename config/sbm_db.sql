@@ -383,6 +383,8 @@ CREATE TABLE `improvement_plans` (
 
 -- --------------------------------------------------------
 
+-- --------------------------------------------------------
+
 --
 -- Table structure for table `improvement_plans_backup_20261009_214920`
 --
@@ -740,6 +742,19 @@ CREATE TABLE `sbm_indicators` (
   `rater_role` varchar(20) NOT NULL DEFAULT 'SH_ONLY',
   `is_active` tinyint(1) DEFAULT 1,
   `form_version_id` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `improvement_plan_indicators`
+--
+
+CREATE TABLE `improvement_plan_indicators` (
+  `plan_id` int(11) NOT NULL,
+  `indicator_id` int(11) NOT NULL,
+  PRIMARY KEY (`plan_id`,`indicator_id`),
+  KEY `idx_improvement_plan_indicators_indicator` (`indicator_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -2010,6 +2025,10 @@ ALTER TABLE `grading_periods`
 --
 -- Constraints for table `improvement_plans`
 --
+ALTER TABLE `improvement_plan_indicators`
+  ADD CONSTRAINT `fk_plan_indicators_plan` FOREIGN KEY (`plan_id`) REFERENCES `improvement_plans` (`plan_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_plan_indicators_indicator` FOREIGN KEY (`indicator_id`) REFERENCES `sbm_indicators` (`indicator_id`) ON DELETE CASCADE;
+
 ALTER TABLE `improvement_plans`
   ADD CONSTRAINT `fk_improvement_plan_suggestion_item` FOREIGN KEY (`suggestion_item_id`) REFERENCES `ai_suggestion_items` (`item_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `improvement_plans_ibfk_1` FOREIGN KEY (`school_id`) REFERENCES `schools` (`school_id`) ON DELETE CASCADE,

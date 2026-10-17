@@ -490,6 +490,14 @@ $shIndicators = $_SESSION['role'] === 'school_head'
   : array_filter($indicators, fn($i) => in_array($i['indicator_code'], SH_RATEABLE_CODES));
 $shResponded = count(array_filter($shIndicators, fn($i) => isset($responses[$i['indicator_id']])));
 $shTotal = count($shIndicators);
+$submitRequiredIndicators = array_filter(
+  $indicators,
+  fn($i) => in_array($i['indicator_code'], SH_ONLY_INDICATOR_CODES, true)
+);
+$submitRequiredDone = count(array_filter(
+  $submitRequiredIndicators,
+  fn($i) => isset($responses[$i['indicator_id']])
+));
 
 
 $totalDone = count($responses);
@@ -1660,14 +1668,7 @@ foreach ($grouped as $dimNo => $inds) {
 </div>
 <?php endif; ?>
 
-<?php if ($isFinalized): ?>
-  <div class="alert alert-info" style="margin-bottom:16px;">
-    <?= svgIcon('info') ?> This assessment has been <strong>finalized</strong><?php if ($cycle['submitted_at']): ?> on
-      <?= date('M d, Y', strtotime($cycle['submitted_at'])) ?><?php endif; ?><?php if ($cycle['overall_score']): ?>
-      &nbsp;·&nbsp; Overall Score: <strong><?= $cycle['overall_score'] ?>%</strong>
-      (<?= e($cycle['maturity_level']) ?>)<?php endif; ?>. Responses are read-only.
-  </div>
-<?php elseif ($cycle && !empty($cycle['return_remarks'])): ?>
+<?php if ($cycle && !empty($cycle['return_remarks'])): ?>
   <div class="alert alert-warning" style="margin-bottom:16px;">
     <?= svgIcon('alert-circle') ?>
     <span>
@@ -1916,6 +1917,7 @@ foreach ($grouped as $dimNo => $inds) {
           ?>
           <div class="indicator-row <?= $rated ? 'rated' : '' ?> <?= $isTeacherCard ? 'teacher-only' : '' ?>"
             id="row<?= $ind['indicator_id'] ?>" data-sh="<?= $isSH ? 1 : 0 ?>" data-teacher="<?= $isTeacher ? 1 : 0 ?>"
+            data-submit-required="<?= $_SESSION['role'] === 'school_head' && in_array($ind['indicator_code'], SH_ONLY_INDICATOR_CODES, true) ? '1' : '0' ?>"
             data-code="<?= e($ind['indicator_code']) ?>">
 
             <!-- Top row: code + role tag + saved badge -->
@@ -2090,9 +2092,11 @@ foreach ($grouped as $dimNo => $inds) {
         <?= svgIcon('eye') ?> View-Only Mode — Coordinators can review but not modify the assessment.
       </div>
     <?php elseif (!$isLocked): ?>
+      <div id="submitActions" <?= $submitRequiredDone < count($submitRequiredIndicators) ? 'hidden' : '' ?>>
       <button class="btn btn-primary" style="padding:12px 32px;font-size:15px;" onclick="submitAssessment()">
         <?= svgIcon('check') ?> Submit Self-Assessment
       </button>
+      </div>
     <?php endif; ?>
   </div>
 
@@ -2118,6 +2122,14 @@ foreach ($grouped as $dimNo => $inds) {
     prevRatings: Object.assign({}, <?= json_encode(array_map(fn($r) => $r['rating'], $responses)) ?>)
   };
 
+  function updateSubmitVisibility() {
+    const submitActions = document.getElementById('submitActions');
+    if (!submitActions) return;
+
+    const requiredRows = document.querySelectorAll('.indicator-row[data-submit-required="1"]');
+    submitActions.hidden = Array.from(requiredRows).some(row => !row.classList.contains('rated'));
+  }
+
   // ── Live progress updater ──────────────────────────────────
   function updateProgress(indId, newRating, isTeacher, isNewResponse) {
     const prevRating = progress.prevRatings[indId] ?? null;
@@ -2141,7 +2153,7 @@ foreach ($grouped as $dimNo => $inds) {
     }
     progress.prevRatings[indId] = newRating;
 
-
+    updateSubmitVisibility();
 
     // ── Update dimension tab ──
     updateDimTab(indId);
@@ -2292,7 +2304,7 @@ foreach ($grouped as $dimNo => $inds) {
       progress.ratings[prevRating] = Math.max(0, (progress.ratings[prevRating] || 1) - 1);
     }
     delete progress.prevRatings[indId];
-
+    updateSubmitVisibility();
 
 
     const row = document.getElementById('row' + indId);
@@ -2438,8 +2450,12 @@ foreach ($grouped as $dimNo => $inds) {
     });
 
     const dimTabs = document.getElementById('dimTabs');
-    if (dimTabs) {
-      const top = dimTabs.getBoundingClientRect().top + window.scrollY - 70;
+    const targetDim = document.getElementById('dim' + n);
+    const dimHeader = targetDim?.querySelector('.dim-header');
+    const scrollTarget = dimHeader || targetDim || dimTabs;
+    if (scrollTarget) {
+      const stickyOffset = (dimTabs?.offsetHeight || 0) + 70;
+      const top = scrollTarget.getBoundingClientRect().top + window.scrollY - stickyOffset;
       window.scrollTo({ top, behavior: 'smooth' });
     }
   }

@@ -126,6 +126,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
   $lowRaterIndicatorCodes = $suggestionDataAjax['low_rater_indicator_codes'];
   $payload = $suggestionDataAjax['payload'];
   $response = ml_post('/api/recommend', $payload);
+  $generationFailed = !is_array($response)
+    || empty($response['recommendations'])
+    || !empty($response['error']);
+  if ($generationFailed) {
+    try {
+      aiUsageRefundFailedGeneration($db, $currentUserId, $usageCheck['quota_date']);
+      $usageCheck['remaining'] = aiUsageGetStatus($db, $currentUserId)['remaining'];
+    } catch (Throwable $e) {
+      error_log('Failed to refund unsuccessful AI suggestion generation: ' . $e->getMessage());
+    }
+  }
   $response = $response ?: [
     'recommendations' => "I'm sorry, I'm having trouble connecting to my central intelligence. Please check if the ML service is running.",
     'error' => 'Service Unavailable'
@@ -316,7 +327,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
   header('Content-Type: application/json');
   $schoolIdIp = (int) ($_SESSION['school_id'] ?? 1);
   $syIdIp = (int) ($_POST['sy_id'] ?? 0);
-  $indIds = explode(',', $_POST['indicator_ids'] ?? '');
+  $indIds = array_values(array_unique(array_filter(
+    array_map('intval', explode(',', $_POST['indicator_ids'] ?? '')),
+    static fn(int $indicatorId): bool => $indicatorId > 0
+  )));
   $obj = trim($_POST['objective'] ?? '');
   $strat = trim($_POST['strategy'] ?? '');
   $person = trim($_POST['person_responsible'] ?? '');
@@ -370,20 +384,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
   $db->beginTransaction();
   try {
     $ins = $db->prepare("INSERT INTO improvement_plans (school_id, cycle_id, dimension_id, indicator_id, priority_level, objective, strategy, person_responsible, target_date, resources_needed, expected_output, workflow_status, current_owner_role, current_owner_user_id, last_action_by, last_action_at, created_by, suggestion_item_id, suggestion_baseline_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'school_head', ?, ?, NOW(), ?, ?, ?)");
+    if (!$indIds) {
+      throw new InvalidArgumentException('Please select at least one indicator.');
+    }
+    $selectedIndicatorStmt = $db->prepare(
+      'SELECT i.indicator_id, i.dimension_id
+      FROM sbm_indicators i
+      WHERE i.indicator_id IN (' . implode(',', array_fill(0, count($indIds), '?')) . ')
+        AND i.form_version_id = (
+          SELECT version_id FROM form_versions WHERE is_active = 1 LIMIT 1
+        )
+      ORDER BY i.indicator_id'
+    );
+    $selectedIndicatorStmt->execute($indIds);
+    $selectedIndicators = $selectedIndicatorStmt->fetchAll(PDO::FETCH_ASSOC);
+    if (count($selectedIndicators) !== count($indIds)) {
+      throw new InvalidArgumentException('One or more selected indicators are not available for this assessment cycle.');
+    }
+    $indicatorsByDimension = [];
+    foreach ($selectedIndicators as $indicator) {
+      $indicatorsByDimension[(int) $indicator['dimension_id']][] = (int) $indicator['indicator_id'];
+    }
+    $indicatorLinkStmt = $db->prepare(
+      'INSERT INTO improvement_plan_indicators (plan_id, indicator_id) VALUES (?, ?)'
+    );
 
     $inserted = 0;
     $newPlanIds = [];
-    foreach ($indIds as $indId) {
-      if (!$indId)
-        continue;
-      $dimQ = $db->prepare("SELECT dimension_id FROM sbm_indicators WHERE indicator_id = ?");
-      $dimQ->execute([$indId]);
-      $dId = $dimQ->fetchColumn();
-      if (!$dId) continue;
-
-      $ins->execute([$schoolIdIp, $cycleIdIp, $dId, $indId, $priority, $obj, $strat, $person ?: null, $target ?: null, $res ?: null, $output ?: null, IP_STATUS_DRAFT, $currentUserId, $currentUserId, $currentUserId, $suggestionItemId ?: null, $suggestionBaselineText]);
+    foreach ($indicatorsByDimension as $dId => $dimensionIndicatorIds) {
+      $ins->execute([$schoolIdIp, $cycleIdIp, $dId, $dimensionIndicatorIds[0], $priority, $obj, $strat, $person ?: null, $target ?: null, $res ?: null, $output ?: null, IP_STATUS_DRAFT, $currentUserId, $currentUserId, $currentUserId, $suggestionItemId ?: null, $suggestionBaselineText]);
       $newPlanId = (int) $db->lastInsertId();
       $newPlanIds[] = $newPlanId;
+      foreach ($dimensionIndicatorIds as $indicatorId) {
+        $indicatorLinkStmt->execute([$newPlanId, $indicatorId]);
+      }
       if ($suggestionHistoryId > 0) {
         $historyUpdate = $db->prepare('UPDATE ai_suggestion_history SET adopted_plan_id = ? WHERE id = ? AND school_id = ? AND dimension_id = ?');
         $historyUpdate->execute([$newPlanId, $suggestionHistoryId, $schoolIdIp, (int) $dId]);
@@ -497,32 +531,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
     exit;
   }
 
-  if (ipCycleIsSubmitted($db, $cycleIdIp)) {
-    echo json_encode(['success' => false, 'message' => 'These improvement plans have already been submitted.']);
-    exit;
-  }
-
   $db->beginTransaction();
   try {
-    // Lock the draft rows for this cycle to prevent a double-submit race.
-    $lockQ = $db->prepare("SELECT plan_id FROM improvement_plans WHERE cycle_id = ? AND workflow_status IN (?, ?) FOR UPDATE");
-    $lockQ->execute([$cycleIdIp, IP_STATUS_DRAFT, IP_STATUS_RETURNED]);
-    $draftIds = $lockQ->fetchAll(PDO::FETCH_COLUMN);
+    // Lock the cycle's plans so a returned plan can be resubmitted without
+    // blocking on other plans that are still under coordinator review.
+    $lockQ = $db->prepare("SELECT plan_id, workflow_status FROM improvement_plans WHERE cycle_id = ? FOR UPDATE");
+    $lockQ->execute([$cycleIdIp]);
+    $cyclePlans = $lockQ->fetchAll(PDO::FETCH_ASSOC);
+    $hasReturned = (bool) array_filter(
+      $cyclePlans,
+      static fn($plan) => $plan['workflow_status'] === IP_STATUS_RETURNED
+    );
+    $draftIds = [];
+    foreach ($cyclePlans as $cyclePlan) {
+      if ($hasReturned) {
+        if ($cyclePlan['workflow_status'] === IP_STATUS_RETURNED) {
+          $draftIds[] = (int) $cyclePlan['plan_id'];
+        }
+      } elseif ($cyclePlan['workflow_status'] === IP_STATUS_DRAFT) {
+        $draftIds[] = (int) $cyclePlan['plan_id'];
+      }
+    }
 
-    if (empty($draftIds)) {
+    $inReviewStatuses = [IP_STATUS_SUBMITTED, IP_STATUS_RESUBMITTED, IP_STATUS_APPROVED, IP_STATUS_FINALIZED];
+    $hasPlansInReview = (bool) array_filter(
+      $cyclePlans,
+      static fn($plan) => in_array($plan['workflow_status'], $inReviewStatuses, true)
+    );
+    if (!$hasReturned && $hasPlansInReview) {
       $db->rollBack();
-      echo json_encode(['success' => false, 'message' => 'There are no draft improvement plans to submit.']);
+      echo json_encode(['success' => false, 'message' => 'These improvement plans have already been submitted.']);
       exit;
     }
 
-    $returnedQ = $db->prepare("SELECT COUNT(*) FROM improvement_plans WHERE cycle_id = ? AND workflow_status = ?");
-    $returnedQ->execute([$cycleIdIp, IP_STATUS_RETURNED]);
-    $hasReturned = (int) $returnedQ->fetchColumn() > 0;
+    if (empty($draftIds)) {
+      $db->rollBack();
+      echo json_encode(['success' => false, 'message' => 'There are no returned or draft improvement plans to submit.']);
+      exit;
+    }
+
     $fromStatus = $hasReturned ? IP_STATUS_RETURNED : IP_STATUS_DRAFT;
     $toStatus = $hasReturned ? IP_STATUS_RESUBMITTED : IP_STATUS_SUBMITTED;
-    $schoolHead = $currentUserId;
-    $upd = $db->prepare("UPDATE improvement_plans SET workflow_status = ?, current_owner_role = 'sbm_coordinator', current_owner_user_id = NULL, submitted_by = ?, submitted_at = NOW(), last_action_by = ?, last_action_at = NOW() WHERE cycle_id = ? AND workflow_status = ?");
-    $upd->execute([$toStatus, $currentUserId, $currentUserId, $cycleIdIp, $fromStatus]);
+    $planPlaceholders = implode(',', array_fill(0, count($draftIds), '?'));
+    $upd = $db->prepare("UPDATE improvement_plans SET workflow_status = ?, current_owner_role = 'sbm_coordinator', current_owner_user_id = NULL, submitted_by = ?, submitted_at = NOW(), last_action_by = ?, last_action_at = NOW() WHERE plan_id IN ($planPlaceholders) AND workflow_status = ?");
+    $upd->execute([$toStatus, $currentUserId, $currentUserId, ...$draftIds, $fromStatus]);
 
     $db->commit();
     foreach ($draftIds as $draftId) ipRecordHistory($db, (int) $draftId, $currentUserId, $hasReturned ? 'school_head_resubmitted' : 'school_head_submitted', $fromStatus, $toStatus);
@@ -542,6 +594,11 @@ if ($prefillHistoryId > 0) {
   $prefillQ = $db->prepare('SELECT * FROM ai_suggestion_history WHERE id = ? AND school_id = ? LIMIT 1');
   $prefillQ->execute([$prefillHistoryId, $schoolId]);
   $prefillHistory = $prefillQ->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+$prefillIndicatorCodes = [];
+if ($prefillHistory) {
+  preg_match_all('/\b\d{1,2}\.\d{1,2}\b/', (string) $prefillHistory['suggestion_text'], $matches);
+  $prefillIndicatorCodes = array_values(array_unique($matches[0] ?? []));
 }
 
 // -- Merge dimensions and computed scores before rendering the picker --
@@ -607,6 +664,30 @@ $weakQ = $db->prepare("
 ");
 $weakQ->execute([$syId, $schoolId]);
 $weakIndicatorRows = $weakQ->fetchAll();
+if ($prefillHistory && $prefillIndicatorCodes) {
+  $prefillIndicatorsQ = $db->prepare("
+    SELECT i.indicator_id, i.indicator_code, i.indicator_text, i.dimension_id,
+           d.dimension_name, d.color_hex,
+           NULL AS avg_rating, 0 AS response_count
+    FROM sbm_indicators i
+    JOIN sbm_dimensions d ON d.dimension_id = i.dimension_id
+    WHERE i.form_version_id = ? AND i.dimension_id = ?
+      AND i.indicator_code IN (" . implode(',', array_fill(0, count($prefillIndicatorCodes), '?')) . ")
+  ");
+  $prefillIndicatorsQ->execute(array_merge(
+    [$activeFormVersionId, (int) $prefillHistory['dimension_id']],
+    $prefillIndicatorCodes
+  ));
+  $availableIndicatorIds = array_fill_keys(
+    array_map(static fn(array $row): int => (int) $row['indicator_id'], $weakIndicatorRows),
+    true
+  );
+  foreach ($prefillIndicatorsQ->fetchAll(PDO::FETCH_ASSOC) as $indicator) {
+    if (!isset($availableIndicatorIds[(int) $indicator['indicator_id']])) {
+      $weakIndicatorRows[] = $indicator;
+    }
+  }
+}
 
 $cycle = null;
 if ($schoolId) {
@@ -628,12 +709,19 @@ $planList = [];
 if ($currentCycleId) {
     $planQ = $db->prepare("
         SELECT ip.*, d.dimension_no, d.dimension_name, d.color_hex,
-               i.indicator_code, i.indicator_text,
-               u.full_name AS submitted_by_name
+               COALESCE(plan_indicators.indicator_code, i.indicator_code) AS indicator_code,
+               COALESCE(plan_indicators.indicator_text, i.indicator_text) AS indicator_text
         FROM improvement_plans ip
         JOIN sbm_dimensions d ON ip.dimension_id = d.dimension_id
         LEFT JOIN sbm_indicators i ON ip.indicator_id = i.indicator_id
-        LEFT JOIN users u ON ip.submitted_by = u.user_id
+        LEFT JOIN (
+          SELECT pii.plan_id,
+                 GROUP_CONCAT(DISTINCT si.indicator_code ORDER BY si.indicator_code SEPARATOR ', ') AS indicator_code,
+                 GROUP_CONCAT(DISTINCT si.indicator_text ORDER BY si.indicator_code SEPARATOR ' | ') AS indicator_text
+          FROM improvement_plan_indicators pii
+          JOIN sbm_indicators si ON si.indicator_id = pii.indicator_id
+          GROUP BY pii.plan_id
+        ) plan_indicators ON plan_indicators.plan_id = ip.plan_id
         WHERE ip.cycle_id = ?
         ORDER BY FIELD(ip.priority_level,'High','Medium','Low'), ip.created_at
     ");
@@ -643,48 +731,33 @@ if ($currentCycleId) {
 
 $isSubmitted     = false;
 $isReturned      = false;
-$isApproved      = false;
 $isFinalized     = false;
-$submittedByName = null;
-$submittedAt     = null;
 foreach ($planList as $p) {
   if ($p['workflow_status'] === IP_STATUS_RETURNED) $isReturned = true;
-  if ($p['workflow_status'] === IP_STATUS_APPROVED) $isApproved = true;
   if ($p['workflow_status'] === IP_STATUS_FINALIZED) $isFinalized = true;
-    if (in_array($p['workflow_status'], [IP_STATUS_SUBMITTED, IP_STATUS_RESUBMITTED, IP_STATUS_APPROVED, IP_STATUS_FINALIZED], true)) {
-        $isSubmitted     = true;
-        $submittedByName = $p['submitted_by_name'] ?? 'School Head';
-        $submittedAt     = $p['submitted_at'];
-        break; // one-and-done: all rows in a submitted batch share the same submitted_by/at
-    }
+  if (in_array($p['workflow_status'], [IP_STATUS_SUBMITTED, IP_STATUS_RESUBMITTED, IP_STATUS_APPROVED, IP_STATUS_FINALIZED], true)) {
+    $isSubmitted = true;
+  }
 }
-  $draftCount = count(array_filter($planList, fn($p) => in_array($p['workflow_status'], [IP_STATUS_DRAFT, IP_STATUS_RETURNED], true)));
-  $workflowStatus = $planList[0]['workflow_status'] ?? IP_STATUS_DRAFT;
-  if ($isFinalized) {
-    $workflowStatus = IP_STATUS_FINALIZED;
-  } elseif ($isApproved) {
-    $workflowStatus = IP_STATUS_APPROVED;
-  } elseif ($isReturned) {
-    $workflowStatus = IP_STATUS_RETURNED;
-  }
-  $workflowStatusLabel = ipStatusLabel($workflowStatus);
-  $planStatusSuffix = '';
-  if ($isFinalized) {
-    $planStatusSuffix = ' <span style="font-weight:600;font-size:11.5px;color:var(--n-500);">(finalized — read-only)</span>';
-  } elseif ($isApproved) {
-    $planStatusSuffix = ' <span style="font-weight:600;font-size:11.5px;color:var(--n-500);">(approved — awaiting validation)</span>';
-  } elseif ($isSubmitted) {
-    $planStatusSuffix = ' <span style="font-weight:600;font-size:11.5px;color:var(--n-500);">(with SBM Coordinator)</span>';
-  } elseif ($isReturned) {
-    $planStatusSuffix = ' <span style="font-weight:600;font-size:11.5px;color:#b45309;">(returned for your review)</span>';
-  }
-
+  $draftCount = count(array_filter($planList, fn($p) => $p['workflow_status'] === IP_STATUS_DRAFT));
+  $returnedCount = count(array_filter($planList, fn($p) => $p['workflow_status'] === IP_STATUS_RETURNED));
+  $finalizedCount = count(array_filter($planList, fn($p) => $p['workflow_status'] === IP_STATUS_FINALIZED));
+  $submittedCount = count(array_filter($planList, fn($p) => in_array(
+    $p['workflow_status'],
+    [IP_STATUS_SUBMITTED, IP_STATUS_RESUBMITTED, IP_STATUS_APPROVED],
+    true
+  )));
+  $activePlanTab = $draftCount > 0 ? 'drafts'
+    : ($submittedCount > 0 ? 'submitted' : ($finalizedCount > 0 ? 'finalized' : 'returned'));
+  $canSubmitPlans = $returnedCount > 0 || (!$isFinalized && !$isSubmitted && $draftCount > 0);
+  $canAddPlan = !$isSubmitted && !$isReturned && !$isFinalized;
 // ── History of past improvement plans (shown when the new SY has no cycle/data yet) ──
 $historyPlans = [];
 if (!$cycle && $schoolId) {
     $histQ = $db->prepare("
         SELECT ip.*, d.dimension_no, d.dimension_name, d.color_hex,
-               i.indicator_code, i.indicator_text,
+               COALESCE(plan_indicators.indicator_code, i.indicator_code) AS indicator_code,
+               COALESCE(plan_indicators.indicator_text, i.indicator_text) AS indicator_text,
                u.full_name AS submitted_by_name,
                sy.label AS sy_label
         FROM improvement_plans ip
@@ -692,6 +765,14 @@ if (!$cycle && $schoolId) {
         JOIN school_years sy     ON c.sy_id = sy.sy_id
         JOIN sbm_dimensions d    ON ip.dimension_id = d.dimension_id
         LEFT JOIN sbm_indicators i ON ip.indicator_id = i.indicator_id
+        LEFT JOIN (
+          SELECT pii.plan_id,
+                 GROUP_CONCAT(DISTINCT si.indicator_code ORDER BY si.indicator_code SEPARATOR ', ') AS indicator_code,
+                 GROUP_CONCAT(DISTINCT si.indicator_text ORDER BY si.indicator_code SEPARATOR ' | ') AS indicator_text
+          FROM improvement_plan_indicators pii
+          JOIN sbm_indicators si ON si.indicator_id = pii.indicator_id
+          GROUP BY pii.plan_id
+        ) plan_indicators ON plan_indicators.plan_id = ip.plan_id
         LEFT JOIN users u        ON ip.submitted_by = u.user_id
         WHERE ip.school_id = ?
         ORDER BY sy.sy_id DESC, FIELD(ip.priority_level,'High','Medium','Low'), ip.created_at DESC
@@ -706,6 +787,39 @@ if (($planningView ?? 'ai_suggestions') === 'improvement_plans') {
   $activePage = 'improvement_plans.php';
 }
 $isImprovementPlansPage = ($planningView ?? 'ai_suggestions') === 'improvement_plans';
+
+function ipRenderPlanObjective(string $objective): string
+{
+  $objective = preg_replace('/\s+-\s+(?=[\p{L}\d“"\'])/u', "\n- ", $objective) ?? $objective;
+  $lines = preg_split('/\R/', $objective) ?: [];
+  $html = '';
+  $inList = false;
+  $formatInline = static function (string $text): string {
+    $parts = preg_split('/(\*\*.+?\*\*)/u', $text, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [$text];
+    return implode('', array_map(static function (string $part): string {
+      if (preg_match('/^\*\*(.+)\*\*$/u', $part, $matches)) {
+        return '<strong>' . e($matches[1]) . '</strong>';
+      }
+      return e($part);
+    }, $parts));
+  };
+
+  foreach ($lines as $line) {
+    $line = trim($line);
+    if ($line === '') continue;
+    if (strpos($line, '- ') === 0) {
+      if (!$inList) { $html .= '<ul>'; $inList = true; }
+      $html .= '<li>' . $formatInline(trim(substr($line, 2))) . '</li>';
+      continue;
+    }
+    if ($inList) { $html .= '</ul>'; $inList = false; }
+    $html .= '<p>' . $formatInline($line) . '</p>';
+  }
+  if ($inList) $html .= '</ul>';
+
+  return $html;
+}
+
 include __DIR__.'/../includes/header.php';
 ?>
 <div class="page-head"></div>
@@ -714,7 +828,7 @@ include __DIR__.'/../includes/header.php';
 <?php if (!$isImprovementPlansPage): ?>
 <div class="card" style="margin-bottom:18px;">
   <div class="card-body" style="padding:20px 24px;">
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;">
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;text-align:center;">
 
       <div>
         <div style="font-size:12px;color:var(--n-500);margin-bottom:6px;">Overall SBM Score</div>
@@ -730,13 +844,6 @@ include __DIR__.'/../includes/header.php';
         <div style="font-size:12px;color:var(--n-500);margin-bottom:6px;">Maturity Level</div>
         <div style="font-size:16px;font-weight:700;color:<?= $mat['color'] ?>;line-height:1.2;">
           <?= e(!empty($maturityLevel) ? $maturityLevel : $mat['label']) ?>
-        </div>
-      </div>
-
-      <div>
-        <div style="font-size:12px;color:var(--n-500);margin-bottom:6px;">Generated On</div>
-        <div style="font-size:14px;font-weight:600;color:var(--n-900);line-height:1.4;" id="generatedOnVal">
-          —
         </div>
       </div>
 
@@ -771,40 +878,14 @@ include __DIR__.'/../includes/header.php';
 <?php endif; ?>
 
 <?php if ($isImprovementPlansPage): ?>
-<?php if ($isSubmitted || $isReturned): ?>
-<div class="card" style="margin-bottom:18px;border-color:var(--green-200, #bbf7d0);background:var(--green-50, #f0fdf4);">
-  <div class="card-body" style="padding:20px 24px;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-      <span style="font-size:15px;font-weight:700;color:var(--n-900);">Improvement Plan Workflow Status</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
-      <div>
-        <div style="font-size:12px;color:var(--n-500);margin-bottom:4px;">Status</div>
-        <div style="font-size:14px;font-weight:700;color:var(--green-700, #15803d);"><?= e($workflowStatusLabel) ?></div>
-      </div>
-      <div>
-        <div style="font-size:12px;color:var(--n-500);margin-bottom:4px;">Current Responsible User</div>
-        <div style="font-size:14px;font-weight:700;color:var(--n-900);"><?= e($isFinalized ? 'Completed' : ($isReturned ? 'School Head' : 'SBM Coordinator')) ?></div>
-      </div>
-      <div>
-        <div style="font-size:12px;color:var(--n-500);margin-bottom:4px;">Submitted On</div>
-        <div style="font-size:14px;font-weight:700;color:var(--n-900);">
-          <?= $submittedAt ? date('F j, Y', strtotime($submittedAt)) . '<br>' . date('g:i A', strtotime($submittedAt)) : '—' ?>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-<?php endif; ?>
-
 <div class="card" style="margin-bottom:18px;">
+  <?php if ($canSubmitPlans || $canAddPlan): ?>
   <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-    <span class="card-title">Improvement Plans<?= $planStatusSuffix ?></span>
     <div style="display:flex;align-items:center;gap:10px;">
-      <?php if (!$isSubmitted && !$isFinalized): ?>
-        <?php if ($draftCount > 0): ?>
-          <button class="btn btn-secondary" onclick="openSubmitConfirm()">Submit Improvement Plans</button>
-        <?php endif; ?>
+      <?php if ($canSubmitPlans): ?>
+        <button class="btn btn-secondary" onclick="openSubmitConfirm()"><?= $returnedCount > 0 ? 'Resubmit Returned Plans' : 'Submit Improvement Plans' ?></button>
+      <?php endif; ?>
+      <?php if ($canAddPlan): ?>
         <button class="btn btn-primary" onclick="manuallyAddImprovementPlan()">
           <svg style="width:16px;height:16px;vertical-align:-3px;margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="10" />
@@ -816,12 +897,32 @@ include __DIR__.'/../includes/header.php';
       <?php endif; ?>
     </div>
   </div>
+  <?php endif; ?>
 
   <?php if (empty($planList)): ?>
     <div class="card-body" style="padding:20px 24px;">
       <p style="font-size:13px;color:var(--n-500);">Use the AI suggestions above as a starting point, then log a formal improvement plan here — dimension, indicator, objective, strategy, and target date.</p>
     </div>
   <?php else: ?>
+    <div class="ip-plan-tabs" role="tablist" aria-label="Filter improvement plans by workflow status">
+      <?php foreach ([
+        'drafts' => ['label' => 'Draft', 'count' => $draftCount],
+        'submitted' => ['label' => 'Submitted', 'count' => $submittedCount],
+        'finalized' => ['label' => 'Finalized', 'count' => $finalizedCount],
+        'returned' => ['label' => 'Returned', 'count' => $returnedCount],
+      ] as $tabKey => $tab): ?>
+        <button
+          type="button"
+          class="ip-plan-tab<?= $activePlanTab === $tabKey ? ' active' : '' ?>"
+          id="ipPlanTab-<?= e($tabKey) ?>"
+          role="tab"
+          aria-selected="<?= $activePlanTab === $tabKey ? 'true' : 'false' ?>"
+          aria-controls="ipPlanTableBody"
+          tabindex="<?= $activePlanTab === $tabKey ? '0' : '-1' ?>"
+          data-plan-tab="<?= e($tabKey) ?>"
+        ><?= e($tab['label']) ?><span class="ip-plan-tab-count"><?= (int) $tab['count'] ?></span></button>
+      <?php endforeach; ?>
+    </div>
     <div class="tbl-wrap">
       <table>
         <thead>
@@ -835,12 +936,19 @@ include __DIR__.'/../includes/header.php';
             <th style="width:150px;">Actions</th>
           </tr>
         </thead>
-        <tbody>
-          <?php foreach ($planList as $p): ?>
-            <tr>
+        <tbody id="ipPlanTableBody">
+          <?php foreach ($planList as $p):
+            $planTab = match ($p['workflow_status']) {
+              IP_STATUS_DRAFT => 'drafts',
+              IP_STATUS_RETURNED => 'returned',
+              IP_STATUS_FINALIZED => 'finalized',
+              default => 'submitted',
+            };
+          ?>
+            <tr data-plan-status="<?= e($planTab) ?>"<?= $activePlanTab !== $planTab ? ' hidden' : '' ?>>
               <td><strong style="font-size:12px;color:<?= e($p['color_hex'] ?? 'var(--n-600)') ?>;">D<?= (int)$p['dimension_no'] ?></strong></td>
               <td style="font-size:12px;color:var(--n-600);"><?= e($p['indicator_code'] ?? '—') ?></td>
-              <td style="font-size:12.5px;line-height:1.5;"><?= e($p['objective']) ?></td>
+              <td class="ip-objective-cell"><?= ipRenderPlanObjective((string) $p['objective']) ?></td>
               <td>
                 <span style="display:inline-flex;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;
                   background:<?= $p['priority_level']==='High' ? '#fee2e2' : ($p['priority_level']==='Low' ? '#f1f5f9' : '#fef3c7') ?>;
@@ -858,19 +966,24 @@ include __DIR__.'/../includes/header.php';
               </td>
               <td>
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;white-space:nowrap;">
-                  <button class="ip-icon-btn" title="Preview" onclick='openViewPlan(<?= json_encode($p, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+                  <button class="ip-icon-btn" title="Preview" onclick='openViewPlan(<?= json_encode(array_merge($p, ['objective_html' => ipRenderPlanObjective((string) $p['objective'])]), JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   </button>
                   <button class="ip-icon-btn" title="History" onclick="openPlanHistory(<?= (int)$p['plan_id'] ?>)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 3 3 9 9 9"/><path d="M12 7v5l3 2"/></svg>
                   </button>
-                  <?php if (!$isSubmitted && !$isFinalized): ?>
+                  <?php if (
+                    $p['workflow_status'] === IP_STATUS_RETURNED
+                    || ($p['workflow_status'] === IP_STATUS_DRAFT && !$isSubmitted && !$isFinalized)
+                  ): ?>
                     <button class="ip-icon-btn" title="Edit" onclick='openEditPlan(<?= json_encode($p, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
+                    <?php if ($p['workflow_status'] === IP_STATUS_DRAFT): ?>
                     <button class="ip-icon-btn ip-icon-btn-danger" title="Delete" onclick="deletePlan(<?= (int)$p['plan_id'] ?>)">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
+                    <?php endif; ?>
                   <?php endif; ?>
                 </div>
               </td>
@@ -878,6 +991,7 @@ include __DIR__.'/../includes/header.php';
           <?php endforeach; ?>
         </tbody>
       </table>
+      <p class="ip-plan-tab-empty" hidden>No improvement plans in this status.</p>
     </div>
   <?php endif; ?>
 </div>
@@ -922,7 +1036,7 @@ include __DIR__.'/../includes/header.php';
               <td style="font-size:12px;color:var(--n-600);">SY <?= e($p['sy_label']) ?></td>
               <td><strong style="font-size:12px;color:<?= e($p['color_hex'] ?? 'var(--n-600)') ?>;">D<?= (int)$p['dimension_no'] ?></strong></td>
               <td style="font-size:12px;color:var(--n-600);"><?= e($p['indicator_code'] ?? '—') ?></td>
-              <td style="font-size:12.5px;line-height:1.5;"><?= e($p['objective']) ?></td>
+              <td class="ip-objective-cell"><?= ipRenderPlanObjective((string) $p['objective']) ?></td>
               <td>
                 <span style="display:inline-flex;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;
                   background:<?= $p['priority_level']==='High' ? '#fee2e2' : ($p['priority_level']==='Low' ? '#f1f5f9' : '#fef3c7') ?>;
@@ -939,7 +1053,7 @@ include __DIR__.'/../includes/header.php';
                 </span>
               </td>
               <td>
-                <button class="ip-icon-btn" title="Preview" onclick='openViewPlan(<?= json_encode($p, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+                <button class="ip-icon-btn" title="Preview" onclick='openViewPlan(<?= json_encode(array_merge($p, ['objective_html' => ipRenderPlanObjective((string) $p['objective'])]), JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
               </td>
@@ -965,18 +1079,39 @@ include __DIR__.'/../includes/header.php';
   <div class="modal-content" style="width:440px;">
     <div class="modal-form-side">
       <div class="modal-header">
-        <div class="modal-title">Submit Improvement Plans?</div>
+        <div class="modal-title"><?= $returnedCount > 0 ? 'Resubmit Returned Plans?' : 'Submit Improvement Plans?' ?></div>
         <button class="btn btn-ghost" style="padding:4px;" onclick="closeSubmitConfirm()">&times;</button>
       </div>
       <div class="modal-body">
         <p style="font-size:13.5px;color:var(--n-700);line-height:1.6;">
-          After submission, your improvement plans will be sent to the SBM Coordinator for review. They can be edited again if they are returned for revision.
+          <?= $returnedCount > 0
+            ? 'Only the returned plans will be sent back to the SBM Coordinator for another review.'
+            : 'After submission, your improvement plans will be sent to the SBM Coordinator for review. They can be edited again if returned for revision.' ?>
         </p>
       </div>
       <div class="modal-footer">
         <div style="flex:1"></div>
         <button class="btn-secondary" onclick="closeSubmitConfirm()">Cancel</button>
         <button class="btn-primary" id="confirmSubmitBtn" onclick="confirmSubmitPlans()">Submit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="improvementPlanSuccessModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="improvementPlanSuccessTitle">
+  <div class="modal-content" style="width:440px;">
+    <div class="modal-form-side">
+      <div class="modal-header">
+        <div class="modal-title" id="improvementPlanSuccessTitle">Success</div>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13.5px;color:var(--n-700);line-height:1.6;margin:0;">
+          Improvement Plan saved successfully!
+        </p>
+      </div>
+      <div class="modal-footer">
+        <div style="flex:1"></div>
+        <button class="btn-primary" onclick="closeImprovementPlanSuccessModal()">Continue</button>
       </div>
     </div>
   </div>
@@ -1307,6 +1442,86 @@ include __DIR__.'/../includes/header.php';
   padding-top: 16px;
   border-top: 1px solid var(--n-200);
   color: var(--n-700);
+}
+.ip-objective-cell {
+  font-size: 12.5px;
+  line-height: 1.5;
+  min-width: 280px;
+}
+.ip-objective-cell p,
+.ip-objective-preview p {
+  margin: 0 0 8px;
+}
+.ip-objective-cell p:last-child,
+.ip-objective-preview p:last-child {
+  margin-bottom: 0;
+}
+.ip-objective-cell ul,
+.ip-objective-preview ul {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+.ip-objective-cell li,
+.ip-objective-preview li {
+  margin-bottom: 5px;
+}
+
+.ip-plan-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px 0;
+  border-bottom: 1px solid var(--n-200);
+  overflow-x: auto;
+}
+.ip-plan-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--n-600);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ip-plan-tab:hover,
+.ip-plan-tab.active {
+  color: var(--brand-700, #15803d);
+}
+.ip-plan-tab.active {
+  border-bottom-color: var(--brand-600, #16a34a);
+}
+.ip-plan-tab:focus-visible {
+  outline: 2px solid var(--brand-600, #16a34a);
+  outline-offset: -2px;
+}
+.ip-plan-tab-count {
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--n-100);
+  color: var(--n-600);
+  font-size: 10.5px;
+}
+.ip-plan-tab.active .ip-plan-tab-count {
+  background: var(--green-100, #dcfce7);
+  color: var(--green-700, #15803d);
+}
+.ip-plan-tab-empty {
+  margin: 0;
+  padding: 24px;
+  color: var(--n-500);
+  font-size: 13px;
+  text-align: center;
 }
 
 .ip-icon-btn {
@@ -1653,6 +1868,50 @@ include __DIR__.'/../includes/header.php';
 
 <script>
 const IS_IMPROVEMENT_PLANS_PAGE = <?= $isImprovementPlansPage ? 'true' : 'false' ?>;
+
+function initImprovementPlanTabs() {
+  const tabs = [...document.querySelectorAll('.ip-plan-tab')];
+  const rows = [...document.querySelectorAll('#ipPlanTableBody tr[data-plan-status]')];
+  const emptyState = document.querySelector('.ip-plan-tab-empty');
+  if (!tabs.length || !rows.length) return;
+
+  const activateTab = (activeTab, moveFocus = false) => {
+    const selectedStatus = activeTab.dataset.planTab;
+    tabs.forEach(tab => {
+      const selected = tab === activeTab;
+      tab.classList.toggle('active', selected);
+      tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+      tab.tabIndex = selected ? 0 : -1;
+    });
+
+    let visibleCount = 0;
+    rows.forEach(row => {
+      const visible = row.dataset.planStatus === selectedStatus;
+      row.hidden = !visible;
+      if (visible) visibleCount++;
+    });
+    if (emptyState) emptyState.hidden = visibleCount > 0;
+    if (moveFocus) activeTab.focus();
+  };
+
+  tabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => activateTab(tab));
+    tab.addEventListener('keydown', event => {
+      let nextIndex = null;
+      if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+      if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+      if (event.key === 'Home') nextIndex = 0;
+      if (event.key === 'End') nextIndex = tabs.length - 1;
+      if (nextIndex === null) return;
+      event.preventDefault();
+      activateTab(tabs[nextIndex], true);
+    });
+  });
+}
+if (IS_IMPROVEMENT_PLANS_PAGE) {
+  document.addEventListener('DOMContentLoaded', initImprovementPlanTabs);
+}
+
 /** Renders AI text as a formal, structured report (Claude-style formatting) */
 function renderConfidenceBadge(block) {
   if (!block) return '';
@@ -1673,7 +1932,7 @@ function renderConfidenceBadge(block) {
   }
 
   if (block.confidence_level === 'Rule-based fallback') {
-    return '<div class="ai-conf-row"><span class="ai-conf-badge low">Rule-based estimate</span></div>';
+    return `<div class="ai-conf-row"><span class="ai-conf-badge low" title="This is the fallback confidence estimate; recommendation text is still generated by the configured LLM backend.">${block.confidence_pct}% · Rule-based confidence estimate</span></div>`;
   }
 
   const levelClass = block.confidence_level === 'High Confidence' ? 'high'
@@ -1727,6 +1986,7 @@ function parseAILogicToHtml(text, blocks, suggestionRanking) {
   const lines = text.split('\n');
   let finalHtml = '';
   let inList = false;
+  let lastHeading = null;
 
   const inlineFormat = (s) => s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
@@ -1736,6 +1996,7 @@ function parseAILogicToHtml(text, blocks, suggestionRanking) {
     if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
       if (!inList) { finalHtml += '<ul>'; inList = true; }
       finalHtml += '<li>' + inlineFormat(trimmed.substring(2)) + '</li>';
+      lastHeading = null;
       return;
     }
     if (inList) { finalHtml += '</ul>'; inList = false; }
@@ -1751,6 +2012,13 @@ function parseAILogicToHtml(text, blocks, suggestionRanking) {
     const headingMatch = trimmed.match(/^\*\*(.+?)\*\*(.*)$/);
     if (headingMatch) {
       const title = headingMatch[1];
+      const normalizedTitle = title.replace(/\s+/g, ' ').trim().toLocaleLowerCase();
+      const rest = headingMatch[2].trim();
+      if (normalizedTitle === lastHeading) {
+        if (rest) finalHtml += '<p>' + inlineFormat(rest) + '</p>';
+        return;
+      }
+      lastHeading = normalizedTitle;
       const sectionBlock = blockByTitle[title];
       const reviewBadge = sectionBlock && sectionBlock.needs_review
         ? '<span style="display:inline-flex;padding:3px 8px;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:10px;font-weight:700;">Needs review</span>'
@@ -1758,12 +2026,12 @@ function parseAILogicToHtml(text, blocks, suggestionRanking) {
       const badgeHtml = renderConfidenceBadge(sectionBlock);
       const approvalHtml = renderApprovalLikelihood(sectionBlock, suggestionRanking);
       finalHtml += '<div class="ai-section-head"><h4>' + title + '</h4>' + reviewBadge + approvalHtml + badgeHtml + '</div>';
-      const rest = headingMatch[2].trim();
       if (rest) finalHtml += '<p>' + inlineFormat(rest) + '</p>';
       return;
     }
 
     finalHtml += '<p>' + inlineFormat(trimmed) + '</p>';
+    lastHeading = null;
   });
 
   if (inList) finalHtml += '</ul>';
@@ -1838,8 +2106,8 @@ function getSelectedIndicatorMetas() {
     .filter(Boolean);
 }
 
-// ── IP FIELD (Objective/Strategy) usage state — 12 generations each per day ──
-const ipFieldLimit = 12;
+// ── IP FIELD (Objective/Strategy) usage state — 30 generations each per day ──
+const ipFieldLimit = 30;
 let ipFieldRemaining = { objective: ipFieldLimit, strategy: ipFieldLimit };
 
 function ipFieldLimitReached(fieldType) {
@@ -1865,7 +2133,7 @@ if (IS_IMPROVEMENT_PLANS_PAGE) {
 }
 
 /** Enables/disables the header "💡 Suggest" links based on selection
- *  AND remaining daily quota (12 objective / 12 strategy). Also refreshes
+ *  AND remaining daily quota (30 objective / 30 strategy). Also refreshes
  *  the single usage note shown near the modal footer. */
 function updateAiFieldButtons() {
   const dimSelected = !!(document.getElementById('dimIdsInput').value);
@@ -2164,9 +2432,13 @@ if (IS_IMPROVEMENT_PLANS_PAGE) document.addEventListener('DOMContentLoaded', () 
   if (prefillSuggestionHistory) {
     const dimensionId = String(prefillSuggestionHistory.dimension_id);
     dimTagControl.setSelected([dimensionId]);
+    const suggestionText = String(prefillSuggestionHistory.suggestion_text || '');
+    const citedCodes = new Set(suggestionText.match(/\b\d{1,2}\.\d{1,2}\b/g) || []);
     const indicatorIds = weakIndicatorsBase
-      .filter(indicator => String(indicator.dimension_id) === dimensionId)
-      .slice(0, 1)
+      .filter(indicator =>
+        String(indicator.dimension_id) === dimensionId
+        && citedCodes.has(String(indicator.indicator_code))
+      )
       .map(indicator => String(indicator.indicator_id));
     indTagControl.setSelected(indicatorIds);
     document.querySelector('#improvementPlanForm textarea[name="objective"]').value =
@@ -2196,6 +2468,11 @@ function closeImprovementPlanModal() {
   updateAiFieldButtons();
 }
 
+function closeImprovementPlanSuccessModal() {
+  document.getElementById('improvementPlanSuccessModal').style.display = 'none';
+  location.reload();
+}
+
 async function saveImprovementPlan(e) {
   if (e) e.preventDefault();
   const form = document.getElementById('improvementPlanForm');
@@ -2216,9 +2493,11 @@ async function saveImprovementPlan(e) {
     const res = await fetch(window.location.href, { method: 'POST', body: formData });
     const data = await res.json();
     if (data.success) {
-      alert('Improvement Plan saved successfully!');
       closeImprovementPlanModal();
-      location.reload();
+      const url = new URL(window.location.href);
+      url.searchParams.delete('prefill_history_id');
+      window.history.replaceState(window.history.state, '', url);
+      document.getElementById('improvementPlanSuccessModal').style.display = 'flex';
     } else {
       alert('Error: ' + data.message);
     }
@@ -2369,7 +2648,7 @@ function openViewPlan(plan) {
     ipViewRow('Dimension / Indicator', ipEscape(dimLabel)) +
     ipViewRow('Priority', ipEscape(plan.priority_level)) +
     ipViewRow('Target Date', targetDate ? ipEscape(targetDate) : null) +
-    ipViewRow('Objective', ipEscape(plan.objective)) +
+    ipViewRow('Objective', `<div class="ip-objective-preview">${plan.objective_html || ipEscape(plan.objective)}</div>`) +
     ipViewRow('Strategy', ipEscape(plan.strategy)) +
     ipViewRow('Person Responsible', ipEscape(plan.person_responsible)) +
     ipViewRow('Resources Needed', ipEscape(plan.resources_needed)) +
@@ -2453,7 +2732,7 @@ function startAiCooldown(seconds) {
   aiCooldownTimer = setInterval(tick, 1000);
 }
 
-function renderStoredRecommendation(recs, lastGeneratedAtUtc) {
+function renderStoredRecommendation(recs) {
   const body = document.getElementById('aiSuggestBody');
 
   // recs may be the new JSON envelope {text, blocks} or a legacy plain string.
@@ -2478,12 +2757,6 @@ function renderStoredRecommendation(recs, lastGeneratedAtUtc) {
     ? parseAILogicToHtml(cleaned, blocks, suggestionRanking)
     : '<p style="font-size:13px;color:var(--n-500);">Your performance is currently optimal with no critical gaps detected.</p>';
 
-  if (lastGeneratedAtUtc) {
-    const d = new Date(lastGeneratedAtUtc.replace(' ', 'T') + 'Z');
-    const dateStr = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    document.getElementById('generatedOnVal').innerHTML = dateStr + '<br>' + timeStr;
-  }
 }
 
 async function initAiUsageState() {
@@ -2499,7 +2772,7 @@ async function initAiUsageState() {
     updateAiUsageLabel();
 
     if (data.last_recommendation) {
-      renderStoredRecommendation(data.last_recommendation, data.last_generated_at);
+      renderStoredRecommendation(data.last_recommendation);
     }
 
     if (data.remaining <= 0) {
@@ -2598,11 +2871,6 @@ async function loadAISuggestionsPlan() {
     body.innerHTML = recs
       ? parseAILogicToHtml(recs, data.blocks || [], data.suggestion_ranking || null)
       : '<p style="font-size:13px;color:var(--n-500);">Your performance is currently optimal with no critical gaps detected.</p>';
-
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    document.getElementById('generatedOnVal').innerHTML = dateStr + '<br>' + timeStr;
 
     aiRemaining = typeof data.remaining === 'number' ? data.remaining : aiRemaining - 1;
     updateAiUsageLabel();

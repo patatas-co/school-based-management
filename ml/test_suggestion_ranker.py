@@ -143,7 +143,7 @@ class SuggestionRankerTests(unittest.TestCase):
         }
 
         with (
-            patch("recommendation_engine._call_ollama", return_value=json.dumps(generated)),
+            patch("recommendation_engine._call_groq", return_value=json.dumps(generated)),
             patch("suggestion_ranker.MODEL_PATH", Path("missing_ranker.joblib")),
         ):
             response = generate_recommendations(
@@ -158,6 +158,51 @@ class SuggestionRankerTests(unittest.TestCase):
         self.assertEqual(response["suggestions"][0]["title"], "Strengthen reading support")
         self.assertFalse(response["suggestion_ranking"]["active"])
         self.assertEqual(response["suggestion_ranking"]["model_source"], "rule_fallback")
+
+    def test_recommendation_confidence_uses_assessment_data_with_rule_fallback(self):
+        dimensions = [{
+            "dimension_id": 1,
+            "dimension_no": 1,
+            "dimension_name": "Curriculum",
+            "score": 62.5,
+        }]
+        generated = {
+            "suggestions": [{
+                "dimension_id": 1,
+                "title": "Strengthen curriculum review",
+                "text": (
+                    "The review identified a gap in indicator 1.2.\n"
+                    "- Assign a coordinator to complete a review by June 30.\n"
+                    "- Track progress at each monthly meeting.\n"
+                    "- Report the results to the school council."
+                ),
+                "last_cycle_note": None,
+            }]
+        }
+        analysis = {
+            "gap_analysis": {"all_dimensions": dimensions},
+            "dimension_rows": dimensions,
+            "by_rating": {"1": [{"code": "1.2", "rating": 1.0}]},
+            "respondent_consistency": {
+                "1.2": {"sh_avg": 1.0, "teacher_avg": 1.0},
+            },
+            "indicator_history": {"1.2": [1.0, 1.0]},
+            "data_completeness": 100,
+        }
+
+        with (
+            patch("recommendation_engine._call_groq", return_value=json.dumps(generated)),
+            patch("suggestion_ranker.MODEL_PATH", Path("missing_ranker.joblib")),
+        ):
+            response = generate_recommendations(
+                analysis,
+                "Sample School",
+                "2026-2027",
+            )
+
+        self.assertEqual(response["model_source"], "rule_fallback")
+        self.assertEqual(response["blocks"][0]["confidence_pct"], 100.0)
+        self.assertEqual(response["blocks"][0]["confidence_level"], "High Confidence")
 
     def test_groq_backend_is_used_for_generation(self):
         dimensions = [{
@@ -294,6 +339,33 @@ class SuggestionRankerTests(unittest.TestCase):
         parsed = _parse_dimension_suggestions(generated, dimensions)
 
         self.assertIsNone(parsed[0]["last_cycle_note"])
+
+    def test_parser_removes_repeated_title_from_suggestion_body(self):
+        dimensions = [{
+            "dimension_id": 1,
+            "dimension_no": 1,
+            "dimension_name": "Curriculum",
+        }]
+        generated = json.dumps({
+            "suggestions": [{
+                "dimension_id": 1,
+                "title": "Improve curriculum review",
+                "text": (
+                    "**Improve curriculum review**\n"
+                    "Review the curriculum with teaching staff.\n"
+                    "- Curriculum Coordinator completes a review each term."
+                ),
+            }]
+        })
+
+        parsed = _parse_dimension_suggestions(generated, dimensions)
+
+        self.assertEqual(
+            parsed[0]["text"],
+            "Review the curriculum with teaching staff.\n"
+            "- Curriculum Coordinator completes a review each term.",
+        )
+        self.assertEqual(parsed[0]["action_count"], 1)
 
     def test_parser_builds_history_note_from_trusted_cycle_data(self):
         dimensions = [{

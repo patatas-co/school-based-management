@@ -733,7 +733,7 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
       $dimTotal = count($inds);
       $dimFull = $dimDone === $dimTotal;
       ?>
-      <a href="#dim<?= $dimNo ?>" id="dimTab<?= $dimNo ?>" data-done="<?= $dimDone ?>" data-total="<?= $dimTotal ?>"
+      <a href="#dim<?= $dimNo ?>" id="dimTab<?= $dimNo ?>"
             onclick="event.preventDefault();switchDimension(<?= $dimNo ?>);"
             class="dim-tab-item<?= $dimNo === $firstDimNo ? ' active' : '' ?><?= $dimFull ? ' complete' : '' ?>">
         D<?= $dimNo ?>
@@ -879,17 +879,16 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
 <!-- ── BOTTOM SUBMIT ── -->
 <div style="text-align:center;padding:24px 0 32px;">
     <?php if (!$isLocked && $totalInds > 0): ?>
+      <div id="submitActions" <?= $totalDone < $totalInds ? 'hidden' : '' ?>>
         <button class="btn btn-primary" style="padding:12px 36px;font-size:15px;" id="submitBtn"
             onclick="submitMyAssessment()">
             <?= svgIcon('check') ?> Submit to School Head
-            <span id="submitCount" style="font-size:12px;opacity:.8;margin-left:4px;">
-                (<?= $totalDone ?>/<?= $totalInds ?> rated)
-            </span>
         </button>
         <p style="font-size:12px;color:var(--n400);margin-top:10px;">
             Once submitted, your responses will be locked.<br>
             Make sure all <?= $totalInds ?> indicators are rated first.
         </p>
+      </div>
 
     <?php elseif ($totalInds > 0): ?>
         <p style="font-size:13px;color:var(--n500);">
@@ -941,6 +940,11 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
         prevRatings: Object.assign({}, <?= json_encode(array_map(fn($r) => $r['rating'], $responses)) ?>)
     };
 
+    function updateSubmitVisibility() {
+        const submitActions = document.getElementById('submitActions');
+        if (submitActions) submitActions.hidden = prog.done < prog.total;
+    }
+
     // ── Live progress updater ──────────────────────────────────
     function updateProgress(indId, newRating, isNewResponse) {
         const prevRating = prog.prevRatings[indId] ?? null;
@@ -955,6 +959,8 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
             prog.ratings[newRating] = (prog.ratings[newRating] || 0) + 1;
         }
         prog.prevRatings[indId] = newRating;
+
+        updateSubmitVisibility();
 
         // Dimension tab
         updateDimTab(indId);
@@ -971,8 +977,12 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
         });
 
         const dimTabs = document.getElementById('dimTabs');
-        if (dimTabs) {
-            const top = dimTabs.getBoundingClientRect().top + window.scrollY - 70;
+        const targetDim = document.getElementById('dim' + n);
+        const dimHeader = targetDim?.querySelector('.dim-header');
+        const scrollTarget = dimHeader || targetDim || dimTabs;
+        if (scrollTarget) {
+            const stickyOffset = (dimTabs?.offsetHeight || 0) + 70;
+            const top = scrollTarget.getBoundingClientRect().top + window.scrollY - stickyOffset;
             window.scrollTo({ top, behavior: 'smooth' });
         }
     }
@@ -989,7 +999,6 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
         const done = ratedCards.length;
         const total = allCards.length;
 
-        // Tab count
         const tabCount = document.getElementById('dimTabCount' + dimNo);
         if (tabCount) tabCount.textContent = `(${done}/${total})`;
 
@@ -1053,6 +1062,7 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
         prog.done = Math.max(0, prog.done - 1);
         if (prevRating) prog.ratings[prevRating] = Math.max(0, (prog.ratings[prevRating] || 1) - 1);
         delete prog.prevRatings[indId];
+        updateSubmitVisibility();
 
 
 
@@ -1178,7 +1188,7 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
             if (btn) {
                 btn.disabled = false;
                 btn.textContent = '';
-                btn.innerHTML = svgI('check') + ' Submit to School Head <span id="submitCount" style="font-size:12px;opacity:.8;margin-left:4px;">(' + prog.done + '/' + prog.total + ' rated)</span>';
+                btn.innerHTML = svgI('check') + ' Submit to School Head';
             }
         }
     }

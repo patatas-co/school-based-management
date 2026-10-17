@@ -25,9 +25,9 @@ generated patterns and are not accuracy on real schools.
 
 ### Learning to rank AI suggestions
 
-The configured LLM remains responsible for writing suggestions. Set
-`LLM_BACKEND=groq` in `ml/.env` to send assessment-derived prompts to Groq;
-the ML service must be restarted to reload environment changes. This sends
+The configured LLM remains responsible for writing suggestions. Groq is the
+default backend; set `LLM_BACKEND` in `ml/.env` to select another backend.
+The ML service must be restarted to reload environment changes. Using Groq sends
 school assessment content to an external provider. The response includes a
 privacy notice when Groq or OpenAI is selected. A separate CatBoost classifier
 can rank generated dimension suggestions using prior **real, linked**
@@ -220,3 +220,12 @@ The peer-gap threshold of `1.0` and the derived-type definitions were set on
 synthetic data and have never been tested on real ratings, so expect more false
 cards on real data. Cards are an exploratory prompt for a conversation, not a
 judgment about a teacher. The service-down test used an unreachable URL.
+
+## Improvement plans with multiple indicators
+
+An improvement plan can link multiple indicators within the same dimension.
+The plan list displays those codes together, while indicators from different
+dimensions are saved as separate plans. On existing databases, apply
+`config/migration_improvement_plan_indicators.sql` before using this feature;
+the migration creates the link table and backfills each existing plan's
+indicator.

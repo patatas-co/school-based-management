@@ -26,10 +26,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_s
   }
 
   $st = $db->prepare("
-    SELECT ip.*, d.dimension_name, d.dimension_no, d.color_hex, i.indicator_code, i.indicator_text
+    SELECT ip.*, d.dimension_name, d.dimension_no, d.color_hex,
+      COALESCE(plan_indicators.indicator_code, i.indicator_code) AS indicator_code,
+      COALESCE(plan_indicators.indicator_text, i.indicator_text) AS indicator_text
     FROM improvement_plans ip
     JOIN sbm_dimensions d ON ip.dimension_id = d.dimension_id
     LEFT JOIN sbm_indicators i ON ip.indicator_id = i.indicator_id
+    LEFT JOIN (
+      SELECT pii.plan_id,
+             GROUP_CONCAT(DISTINCT si.indicator_code ORDER BY si.indicator_code SEPARATOR ', ') AS indicator_code,
+             GROUP_CONCAT(DISTINCT si.indicator_text ORDER BY si.indicator_code SEPARATOR ' | ') AS indicator_text
+      FROM improvement_plan_indicators pii
+      JOIN sbm_indicators si ON si.indicator_id = pii.indicator_id
+      GROUP BY pii.plan_id
+    ) plan_indicators ON plan_indicators.plan_id = ip.plan_id
     WHERE ip.cycle_id = ?
       AND ip.target_date IS NOT NULL AND ip.target_date != ''
       AND ip.person_responsible IS NOT NULL AND ip.person_responsible != ''

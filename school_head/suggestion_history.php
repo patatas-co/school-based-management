@@ -35,23 +35,42 @@ if (!in_array($yearB, $years, true)) $yearB = $years[1] ?? '';
 
 function renderSuggestionPreview(array $item): string
 {
+    $title = trim(str_replace('**', '', (string) ($item['suggestion_title'] ?? '')));
+    $body = trim((string) ($item['suggestion_text'] ?? ''));
+    if ($title !== '') {
+        $body = preg_replace(
+            '/^\s*\*{0,2}' . preg_quote($title, '/') . '\*{0,2}(?![\p{L}\p{N}])\s*/iu',
+            '',
+            $body,
+            1
+        ) ?? $body;
+    }
     $body = preg_replace(
-        '/\s+-\s+(?=[\p{Lu}\d“"\'])/u',
+        '/\s+-\s+(?=[\p{L}\d“"\'])/u',
         "\n- ",
-        sfHistorySuggestionBody($item)
-    ) ?? sfHistorySuggestionBody($item);
+        $body
+    ) ?? $body;
     $lines = preg_split('/\R/', $body) ?: [];
     $lines = array_values(array_filter(array_map('trim', $lines), static fn(string $line): bool => $line !== ''));
     $html = '';
     $inList = false;
+    $formatInline = static function (string $text): string {
+        $parts = preg_split('/(\*\*.+?\*\*)/u', $text, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [$text];
+        return implode('', array_map(static function (string $part): string {
+            if (preg_match('/^\*\*(.+)\*\*$/u', $part, $matches)) {
+                return '<strong>' . e($matches[1]) . '</strong>';
+            }
+            return e($part);
+        }, $parts));
+    };
     foreach ($lines as $line) {
         if (strpos($line, '- ') === 0) {
             if (!$inList) { $html .= '<ul>'; $inList = true; }
-            $html .= '<li>' . e(trim(substr($line, 2))) . '</li>';
+            $html .= '<li>' . $formatInline(trim(substr($line, 2))) . '</li>';
             continue;
         }
         if ($inList) { $html .= '</ul>'; $inList = false; }
-        $html .= '<p>' . e($line) . '</p>';
+        $html .= '<p>' . $formatInline($line) . '</p>';
     }
     if ($inList) $html .= '</ul>';
     return $html ?: '<p>Details unavailable.</p>';
@@ -347,7 +366,7 @@ include __DIR__ . '/../includes/header.php';
               </div>
               <div class="suggestion-text collapsed"><?= renderSuggestionPreview($item) ?></div>
               <button type="button" class="show-more-btn" aria-expanded="false">Show more</button>
-              <?php if ($columnYear === $currentSchoolYear): ?><a class="plan-link" href="ai_suggestion_planning.php?prefill_history_id=<?= (int) $item['id'] ?>">Create plan from suggestion</a><?php endif; ?>
+              <?php if ($columnYear === $currentSchoolYear): ?><a class="plan-link" href="improvement_plans.php?prefill_history_id=<?= (int) $item['id'] ?>">Create plan from suggestion</a><?php endif; ?>
               <div class="suggestion-card-footer">
                 <span>Model: <?= e(trim((string) ($item['model_version'] ?? '')) ?: 'Not recorded') ?></span>
               </div>

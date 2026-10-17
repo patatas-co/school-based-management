@@ -5,13 +5,13 @@
 // - AI_USAGE_COOLDOWN_SECONDS between consecutive generations.
 // Race-condition safe via row-level locking (SELECT ... FOR UPDATE).
 
-define('AI_USAGE_DAILY_LIMIT', 12);
+define('AI_USAGE_DAILY_LIMIT', 50);
 define('AI_USAGE_COOLDOWN_SECONDS', 20);
 
 // Separate, smaller limit for the per-field "Generate Objective" /
 // "Generate Strategy" buttons in the Improvement Plan modal — each
-// field type gets its own daily quota (12 + 12, not a shared pool of 12).
-define('AI_IP_FIELD_DAILY_LIMIT', 12);
+// field type gets its own daily quota (30 + 30, not a shared pool of 30).
+define('AI_IP_FIELD_DAILY_LIMIT', 30);
 
 // Separate daily quota for the "Import from Document" feature in Manage Form —
 // each import costs one LLM call over a potentially large document.
@@ -80,6 +80,20 @@ function aiUsageSaveRecommendation(PDO $db, int $userId, string $text): void
 {
     $stmt = $db->prepare("UPDATE ai_suggestion_usage SET last_recommendation = ? WHERE user_id = ?");
     $stmt->execute([$text, $userId]);
+}
+
+/**
+ * Refunds a reserved suggestion generation when the analysis service fails.
+ * Only the quota date used by the reservation can be changed.
+ */
+function aiUsageRefundFailedGeneration(PDO $db, int $userId, string $quotaDate): void
+{
+    $stmt = $db->prepare("
+        UPDATE ai_suggestion_usage
+        SET usage_count = usage_count - 1
+        WHERE user_id = ? AND reset_date = ? AND usage_count > 0
+    ");
+    $stmt->execute([$userId, $quotaDate]);
 }
 
 /**
@@ -289,6 +303,7 @@ function aiUsageCheckAndConsume(PDO $db, int $userId): array
             'allowed' => true,
             'remaining' => max(0, AI_USAGE_DAILY_LIMIT - $newCount),
             'limit' => AI_USAGE_DAILY_LIMIT,
+            'quota_date' => $todayManila,
         ];
     } catch (Exception $e) {
         if ($db->inTransaction()) $db->rollBack();

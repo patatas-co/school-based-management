@@ -21,7 +21,7 @@ load_dotenv(BASE_DIR / ".env", override=True)
 load_dotenv(BASE_DIR.parent / ".env", override=True)
 
 from ml_classifier import dimension_model_metadata, predict_dimension_outlook
-_backend = os.getenv("LLM_BACKEND", "rule_based")
+_backend = os.getenv("LLM_BACKEND", "groq")
 print(
     f"[STARTUP] LLM_BACKEND={_backend}, "
     f"GROQ_API_KEY_CONFIGURED={bool(os.getenv('GROQ_API_KEY'))}",
@@ -31,7 +31,7 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 ML_SECRET = os.getenv("ML_SECRET", "")
-LLM_BACKEND = os.getenv("LLM_BACKEND", "rule_based")  # "rule_based" / "ollama" / "openai" / "groq"
+LLM_BACKEND = os.getenv("LLM_BACKEND", "groq")  # "rule_based" / "ollama" / "openai" / "groq"
 
 
 def auth(req) -> bool:

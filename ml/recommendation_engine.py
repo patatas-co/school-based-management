@@ -952,7 +952,7 @@ def generate_recommendations(
     analysis: dict,
     school_name: str,
     sy_label: str,
-    backend: str = "rule_based",  # "rule_based" | "ollama" | "openai"
+    backend: str = "groq",  # "rule_based" | "ollama" | "openai" | "groq"
 ) -> dict:
     """
     Main entry point called by Flask.
@@ -1095,10 +1095,6 @@ def generate_recommendations(
         round(min(float(item.get("confidence", 0.55)) for item in dimension_outlook), 3)
         if dimension_outlook else 0.55
     )
-    if model_source == "rule_fallback":
-        for block in blocks:
-            block["confidence_pct"] = 55
-            block["confidence_level"] = "Rule-based fallback"
 
     return {
         "recommendations": text,
@@ -1159,6 +1155,27 @@ def _parse_dimension_suggestions(
         body = str(suggestion.get("text", "")).strip()
         if not title or not body:
             raise ValueError(f"Recommendation for dimension_id {dimension_id} is missing title or text.")
+        body_lines = body.splitlines()
+        first_content_line = next(
+            (index for index, line in enumerate(body_lines) if line.strip()),
+            None,
+        )
+        if first_content_line is not None:
+            repeated_title = re.match(
+                r"^\s*\*\*(.+?)\*\*(.*)$",
+                body_lines[first_content_line],
+            )
+            if (
+                repeated_title
+                and re.sub(r"\s+", " ", repeated_title.group(1)).strip().casefold()
+                == re.sub(r"\s+", " ", title).strip().casefold()
+            ):
+                body_lines[first_content_line] = repeated_title.group(2)
+                body = "\n".join(body_lines).strip()
+                if not body:
+                    raise ValueError(
+                        f"Recommendation for dimension_id {dimension_id} contains only a repeated title."
+                    )
         action_count = _count_suggestion_actions(body)
         last_cycle_note = suggestion.get("last_cycle_note")
         dimension_no = int(dimension.get("dimension_no", 0))
