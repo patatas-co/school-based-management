@@ -2716,9 +2716,33 @@ include __DIR__ . '/../includes/header.php';
           </div>
         </div>
       </div>
-      <div class="chart-card-body" style="flex:1;position:relative;padding:8px 16px 6px;box-sizing:border-box;<?= count($cycleHistory) >= 1 ? '' : 'display:flex;align-items:center;justify-content:center;' ?>">
+      <div class="chart-card-body" style="flex:1;position:relative;padding:8px 16px 6px;box-sizing:border-box;<?= count($cycleHistory) >= 1 ? 'display:flex;flex-direction:column;' : 'display:flex;align-items:center;justify-content:center;' ?>">
         <?php if (count($cycleHistory) >= 1): ?>
-          <canvas id="anTrendLineChart"></canvas>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
+            <label for="anTrendRangePreset" style="font-size:12px;font-weight:600;color:var(--n-500);">Range:</label>
+            <select id="anTrendRangePreset" style="height:30px;padding:0 24px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+              <option value="5">Last 5 years</option>
+              <option value="10">Last 10 years</option>
+              <option value="all" selected>All</option>
+              <option value="custom">Custom</option>
+            </select>
+            <label for="anTrendRangeFrom" style="font-size:12px;font-weight:600;color:var(--n-500);">From</label>
+            <select id="anTrendRangeFrom" style="height:30px;padding:0 22px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+              <?php foreach (array_values($cycleHistory) as $index => $cycle): ?>
+                <option value="<?= $index ?>"><?= e($cycle['sy_label']) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <label for="anTrendRangeTo" style="font-size:12px;font-weight:600;color:var(--n-500);">To</label>
+            <select id="anTrendRangeTo" style="height:30px;padding:0 22px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+              <?php foreach (array_values($cycleHistory) as $index => $cycle): ?>
+                <option value="<?= $index ?>" <?= $index === count($cycleHistory) - 1 ? 'selected' : '' ?>><?= e($cycle['sy_label']) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <span id="anTrendForecastNote" style="display:none;margin-left:auto;font-size:11px;color:var(--n-400);"></span>
+          </div>
+          <div style="position:relative;flex:1;min-height:0;">
+            <canvas id="anTrendLineChart"></canvas>
+          </div>
         <?php else: ?>
           <p style="color:var(--n-400);font-size:13px;text-align:center;margin:0;">Not enough cycles to show a trend.</p>
         <?php endif; ?>
@@ -3275,7 +3299,6 @@ include __DIR__ . '/../includes/header.php';
       let finalLabels = [...anCycleLabels];
       let historicalData = [...anCycleScores];
       let predictedData = new Array(anCycleScores.length).fill(null);
-      let regressionLine = new Array(anCycleScores.length).fill(null);
       let showPrediction = false;
       let predictionValue = null;
       let slope = 0, intercept = 0, rSquared = 0;
@@ -3302,17 +3325,10 @@ include __DIR__ . '/../includes/header.php';
         }
         rSquared = ssTot > 0 ? 1 - (ssRes / ssTot) : 0;
 
-        // Regression fitted line (through existing points)
-        regressionLine = [];
-        for (let i = 0; i < n; i++) {
-          regressionLine.push(parseFloat(Math.max(0, Math.min(100, slope * i + intercept)).toFixed(2)));
-        }
-
         // Predict next SY
         predictionValue = parseFloat(Math.max(0, Math.min(100, slope * n + intercept)).toFixed(2));
-        finalLabels.push('Next SY (Predicted)');
+        finalLabels.push('Next SY');
         historicalData.push(null);
-        regressionLine.push(predictionValue);
 
         // Dashed prediction connector: last actual → predicted
         predictedData = new Array(n + 1).fill(null);
@@ -3331,23 +3347,22 @@ include __DIR__ . '/../includes/header.php';
         borderColor: '#2563EB',
         backgroundColor: 'rgba(37,99,235,.08)',
         pointBackgroundColor: ptColors.concat(showPrediction ? ['transparent'] : []),
-        pointRadius: ctx => ctx.raw === null ? 0 : 6,
-        pointHoverRadius: ctx => ctx.raw === null ? 0 : 8,
+        pointRadius: ctx => ctx.raw === null ? 0 : 3,
+        pointHoverRadius: ctx => ctx.raw === null ? 0 : 5,
         borderWidth: 2.5, tension: 0, fill: 'origin',
         order: 2,
       }];
 
       if (showPrediction) {
-        // Fitted regression line — subtle, understated
         datasets.push({
           label: 'Forecast',
-          data: regressionLine,
-          borderColor: 'rgba(148,163,184,0.5)',
+          data: predictedData,
+          borderColor: '#9ca3af',
           backgroundColor: 'transparent',
-          borderDash: [4, 4],
-          pointRadius: ctx => ctx.dataIndex === regressionLine.length - 1 ? 5 : 0,
-          pointHoverRadius: ctx => ctx.dataIndex === regressionLine.length - 1 ? 7 : 0,
-          pointBackgroundColor: '#94a3b8',
+          borderDash: [5, 5],
+          pointRadius: ctx => ctx.dataIndex === ctx.chart.data.labels.length - 1 ? 4 : 0,
+          pointHoverRadius: ctx => ctx.dataIndex === ctx.chart.data.labels.length - 1 ? 5 : 0,
+          pointBackgroundColor: '#9ca3af',
           pointBorderColor: '#fff',
           pointBorderWidth: 1.5,
           borderWidth: 1.5, tension: 0, fill: false,
@@ -3355,13 +3370,29 @@ include __DIR__ . '/../includes/header.php';
         });
       }
 
-      new Chart(trendEl, {
+      const latestYearIndex = anCycleLabels.length - 1;
+      const latestYearLabel = anCycleLabels[latestYearIndex];
+      const rangePreset = document.getElementById('anTrendRangePreset');
+      const rangeFrom = document.getElementById('anTrendRangeFrom');
+      const rangeTo = document.getElementById('anTrendRangeTo');
+      const forecastNote = document.getElementById('anTrendForecastNote');
+
+      const trendChart = new Chart(trendEl, {
         type: 'line',
         data: { labels: finalLabels, datasets },
         options: {
           scales: {
-            y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
-            x: { ticks: { font: { size: 11, weight: '600' }, color: (ctx) => ctx.index === finalLabels.length - 1 && showPrediction ? '#9CA3AF' : '#6B7280' }, grid: { display: false } }
+            y: { min: 60, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
+            x: {
+              ticks: {
+                autoSkip: finalLabels.length > 12,
+                maxTicksLimit: 14,
+                maxRotation: 0,
+                font: { size: 10, weight: '600' },
+                color: (ctx) => ctx.index === finalLabels.length - 1 && finalLabels[ctx.index] === 'Next SY' ? '#9CA3AF' : '#6B7280',
+              },
+              grid: { display: false }
+            }
           },
           plugins: {
             legend: {
@@ -3371,14 +3402,14 @@ include __DIR__ . '/../includes/header.php';
             tooltip: {
               callbacks: {
                 label: ctx => {
-                  const suffix = ctx.dataIndex === finalLabels.length - 1 && showPrediction ? ' (estimated)' : '';
+                  const suffix = finalLabels[ctx.dataIndex] === 'Next SY' ? ' (estimated)' : '';
                   return ' ' + ctx.dataset.label + ': ' + ctx.raw + '%' + suffix;
                 }
               }
             }
           },
           responsive: true, maintainAspectRatio: false,
-          layout: { padding: { right: 4 } },
+          layout: { padding: { right: 30 } },
         },
         plugins: [{
           id: 'htmlLegend',
@@ -3406,6 +3437,66 @@ include __DIR__ . '/../includes/header.php';
           }
         }]
       });
+
+      function applyTrendRange(startIndex, endIndex) {
+        const lastIndex = anCycleLabels.length - 1;
+        startIndex = Math.max(0, Math.min(lastIndex, startIndex));
+        endIndex = Math.max(0, Math.min(lastIndex, endIndex));
+        if (startIndex > endIndex) [startIndex, endIndex] = [endIndex, startIndex];
+        if (startIndex === endIndex && lastIndex >= 1) {
+          if (endIndex < lastIndex) endIndex++;
+          else startIndex--;
+        }
+
+        rangeFrom.value = String(startIndex);
+        rangeTo.value = String(endIndex);
+        if (startIndex === 0 && endIndex === lastIndex) {
+          rangePreset.value = 'all';
+        } else if (endIndex === lastIndex && endIndex - startIndex + 1 === 5) {
+          rangePreset.value = '5';
+        } else if (endIndex === lastIndex && endIndex - startIndex + 1 === 10) {
+          rangePreset.value = '10';
+        } else {
+          rangePreset.value = 'custom';
+        }
+        finalLabels = anCycleLabels.slice(startIndex, endIndex + 1);
+        const rangeScores = anCycleScores.slice(startIndex, endIndex + 1);
+        const forecastVisible = showPrediction && endIndex === lastIndex;
+        if (forecastVisible) finalLabels.push('Next SY');
+
+        trendChart.data.labels = finalLabels;
+        trendChart.data.datasets[0].data = rangeScores.concat(forecastVisible ? [null] : []);
+        trendChart.data.datasets[0].pointBackgroundColor = ptColors.slice(startIndex, endIndex + 1).concat(forecastVisible ? ['transparent'] : []);
+        if (showPrediction) {
+          const connector = new Array(finalLabels.length).fill(null);
+          if (forecastVisible) {
+            connector[rangeScores.length - 1] = rangeScores[rangeScores.length - 1];
+            connector[rangeScores.length] = predictionValue;
+          }
+          trendChart.data.datasets[1].data = connector;
+        }
+
+        if (forecastNote) {
+          forecastNote.textContent = `Forecast shows only when the range ends at ${latestYearLabel}.`;
+          forecastNote.style.display = endIndex !== lastIndex ? '' : 'none';
+        }
+        trendChart.options.scales.x.ticks.autoSkip = finalLabels.length > 12;
+        trendChart.update();
+      }
+
+      rangePreset.addEventListener('change', () => {
+        const lastIndex = anCycleLabels.length - 1;
+        const preset = rangePreset.value;
+        if (preset === 'custom') return;
+        const startIndex = preset === 'all' ? 0 : Math.max(0, lastIndex - Number(preset) + 1);
+        applyTrendRange(startIndex, lastIndex);
+      });
+      const onManualRangeChange = () => {
+        applyTrendRange(Number(rangeFrom.value), Number(rangeTo.value));
+      };
+      rangeFrom.addEventListener('change', onManualRangeChange);
+      rangeTo.addEventListener('change', onManualRangeChange);
+      applyTrendRange(0, latestYearIndex);
 
       // ── Populate the prediction insight card below the chart ──
       const insightEl = document.getElementById('anPredictionInsight');

@@ -52,6 +52,158 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_s
   exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'coordinator_approve_all_improvement_plans') {
+  header('Content-Type: application/json');
+  $actorId = (int) ($_SESSION['user_id'] ?? 0);
+  try {
+    $currentSyId = (int) $db->query(
+      "SELECT sy_id FROM school_years WHERE is_current = 1 LIMIT 1"
+    )->fetchColumn();
+    if ($currentSyId <= 0) {
+      throw new RuntimeException('There is no current school year.');
+    }
+
+    $cycleQ = $db->prepare(
+      'SELECT cycle_id FROM sbm_cycles
+       WHERE school_id = ? AND sy_id = ?
+       ORDER BY created_at DESC LIMIT 1'
+    );
+    $cycleQ->execute([SCHOOL_ID, $currentSyId]);
+    $cycleId = (int) $cycleQ->fetchColumn();
+    if ($cycleId <= 0) {
+      throw new RuntimeException('There is no assessment cycle for the current school year.');
+    }
+
+    $db->beginTransaction();
+    $pendingQ = $db->prepare(
+      'SELECT plan_id, workflow_status FROM improvement_plans
+       WHERE school_id = ? AND cycle_id = ? AND workflow_status IN (?, ?)
+       FOR UPDATE'
+    );
+    $pendingQ->execute([
+      SCHOOL_ID,
+      $cycleId,
+      IP_STATUS_SUBMITTED,
+      IP_STATUS_RESUBMITTED,
+    ]);
+    $pendingPlans = $pendingQ->fetchAll(PDO::FETCH_ASSOC);
+
+    $approveQ = $db->prepare(
+      'UPDATE improvement_plans
+       SET workflow_status = ?, current_owner_role = ?, current_owner_user_id = NULL,
+           last_action_by = ?, last_action_at = NOW(), approved_by = ?, approved_at = NOW(),
+           remarks = NULL
+       WHERE plan_id = ? AND workflow_status = ?'
+    );
+    foreach ($pendingPlans as $pendingPlan) {
+      $planId = (int) $pendingPlan['plan_id'];
+      $fromStatus = (string) $pendingPlan['workflow_status'];
+      $approveQ->execute([
+        IP_STATUS_APPROVED,
+        'sbm_coordinator',
+        $actorId,
+        $actorId,
+        $planId,
+        $fromStatus,
+      ]);
+      if ($approveQ->rowCount() !== 1) {
+        throw new RuntimeException('A plan changed while approvals were being processed. No plans were approved.');
+      }
+      ipRecordHistory(
+        $db,
+        $planId,
+        $actorId,
+        'coordinator_approved',
+        $fromStatus,
+        IP_STATUS_APPROVED
+      );
+    }
+    $db->commit();
+    echo json_encode([
+      'ok' => true,
+      'count' => count($pendingPlans),
+      'msg' => count($pendingPlans) . ' improvement plan(s) approved. They are ready for separate validation.',
+    ]);
+  } catch (Throwable $e) {
+    if ($db->inTransaction()) $db->rollBack();
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'msg' => $e->getMessage()]);
+  }
+  exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'coordinator_validate_all_improvement_plans') {
+  header('Content-Type: application/json');
+  $actorId = (int) ($_SESSION['user_id'] ?? 0);
+  try {
+    $currentSyId = (int) $db->query(
+      "SELECT sy_id FROM school_years WHERE is_current = 1 LIMIT 1"
+    )->fetchColumn();
+    if ($currentSyId <= 0) {
+      throw new RuntimeException('There is no current school year.');
+    }
+
+    $cycleQ = $db->prepare(
+      'SELECT cycle_id FROM sbm_cycles
+       WHERE school_id = ? AND sy_id = ?
+       ORDER BY created_at DESC LIMIT 1'
+    );
+    $cycleQ->execute([SCHOOL_ID, $currentSyId]);
+    $cycleId = (int) $cycleQ->fetchColumn();
+    if ($cycleId <= 0) {
+      throw new RuntimeException('There is no assessment cycle for the current school year.');
+    }
+
+    $db->beginTransaction();
+    $pendingQ = $db->prepare(
+      'SELECT plan_id FROM improvement_plans
+       WHERE school_id = ? AND cycle_id = ? AND workflow_status = ?
+       FOR UPDATE'
+    );
+    $pendingQ->execute([SCHOOL_ID, $cycleId, IP_STATUS_APPROVED]);
+    $pendingPlans = $pendingQ->fetchAll(PDO::FETCH_COLUMN);
+
+    $finalizeQ = $db->prepare(
+      'UPDATE improvement_plans
+       SET workflow_status = ?, current_owner_role = NULL, current_owner_user_id = NULL,
+           last_action_by = ?, last_action_at = NOW(), validated_by = ?, validated_at = NOW()
+       WHERE plan_id = ? AND workflow_status = ?'
+    );
+    foreach ($pendingPlans as $pendingPlanId) {
+      $planId = (int) $pendingPlanId;
+      $finalizeQ->execute([
+        IP_STATUS_FINALIZED,
+        $actorId,
+        $actorId,
+        $planId,
+        IP_STATUS_APPROVED,
+      ]);
+      if ($finalizeQ->rowCount() !== 1) {
+        throw new RuntimeException('A plan changed while validations were being processed. No plans were finalized.');
+      }
+      ipRecordHistory(
+        $db,
+        $planId,
+        $actorId,
+        'coordinator_validated',
+        IP_STATUS_APPROVED,
+        IP_STATUS_FINALIZED
+      );
+    }
+    $db->commit();
+    echo json_encode([
+      'ok' => true,
+      'count' => count($pendingPlans),
+      'msg' => count($pendingPlans) . ' improvement plan(s) validated and finalized.',
+    ]);
+  } catch (Throwable $e) {
+    if ($db->inTransaction()) $db->rollBack();
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'msg' => $e->getMessage()]);
+  }
+  exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), ['coordinator_update_improvement_plan', 'coordinator_return_improvement_plan', 'coordinator_approve_improvement_plan', 'coordinator_validate_improvement_plan', 'get_improvement_plan_history'], true)) {
   header('Content-Type: application/json');
   $planId = (int) ($_POST['plan_id'] ?? 0);
@@ -2582,8 +2734,9 @@ include __DIR__ . '/../includes/header.php';
       </div>
     </div>
     <div class="chart-card" style="display:flex;flex-direction:column;height:535px;min-width:0;">
-  <div class="chart-card-head">
+  <div class="chart-card-head" style="flex-wrap:wrap;gap:10px;">
     <span class="chart-card-title">Overall Score Trend</span>
+        <div id="coTrendLegend" style="display:flex;gap:16px;align-items:center;margin-left:auto;font-size:12px;color:var(--n-600);"></div>
         <div class="chart-dl-wrap">
           <button class="chart-dl-btn" onclick="toggleChartDlMenu(event,'dlMenu_anTrendLineChart')">
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -2601,17 +2754,39 @@ include __DIR__ . '/../includes/header.php';
           </div>
         </div>
       </div>
-      <div class="chart-card-body" style="flex:1;padding:8px 16px 6px;box-sizing:border-box;overflow:hidden;">
-  <?php if (count($cycleHistory) >= 1): ?>
-    <div style="position:relative;width:100%;height:100%;">
-      <canvas id="anTrendLineChart"></canvas>
-    </div>
-  <?php else: ?>
-    <div style="height:100%;display:flex;align-items:center;justify-content:center;">
-      <p style="text-align:center;color:var(--n-400);font-size:13px;">Not enough cycles for a trend.</p>
-    </div>
-  <?php endif; ?>
-</div>
+      <div class="chart-card-body" style="flex:1;position:relative;padding:8px 16px 6px;box-sizing:border-box;<?= count($cycleHistory) >= 1 ? 'display:flex;flex-direction:column;' : 'display:flex;align-items:center;justify-content:center;' ?>">
+        <?php if (count($cycleHistory) >= 1): ?>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
+            <label for="coTrendRangePreset" style="font-size:12px;font-weight:600;color:var(--n-500);">Range:</label>
+            <select id="coTrendRangePreset" style="height:30px;padding:0 24px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+              <option value="5">Last 5 years</option>
+              <option value="10">Last 10 years</option>
+              <option value="all" selected>All</option>
+              <option value="custom">Custom</option>
+            </select>
+            <label for="coTrendRangeFrom" style="font-size:12px;font-weight:600;color:var(--n-500);">From</label>
+            <select id="coTrendRangeFrom" style="height:30px;padding:0 22px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+              <?php foreach (array_values($cycleHistory) as $index => $cycle): ?>
+                <option value="<?= $index ?>"><?= e($cycle['sy_label']) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <label for="coTrendRangeTo" style="font-size:12px;font-weight:600;color:var(--n-500);">To</label>
+            <select id="coTrendRangeTo" style="height:30px;padding:0 22px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+              <?php foreach (array_values($cycleHistory) as $index => $cycle): ?>
+                <option value="<?= $index ?>" <?= $index === count($cycleHistory) - 1 ? 'selected' : '' ?>><?= e($cycle['sy_label']) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <span id="coTrendForecastNote" style="display:none;margin-left:auto;font-size:11px;color:var(--n-400);"></span>
+          </div>
+          <div style="position:relative;flex:1;min-height:0;">
+            <canvas id="anTrendLineChart"></canvas>
+          </div>
+        <?php else: ?>
+          <div style="height:100%;display:flex;align-items:center;justify-content:center;">
+            <p style="text-align:center;color:var(--n-400);font-size:13px;">Not enough cycles for a trend.</p>
+          </div>
+        <?php endif; ?>
+      </div>
     </div>
   </div>
 
@@ -3249,33 +3424,185 @@ include __DIR__ . '/../includes/header.php';
       if (rc) rc.closest('.chart-card-body').innerHTML = '<p style="text-align:center;color:var(--n-400);padding:48px 0;font-size:13px;">No dimension data for this school year.</p>';
     }
 
-    // Overall score trend line
+    // Overall score trend line with full-history forecast
     const trendEl = document.getElementById('anTrendLineChart');
     if (anCycleScores.length >= 1 && trendEl) {
-      new Chart(trendEl, {
+      let finalLabels = [...anCycleLabels];
+      const historicalData = [...anCycleScores];
+      const showPrediction = anCycleScores.length >= 3;
+      let predictionValue = null;
+
+      if (showPrediction) {
+        const n = anCycleScores.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+        for (let i = 0; i < n; i++) {
+          sumX += i;
+          sumY += anCycleScores[i];
+          sumXY += i * anCycleScores[i];
+          sumXX += i * i;
+        }
+        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+        const intercept = (sumY - slope * sumX) / n;
+        predictionValue = parseFloat(Math.max(0, Math.min(100, slope * n + intercept)).toFixed(2));
+        finalLabels.push('Next SY');
+        historicalData.push(null);
+      }
+
+      const pointColors = anCycleScores.map(s =>
+        s >= 76 ? '#16A34A' : (s >= 51 ? '#2563EB' : (s >= 26 ? '#D97706' : '#DC2626'))
+      );
+      const datasets = [{
+        label: 'Overall Score',
+        data: historicalData,
+        borderColor: '#2563EB',
+        backgroundColor: 'rgba(37,99,235,.08)',
+        pointBackgroundColor: pointColors.concat(showPrediction ? ['transparent'] : []),
+        pointRadius: ctx => ctx.raw === null ? 0 : 3,
+        pointHoverRadius: ctx => ctx.raw === null ? 0 : 5,
+        borderWidth: 2.5, tension: 0, fill: 'origin',
+        order: 2,
+      }];
+      if (showPrediction) {
+        const forecastData = new Array(anCycleScores.length + 1).fill(null);
+        forecastData[anCycleScores.length - 1] = anCycleScores[anCycleScores.length - 1];
+        forecastData[anCycleScores.length] = predictionValue;
+        datasets.push({
+          label: 'Forecast',
+          data: forecastData,
+          borderColor: '#9ca3af',
+          backgroundColor: 'transparent',
+          borderDash: [5, 5],
+          pointRadius: ctx => ctx.dataIndex === ctx.chart.data.labels.length - 1 ? 4 : 0,
+          pointHoverRadius: ctx => ctx.dataIndex === ctx.chart.data.labels.length - 1 ? 5 : 0,
+          pointBackgroundColor: '#9ca3af',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1.5,
+          borderWidth: 1.5, tension: 0, fill: false,
+          order: 1,
+        });
+      }
+
+      const latestYearIndex = anCycleLabels.length - 1;
+      const latestYearLabel = anCycleLabels[latestYearIndex];
+      const rangePreset = document.getElementById('coTrendRangePreset');
+      const rangeFrom = document.getElementById('coTrendRangeFrom');
+      const rangeTo = document.getElementById('coTrendRangeTo');
+      const forecastNote = document.getElementById('coTrendForecastNote');
+      const trendChart = new Chart(trendEl, {
         type: 'line',
-        data: {
-          labels: anCycleLabels,
-          datasets: [{
-            label: 'Overall Score (%)',
-            data: anCycleScores,
-            borderColor: '#2563EB',
-            backgroundColor: 'rgba(37,99,235,.08)',
-            pointBackgroundColor: anCycleScores.map(s => s >= 76 ? '#16A34A' : (s >= 51 ? '#2563EB' : (s >= 26 ? '#D97706' : '#DC2626'))),
-            pointRadius: 6, pointHoverRadius: 8,
-            borderWidth: 2.5, tension: 0, fill: true,
-          }]
-        },
+        data: { labels: finalLabels, datasets },
         options: {
           scales: {
-            y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
-            x: { ticks: { font: { size: 11, weight: '600' } }, grid: { display: false } }
+            y: { min: 60, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#F3F4F6' } },
+            x: {
+              ticks: {
+                autoSkip: finalLabels.length > 12,
+                maxTicksLimit: 14,
+                maxRotation: 0,
+                font: { size: 10, weight: '600' },
+                color: ctx => ctx.index === finalLabels.length - 1 && finalLabels[ctx.index] === 'Next SY' ? '#9CA3AF' : '#6B7280',
+              },
+              grid: { display: false },
+            }
           },
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' Score: ' + ctx.raw + '%' } } },
-          responsive: true,
-          maintainAspectRatio: false,
-        }
+          plugins: {
+            legend: { display: false },
+            htmlLegend: { containerID: 'coTrendLegend' },
+            tooltip: {
+              callbacks: {
+                label: ctx => ' ' + ctx.dataset.label + ': ' + ctx.raw + '%' + (finalLabels[ctx.dataIndex] === 'Next SY' ? ' (estimated)' : ''),
+              }
+            }
+          },
+          responsive: true, maintainAspectRatio: false,
+          layout: { padding: { right: 30 } },
+        },
+        plugins: [{
+          id: 'htmlLegend',
+          afterUpdate(chart) {
+            const container = document.getElementById(chart.options.plugins.htmlLegend?.containerID);
+            if (!container) return;
+            container.innerHTML = '';
+            chart.data.datasets.forEach((dataset, index) => {
+              const item = document.createElement('div');
+              item.style.cssText = 'display:flex;align-items:center;gap:6px;cursor:pointer;';
+              const swatch = document.createElement('span');
+              swatch.style.cssText = `display:inline-block;width:24px;height:2px;background:${dataset.borderColor};border-radius:2px;`;
+              const label = document.createElement('span');
+              label.textContent = dataset.label;
+              item.appendChild(swatch);
+              item.appendChild(label);
+              item.onclick = () => {
+                const meta = chart.getDatasetMeta(index);
+                meta.hidden = !meta.hidden;
+                item.style.opacity = meta.hidden ? '0.4' : '1';
+                chart.update();
+              };
+              container.appendChild(item);
+            });
+          }
+        }]
       });
+
+      function applyCoordinatorTrendRange(startIndex, endIndex) {
+        const lastIndex = anCycleLabels.length - 1;
+        startIndex = Math.max(0, Math.min(lastIndex, startIndex));
+        endIndex = Math.max(0, Math.min(lastIndex, endIndex));
+        if (startIndex > endIndex) [startIndex, endIndex] = [endIndex, startIndex];
+        if (startIndex === endIndex && lastIndex >= 1) {
+          if (endIndex < lastIndex) endIndex++;
+          else startIndex--;
+        }
+
+        rangeFrom.value = String(startIndex);
+        rangeTo.value = String(endIndex);
+        if (startIndex === 0 && endIndex === lastIndex) {
+          rangePreset.value = 'all';
+        } else if (endIndex === lastIndex && endIndex - startIndex + 1 === 5) {
+          rangePreset.value = '5';
+        } else if (endIndex === lastIndex && endIndex - startIndex + 1 === 10) {
+          rangePreset.value = '10';
+        } else {
+          rangePreset.value = 'custom';
+        }
+
+        finalLabels = anCycleLabels.slice(startIndex, endIndex + 1);
+        const rangeScores = anCycleScores.slice(startIndex, endIndex + 1);
+        const forecastVisible = showPrediction && endIndex === lastIndex;
+        if (forecastVisible) finalLabels.push('Next SY');
+        trendChart.data.labels = finalLabels;
+        trendChart.data.datasets[0].data = rangeScores.concat(forecastVisible ? [null] : []);
+        trendChart.data.datasets[0].pointBackgroundColor = pointColors.slice(startIndex, endIndex + 1).concat(forecastVisible ? ['transparent'] : []);
+        if (showPrediction) {
+          const connector = new Array(finalLabels.length).fill(null);
+          if (forecastVisible) {
+            connector[rangeScores.length - 1] = rangeScores[rangeScores.length - 1];
+            connector[rangeScores.length] = predictionValue;
+          }
+          trendChart.data.datasets[1].data = connector;
+        }
+
+        if (forecastNote) {
+          forecastNote.textContent = `Forecast shows only when the range ends at ${latestYearLabel}.`;
+          forecastNote.style.display = endIndex !== lastIndex ? '' : 'none';
+        }
+        trendChart.options.scales.x.ticks.autoSkip = finalLabels.length > 12;
+        trendChart.update();
+      }
+
+      rangePreset.addEventListener('change', () => {
+        const lastIndex = anCycleLabels.length - 1;
+        const preset = rangePreset.value;
+        if (preset === 'custom') return;
+        const startIndex = preset === 'all' ? 0 : Math.max(0, lastIndex - Number(preset) + 1);
+        applyCoordinatorTrendRange(startIndex, lastIndex);
+      });
+      const onManualRangeChange = () => {
+        applyCoordinatorTrendRange(Number(rangeFrom.value), Number(rangeTo.value));
+      };
+      rangeFrom.addEventListener('change', onManualRangeChange);
+      rangeTo.addEventListener('change', onManualRangeChange);
+      applyCoordinatorTrendRange(0, latestYearIndex);
     }
 
     // Dimension trend lines

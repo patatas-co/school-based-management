@@ -54,21 +54,34 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     dimensions = gap.get("all_dimensions") or analysis.get("dimension_rows", [])
     weak      = analysis.get("weak_indicators", {})
     comments  = analysis.get("comment_summary", {})
-    forecast  = analysis.get("forecast", {})
     by_rating = analysis.get("by_rating", {})
-    history   = analysis.get("history", [])
     teacher_summaries = analysis.get("teacher_summaries", []) or []
     dimension_outlook = analysis.get("dimension_outlook", []) or []
     previous_suggestions = analysis.get("previous_suggestions", []) or []
+    score_comparison = analysis.get("score_comparison", {}) or {}
     dimension_lines = "\n".join(
         f"  - dimension_id={int(d.get('dimension_id', 0))}, "
         f"dimension_no={int(d.get('dimension_no', 0))}, "
         f"dimension_name={d.get('dimension_name', '')!r}, "
-        f"score={d.get('score', d.get('dimension_score', 'N/A'))}%"
+        f"current_score={d.get('score', d.get('dimension_score', 'N/A'))}%, "
+        f"precomputed_comparison={score_comparison.get('dimensions', {}).get(str(d.get('dimension_id', 0)), {})}, "
+        f"weakest_indicators={analysis.get('dimension_weakest_indicators', {}).get(str(d.get('dimension_id', 0)), [])}"
         for d in dimensions
     )
 
     weakest_dims = gap.get("weakest_dimensions", [])
+    weakest_indicators_by_dimension = analysis.get("dimension_weakest_indicators", {}) or {}
+    dimension_indicator_lines = "\n".join(
+        f"  - D{int(d.get('dimension_no', 0))} {d.get('dimension_name', '')}: "
+        + (
+            "; ".join(
+                f"{item.get('code')} ({float(item.get('rating', 0)):.1f} average)"
+                for item in weakest_indicators_by_dimension.get(str(d.get("dimension_id", 0)), [])
+            )
+            or "no rated indicators"
+        )
+        for d in dimensions
+    )
     top_topics   = comments.get("top_topics", [])
     urgent       = comments.get("has_urgent", False)
     flagged_teachers = [
@@ -106,32 +119,6 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
         if dimension_outlook else "rule_fallback"
     )
 
-    # --- Historical context block ---
-    if history and len(history) >= 2:
-        scores    = [float(h.get("overall_score", 0)) for h in history]
-        change    = round(scores[-1] - scores[-2], 1)
-        direction = "improved" if change > 0 else ("declined" if change < 0 else "stable")
-        history_line = (
-            f"Historical trend: School has {direction} by {abs(change)}% "
-            f"from last cycle ({scores[-2]}% → {scores[-1]}%). "
-            f"All recorded scores: {', '.join(str(round(s,1)) for s in scores)}"
-        )
-    elif history and len(history) == 1:
-        history_line = (
-            f"Historical trend: One prior cycle recorded "
-            f"({float(history[0].get('overall_score', 0))}%). "
-            f"Current cycle is the second assessment."
-        )
-    else:
-        history_line = "Historical trend: First assessment cycle — no prior data available."
-
-    # --- Forecast line ---
-    trend_line = (
-        f"Score forecast for next cycle: {forecast.get('forecast', 'N/A')}% "
-        f"({forecast.get('trend', 'unknown')} trajectory)"
-        if forecast.get("forecast") else ""
-    )
-
     previous_by_dimension = {
         int(item.get("dimension_no", 0)): item
         for item in previous_suggestions
@@ -141,79 +128,27 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     for dimension in dimensions:
         dimension_no = int(dimension.get("dimension_no", 0))
         previous = previous_by_dimension.get(dimension_no)
-        prefix = (
-            f"  - dimension_no={dimension_no}, "
-            f"current dimension_id={int(dimension.get('dimension_id', 0))}: "
-        )
-        if previous is None:
-            previous_lines.append(prefix + "No previous-year suggestion or outcome is available.")
-            continue
-
-        if not previous.get("has_previous_suggestion", True):
-            score_change = previous.get("score_change")
-            if score_change is None:
-                score_result = "score change is unavailable"
-            else:
-                score_change = float(score_change)
-                direction = "improved" if score_change > 0 else ("declined" if score_change < 0 else "was unchanged")
-                score_result = f"score {direction} by {abs(score_change):.1f} points"
-            previous_score = previous.get("score_at_time")
-            current_score = previous.get("current_score")
-            previous_score_label = f"{float(previous_score):.1f}%" if previous_score is not None else "unknown"
-            current_score_label = f"{float(current_score):.1f}%" if current_score is not None else "unknown"
-            previous_lines.append(
-                prefix
-                + f"No saved AI suggestion was recorded last cycle. Result: score at the time "
-                + f"{previous_score_label}, current score {current_score_label}; {score_result}; "
-                + "there was no prior suggestion to adopt into an improvement plan."
+        if previous and previous.get("suggestion_title"):
+            plan_status = (
+                "plan created" if previous.get("plan_created")
+                else "no plan recorded"
             )
-            continue
-
-        suggestion_text = str(previous.get("suggestion_text", "")).strip().rstrip(".!?")
-        score_change = previous.get("score_change")
-        if score_change is None:
-            score_result = "score change is unavailable"
+            previous_lines.append(
+                f"  - D{dimension_no}: prior suggestion "
+                f"{str(previous['suggestion_title']).strip()!r}; {plan_status}."
+            )
         else:
-            score_change = float(score_change)
-            direction = "improved" if score_change > 0 else ("declined" if score_change < 0 else "was unchanged")
-            score_result = f"score {direction} by {abs(score_change):.1f} points"
-        previous_score = previous.get("score_at_time")
-        current_score = previous.get("current_score")
-        previous_score_label = f"{float(previous_score):.1f}%" if previous_score is not None else "unknown"
-        current_score_label = f"{float(current_score):.1f}%" if current_score is not None else "unknown"
-        plan_result = "an improvement plan was created" if previous.get("plan_created") else "no improvement plan was created"
-        previous_lines.append(
-            prefix
-            + f"Last cycle you suggested: {suggestion_text}. "
-            + f"Result: score at the time {previous_score_label}, "
-            + f"current score {current_score_label}; {score_result}; {plan_result}."
-        )
+            previous_lines.append(f"  - D{dimension_no}: no saved prior suggestion.")
     previous_suggestion_lines = "\n".join(previous_lines)
     improvement_cycle_guidance = (
-        "Previous-year suggestions and outcomes:\n"
+        "Prior suggestion context (for avoiding repetition only; do not reproduce "
+        "score values or make score comparisons):\n"
         + (previous_suggestion_lines or "  (none — generate as usual)")
-        + "\nRules for this cycle: Don't repeat suggestions that were adopted and worked; "
-        "replace suggestions that were ignored or followed by a score decline; build on what improved; "
-        "reference last year's result where relevant. Keep every suggestion strictly within its own listed "
+        + "\nRules for this cycle: Avoid repeating prior actions verbatim. Keep every suggestion strictly within its own listed "
         "dimension's topic; never move curriculum advice into leadership, governance, or another dimension. "
-        "Use prior suggestions only for the matching dimension_no. "
-        "Do not put claims about last cycle, prior suggestions, score changes, or plan adoption in the new suggestion text; "
-        "put historical facts only in last_cycle_note. Never claim an indicator weakness or result not present in the supplied data. "
-        "If you continue any action from last cycle, explicitly state in last_cycle_note why it is being continued, "
-        "grounding that reason in the supplied score change and plan linkage without claiming causation. "
-        "If the prior suggestion was not adopted, replace its actions rather than repeating them, even when the score improved. "
-        "When no weak indicators are supplied for this dimension, do not invent indicator codes or gaps; propose a modest, "
-        "measurable action directly relevant to this dimension instead. "
-        "When a prior score declined, acknowledge the actual numeric dip using the supplied scores (for example, "
-        "'Score dipped from 78.8% to 78.1%') and adjust the advice to address evidence-backed gaps; do not merely "
-        "rephrase last year's suggestion. When a score improved, acknowledge the gain and build on actions supported "
-        "by the evidence. Do not claim the prior suggestion caused improvement unless an improvement plan was created. "
-        "For each dimension with any previous-cycle result, return exactly one concise sentence in last_cycle_note using this "
-        "format: 'Last cycle: [brief prior-suggestion takeaway]; Result: [score change and whether a plan was created].' "
-        "If the new suggestion deliberately continues an action, explain briefly in the prior-suggestion takeaway why it is "
-        "being continued (for example, the score improved and a plan was linked); do not imply the plan caused the change. "
-        "When a score exists but no prior suggestion was saved, clearly say no suggestion was recorded and report the "
-        "real score outcome; do not invent a suggestion or plan. Return null only when no previous-cycle suggestion or score exists."
+        "Use prior suggestions only for the matching dimension_no. Never claim an indicator weakness or result not present in the supplied data. "
+        "When no weak indicators are supplied for a dimension, do not invent indicator codes or gaps; propose modest, "
+        "measurable actions directly relevant to that dimension."
     )
 
     # --- Dimension summary ---
@@ -255,51 +190,44 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     You are an SBM improvement specialist for Philippine public schools, writing
     directly to a School Head in a helpful, conversational style.
 
-    CRITICAL STYLE RULES — follow these exactly:
-    - Write in natural prose like a knowledgeable colleague giving advice.
-    - Use **bold inline headers** to introduce each topic area (e.g. "**Strengthen curriculum delivery**").
-    - After each bold header, write 1-2 short sentences of context, then use bullet points for specific actions.
-    - Keep paragraphs SHORT — 2-3 sentences max before a new topic.
-    - Do NOT use rigid section headers like "[Assessment Overview]" or "[Priority Recommendations]".
-    - Do NOT number your recommendations (1. 2. 3.). Use bold topic headers and bullets instead.
-    - Weave indicator codes naturally into sentences (e.g. "For indicator 2.1, consider...").
-    - End with a brief closing statement summarizing the single biggest priority. Do NOT end with a question.
-    - The tone should be warm, professional, and direct — not bureaucratic or robotic.
-
-    For each assessment dimension below, write one concise suggestion. Keep the
-    title separate from the body. Body text should use natural prose and may use
-    lines beginning with "- " for actions. Do not include the title again in body.
-
-    Exact dimensions for this assessment:
-    {dimension_lines if dimension_lines else "  (none provided)"}
-
     Return ONLY valid JSON with exactly this shape:
     {{
       "suggestions": [
         {{
           "dimension_id": 123,
-          "title": "Short action-oriented title",
-          "text": "Context followed by specific actions.",
-          "last_cycle_note": "One sentence describing last year's result, or null when no previous data exists."
+          "actions": ["Action one.", "Action two.", "Action three."]
         }}
       ]
     }}
 
     Include each listed dimension exactly once. Copy its integer dimension_id
-    exactly; do not infer IDs, use array positions, or assign a suggestion to a
-    different dimension. The dimension_name is the authoritative subject for
-    that entry. Do not include dimensions that are not listed.
-    Every title and action must fit that exact dimension_name; do not borrow
-    another dimension's subject matter or indicator codes. If continuing an action
-    from the matching prior suggestion, explain in last_cycle_note why it is being
-    continued using the supplied result.
+    exactly. The application will add the dimension heading, score comparison,
+    and trend lines; do not return headings, titles, scores, deltas, trend
+    statements, overviews, or closing text.
+    Return exactly three distinct, concrete actions per dimension. Each action
+    must identify an owner or role and a frequency or deadline. When lowest-rated
+    indicators are supplied for a dimension, address them and cite at least one
+    supplied indicator code in every action. Do not invent indicator codes. Keep
+    every action within its dimension. Use relative deadlines only, such as
+    "within 30 days", "by the end of the first quarter", or "every month".
+    Never use calendar dates or years in action bullets.
+    Never calculate, derive, round, or invent any scores or score changes. Any
+    score values shown below are authoritative and must not be altered or repeated
+    in the actions.
+
+    Precomputed score comparison (read-only; application-rendered):
+    {json.dumps(score_comparison, ensure_ascii=False)}
+
+    Exact dimensions for this assessment:
+    {dimension_lines if dimension_lines else "  (none provided)"}
+
+    Lowest-rated indicators by dimension (use these for the three actions):
+    {dimension_indicator_lines if dimension_indicator_lines else "  (none available)"}
 
     School: {school_name}
     School Year: {sy_label}
     Overall SBM Score: {gap.get('average_score', 'N/A')}%
     Maturity Level: {gap.get('overall_maturity', 'N/A')}
-    {history_line}
-    {trend_line}
 
     {improvement_cycle_guidance}
 
@@ -325,17 +253,9 @@ def _build_prompt(analysis: dict, school_name: str, sy_label: str) -> str:
     {teacher_summary_lines}
     {teacher_guidance}
 
-    Keep each text field warm, professional, actionable, and concise. Reference
-    DepEd Order No. 007, s. 2024 where relevant. Return one suggestion per exact
-    listed dimension, using the JSON structure above and no surrounding prose.
-    Each suggestion MUST contain at least three distinct, concrete action bullets.
-    Every action must identify a responsible owner or role and a frequency or
-    deadline. Include a related indicator code when one is available in the supplied
-    data, and never invent a code. Do not treat a single document review as a full
-    suggestion.     unless the dimension score is already at least 87.5% (Advanced), the new
-    suggestion must not be shorter or less specific than an existing prior-year
-    suggestion; if an Advanced score justifies a shorter suggestion, state that
-    reason explicitly in last_cycle_note.
+    Keep actions warm, professional, and concise. Do not include calendar dates,
+    years, or references containing a 4-digit year in action bullets. Never
+    include numeric score calculations in actions.
     """).strip()
 
     return prompt
@@ -608,163 +528,78 @@ def _call_groq_json(prompt: str) -> str:
 
 import re
 
-CONFIDENCE_WEIGHTS = {
-    "indicator_evidence": 0.40,
-    "respondent_consistency": 0.25,
-    "historical_evidence": 0.20,
-    "data_completeness": 0.15,
-}
+CONFIDENCE_RESPONSE_TARGET_PER_INDICATOR = 5
 
 
-def _indicator_evidence_score(codes: list, by_rating: dict) -> tuple:
-    """
-    40% factor. Uses the actual rating value (1 = Not Yet Manifested,
-    2 = Emerging) for each indicator code mentioned in this recommendation
-    block. Lower ratings = stronger evidence of a real gap = higher score.
-    Returns (score_0_100, list_of_factor_strings, matched_count).
-    """
-    ratings = []
-    rating1 = by_rating.get("1", by_rating.get(1, []))
-    rating2 = by_rating.get("2", by_rating.get(2, []))
-    lookup = {ind.get("code"): ind.get("rating") for ind in (rating1 + rating2) if ind.get("code")}
-
-    for code in codes:
-        if code in lookup and lookup[code] is not None:
-            ratings.append(float(lookup[code]))
-
-    if not ratings:
-        return None, [], 0
-
-    # rating 1.0 -> 100 evidence strength, rating 2.49 (weak cutoff) -> ~0
-    scores = [max(0.0, min(100.0, (2.5 - r) / 1.5 * 100)) for r in ratings]
-    avg_score = sum(scores) / len(scores)
-    factor_note = f"{len(ratings)} indicator{'s' if len(ratings) != 1 else ''} identified as below target"
-    return avg_score, [factor_note], len(ratings)
-
-
-def _respondent_consistency_score(codes: list, respondent_consistency: dict) -> tuple:
-    """
-    25% factor. Compares School-Head-pool vs Teacher-pool average ratings
-    for the same indicator. Smaller gap = higher agreement = higher score.
-    Rating scale is 1-4, so max possible gap is 3.
-    """
-    agreements = []
-    for code in codes:
-        entry = respondent_consistency.get(code)
-        if not entry:
-            continue
-        sh = entry.get("sh_avg")
-        tc = entry.get("teacher_avg")
-        if sh is None or tc is None:
-            continue
-        gap = abs(float(sh) - float(tc))
-        agreement_pct = max(0.0, min(100.0, (1 - gap / 3.0) * 100))
-        agreements.append(agreement_pct)
-
-    if not agreements:
-        return None, []
-
-    avg_agreement = sum(agreements) / len(agreements)
-    factor_note = f"{round(avg_agreement)}% respondent agreement between School Head and Teacher ratings"
-    return avg_agreement, [factor_note]
-
-
-def _historical_evidence_score(codes: list, indicator_history: dict) -> tuple:
-    """
-    20% factor. Checks whether the same indicator(s) were also rated weak
-    (<2.5) in prior cycles. Consistent weakness across cycles = higher score.
-    Gracefully returns None (not 0) when no prior-cycle data exists at all,
-    since "no history" is not the same as "inconsistent history".
-    """
-    any_history = False
-    persistent_hits = 0
-    total_checked = 0
-
-    for code in codes:
-        hist = indicator_history.get(code, [])
-        if not hist:
-            continue
-        any_history = True
-        total_checked += 1
-        weak_count = sum(1 for r in hist if r < 2.5)
-        if weak_count / len(hist) >= 0.5:
-            persistent_hits += 1
-
-    if not any_history:
-        return None, []
-
-    consistency_pct = (persistent_hits / total_checked * 100) if total_checked else 0
-    if consistency_pct >= 50:
-        factor_note = "Consistent performance issue across prior assessment cycles"
-    else:
-        factor_note = "This issue appears newly emerging (not consistently flagged in prior cycles)"
-    return consistency_pct, [factor_note]
-
-
-def _data_completeness_score(data_completeness) -> tuple:
-    """15% factor. Straight passthrough of the rated-vs-total percentage."""
-    if data_completeness is None:
-        return None, []
-    pct = float(data_completeness)
-    factor_note = f"Assessment data is {round(pct)}% complete"
-    return pct, [factor_note]
-
-
-def compute_recommendation_confidence(block_text: str, analysis: dict) -> dict:
+def compute_recommendation_confidence(
+    block_text: str, analysis: dict, dimension_id: int | None = None
+) -> dict:
     """
     Computes a transparent, data-derived confidence score for one
     recommendation block (NOT the LLM's self-reported certainty).
-    Returns None fields / 'insufficient_data' when too little data exists
-    to calculate something meaningful, rather than inventing a number.
+    Insufficient data is determined by the cited dimension's response coverage.
     """
     codes = sorted(set(re.findall(r'\b\d{1,2}\.\d{1,2}\b', block_text)))
-    by_rating = analysis.get("by_rating", {}) or {}
-    respondent_consistency = analysis.get("respondent_consistency", {}) or {}
-    indicator_history = analysis.get("indicator_history", {}) or {}
-    data_completeness = analysis.get("data_completeness")
+    dimension_coverage = analysis.get("dimension_coverage", {}) or {}
+    dimension_evidence = analysis.get("dimension_evidence", {}) or {}
+    coverage = dimension_coverage.get(str(dimension_id), {}) if dimension_id is not None else {}
+    evidence = dimension_evidence.get(str(dimension_id), {}) if dimension_id is not None else {}
 
-    ev_score, ev_factors, matched_count = _indicator_evidence_score(codes, by_rating)
-    rc_score, rc_factors = _respondent_consistency_score(codes, respondent_consistency)
-    he_score, he_factors = _historical_evidence_score(codes, indicator_history)
-    dc_score, dc_factors = _data_completeness_score(data_completeness)
-
-    # Not enough grounding to say anything meaningful — most commonly when
-    # the recommendation block didn't reference specific indicator codes at all.
-    if ev_score is None and matched_count == 0:
+    if not isinstance(coverage, dict) or not coverage.get("sufficient", False):
+        total_indicators = int(coverage.get("total_indicators", 0)) if isinstance(coverage, dict) else 0
+        answered_indicators = int(coverage.get("answered_indicators", 0)) if isinstance(coverage, dict) else 0
+        minimum_answered = (total_indicators + 1) // 2
+        reason = (
+            f"Response coverage is too low: {answered_indicators} of {total_indicators} active "
+            f"indicators have recorded responses; at least {minimum_answered} are required."
+            if total_indicators > 0 and answered_indicators < minimum_answered
+            else "A dimension score is unavailable, so assessment coverage cannot be confirmed."
+        )
         return {
             "insufficient_data": True,
-            "reason": "Not enough completed assessment data is available to calculate a reliable recommendation confidence score.",
+            "reason": reason,
             "indicator_codes": codes,
         }
 
-    weighted_total = 0.0
-    weight_used = 0.0
-    factors = []
-
-    for score, factor_list, weight_key in [
-        (ev_score, ev_factors, "indicator_evidence"),
-        (rc_score, rc_factors, "respondent_consistency"),
-        (he_score, he_factors, "historical_evidence"),
-        (dc_score, dc_factors, "data_completeness"),
-    ]:
-        if score is not None:
-            w = CONFIDENCE_WEIGHTS[weight_key]
-            weighted_total += score * w
-            weight_used += w
-            factors.extend(factor_list)
-
-    if weight_used == 0:
+    rated_indicator_count = int(evidence.get("rated_indicator_count", 0) or 0)
+    total_response_count = int(evidence.get("response_count", 0) or 0)
+    if rated_indicator_count == 0 or total_response_count == 0:
         return {
-            "insufficient_data": True,
-            "reason": "Not enough completed assessment data is available to calculate a reliable recommendation confidence score.",
+            "insufficient_data": False,
+            "confidence_level": "General Recommendation",
+            "factors": [],
             "indicator_codes": codes,
         }
 
-    # Re-normalize against only the factors we actually had data for, so a
-    # missing factor doesn't silently drag the score down — it's excluded,
-    # not scored as zero.
-    final_pct = round(weighted_total / weight_used, 1)
-    final_pct = max(0.0, min(100.0, final_pct))
+    total_indicators = int(coverage.get("total_indicators", 0) or 0)
+    answered_indicators = int(coverage.get("answered_indicators", 0) or 0)
+    dimension_coverage_pct = (
+        min(100.0, answered_indicators / total_indicators * 100)
+        if total_indicators > 0 else 0.0
+    )
+    rated_indicator_share_pct = min(
+        100.0,
+        rated_indicator_count / total_indicators * 100,
+    ) if total_indicators > 0 else 0.0
+    average_responses_per_indicator = total_response_count / rated_indicator_count
+    response_depth_pct = min(
+        100.0,
+        average_responses_per_indicator
+        / CONFIDENCE_RESPONSE_TARGET_PER_INDICATOR * 100,
+    )
+    final_pct = round(
+        (dimension_coverage_pct + rated_indicator_share_pct + response_depth_pct) / 3,
+        1,
+    )
+    factors = [
+        f"Dimension response coverage: {dimension_coverage_pct:.1f}% "
+        f"({answered_indicators} of {total_indicators} active indicators)",
+        f"Dimension indicators with responses: {rated_indicator_count} of {total_indicators} "
+        f"({rated_indicator_share_pct:.1f}%)",
+        f"Responses behind dimension indicators: {total_response_count} total "
+        f"({average_responses_per_indicator:.1f} per rated indicator; "
+        f"response-depth score capped at {CONFIDENCE_RESPONSE_TARGET_PER_INDICATOR} per indicator)",
+    ]
 
     if final_pct >= 80:
         level = "High Confidence"
@@ -973,7 +808,10 @@ def generate_recommendations(
     try:
         text = _call_backend(prompt, backend, json_mode=True)
         suggestions = _parse_dimension_suggestions(
-            text, dimensions, analysis.get("previous_suggestions", [])
+            text,
+            dimensions,
+            analysis.get("previous_suggestions", []),
+            analysis.get("dimension_weakest_indicators", {}),
         )
         model_name = _backend_model_name(backend)
         for suggestion in suggestions:
@@ -1017,10 +855,15 @@ def generate_recommendations(
                 retry_text,
                 [dimension],
                 analysis.get("previous_suggestions", []),
+                analysis.get("dimension_weakest_indicators", {}),
             )[0]
             retry_count = _count_suggestion_actions(retry_result["text"])
             original_count = int(suggestion.get("action_count", 0))
-            if retry_count >= 3:
+            if (
+                retry_count == 3
+                and retry_result.get("actions_supported", True)
+                and not retry_result.get("calendar_year_violation", False)
+            ):
                 retry_result["action_count"] = retry_count
                 retry_result["needs_review"] = False
                 retry_result["review_reason"] = None
@@ -1029,16 +872,24 @@ def generate_recommendations(
                 )
                 suggestion.update(retry_result)
             else:
-                if retry_count > original_count:
+                if (
+                    abs(retry_count - 3) < abs(original_count - 3)
+                    or retry_result.get("actions_supported", True)
+                    and not suggestion.get("actions_supported", True)
+                    or not retry_result.get("calendar_year_violation", False)
+                    and suggestion.get("calendar_year_violation", False)
+                ):
                     suggestion.update(retry_result)
-                suggestion["action_count"] = max(original_count, retry_count)
+                suggestion["action_count"] = int(suggestion.get("action_count", original_count))
                 suggestion["needs_review"] = True
                 suggestion.setdefault(
                     "model_version",
                     _backend_model_name(_privacy_safe_backend(configured_backend)),
                 )
                 suggestion["review_reason"] = (
-                    f"Only {suggestion['action_count']} concrete action bullets were returned after one retry."
+                    "Action bullets must use relative deadlines and must not contain calendar dates or 4-digit years."
+                    if suggestion.get("calendar_year_violation")
+                    else f"Exactly three action bullets are required; {suggestion['action_count']} remained after one retry."
                 )
         except Exception as retry_error:
             import logging
@@ -1053,14 +904,43 @@ def generate_recommendations(
                 _backend_model_name(_privacy_safe_backend(configured_backend)),
             )
             suggestion["review_reason"] = (
-                f"Fewer than three action bullets were returned; the "
+                f"Exactly three action bullets are required; the "
                 f"{configured_backend} retry failed: {retry_error}"
             )
+
+    for suggestion in suggestions:
+        if (
+            int(suggestion.get("action_count", 0)) == 3
+            and suggestion.get("actions_supported", True)
+            and not suggestion.get("calendar_year_violation", False)
+        ):
+            continue
+        dimension = dimensions_by_id[int(suggestion["dimension_id"])]
+        fallback = _rule_based_dimension_suggestions(analysis, [dimension])[0]
+        had_calendar_year = bool(suggestion.get("calendar_year_violation"))
+        suggestion["text"] = fallback["text"]
+        suggestion["action_count"] = 3
+        suggestion["calendar_year_violation"] = False
+        suggestion["needs_review"] = True
+        suggestion["review_reason"] = (
+            "The model actions contained a calendar date or 4-digit year; relative-deadline standard actions are shown for review."
+            if had_calendar_year
+            else "The model actions did not meet the three-action or indicator-citation requirement; standard actions are shown for review."
+        )
 
     from suggestion_ranker import rank_suggestions
 
     suggestions, suggestion_ranking = rank_suggestions(suggestions, dimensions)
-    text = _format_dimension_suggestions(suggestions)
+    score_comparison = analysis.get("score_comparison", {}) or {}
+    comparisons = score_comparison.get("dimensions", {}) or {}
+    suggestions.sort(key=lambda item: (
+        comparisons.get(str(item["dimension_id"]), {}).get("change") is None,
+        comparisons.get(str(item["dimension_id"]), {}).get("change")
+        if comparisons.get(str(item["dimension_id"]), {}).get("change") is not None
+        else float("inf"),
+        int(item["dimension_no"]),
+    ))
+    text = _format_dimension_suggestions(suggestions, score_comparison)
 
     blocks = []
     for suggestion in suggestions:
@@ -1084,7 +964,9 @@ def generate_recommendations(
                 {"approval_score": suggestion["approval_score"]}
                 if "approval_score" in suggestion else {}
             ),
-            **compute_recommendation_confidence(block_text, analysis),
+            **compute_recommendation_confidence(
+                block_text, analysis, int(suggestion["dimension_id"])
+            ),
         })
 
     model_source = (
@@ -1119,6 +1001,7 @@ def _parse_dimension_suggestions(
     raw_text: str,
     dimensions: list[dict],
     previous_suggestions: list[dict] | None = None,
+    weakest_indicators_by_dimension: dict | None = None,
 ) -> list[dict]:
     cleaned = raw_text.strip()
     if cleaned.startswith("```"):
@@ -1151,10 +1034,22 @@ def _parse_dimension_suggestions(
             raise ValueError(f"Recommendation returned unknown dimension_id {dimension_id}.")
         if dimension_id in seen_ids:
             raise ValueError(f"Recommendation returned duplicate dimension_id {dimension_id}.")
-        title = str(suggestion.get("title", "")).strip()
-        body = str(suggestion.get("text", "")).strip()
-        if not title or not body:
-            raise ValueError(f"Recommendation for dimension_id {dimension_id} is missing title or text.")
+        supplied_title = str(suggestion.get("title", "")).strip()
+        title = (
+            f"D{int(dimension.get('dimension_no', 0))} "
+            f"{str(dimension.get('dimension_name', '')).strip()}"
+        )
+        actions = suggestion.get("actions")
+        if isinstance(actions, list):
+            body = "\n".join(
+                "- " + re.sub(r"^\s*[-*]\s*", "", str(action)).strip()
+                for action in actions
+                if str(action).strip()
+            )
+        else:
+            body = str(suggestion.get("text", "")).strip()
+            if not supplied_title:
+                raise ValueError(f"Recommendation for dimension_id {dimension_id} is missing actions.")
         body_lines = body.splitlines()
         first_content_line = next(
             (index for index, line in enumerate(body_lines) if line.strip()),
@@ -1168,7 +1063,7 @@ def _parse_dimension_suggestions(
             if (
                 repeated_title
                 and re.sub(r"\s+", " ", repeated_title.group(1)).strip().casefold()
-                == re.sub(r"\s+", " ", title).strip().casefold()
+                == re.sub(r"\s+", " ", supplied_title).strip().casefold()
             ):
                 body_lines[first_content_line] = repeated_title.group(2)
                 body = "\n".join(body_lines).strip()
@@ -1177,6 +1072,37 @@ def _parse_dimension_suggestions(
                         f"Recommendation for dimension_id {dimension_id} contains only a repeated title."
                     )
         action_count = _count_suggestion_actions(body)
+        weakest_indicators = (weakest_indicators_by_dimension or {}).get(
+            str(dimension_id), []
+        )
+        required_codes = [
+            str(indicator.get("code", "")).strip()
+            for indicator in weakest_indicators
+            if str(indicator.get("code", "")).strip()
+        ]
+        actions = [
+            line.strip()[2:].strip()
+            for line in body.splitlines()
+            if re.match(r"^\s*[-*]\s+\S", line)
+        ]
+        calendar_year_violation = any(
+            re.search(r"\b\d{4}\b", action)
+            for action in actions
+        )
+        actions_supported = not required_codes or (
+            action_count == 3
+            and len(actions) == 3
+            and all(
+                any(
+                    re.search(
+                        rf"(?<![\w.]){re.escape(code)}(?![\w.])",
+                        action,
+                    )
+                    for code in required_codes
+                )
+                for action in actions
+            )
+        )
         last_cycle_note = suggestion.get("last_cycle_note")
         dimension_no = int(dimension.get("dimension_no", 0))
         previous = previous_by_dimension.get(dimension_no)
@@ -1194,11 +1120,21 @@ def _parse_dimension_suggestions(
             "text": body,
             "last_cycle_note": last_cycle_note.strip() if isinstance(last_cycle_note, str) else None,
             "action_count": action_count,
-            "needs_review": action_count < 3,
-            "review_reason": (
-                f"Only {action_count} concrete action bullets were returned."
-                if action_count < 3 else None
+            "calendar_year_violation": calendar_year_violation,
+            "needs_review": (
+                action_count != 3
+                or not actions_supported
+                or calendar_year_violation
             ),
+            "review_reason": (
+                "Action bullets must use relative deadlines and must not contain calendar dates or 4-digit years."
+                if calendar_year_violation
+                else f"Exactly three concrete action bullets are required; {action_count} were returned."
+                if action_count != 3
+                else "Each action must cite a supplied lowest-rated indicator."
+                if not actions_supported else None
+            ),
+            "actions_supported": actions_supported,
             "model_version": "llama3.2:3b",
         })
     missing = set(dimensions_by_id) - seen_ids
@@ -1207,10 +1143,34 @@ def _parse_dimension_suggestions(
     return validated
 
 
-def _format_dimension_suggestions(suggestions: list[dict]) -> str:
-    sections = ["Here are some targeted suggestions based on your school's current SBM data:"]
+def _format_dimension_suggestions(
+    suggestions: list[dict], score_comparison: dict | None = None
+) -> str:
+    score_comparison = score_comparison or {}
+    sections = [str(score_comparison.get("overview_text") or "No prior-year data available.")]
+    comparisons = score_comparison.get("dimensions", {}) or {}
+    weakest_by_dimension = score_comparison.get("weakest_indicators", {}) or {}
     for suggestion in suggestions:
-        sections.append(f"**{suggestion['title']}**\n{suggestion['text']}")
+        comparison = comparisons.get(str(suggestion["dimension_id"]), {}) or {}
+        current_score = comparison.get("current_score")
+        current_label = f"{float(current_score):.1f}%" if current_score is not None else "N/A"
+        change = comparison.get("change")
+        change_label = (
+            f"{'+' if float(change) > 0 else ('−' if float(change) < 0 else '')}"
+            f"{abs(float(change)):.1f} pts vs last year"
+            if change is not None else "No prior-year data available"
+        )
+        weakest = weakest_by_dimension.get(str(suggestion["dimension_id"]), [])
+        weakest_label = ", ".join(
+            f"{indicator['code']} (avg {float(indicator['rating']):.1f})"
+            for indicator in weakest
+        ) or "No rated indicators available"
+        sections.append(
+            f"**{suggestion['title']}**\n"
+            f"{current_label} · {change_label}\n"
+            f"Weakest indicators: {weakest_label}\n"
+            f"{suggestion['text']}"
+        )
     return "\n\n".join(sections)
 
 
@@ -1256,6 +1216,7 @@ def _format_last_cycle_note(dimension_no: int, previous: dict) -> str:
 
 
 def _rule_based_dimension_suggestions(analysis: dict, dimensions: list[dict]) -> list[dict]:
+    weakest_by_dimension = analysis.get("dimension_weakest_indicators", {}) or {}
     previous_by_dimension = {
         int(item["dimension_no"]): item
         for item in analysis.get("previous_suggestions", [])
@@ -1266,20 +1227,25 @@ def _rule_based_dimension_suggestions(analysis: dict, dimensions: list[dict]) ->
         dimension_id = int(dimension.get("dimension_id", 0))
         dimension_no = int(dimension.get("dimension_no", 0))
         name = str(dimension.get("dimension_name", f"Dimension {dimension_id}"))
-        score = dimension.get("score", dimension.get("dimension_score", "N/A"))
         prior = previous_by_dimension.get(dimension_no)
-        text = (
-            f"Review the current evidence and score for {name}, then select a focused, "
-            "measurable action with a responsible person and review date."
-        )
-        if prior:
-            text += " Build on the previous cycle's work without repeating actions that already succeeded."
+        indicators = weakest_by_dimension.get(str(dimension_id), [])
+        codes = [
+            str(indicator.get("code", "")).strip()
+            for indicator in indicators
+            if str(indicator.get("code", "")).strip()
+        ]
+        reference = lambda index: f" (indicator {codes[index % len(codes)]})" if codes else ""
+        text = "\n".join([
+            f"- The Dimension Coordinator will review {name} evidence{reference(0)} and set one priority action by the end of this month.",
+            f"- The School Head will assign an owner and measurable target{reference(1)} before the next monthly meeting.",
+            f"- The assigned team will record progress{reference(2)} and report to the School Head at the end of each quarter.",
+        ])
         suggestions.append({
             "dimension_id": dimension_id,
             "dimension_no": dimension_no,
             "dimension_name": name,
-            "title": f"Strengthen {name}",
-            "text": f"{text} Current dimension score: {score}%.",
+            "title": f"D{dimension_no} {name}",
+            "text": text,
             "last_cycle_note": (
                 "Last cycle: the prior suggestion was "
                 + ("adopted" if prior.get("plan_created") else "not adopted")

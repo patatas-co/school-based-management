@@ -103,7 +103,7 @@ function sfSuggestionActionSimilarity(array $baseline, array $current): float
     return $matches / max(count($oldActions), count($newActions));
 }
 
-function sfSuggestionDataStatus(PDO $db, int $schoolId, int $cycleId, int $dimensionId): string
+function sfGetDimensionCoverage(PDO $db, int $schoolId, int $cycleId, int $dimensionId): array
 {
     $stmt = $db->prepare("
         SELECT
@@ -144,14 +144,23 @@ function sfSuggestionDataStatus(PDO $db, int $schoolId, int $cycleId, int $dimen
         $dimensionId,
     ]);
     $coverage = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$coverage || $coverage['dimension_score'] === null) {
-        return 'insufficient';
-    }
-
-    $totalIndicators = (int) $coverage['total_indicators'];
-    $answeredIndicators = (int) $coverage['answered_indicators'];
+    $totalIndicators = (int) ($coverage['total_indicators'] ?? 0);
+    $answeredIndicators = (int) ($coverage['answered_indicators'] ?? 0);
     $minimumAnswered = (int) ceil($totalIndicators / 2);
-    return $totalIndicators > 0 && $answeredIndicators >= $minimumAnswered
+    return [
+        'dimension_score_available' => (bool) ($coverage && $coverage['dimension_score'] !== null),
+        'total_indicators' => $totalIndicators,
+        'answered_indicators' => $answeredIndicators,
+        'sufficient' => (bool) ($coverage
+            && $coverage['dimension_score'] !== null
+            && $totalIndicators > 0
+            && $answeredIndicators >= $minimumAnswered),
+    ];
+}
+
+function sfSuggestionDataStatus(PDO $db, int $schoolId, int $cycleId, int $dimensionId): string
+{
+    return sfGetDimensionCoverage($db, $schoolId, $cycleId, $dimensionId)['sufficient']
         ? 'sufficient'
         : 'insufficient';
 }

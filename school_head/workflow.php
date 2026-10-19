@@ -651,21 +651,6 @@ $currentStageIdx = array_search($currentCycleStatus, $SH_STAGE_ORDER);
 
 </div>
 
-<!-- QUICK ACTIONS (School Head only) -->
-<?php if ($_SESSION['role'] === 'school_head'): ?>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;">
-    <a href="self_assessment.php" class="btn btn-secondary" style="flex:1;justify-content:center;min-width:140px;">
-      <?= svgIcon('check-circle') ?> Self-Assessment
-    </a>
-    <a href="assessment.php" class="btn btn-secondary" style="flex:1;justify-content:center;min-width:140px;">
-      <?= svgIcon('check') ?> Assessments
-    </a>
-    <a href="reports.php" class="btn btn-secondary" style="flex:1;justify-content:center;min-width:140px;">
-      <?= svgIcon('file-text') ?> Performance Reports
-    </a>
-  </div>
-<?php endif; ?>
-
 <!-- ── CONFIGURE CYCLE SCHEDULE MODAL ───────────────────── -->
 <div class="overlay" id="mConfigure">
   <div class="modal" style="max-width:540px;">

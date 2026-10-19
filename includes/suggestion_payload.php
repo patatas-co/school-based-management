@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/ai_recommendation_helpers.php';
+require_once __DIR__ . '/suggestion_feedback.php';
 
 /**
  * Build the recommendation request used by the School Head page and historical CLI.
@@ -115,7 +116,14 @@ function buildAiSuggestionPayload(
     }
 
     $dimensionRows = [];
+    $dimensionCoverage = [];
     foreach ($dimensionScores as $dimension) {
+        $dimensionCoverage[(string) $dimension['dimension_id']] = sfGetDimensionCoverage(
+            $db,
+            $schoolId,
+            $cycleId,
+            $dimension['dimension_id']
+        );
         $dimensionRows[] = [
             'dimension_id' => $dimension['dimension_id'],
             'dimension_no' => $dimension['dimension_no'],
@@ -141,10 +149,8 @@ function buildAiSuggestionPayload(
         LIMIT 1
     ");
     $previousYearLabel = false;
-    if ($historyTableAvailable) {
-        $previousYearStmt->execute([$currentYearOrder - 1]);
-        $previousYearLabel = $previousYearStmt->fetchColumn();
-    }
+    $previousYearStmt->execute([$currentYearOrder - 1]);
+    $previousYearLabel = $previousYearStmt->fetchColumn();
     if ($previousYearLabel !== false) {
         $previousSuggestionsStmt = $db->prepare("
             SELECT h.dimension_id AS previous_dimension_id, hd.dimension_no,
@@ -282,47 +288,74 @@ function buildAiSuggestionPayload(
         ];
     }
 
-    if ($historicalCutoffYear === null) {
-        $weakStmt = $db->prepare("
-            SELECT i.indicator_code, i.indicator_text, ROUND(AVG(all_r.rating), 2) AS rating
-            FROM (
-                SELECT cycle_id, indicator_id, rating FROM sbm_responses
-                UNION ALL
-                SELECT cycle_id, indicator_id, rating FROM teacher_responses
-            ) AS all_r
-            JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
-            JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
-            WHERE c.sy_id = ? AND c.school_id = ?
-            GROUP BY i.indicator_id
-            HAVING rating < 2.5
-            ORDER BY rating ASC
-        ");
-        $weakStmt->execute([$syId, $schoolId]);
-    } else {
-        $weakStmt = $db->prepare("
-            SELECT i.indicator_code, i.indicator_text, ROUND(AVG(all_r.rating), 2) AS rating
-            FROM (
-                SELECT cycle_id, indicator_id, rating FROM sbm_responses
-                UNION ALL
-                SELECT cycle_id, indicator_id, rating FROM teacher_responses
-            ) AS all_r
-            JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
-            JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
-            WHERE all_r.cycle_id = ? AND c.school_id = ?
-            GROUP BY i.indicator_id
-            HAVING rating < 2.5
-            ORDER BY rating ASC, i.indicator_code
-        ");
-        $weakStmt->execute([$cycleId, $schoolId]);
-    }
+    $ratingsStmt = $db->prepare("
+        SELECT d.dimension_id, i.indicator_code, i.indicator_text,
+               ROUND(AVG(all_r.rating), 2) AS rating,
+               COUNT(all_r.rating) AS response_count
+        FROM (
+            SELECT cycle_id, indicator_id, rating FROM sbm_responses
+            UNION ALL
+            SELECT cycle_id, indicator_id, rating
+            FROM teacher_responses
+            WHERE status = 'submitted'
+        ) AS all_r
+        JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
+        JOIN sbm_dimensions d
+          ON d.dimension_id = i.dimension_id
+         AND d.form_version_id = i.form_version_id
+        JOIN sbm_dimension_scores ds
+          ON ds.cycle_id = all_r.cycle_id
+         AND ds.dimension_id = d.dimension_id
+         AND ds.school_id = ?
+        WHERE all_r.cycle_id = ? AND i.is_active = 1 AND all_r.rating IS NOT NULL
+        GROUP BY d.dimension_id, i.indicator_id, i.indicator_code, i.indicator_text
+        ORDER BY i.indicator_code
+    ");
+    $ratingsStmt->execute([$schoolId, $cycleId]);
     $byRating = ['1' => [], '2' => []];
-    foreach ($weakStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $ratingLevel = max(1, min(2, (int) floor((float) $row['rating'])));
+    $indicatorRatings = [];
+    $indicatorResponseCounts = [];
+    $dimensionEvidence = [];
+    $dimensionIndicators = [];
+    foreach ($ratingsStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $rating = (float) $row['rating'];
+        $dimensionId = (int) $row['dimension_id'];
+        $indicatorCode = (string) $row['indicator_code'];
+        $indicatorRatings[$row['indicator_code']] = $rating;
+        $indicatorResponseCounts[$row['indicator_code']] = (int) $row['response_count'];
+        $dimensionIndicators[(string) $dimensionId][] = [
+            'code' => $indicatorCode,
+            'text' => (string) $row['indicator_text'],
+            'rating' => $rating,
+            'response_count' => (int) $row['response_count'],
+        ];
+        if (!isset($dimensionEvidence[(string) $dimensionId])) {
+            $dimensionEvidence[(string) $dimensionId] = [
+                'rated_indicator_count' => 0,
+                'response_count' => 0,
+            ];
+        }
+        $dimensionEvidence[(string) $dimensionId]['rated_indicator_count']++;
+        $dimensionEvidence[(string) $dimensionId]['response_count'] += (int) $row['response_count'];
+        if ($rating >= 2.5) {
+            continue;
+        }
+        $ratingLevel = max(1, min(2, (int) floor($rating)));
         $byRating[(string) $ratingLevel][] = [
             'code' => $row['indicator_code'],
             'text' => $row['indicator_text'],
-            'rating' => (float) $row['rating'],
+            'rating' => $rating,
         ];
+    }
+    $weakestIndicatorsByDimension = [];
+    foreach ($dimensionIndicators as $dimensionId => $indicators) {
+        usort($indicators, static function (array $left, array $right): int {
+            $ratingOrder = $left['rating'] <=> $right['rating'];
+            return $ratingOrder !== 0
+                ? $ratingOrder
+                : strcmp($left['code'], $right['code']);
+        });
+        $weakestIndicatorsByDimension[$dimensionId] = array_slice($indicators, 0, 3);
     }
 
     if ($historicalCutoffYear === null) {
@@ -488,11 +521,10 @@ function buildAiSuggestionPayload(
         $scoreStmt = $db->prepare("
             SELECT overall_score, maturity_level
             FROM sbm_cycles
-            WHERE school_id = ? AND sy_id = ? AND status IN ('validated','finalized','completed')
-            ORDER BY created_at DESC
+            WHERE cycle_id = ? AND school_id = ? AND sy_id = ?
             LIMIT 1
         ");
-        $scoreStmt->execute([$schoolId, $syId]);
+        $scoreStmt->execute([$cycleId, $schoolId, $syId]);
     } else {
         $scoreStmt = $db->prepare("
             SELECT overall_score, maturity_level
@@ -503,6 +535,153 @@ function buildAiSuggestionPayload(
         $scoreStmt->execute([$cycleId, $schoolId, $syId]);
     }
     $score = $scoreStmt->fetch(PDO::FETCH_ASSOC);
+
+    $currentOverallScore = $score && is_numeric($score['overall_score'])
+        ? round((float) $score['overall_score'], 1) : null;
+    $previousOverallScore = null;
+    $previousDimensionScores = [];
+    if ($previousYearLabel !== false) {
+        $previousCycleStmt = $db->prepare("
+            SELECT c.cycle_id, c.overall_score
+            FROM sbm_cycles c
+            JOIN school_years sy ON sy.sy_id = c.sy_id
+            WHERE c.school_id = ?
+              AND sy.label = ?
+              AND c.status IN ('validated', 'finalized', 'completed')
+            ORDER BY COALESCE(c.finalized_at, c.created_at) DESC, c.cycle_id DESC
+            LIMIT 1
+        ");
+        $previousCycleStmt->execute([$schoolId, $previousYearLabel]);
+        $previousCycle = $previousCycleStmt->fetch(PDO::FETCH_ASSOC);
+        if ($previousCycle) {
+            $previousOverallScore = is_numeric($previousCycle['overall_score'])
+                ? round((float) $previousCycle['overall_score'], 1) : null;
+            $previousDimensionStmt = $db->prepare("
+                SELECT d.dimension_no, ROUND(ds.percentage, 1) AS score
+                FROM sbm_dimension_scores ds
+                JOIN sbm_dimensions d ON d.dimension_id = ds.dimension_id
+                WHERE ds.cycle_id = ? AND ds.school_id = ?
+            ");
+            $previousDimensionStmt->execute([(int) $previousCycle['cycle_id'], $schoolId]);
+            foreach ($previousDimensionStmt->fetchAll(PDO::FETCH_ASSOC) as $previousDimension) {
+                if (is_numeric($previousDimension['score'])) {
+                    $previousDimensionScores[(int) $previousDimension['dimension_no']] =
+                        (float) $previousDimension['score'];
+                }
+            }
+        }
+    }
+
+    $dimensionComparisons = [];
+    foreach ($dimensionScores as &$dimension) {
+        $dimensionNo = (int) $dimension['dimension_no'];
+        $previousScore = $previousDimensionScores[$dimensionNo] ?? null;
+        $currentDimensionScore = (float) $dimension['score'];
+        $change = $previousScore !== null
+            ? round($currentDimensionScore - $previousScore, 1) : null;
+        if ($change === null) {
+            $changeText = 'No prior-year data available.';
+            $trendText = 'No prior-year data available.';
+        } elseif ($change > 0) {
+            $changeText = '+' . number_format($change, 1) . ' percentage points';
+            $trendText = 'Improved by ' . number_format($change, 1) . ' percentage points from the previous school year.';
+        } elseif ($change < 0) {
+            $changeText = '−' . number_format(abs($change), 1) . ' percentage points';
+            $trendText = 'Declined by ' . number_format(abs($change), 1) . ' percentage points from the previous school year.';
+        } else {
+            $changeText = '0.0 percentage points';
+            $trendText = 'Unchanged from the previous school year.';
+        }
+        $dimension['previous_score'] = $previousScore;
+        $dimension['score_change'] = $change;
+        $dimensionComparisons[(string) $dimension['dimension_id']] = [
+            'current_score' => $currentDimensionScore,
+            'previous_score' => $previousScore,
+            'change' => $change,
+            'change_text' => $changeText,
+            'trend_text' => $trendText,
+        ];
+    }
+    unset($dimension);
+    $weakestDimensionScores = $dimensionScores;
+    usort($weakestDimensionScores, static function (array $left, array $right): int {
+        $scoreOrder = (float) $left['score'] <=> (float) $right['score'];
+        return $scoreOrder !== 0
+            ? $scoreOrder
+            : (int) $left['dimension_no'] <=> (int) $right['dimension_no'];
+    });
+    $weakestDimensionScores = array_slice($weakestDimensionScores, 0, 3);
+    usort($dimensionScores, static function (array $left, array $right) use ($dimensionComparisons): int {
+        $leftChange = $dimensionComparisons[(string) $left['dimension_id']]['change'];
+        $rightChange = $dimensionComparisons[(string) $right['dimension_id']]['change'];
+        if ($leftChange === null && $rightChange !== null) return 1;
+        if ($rightChange === null && $leftChange !== null) return -1;
+        if ($leftChange !== $rightChange) return ($leftChange ?? 0) <=> ($rightChange ?? 0);
+        return (int) $left['dimension_no'] <=> (int) $right['dimension_no'];
+    });
+
+    $comparableDimensions = array_values(array_filter(
+        $dimensionScores,
+        static fn(array $dimension): bool =>
+            $dimensionComparisons[(string) $dimension['dimension_id']]['change'] !== null
+    ));
+    $hasPreviousYear = $previousOverallScore !== null || $previousDimensionScores !== [];
+    $overallChange = (
+        $currentOverallScore !== null && $previousOverallScore !== null
+    ) ? round($currentOverallScore - $previousOverallScore, 1) : null;
+    $overviewText = 'No prior-year data available.';
+    if ($hasPreviousYear) {
+        $currentOverallLabel = $currentOverallScore !== null
+            ? number_format($currentOverallScore, 1) . '%' : 'unavailable';
+        $previousOverallLabel = $previousOverallScore !== null
+            ? number_format($previousOverallScore, 1) . '%' : 'unavailable';
+        $overallChangeLabel = $overallChange === null
+            ? 'change unavailable'
+            : (($overallChange > 0 ? '+' : ($overallChange < 0 ? '−' : ''))
+                . number_format(abs($overallChange), 1) . ' percentage points');
+        $dimensionSummary = 'Dimension comparisons are not available for the previous school year.';
+        if ($comparableDimensions) {
+            $declines = array_values(array_filter(
+                $comparableDimensions,
+                static fn(array $dimension): bool =>
+                    $dimensionComparisons[(string) $dimension['dimension_id']]['change'] < 0
+            ));
+            $improvements = array_values(array_filter(
+                $comparableDimensions,
+                static fn(array $dimension): bool =>
+                    $dimensionComparisons[(string) $dimension['dimension_id']]['change'] > 0
+            ));
+            $biggestDecline = $declines[0] ?? null;
+            $biggestImprovement = $improvements ? end($improvements) : null;
+            $declineSummary = $biggestDecline
+                ? 'Biggest decline: D' . (int) $biggestDecline['dimension_no'] . ' '
+                    . $biggestDecline['dimension_name'] . ' (' .
+                    $dimensionComparisons[(string) $biggestDecline['dimension_id']]['change_text'] . ').'
+                : 'No dimension declines were recorded.';
+            $improvementSummary = $biggestImprovement
+                ? 'Biggest improvement: D' . (int) $biggestImprovement['dimension_no'] . ' '
+                    . $biggestImprovement['dimension_name'] . ' (' .
+                    $dimensionComparisons[(string) $biggestImprovement['dimension_id']]['change_text'] . ').'
+                : 'No dimension improvements were recorded.';
+            $dimensionSummary = $declineSummary . ' ' . $improvementSummary;
+        }
+        $previousYearLabelText = $previousYearLabel !== false
+            ? (string) $previousYearLabel : 'previous year';
+        $overviewText = "The current school year (SY $schoolYearLabel) overall SBM score is "
+            . "$currentOverallLabel, compared with $previousOverallLabel in SY $previousYearLabelText "
+            . "($overallChangeLabel). $dimensionSummary";
+    }
+    $scoreComparison = [
+        'has_previous_year' => $hasPreviousYear,
+        'current_school_year' => (string) $schoolYearLabel,
+        'previous_school_year' => $previousYearLabel !== false ? (string) $previousYearLabel : null,
+        'current_overall_score' => $currentOverallScore,
+        'previous_overall_score' => $previousOverallScore,
+        'overall_change' => $overallChange,
+        'overview_text' => $overviewText,
+        'dimensions' => $dimensionComparisons,
+        'weakest_indicators' => $weakestIndicatorsByDimension,
+    ];
 
     return [
         'cycle_id' => $cycleId,
@@ -516,13 +695,21 @@ function buildAiSuggestionPayload(
             'sy_label' => (string) $schoolYearLabel,
             'analysis' => [
                 'gap_analysis' => [
-                    'average_score' => $score ? (float) $score['overall_score'] : 0,
+                    'average_score' => $score && is_numeric($score['overall_score'])
+                        ? (float) $score['overall_score'] : 'N/A',
                     'overall_maturity' => $score ? $score['maturity_level'] : 'N/A',
-                    'weakest_dimensions' => array_slice($dimensionScores, 0, 3),
+                    'weakest_dimensions' => $weakestDimensionScores,
                     'all_dimensions' => $dimensionScores,
                 ],
                 'dimension_rows' => $dimensionRows,
                 'by_rating' => $byRating,
+                'indicator_ratings' => $indicatorRatings,
+                'indicator_response_counts' => $indicatorResponseCounts,
+                'dimension_evidence' => $dimensionEvidence,
+                'dimension_weakest_indicators' => $weakestIndicatorsByDimension,
+                'dimension_coverage' => $dimensionCoverage,
+                'score_comparison' => $scoreComparison,
+                'dimension_comparisons' => $dimensionComparisons,
                 'history' => $history,
                 'comment_summary' => ['top_topics' => [], 'has_urgent' => false],
                 'respondent_consistency' => $respondentConsistency,

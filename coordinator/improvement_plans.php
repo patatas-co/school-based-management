@@ -76,6 +76,28 @@ include __DIR__ . '/../includes/header.php';
 <div class="card" style="margin-bottom:18px;">
   <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
     <span class="card-title">Improvement Plan Review Queue</span>
+    <?php if ($planTabCounts['review'] > 0 || $planTabCounts['approved'] > 0): ?>
+    <div style="display:flex;align-items:center;gap:8px;">
+    <?php if ($planTabCounts['review'] > 0): ?>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        id="approveAllPlansButton"
+        data-count="<?= (int) $planTabCounts['review'] ?>"
+        title="Approve all plans currently in the Review queue. They will still require separate validation."
+      >Approve All</button>
+    <?php endif; ?>
+    <?php if ($planTabCounts['approved'] > 0): ?>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        id="validateAllPlansButton"
+        data-count="<?= (int) $planTabCounts['approved'] ?>"
+        title="Validate all approved plans and move them to Finalized."
+      >Validate All</button>
+    <?php endif; ?>
+    </div>
+    <?php endif; ?>
   </div>
   <?php if (!$plans): ?>
     <div class="card-body" style="padding:28px;color:var(--n-500);font-size:13px;">No improvement plans are available for the current school year.</div>
@@ -470,12 +492,43 @@ function closePlanActionConfirm() {
   pendingPlanId = null;
 }
 
+function openApproveAllConfirm(planCount) {
+  pendingPlanAction = 'coordinator_approve_all_improvement_plans';
+  pendingPlanId = null;
+  document.getElementById('planActionConfirmTitle').textContent = 'Approve all plans?';
+  document.getElementById('planActionConfirmMessage').textContent =
+    `Approve all ${planCount} plans currently in the Review queue? Each plan will still require separate validation.`;
+  document.getElementById('planActionConfirmError').textContent = '';
+  const confirmButton = document.getElementById('confirmPlanActionButton');
+  confirmButton.textContent = 'Approve All';
+  confirmButton.disabled = false;
+  document.getElementById('planActionConfirmModal').style.display = 'flex';
+  confirmButton.focus();
+}
+
+function openValidateAllConfirm(planCount) {
+  pendingPlanAction = 'coordinator_validate_all_improvement_plans';
+  pendingPlanId = null;
+  document.getElementById('planActionConfirmTitle').textContent = 'Validate all plans?';
+  document.getElementById('planActionConfirmMessage').textContent =
+    `Validate all ${planCount} approved plans? This will finalize them.`;
+  document.getElementById('planActionConfirmError').textContent = '';
+  const confirmButton = document.getElementById('confirmPlanActionButton');
+  confirmButton.textContent = 'Validate All';
+  confirmButton.disabled = false;
+  document.getElementById('planActionConfirmModal').style.display = 'flex';
+  confirmButton.focus();
+}
+
 document.getElementById('planActionConfirmModal').addEventListener('click', event => {
   if (event.target === event.currentTarget) closePlanActionConfirm();
 });
 
 async function confirmPlanAction() {
-  if (!pendingPlanAction || !pendingPlanId) return;
+  if (!pendingPlanAction) return;
+  const isBulkApproval = pendingPlanAction === 'coordinator_approve_all_improvement_plans';
+  const isBulkValidation = pendingPlanAction === 'coordinator_validate_all_improvement_plans';
+  if (!isBulkApproval && !isBulkValidation && !pendingPlanId) return;
   const modal = document.getElementById('planActionConfirmModal');
   const confirmButton = document.getElementById('confirmPlanActionButton');
   const error = document.getElementById('planActionConfirmError');
@@ -483,12 +536,24 @@ async function confirmPlanAction() {
   modal.dataset.submitting = 'true';
   error.textContent = '';
   try {
-    await postPlanAction(pendingPlanAction, pendingPlanId);
+    if (isBulkApproval || isBulkValidation) {
+      const response = await fetch('dashboard.php', {
+        method: 'POST',
+        body: new URLSearchParams({action: pendingPlanAction}),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.msg || `Unable to ${isBulkApproval ? 'approve' : 'validate'} all plans.`);
+      }
+    } else {
+      await postPlanAction(pendingPlanAction, pendingPlanId);
+    }
     location.reload();
   } catch (requestError) {
     error.textContent = requestError.message || 'Unable to update this plan. Please try again.';
     confirmButton.disabled = false;
     delete modal.dataset.submitting;
+    modal.dataset.submitting = 'false';
   }
 }
 
@@ -498,5 +563,23 @@ document.querySelectorAll('.approve-plan').forEach(button => button.addEventList
 document.querySelectorAll('.validate-plan').forEach(button => button.addEventListener('click', () => {
   openPlanActionConfirm('coordinator_validate_improvement_plan', button.dataset.id);
 }));
+
+const approveAllPlansButton = document.getElementById('approveAllPlansButton');
+if (approveAllPlansButton) {
+  approveAllPlansButton.addEventListener('click', async () => {
+    const planCount = Number(approveAllPlansButton.dataset.count);
+    if (!Number.isInteger(planCount) || planCount < 1) return;
+    openApproveAllConfirm(planCount);
+  });
+}
+
+const validateAllPlansButton = document.getElementById('validateAllPlansButton');
+if (validateAllPlansButton) {
+  validateAllPlansButton.addEventListener('click', () => {
+    const planCount = Number(validateAllPlansButton.dataset.count);
+    if (!Number.isInteger(planCount) || planCount < 1) return;
+    openValidateAllConfirm(planCount);
+  });
+}
 </script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
