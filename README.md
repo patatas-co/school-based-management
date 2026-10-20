@@ -229,3 +229,10 @@ dimensions are saved as separate plans. On existing databases, apply
 `config/migration_improvement_plan_indicators.sql` before using this feature;
 the migration creates the link table and backfills each existing plan's
 indicator.
+
+## Returning an individual teacher submission
+
+On existing databases, apply `config/migration_teacher_submission_returns.sql`
+before using per-teacher returns from the coordinator dashboard. It adds the
+`returned` submission status and the append-only return/resubmission history
+table without deleting existing responses.

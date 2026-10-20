@@ -31,7 +31,7 @@ function calculateSbmDimensionScore(PDO $db, int $cycleId, int $dimensionId, int
     $teacherAverageStmt = $db->prepare("
         SELECT AVG(rating)
         FROM teacher_responses
-        WHERE cycle_id = ? AND indicator_id = ?
+        WHERE cycle_id = ? AND indicator_id = ? AND school_id = ? AND status = 'submitted'
     ");
     $externalAverageStmt = $db->prepare("
         SELECT AVG(rating)
@@ -55,7 +55,11 @@ function calculateSbmDimensionScore(PDO $db, int $cycleId, int $dimensionId, int
         }
 
         if (in_array($indicator['indicator_code'], $teacherCodes, true)) {
-            $teacherAverageStmt->execute([$cycleId, (int) $indicator['indicator_id']]);
+            $teacherAverageStmt->execute([
+                $cycleId,
+                (int) $indicator['indicator_id'],
+                $schoolId,
+            ]);
             $teacherAverage = $teacherAverageStmt->fetchColumn();
             if ($teacherAverage !== false && $teacherAverage !== null) {
                 $ratings[] = (float) $teacherAverage;
@@ -85,4 +89,61 @@ function calculateSbmDimensionScore(PDO $db, int $cycleId, int $dimensionId, int
         'max_score' => $maxTotal,
         'percentage' => $percentage,
     ];
+}
+
+function recomputeSbmCycleScores(PDO $db, int $cycleId, int $schoolId, int $formVersionId): array
+{
+    $dimensionsStmt = $db->prepare("
+        SELECT dimension_id
+        FROM sbm_dimensions
+        WHERE form_version_id = ?
+        ORDER BY dimension_no
+    ");
+    $dimensionsStmt->execute([$formVersionId]);
+    $dimensionIds = array_map('intval', $dimensionsStmt->fetchAll(PDO::FETCH_COLUMN));
+    if (!$dimensionIds) {
+        throw new RuntimeException('No dimensions are configured for the assessment form.');
+    }
+
+    $upsertScore = $db->prepare("
+        INSERT INTO sbm_dimension_scores
+            (cycle_id, school_id, dimension_id, raw_score, max_score, percentage)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            raw_score = VALUES(raw_score),
+            max_score = VALUES(max_score),
+            percentage = VALUES(percentage),
+            computed_at = NOW()
+    ");
+    foreach ($dimensionIds as $dimensionId) {
+        $score = calculateSbmDimensionScore($db, $cycleId, $dimensionId, $schoolId);
+        $upsertScore->execute([
+            $cycleId,
+            $schoolId,
+            $score['dimension_id'],
+            $score['raw_score'],
+            $score['max_score'],
+            $score['percentage'],
+        ]);
+    }
+
+    $totalStmt = $db->prepare("
+        SELECT SUM(raw_score), SUM(max_score)
+        FROM sbm_dimension_scores
+        WHERE cycle_id = ? AND school_id = ?
+    ");
+    $totalStmt->execute([$cycleId, $schoolId]);
+    [$totalRaw, $totalMax] = array_values($totalStmt->fetch(PDO::FETCH_NUM));
+    $overallScore = (float) $totalMax > 0
+        ? round(((float) $totalRaw / (float) $totalMax) * 100, 2)
+        : 0.0;
+    $maturity = sbmMaturityLevel($overallScore);
+
+    $db->prepare("
+        UPDATE sbm_cycles
+        SET overall_score = ?, maturity_level = ?
+        WHERE cycle_id = ? AND school_id = ? AND status = 'submitted'
+    ")->execute([$overallScore, $maturity['label'], $cycleId, $schoolId]);
+
+    return ['overall_score' => $overallScore, 'maturity_level' => $maturity['label']];
 }

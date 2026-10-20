@@ -115,7 +115,15 @@ function loadWorkflowData(PDO $db): array
                 FROM teacher_indicator_assignments tia
                 JOIN users u ON tia.teacher_id = u.user_id
                 LEFT JOIN teacher_submissions ts
-                    ON ts.teacher_id = u.user_id AND ts.cycle_id = ?
+                    ON ts.teacher_id = u.user_id
+                   AND ts.cycle_id = ?
+                   AND ts.submission_id = (
+                       SELECT MAX(latest.submission_id)
+                       FROM teacher_submissions latest
+                       WHERE latest.teacher_id = u.user_id
+                         AND latest.cycle_id = ts.cycle_id
+                         AND latest.school_id = ts.school_id
+                   )
                 WHERE tia.cycle_id = ?
                 GROUP BY u.user_id, u.full_name, ts.status, ts.submitted_at
             ");

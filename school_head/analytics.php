@@ -107,6 +107,7 @@ $weakQ = $db->prepare("
         SELECT cycle_id, indicator_id, rating FROM sbm_responses
         UNION ALL
         SELECT cycle_id, indicator_id, rating FROM teacher_responses
+        WHERE status = 'submitted'
     ) AS all_r
     JOIN sbm_indicators i   ON all_r.indicator_id = i.indicator_id
     JOIN sbm_dimensions d   ON i.dimension_id = d.dimension_id
@@ -131,6 +132,7 @@ $consistentlyWeakQ = $db->prepare("
         SELECT cycle_id, indicator_id, rating FROM sbm_responses
         UNION ALL
         SELECT cycle_id, indicator_id, rating FROM teacher_responses
+        WHERE status = 'submitted'
     ) AS all_r
     JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
     JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
@@ -141,6 +143,7 @@ $consistentlyWeakQ = $db->prepare("
             SELECT cycle_id, indicator_id, rating FROM sbm_responses
             UNION ALL
             SELECT cycle_id, indicator_id, rating FROM teacher_responses
+            WHERE status = 'submitted'
         ) r2
         JOIN sbm_cycles c2 ON r2.cycle_id = c2.cycle_id AND c2.school_id = ?
         GROUP BY r2.indicator_id, r2.cycle_id

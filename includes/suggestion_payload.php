@@ -399,6 +399,7 @@ function buildAiSuggestionPayload(
                         FROM teacher_responses tr
                         JOIN sbm_cycles tc ON tr.cycle_id = tc.cycle_id
                         WHERE tr.indicator_id = i.indicator_id
+                          AND tr.status = 'submitted'
                           AND tc.sy_id = ? AND tc.school_id = ?) AS teacher_avg
                 FROM sbm_responses sr
                 JOIN sbm_indicators i ON sr.indicator_id = i.indicator_id
@@ -414,7 +415,8 @@ function buildAiSuggestionPayload(
                        ROUND(AVG(sr.rating), 2) AS sh_avg,
                        (SELECT ROUND(AVG(tr.rating), 2)
                         FROM teacher_responses tr
-                        WHERE tr.indicator_id = i.indicator_id AND tr.cycle_id = ?) AS teacher_avg
+                        WHERE tr.indicator_id = i.indicator_id AND tr.cycle_id = ?
+                          AND tr.status = 'submitted') AS teacher_avg
                 FROM sbm_responses sr
                 JOIN sbm_indicators i ON sr.indicator_id = i.indicator_id
                 WHERE sr.cycle_id = ? AND sr.school_id = ?
@@ -440,6 +442,7 @@ function buildAiSuggestionPayload(
                     SELECT cycle_id, indicator_id, rating FROM sbm_responses
                     UNION ALL
                     SELECT cycle_id, indicator_id, rating FROM teacher_responses
+                    WHERE status = 'submitted'
                 ) AS all_r
                 JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
                 JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
@@ -457,6 +460,7 @@ function buildAiSuggestionPayload(
                     SELECT cycle_id, indicator_id, rating FROM sbm_responses
                     UNION ALL
                     SELECT cycle_id, indicator_id, rating FROM teacher_responses
+                    WHERE status = 'submitted'
                 ) AS all_r
                 JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
                 JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
@@ -495,6 +499,7 @@ function buildAiSuggestionPayload(
                 SELECT cycle_id, indicator_id FROM sbm_responses
                 UNION ALL
                 SELECT cycle_id, indicator_id FROM teacher_responses
+                WHERE status = 'submitted'
             ) AS all_r
             JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
             WHERE c.sy_id = ? AND c.school_id = ?
@@ -507,6 +512,7 @@ function buildAiSuggestionPayload(
                 SELECT cycle_id, indicator_id FROM sbm_responses
                 UNION ALL
                 SELECT cycle_id, indicator_id FROM teacher_responses
+                WHERE status = 'submitted'
             ) AS all_r
             WHERE all_r.cycle_id = ?
         ");

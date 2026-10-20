@@ -160,6 +160,7 @@ function getTeacherRatingSummaryData(PDO $db, int $cycleId, int $schoolId): arra
          AND tr.indicator_id = a.indicator_id
          AND tr.cycle_id = ?
          AND tr.school_id = ?
+         AND tr.status = 'submitted'
         WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active'
         GROUP BY u.user_id, u.full_name
         ORDER BY u.user_id

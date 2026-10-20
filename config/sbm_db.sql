@@ -1077,13 +1077,33 @@ CREATE TABLE `teacher_submissions` (
   `school_id` int(11) DEFAULT NULL,
   `sy_id` int(11) DEFAULT NULL,
   `teacher_id` int(11) NOT NULL,
-  `status` enum('draft','submitted') DEFAULT 'draft',
+  `status` enum('draft','submitted','returned') DEFAULT 'draft',
   `submitted_at` datetime DEFAULT NULL,
   `response_count` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
+--
+-- Table structure for table `teacher_submission_history`
+--
+
+CREATE TABLE `teacher_submission_history` (
+  `event_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `cycle_id` int(11) NOT NULL,
+  `school_id` int(11) NOT NULL,
+  `teacher_id` int(11) NOT NULL,
+  `submission_id` int(11) NOT NULL,
+  `actor_id` int(11) NOT NULL,
+  `event_type` enum('returned','resubmitted') NOT NULL,
+  `remarks` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`event_id`),
+  KEY `teacher_submission_history_cycle_teacher` (`cycle_id`,`school_id`,`teacher_id`,`event_id`),
+  KEY `teacher_submission_history_submission` (`submission_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
 --
 -- Table structure for table `users`
 --

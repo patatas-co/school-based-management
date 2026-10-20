@@ -12,7 +12,10 @@ requireRole('sbm_coordinator');
 $db = getDB();
 
 // ── AJAX HANDLER ──────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'return_cycle') {
+if (
+  $_SERVER['REQUEST_METHOD'] === 'POST'
+  && in_array(($_POST['action'] ?? ''), ['return_cycle', 'return_teacher_submission'], true)
+) {
   handleWorkflowPost($db);
   exit;
 }
@@ -331,10 +334,11 @@ if ($cycle) {
         FROM (
             SELECT indicator_id FROM sbm_responses WHERE cycle_id=?
             UNION
-            SELECT indicator_id FROM teacher_responses WHERE cycle_id=?
+            SELECT indicator_id FROM teacher_responses
+            WHERE cycle_id=? AND school_id=? AND status='submitted'
         ) AS all_responses
     ");
-  $t->execute([$cycle['cycle_id'], $cycle['cycle_id']]);
+  $t->execute([$cycle['cycle_id'], $cycle['cycle_id'], $schoolId]);
   $totalResponded = $t->fetchColumn();
 }
 $progress = $totalIndicators > 0 ? round(($totalResponded / $totalIndicators) * 100) : 0;
@@ -345,26 +349,141 @@ if ($cycle) {
   $tq = $db->prepare("
         SELECT u.user_id, u.full_name,
                ts.status sub_status, ts.submitted_at, ts.response_count,
-               (SELECT COUNT(*) FROM teacher_responses tr WHERE tr.cycle_id=? AND tr.teacher_id=u.user_id) live_count,
+               (SELECT COUNT(*) FROM teacher_responses tr
+                WHERE tr.cycle_id=? AND tr.school_id=? AND tr.teacher_id=u.user_id AND tr.status='submitted') live_count,
                (SELECT COUNT(*) FROM teacher_indicator_assignments tia WHERE tia.teacher_id=u.user_id) assigned_count
         FROM users u
         LEFT JOIN (
           SELECT ts1.*
           FROM teacher_submissions ts1
           INNER JOIN (
-            SELECT cycle_id, teacher_id, MAX(submission_id) AS submission_id
+            SELECT cycle_id, school_id, teacher_id, MAX(submission_id) AS submission_id
             FROM teacher_submissions
-            GROUP BY cycle_id, teacher_id
+            GROUP BY cycle_id, school_id, teacher_id
           ) latest_ts ON latest_ts.submission_id = ts1.submission_id
-        ) ts ON ts.teacher_id=u.user_id AND ts.cycle_id=?
+        ) ts ON ts.teacher_id=u.user_id AND ts.cycle_id=? AND ts.school_id=u.school_id
         WHERE u.school_id=? AND u.role='teacher' AND u.status='active'
         ORDER BY ts.status DESC, u.full_name ASC
     ");
-  $tq->execute([$cycle['cycle_id'], $cycle['cycle_id'], $schoolId]);
+  $tq->execute([$cycle['cycle_id'], $schoolId, $cycle['cycle_id'], $schoolId]);
   $teacherList = $tq->fetchAll();
 }
 $submittedTeachers = count(array_filter($teacherList, fn($t) => $t['sub_status'] === 'submitted'));
 $totalTeachers = count($teacherList);
+
+$schoolHeadPreview = [];
+$evaluatorPreview = [];
+$previewRatingLabels = [
+  1 => 'Not yet manifested',
+  2 => 'Rarely manifested',
+  3 => 'Frequently manifested',
+  4 => 'Always manifested',
+];
+if ($cycle && $cycle['status'] === 'submitted') {
+  $previewResponses = $db->prepare("
+    SELECT r.rating, r.evidence_text, i.indicator_code, i.indicator_text, i.mov_guide,
+           i.sort_order, d.dimension_no, d.dimension_name, d.color_hex,
+           u.full_name AS rated_by_name
+    FROM sbm_responses r
+    JOIN sbm_indicators i ON i.indicator_id = r.indicator_id
+    JOIN sbm_dimensions d ON d.dimension_id = i.dimension_id
+    LEFT JOIN users u ON u.user_id = r.rated_by
+    WHERE r.cycle_id = ? AND r.school_id = ?
+    ORDER BY d.dimension_no, i.sort_order
+  ");
+  $previewResponses->execute([$cycle['cycle_id'], $schoolId]);
+  foreach ($previewResponses->fetchAll(PDO::FETCH_ASSOC) as $response) {
+    $schoolHeadPreview[(int) $response['dimension_no']][] = $response;
+  }
+
+  $teacherPreview = $db->prepare("
+    SELECT tr.teacher_id AS evaluator_id, u.full_name AS evaluator_name,
+           'Teacher' AS evaluator_role, tr.rating, tr.remarks AS evaluator_remarks,
+           i.indicator_code, i.indicator_text, i.mov_guide, i.sort_order,
+           d.dimension_no, d.dimension_name, d.color_hex
+    FROM teacher_responses tr
+    JOIN (
+      SELECT ts.cycle_id, ts.teacher_id
+      FROM teacher_submissions ts
+      WHERE ts.cycle_id = ? AND ts.school_id = ? AND ts.status = 'submitted'
+        AND ts.submission_id = (
+          SELECT MAX(latest.submission_id)
+          FROM teacher_submissions latest
+          WHERE latest.cycle_id = ts.cycle_id AND latest.school_id = ts.school_id
+            AND latest.teacher_id = ts.teacher_id
+        )
+    ) submitted ON submitted.cycle_id = tr.cycle_id AND submitted.teacher_id = tr.teacher_id
+    JOIN users u ON u.user_id = tr.teacher_id AND u.school_id = tr.school_id AND u.role = 'teacher'
+    JOIN sbm_indicators i ON i.indicator_id = tr.indicator_id
+    JOIN sbm_dimensions d ON d.dimension_id = i.dimension_id
+    WHERE tr.cycle_id = ? AND tr.school_id = ? AND tr.status = 'submitted'
+    ORDER BY u.full_name, d.dimension_no, i.sort_order
+  ");
+  $teacherPreview->execute([$cycle['cycle_id'], $schoolId, $cycle['cycle_id'], $schoolId]);
+  $stakeholderPreview = $db->prepare("
+    SELECT sr.stakeholder_id AS evaluator_id, u.full_name AS evaluator_name,
+           'Stakeholder' AS evaluator_role, sr.rating, sr.remarks AS evaluator_remarks,
+           i.indicator_code, i.indicator_text, i.mov_guide, i.sort_order,
+           d.dimension_no, d.dimension_name, d.color_hex
+    FROM stakeholder_responses sr
+    JOIN (
+      SELECT ss.cycle_id, ss.stakeholder_id
+      FROM stakeholder_submissions ss
+      WHERE ss.cycle_id = ? AND ss.school_id = ? AND ss.status = 'submitted'
+        AND ss.submission_id = (
+          SELECT MAX(latest.submission_id)
+          FROM stakeholder_submissions latest
+          WHERE latest.cycle_id = ss.cycle_id AND latest.stakeholder_id = ss.stakeholder_id
+        )
+    ) submitted ON submitted.cycle_id = sr.cycle_id AND submitted.stakeholder_id = sr.stakeholder_id
+    JOIN users u ON u.user_id = sr.stakeholder_id AND u.school_id = sr.school_id AND u.role = 'external_stakeholder'
+    JOIN sbm_indicators i ON i.indicator_id = sr.indicator_id
+    JOIN sbm_dimensions d ON d.dimension_id = i.dimension_id
+    WHERE sr.cycle_id = ? AND sr.school_id = ? AND sr.status = 'submitted'
+    ORDER BY u.full_name, d.dimension_no, i.sort_order
+  ");
+  $stakeholderPreview->execute([$cycle['cycle_id'], $schoolId, $cycle['cycle_id'], $schoolId]);
+
+  foreach (array_merge(
+    $teacherPreview->fetchAll(PDO::FETCH_ASSOC),
+    $stakeholderPreview->fetchAll(PDO::FETCH_ASSOC)
+  ) as $response) {
+    $evaluatorKey = $response['evaluator_role'] . ':' . (int) $response['evaluator_id'];
+    if (!isset($evaluatorPreview[$evaluatorKey])) {
+      $evaluatorPreview[$evaluatorKey] = [
+        'id' => (int) $response['evaluator_id'],
+        'name' => $response['evaluator_name'],
+        'role' => $response['evaluator_role'],
+        'dimensions' => [],
+        'indicator_count' => 0,
+        'remark_count' => 0,
+      ];
+    }
+    $evaluatorPreview[$evaluatorKey]['dimensions'][(int) $response['dimension_no']][] = $response;
+    $evaluatorPreview[$evaluatorKey]['indicator_count']++;
+    if (trim((string) ($response['evaluator_remarks'] ?? '')) !== '') {
+      $evaluatorPreview[$evaluatorKey]['remark_count']++;
+    }
+  }
+}
+$teacherEvaluatorPreview = array_filter(
+  $evaluatorPreview,
+  static fn(array $evaluator): bool => $evaluator['role'] === 'Teacher'
+);
+$externalEvaluatorPreview = array_filter(
+  $evaluatorPreview,
+  static fn(array $evaluator): bool => $evaluator['role'] === 'Stakeholder'
+);
+$previewSubmissionCounts = [
+  'school-head' => $schoolHeadPreview ? 1 : 0,
+  'teachers' => count($teacherEvaluatorPreview),
+  'external' => count($externalEvaluatorPreview),
+];
+$activePreviewTab = $previewSubmissionCounts['school-head'] > 0
+  ? 'school-head'
+  : ($previewSubmissionCounts['teachers'] > 0
+    ? 'teachers'
+    : ($previewSubmissionCounts['external'] > 0 ? 'external' : null));
 
 // Only surface dimension scores once the cycle is validated AND every
 // active teacher has submitted — prevents showing partial/in-progress scores.
@@ -491,6 +610,7 @@ $weakQ = $db->prepare("
         SELECT cycle_id, indicator_id, rating FROM sbm_responses
         UNION ALL
         SELECT cycle_id, indicator_id, rating FROM teacher_responses
+        WHERE status = 'submitted'
     ) AS all_r
     JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
     JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
@@ -515,6 +635,7 @@ $consistentlyWeakQ = $db->prepare("
         SELECT cycle_id, indicator_id, rating FROM sbm_responses
         UNION ALL
         SELECT cycle_id, indicator_id, rating FROM teacher_responses
+        WHERE status = 'submitted'
     ) AS all_r
     JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
     JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
@@ -525,6 +646,7 @@ $consistentlyWeakQ = $db->prepare("
             SELECT cycle_id, indicator_id, rating FROM sbm_responses
             UNION ALL
             SELECT cycle_id, indicator_id, rating FROM teacher_responses
+            WHERE status = 'submitted'
         ) r2
         JOIN sbm_cycles c2 ON r2.cycle_id = c2.cycle_id AND c2.school_id = ?
         GROUP BY r2.indicator_id, r2.cycle_id
@@ -2526,21 +2648,199 @@ include __DIR__ . '/../includes/header.php';
 
   <?php if ($cycle && $cycle['status'] === 'submitted'): ?>
     <div class="card" style="margin-bottom:20px;border:1px solid var(--n200);background:var(--white);box-shadow:none;">
-      <div class="card-body" style="padding:12px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:220px;">
-          <div style="font-size:13px;font-weight:700;color:var(--n800);">Assessment ready for review</div>
-          <div style="font-size:12px;color:var(--n500);margin-top:2px;">
-            The School Head has submitted the assessment. Review the scores and validate to complete and lock this cycle.
-          </div>
-        </div>
+      <div class="card-body" style="padding:12px 16px;">
+        <details style="margin-bottom:14px;border:1px solid var(--n-200,#E2E8F0);border-radius:8px;background:var(--n-50,#F8FAFC);">
+          <summary style="padding:11px 13px;cursor:pointer;font-size:13px;font-weight:700;color:var(--n-800,#1E293B);">
+            Preview submitted SBM form and evaluator responses
+          </summary>
+          <div style="max-height:60vh;overflow-y:auto;overflow-x:hidden;padding:0 13px 14px;">
+            <p style="font-size:12px;color:var(--n-500,#64748B);margin:0 0 12px;">
+              Read-only responses from this assessment cycle. The consolidated SBM form stores one current rating per indicator; “Last saved by” identifies its recorded contributor.
+            </p>
 
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-secondary btn-sm" onclick="openReturnCycleModal(<?= (int) $cycle['cycle_id'] ?>)">
-            Return for Revision
-          </button>
-          <button class="btn btn-primary btn-sm" onclick="validateAndCompleteCycle(<?= (int) $cycle['cycle_id'] ?>)">
-            Validate & Complete Cycle
-          </button>
+            <label style="display:flex;align-items:center;gap:7px;margin:0 0 12px;font-size:12px;color:var(--n-700,#334155);">
+              <input type="checkbox" id="previewRemarksOnly">
+              Show only indicators with remarks
+            </label>
+
+            <div role="tablist" aria-label="Preview response source" style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;border-bottom:1px solid var(--n-200,#E2E8F0);">
+              <?php
+              $previewTabs = [
+                'school-head' => 'School Head',
+                'teachers' => 'Teachers',
+                'external' => 'External evaluators',
+              ];
+              foreach ($previewTabs as $tabKey => $tabLabel):
+                if ($previewSubmissionCounts[$tabKey] === 0) continue;
+              ?>
+                <button type="button" role="tab"
+                  id="previewTab-<?= e($tabKey) ?>"
+                  aria-controls="previewPane-<?= e($tabKey) ?>"
+                  aria-selected="<?= $activePreviewTab === $tabKey ? 'true' : 'false' ?>"
+                  tabindex="<?= $activePreviewTab === $tabKey ? '0' : '-1' ?>"
+                  data-preview-tab="<?= e($tabKey) ?>"
+                  style="padding:8px 10px;border:0;border-bottom:2px solid <?= $activePreviewTab === $tabKey ? 'var(--brand-600,#2563EB)' : 'transparent' ?>;background:transparent;color:<?= $activePreviewTab === $tabKey ? 'var(--brand-700,#1D4ED8)' : 'var(--n-600,#475569)' ?>;font:inherit;font-size:12px;font-weight:700;cursor:pointer;">
+                  <?= e($tabLabel) ?> (<?= (int) $previewSubmissionCounts[$tabKey] ?>)
+                </button>
+              <?php endforeach; ?>
+            </div>
+
+            <?php if (array_sum($previewSubmissionCounts) === 0): ?>
+              <p style="font-size:12px;color:var(--n-500,#64748B);">No submitted responses were found for this cycle.</p>
+            <?php endif; ?>
+
+            <section id="previewPane-school-head" role="tabpanel" aria-labelledby="previewTab-school-head"
+              data-preview-pane="school-head" <?= $activePreviewTab !== 'school-head' ? 'hidden' : '' ?>>
+              <?php if ($schoolHeadPreview): ?>
+                <?php foreach ($schoolHeadPreview as $dimensionResponses): $firstResponse = $dimensionResponses[0]; ?>
+                  <div data-preview-dimension style="margin-bottom:12px;border:1px solid var(--n-200,#E2E8F0);border-radius:7px;overflow:hidden;background:#fff;">
+                    <div style="padding:8px 10px;background:<?= e($firstResponse['color_hex']) ?>18;border-bottom:1px solid var(--n-200,#E2E8F0);font-size:12px;font-weight:700;color:<?= e($firstResponse['color_hex']) ?>;">
+                      Dimension <?= (int) $firstResponse['dimension_no'] ?>: <?= e($firstResponse['dimension_name']) ?>
+                    </div>
+                    <div class="tbl-wrap">
+                      <table class="ind-table">
+                        <thead>
+                          <tr><th>Code</th><th>Indicator</th><th>MOV Guide</th><th>Rating</th><th>Evidence</th><th>Last saved by</th></tr>
+                        </thead>
+                        <tbody>
+                          <?php foreach ($dimensionResponses as $response): ?>
+                            <?php $rating = (int) $response['rating']; $hasEvidence = trim((string) ($response['evidence_text'] ?? '')) !== ''; ?>
+                            <tr data-preview-remark="<?= $hasEvidence ? '1' : '0' ?>">
+                              <td><span style="font-family:monospace;font-size:11px;font-weight:700;"><?= e($response['indicator_code']) ?></span></td>
+                              <td style="font-size:12px;line-height:1.45;"><?= e($response['indicator_text']) ?></td>
+                              <td style="font-size:11px;color:var(--n-500,#64748B);"><?= e($response['mov_guide'] ?: '—') ?></td>
+                              <td style="white-space:nowrap;font-size:12px;font-weight:700;"><?= $rating ?> — <?= e($previewRatingLabels[$rating] ?? 'Unknown rating') ?></td>
+                              <td style="font-size:12px;"><?= e($response['evidence_text'] ?: '—') ?></td>
+                              <td style="font-size:12px;"><?= e($response['rated_by_name'] ?: '—') ?></td>
+                            </tr>
+                          <?php endforeach; ?>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <p style="font-size:12px;color:var(--n-500,#64748B);">No consolidated SBM indicator responses were found for this cycle.</p>
+              <?php endif; ?>
+              <p data-preview-empty-state hidden style="font-size:12px;color:var(--n-500,#64748B);margin:0 0 10px;" aria-live="polite">
+                No indicators with remarks match this filter.
+              </p>
+            </section>
+
+            <section id="previewPane-teachers" role="tabpanel" aria-labelledby="previewTab-teachers"
+              data-preview-pane="teachers" <?= $activePreviewTab !== 'teachers' ? 'hidden' : '' ?>>
+              <?php foreach ($teacherEvaluatorPreview as $evaluator): ?>
+                <details data-preview-evaluator data-remark-count="<?= (int) $evaluator['remark_count'] ?>"
+                  style="margin-bottom:8px;border:1px solid var(--n-200,#E2E8F0);border-radius:7px;background:#fff;">
+                  <summary style="padding:9px 10px;cursor:pointer;font-size:12px;font-weight:700;color:var(--n-700,#334155);">
+                    <?= e($evaluator['name']) ?> · <?= (int) $evaluator['indicator_count'] ?> indicators · <?= (int) $evaluator['remark_count'] ?> with remarks
+                  </summary>
+                  <div style="padding:0 10px 10px;">
+                    <?php foreach ($evaluator['dimensions'] as $dimensionResponses): $firstResponse = $dimensionResponses[0]; ?>
+                      <div data-preview-dimension style="margin-top:8px;border:1px solid var(--n-200,#E2E8F0);border-radius:6px;overflow:hidden;">
+                        <div style="padding:7px 9px;background:<?= e($firstResponse['color_hex']) ?>18;font-size:11px;font-weight:700;color:<?= e($firstResponse['color_hex']) ?>;">
+                          Dimension <?= (int) $firstResponse['dimension_no'] ?>: <?= e($firstResponse['dimension_name']) ?>
+                        </div>
+                        <div class="tbl-wrap">
+                          <table class="ind-table">
+                            <thead><tr><th>Code</th><th>Indicator</th><th>Rating</th><th>Evaluator remarks</th></tr></thead>
+                            <tbody>
+                              <?php foreach ($dimensionResponses as $response): ?>
+                                <?php $hasRemark = trim((string) ($response['evaluator_remarks'] ?? '')) !== ''; $rating = (int) $response['rating']; ?>
+                                <tr data-preview-remark="<?= $hasRemark ? '1' : '0' ?>">
+                                  <td><span style="font-family:monospace;font-size:11px;font-weight:700;"><?= e($response['indicator_code']) ?></span></td>
+                                  <td style="font-size:12px;line-height:1.45;"><?= e($response['indicator_text']) ?></td>
+                                  <td style="white-space:nowrap;font-size:12px;font-weight:700;"><?= $rating ?> — <?= e($previewRatingLabels[$rating] ?? 'Unknown rating') ?></td>
+                                  <td style="font-size:12px;"><?= e($response['evaluator_remarks'] ?: '—') ?></td>
+                                </tr>
+                              <?php endforeach; ?>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                  <form data-teacher-return-form data-teacher-id="<?= (int) $evaluator['id'] ?>"
+                    style="display:grid;gap:8px;margin:0 10px 10px;padding-top:10px;border-top:1px solid var(--n-200,#E2E8F0);">
+                    <label style="font-size:12px;font-weight:600;color:var(--n-700,#334155);">
+                      Required remarks for this teacher
+                      <textarea name="remarks" required rows="2" maxlength="5000"
+                        style="display:block;width:100%;box-sizing:border-box;margin-top:5px;border:1px solid var(--n-200,#E2E8F0);border-radius:6px;padding:8px;font:inherit;font-size:12px;resize:vertical;"
+                        placeholder="Explain what this teacher should review or revise."></textarea>
+                    </label>
+                    <div style="display:flex;justify-content:flex-end;">
+                      <button type="submit" class="btn btn-secondary btn-sm">Return to this teacher</button>
+                    </div>
+                  </form>
+                </details>
+              <?php endforeach; ?>
+              <p data-preview-empty-state hidden style="font-size:12px;color:var(--n-500,#64748B);margin:0 0 10px;" aria-live="polite">
+                No teacher indicators with remarks match this filter.
+              </p>
+            </section>
+
+            <section id="previewPane-external" role="tabpanel" aria-labelledby="previewTab-external"
+              data-preview-pane="external" <?= $activePreviewTab !== 'external' ? 'hidden' : '' ?>>
+              <?php foreach ($externalEvaluatorPreview as $evaluator): ?>
+                <details data-preview-evaluator data-remark-count="<?= (int) $evaluator['remark_count'] ?>"
+                  style="margin-bottom:8px;border:1px solid var(--n-200,#E2E8F0);border-radius:7px;background:#fff;">
+                  <summary style="padding:9px 10px;cursor:pointer;font-size:12px;font-weight:700;color:var(--n-700,#334155);">
+                    <?= e($evaluator['name']) ?> · <?= (int) $evaluator['indicator_count'] ?> indicators · <?= (int) $evaluator['remark_count'] ?> with remarks
+                  </summary>
+                  <div style="padding:0 10px 10px;">
+                    <?php foreach ($evaluator['dimensions'] as $dimensionResponses): $firstResponse = $dimensionResponses[0]; ?>
+                      <div data-preview-dimension style="margin-top:8px;border:1px solid var(--n-200,#E2E8F0);border-radius:6px;overflow:hidden;">
+                        <div style="padding:7px 9px;background:<?= e($firstResponse['color_hex']) ?>18;font-size:11px;font-weight:700;color:<?= e($firstResponse['color_hex']) ?>;">
+                          Dimension <?= (int) $firstResponse['dimension_no'] ?>: <?= e($firstResponse['dimension_name']) ?>
+                        </div>
+                        <div class="tbl-wrap">
+                          <table class="ind-table">
+                            <thead><tr><th>Code</th><th>Indicator</th><th>Rating</th><th>Evaluator remarks</th></tr></thead>
+                            <tbody>
+                              <?php foreach ($dimensionResponses as $response): ?>
+                                <?php $hasRemark = trim((string) ($response['evaluator_remarks'] ?? '')) !== ''; $rating = (int) $response['rating']; ?>
+                                <tr data-preview-remark="<?= $hasRemark ? '1' : '0' ?>">
+                                  <td><span style="font-family:monospace;font-size:11px;font-weight:700;"><?= e($response['indicator_code']) ?></span></td>
+                                  <td style="font-size:12px;line-height:1.45;"><?= e($response['indicator_text']) ?></td>
+                                  <td style="white-space:nowrap;font-size:12px;font-weight:700;"><?= $rating ?> — <?= e($previewRatingLabels[$rating] ?? 'Unknown rating') ?></td>
+                                  <td style="font-size:12px;"><?= e($response['evaluator_remarks'] ?: '—') ?></td>
+                                </tr>
+                              <?php endforeach; ?>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                </details>
+              <?php endforeach; ?>
+              <p data-preview-empty-state hidden style="font-size:12px;color:var(--n-500,#64748B);margin:0 0 10px;" aria-live="polite">
+                No external evaluator indicators with remarks match this filter.
+              </p>
+            </section>
+
+            <p style="font-size:11px;color:var(--n-400,#94A3B8);margin:12px 0 0;">
+              Numeric dimension scores remain subject to the existing score-visibility rules.
+            </p>
+          </div>
+        </details>
+
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:220px;">
+            <div style="font-size:13px;font-weight:700;color:var(--n800);">Assessment ready for review</div>
+            <div style="font-size:12px;color:var(--n500);margin-top:2px;">
+              The School Head has submitted the assessment. Review the scores and validate to complete and lock this cycle.
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="openReturnCycleModal(<?= (int) $cycle['cycle_id'] ?>)">
+              Return for Revision
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="validateAndCompleteCycle(<?= (int) $cycle['cycle_id'] ?>)">
+              Validate & Complete Cycle
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -2554,6 +2854,106 @@ include __DIR__ . '/../includes/header.php';
       </div>
     </div>
   <?php endif; ?>
+
+  <script>
+    (function initPreviewTabsAndRemarksFilter() {
+      const toggle = document.getElementById('previewRemarksOnly');
+      const tabs = Array.from(document.querySelectorAll('[data-preview-tab]'));
+      const panes = Array.from(document.querySelectorAll('[data-preview-pane]'));
+      if (!toggle || !tabs.length || !panes.length) return;
+
+      let activeTab = tabs.find(tab => tab.getAttribute('aria-selected') === 'true');
+      if (!activeTab) return;
+
+      function activePane() {
+        return panes.find(pane => pane.dataset.previewPane === activeTab.dataset.previewTab);
+      }
+
+      function applyRemarksFilter() {
+        const pane = activePane();
+        if (!pane) return;
+        const enabled = toggle.checked;
+        let visibleRows = 0;
+
+        pane.querySelectorAll('[data-preview-remark]').forEach(row => {
+          row.hidden = enabled && row.dataset.previewRemark !== '1';
+          if (!row.hidden) visibleRows++;
+        });
+
+        pane.querySelectorAll('[data-preview-dimension]').forEach(dimension => {
+          dimension.hidden = enabled && !dimension.querySelector('[data-preview-remark="1"]');
+        });
+        pane.querySelectorAll('[data-preview-evaluator]').forEach(evaluator => {
+          evaluator.hidden = enabled && Number(evaluator.dataset.remarkCount) === 0;
+        });
+
+        const emptyState = pane.querySelector('[data-preview-empty-state]');
+        if (emptyState) emptyState.hidden = !enabled || visibleRows > 0;
+      }
+
+      function selectTab(nextTab) {
+        activeTab = nextTab;
+        tabs.forEach(tab => {
+          const selected = tab === activeTab;
+          tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+          tab.tabIndex = selected ? 0 : -1;
+          tab.style.borderBottomColor = selected ? 'var(--brand-600,#2563EB)' : 'transparent';
+          tab.style.color = selected ? 'var(--brand-700,#1D4ED8)' : 'var(--n-600,#475569)';
+        });
+        panes.forEach(pane => {
+          pane.hidden = pane.dataset.previewPane !== activeTab.dataset.previewTab;
+        });
+        applyRemarksFilter();
+      }
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => selectTab(tab));
+        tab.addEventListener('keydown', event => {
+          if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+          event.preventDefault();
+          const direction = event.key === 'ArrowRight' ? 1 : -1;
+          const next = tabs[(index + direction + tabs.length) % tabs.length];
+          next.focus();
+          selectTab(next);
+        });
+      });
+      toggle.addEventListener('change', applyRemarksFilter);
+      selectTab(activeTab);
+    })();
+
+    document.querySelectorAll('[data-teacher-return-form]').forEach(form => {
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const remarksInput = form.elements.namedItem('remarks');
+        const remarks = remarksInput.value.trim();
+        if (!remarks) {
+          remarksInput.setCustomValidity('Return remarks are required.');
+          remarksInput.reportValidity();
+          return;
+        }
+        remarksInput.setCustomValidity('');
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        try {
+          const response = await apiPost('dashboard.php', {
+            action: 'return_teacher_submission',
+            cycle_id: <?= (int) ($cycle['cycle_id'] ?? 0) ?>,
+            teacher_id: form.dataset.teacherId,
+            remarks
+          });
+          toast(response.msg, response.ok ? 'ok' : 'err');
+          if (response.ok) {
+            setTimeout(() => location.reload(), 800);
+          } else {
+            submitButton.disabled = false;
+          }
+        } catch (error) {
+          toast(error.message || 'Unable to return this teacher submission.', 'err');
+          submitButton.disabled = false;
+        }
+      });
+    });
+  </script>
 
   <!-- ━━━━━━━━━━━ PROGRESS VIEW ━━━━━━━━━━━ -->
 
@@ -3639,6 +4039,7 @@ include __DIR__ . '/../includes/header.php';
           SELECT cycle_id, indicator_id, rating FROM sbm_responses
           UNION ALL
           SELECT cycle_id, indicator_id, rating FROM teacher_responses
+          WHERE status = 'submitted'
       ) AS all_r
       JOIN sbm_indicators i  ON all_r.indicator_id = i.indicator_id
       JOIN sbm_dimensions d  ON i.dimension_id = d.dimension_id

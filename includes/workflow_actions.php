@@ -123,9 +123,15 @@ function gateInProgressToConsolidating(PDO $db, int $cycleId): array
     }
 
     $submittedQ = $db->prepare("
-        SELECT COUNT(DISTINCT teacher_id) 
-        FROM teacher_submissions 
-        WHERE cycle_id = ? AND status = 'submitted'
+        SELECT COUNT(DISTINCT latest.teacher_id)
+        FROM teacher_submissions latest
+        WHERE latest.cycle_id = ? AND latest.status = 'submitted'
+          AND latest.submission_id = (
+              SELECT MAX(current.submission_id)
+              FROM teacher_submissions current
+              WHERE current.cycle_id = latest.cycle_id
+                AND current.teacher_id = latest.teacher_id
+          )
     ");
     $submittedQ->execute([$cycleId]);
     $submitted = (int) $submittedQ->fetchColumn();
@@ -288,6 +294,126 @@ function handleWorkflowPost(PDO $db): void
 
     $action = $_POST['action'];
     $syId = (int) ($_POST['sy_id'] ?? 0);
+
+    if ($action === 'return_teacher_submission') {
+        if (($_SESSION['role'] ?? '') !== 'sbm_coordinator') {
+            echo json_encode(['ok' => false, 'msg' => 'Only the SBM Coordinator can return a teacher submission.']);
+            exit;
+        }
+
+        $cycleId = (int) ($_POST['cycle_id'] ?? 0);
+        $teacherId = (int) ($_POST['teacher_id'] ?? 0);
+        $remarks = trim((string) ($_POST['remarks'] ?? ''));
+        $remarksLength = function_exists('mb_strlen') ? mb_strlen($remarks, 'UTF-8') : strlen($remarks);
+        $actorId = (int) ($_SESSION['user_id'] ?? 0);
+        if ($cycleId <= 0 || $teacherId <= 0 || $remarks === '' || $remarksLength > 5000 || $actorId <= 0) {
+            echo json_encode(['ok' => false, 'msg' => 'A cycle, teacher, and remarks of 1–5000 characters are required.']);
+            exit;
+        }
+
+        try {
+            $db->beginTransaction();
+
+            $cycleQuery = $db->prepare("
+                SELECT cycle_id, status
+                FROM sbm_cycles
+                WHERE cycle_id = ? AND school_id = ?
+                FOR UPDATE
+            ");
+            $cycleQuery->execute([$cycleId, SCHOOL_ID]);
+            $cycle = $cycleQuery->fetch(PDO::FETCH_ASSOC);
+            if (!$cycle || $cycle['status'] !== 'submitted') {
+                $db->rollBack();
+                echo json_encode(['ok' => false, 'msg' => 'Teacher submissions can only be returned while the cycle is submitted and not yet validated or locked.']);
+                exit;
+            }
+
+            $teacherQuery = $db->prepare("
+                SELECT 1
+                FROM users u
+                WHERE u.user_id = ? AND u.school_id = ? AND u.role = 'teacher'
+                  AND EXISTS (
+                      SELECT 1
+                      FROM teacher_indicator_assignments tia
+                      WHERE (tia.cycle_id = ? OR tia.cycle_id IS NULL)
+                        AND tia.teacher_id = u.user_id
+                  )
+                LIMIT 1
+            ");
+            $teacherQuery->execute([$teacherId, SCHOOL_ID, $cycleId]);
+            if (!$teacherQuery->fetchColumn()) {
+                $db->rollBack();
+                echo json_encode(['ok' => false, 'msg' => 'That teacher is not assigned to this assessment cycle.']);
+                exit;
+            }
+
+            $submissionQuery = $db->prepare("
+                SELECT submission_id, status
+                FROM teacher_submissions
+                WHERE cycle_id = ? AND school_id = ? AND teacher_id = ?
+                ORDER BY submission_id DESC
+                LIMIT 1
+                FOR UPDATE
+            ");
+            $submissionQuery->execute([$cycleId, SCHOOL_ID, $teacherId]);
+            $submission = $submissionQuery->fetch(PDO::FETCH_ASSOC);
+            if (!$submission || $submission['status'] !== 'submitted') {
+                $db->rollBack();
+                echo json_encode(['ok' => false, 'msg' => 'Only this teacher\'s currently submitted response can be returned.']);
+                exit;
+            }
+
+            $submissionId = (int) $submission['submission_id'];
+            $returnUpdate = $db->prepare("
+                UPDATE teacher_submissions
+                SET status = 'returned'
+                WHERE submission_id = ? AND cycle_id = ? AND school_id = ?
+                  AND teacher_id = ? AND status = 'submitted'
+            ");
+            $returnUpdate->execute([$submissionId, $cycleId, SCHOOL_ID, $teacherId]);
+            if ($returnUpdate->rowCount() !== 1) {
+                throw new RuntimeException('The teacher submission changed while it was being returned.');
+            }
+
+            $db->prepare("
+                UPDATE teacher_responses
+                SET status = 'draft'
+                WHERE cycle_id = ? AND school_id = ? AND teacher_id = ? AND status = 'submitted'
+            ")->execute([$cycleId, SCHOOL_ID, $teacherId]);
+
+            $db->prepare("
+                INSERT INTO teacher_submission_history
+                    (cycle_id, school_id, teacher_id, submission_id, actor_id, event_type, remarks)
+                VALUES (?, ?, ?, ?, ?, 'returned', ?)
+            ")->execute([$cycleId, SCHOOL_ID, $teacherId, $submissionId, $actorId, $remarks]);
+
+            if (function_exists('logActivity')) {
+                logActivity(
+                    'return_teacher_submission',
+                    'teacher_submission',
+                    "Coordinator ID $actorId returned teacher ID $teacherId submission $submissionId for cycle $cycleId"
+                );
+            }
+            $db->commit();
+
+            echo json_encode(['ok' => true, 'msg' => 'Teacher submission returned for revision. The teacher will see your remarks on their assessment page.']);
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log('Per-teacher assessment return failed: ' . $e->getMessage());
+            $mysqlErrorCode = $e instanceof PDOException ? (int) ($e->errorInfo[1] ?? 0) : 0;
+            $schemaNotReady = $e instanceof PDOException
+                && (in_array($mysqlErrorCode, [1146, 1265], true) || $e->getCode() === '42S02');
+            echo json_encode([
+                'ok' => false,
+                'msg' => $schemaNotReady
+                    ? 'Per-teacher returns are not enabled in the database yet. Apply config/migration_teacher_submission_returns.sql, then try again.'
+                    : 'The teacher submission could not be returned. No changes were made.'
+            ]);
+        }
+        exit;
+    }
 
     if ($action === 'save_periods') {
         $periods = json_decode($_POST['periods_json'] ?? '[]', true);
@@ -531,45 +657,79 @@ function handleWorkflowPost(PDO $db): void
     $remarks = trim($_POST['remarks'] ?? '');
     $actorId = (int) ($_SESSION['user_id'] ?? 0);
 
-    $cycleQuery = $db->prepare("
-        SELECT cycle_id, status
-        FROM sbm_cycles
-        WHERE cycle_id = ? AND school_id = ?
-        LIMIT 1
-    ");
-    $cycleQuery->execute([$cycleId, SCHOOL_ID]);
-    $cycle = $cycleQuery->fetch();
-
-    if (!$cycle) {
-        echo json_encode(['ok' => false, 'msg' => 'Assessment cycle not found.']);
-        exit;
-    }
-
-    if ($cycle['status'] !== 'submitted') {
-        echo json_encode(['ok' => false, 'msg' => 'Only a submitted assessment can be validated.']);
-        exit;
-    }
-
-    // Safety net: (re)compute maturity_level from overall_score in case it
-    // was never set at submission time.
-    $scoreRow = $db->prepare("SELECT overall_score FROM sbm_cycles WHERE cycle_id = ?");
-    $scoreRow->execute([$cycleId]);
-    $overallScore = $scoreRow->fetchColumn();
-    $maturityLevel = ($overallScore !== false && $overallScore !== null)
-        ? computeMaturity((float) $overallScore)
-        : null;
-
     $db->beginTransaction();
     try {
-        $db->prepare("
+        $cycleQuery = $db->prepare("
+            SELECT cycle_id, status
+            FROM sbm_cycles
+            WHERE cycle_id = ? AND school_id = ?
+            FOR UPDATE
+        ");
+        $cycleQuery->execute([$cycleId, SCHOOL_ID]);
+        $cycle = $cycleQuery->fetch(PDO::FETCH_ASSOC);
+
+        if (!$cycle) {
+            $db->rollBack();
+            echo json_encode(['ok' => false, 'msg' => 'Assessment cycle not found.']);
+            exit;
+        }
+
+        if ($cycle['status'] !== 'submitted') {
+            $db->rollBack();
+            echo json_encode(['ok' => false, 'msg' => 'Only a submitted assessment can be validated.']);
+            exit;
+        }
+
+        $outstandingReturn = $db->prepare("
+            SELECT returned.teacher_id
+            FROM teacher_submissions returned
+            WHERE returned.cycle_id = ? AND returned.school_id = ? AND returned.status = 'returned'
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM teacher_submissions newer
+                  WHERE newer.cycle_id = returned.cycle_id
+                    AND newer.school_id = returned.school_id
+                    AND newer.teacher_id = returned.teacher_id
+                    AND newer.submission_id > returned.submission_id
+              )
+            LIMIT 1
+        ");
+        $outstandingReturn->execute([$cycleId, SCHOOL_ID]);
+        if ($outstandingReturn->fetchColumn()) {
+            $db->rollBack();
+            echo json_encode([
+                'ok' => false,
+                'msg' => 'This assessment cannot be validated while a teacher submission is returned and awaiting resubmission.'
+            ]);
+            exit;
+        }
+
+        // Safety net: (re)compute maturity_level from overall_score in case it
+        // was never set at submission time.
+        $scoreRow = $db->prepare("
+            SELECT overall_score
+            FROM sbm_cycles
+            WHERE cycle_id = ? AND school_id = ?
+        ");
+        $scoreRow->execute([$cycleId, SCHOOL_ID]);
+        $overallScore = $scoreRow->fetchColumn();
+        $maturityLevel = ($overallScore !== false && $overallScore !== null)
+            ? computeMaturity((float) $overallScore)
+            : null;
+
+        $validationUpdate = $db->prepare("
             UPDATE sbm_cycles
             SET status = 'validated',
                 validated_at = NOW(),
                 validated_by = ?,
                 validator_remarks = ?,
                 maturity_level = COALESCE(maturity_level, ?)
-            WHERE cycle_id = ?
-        ")->execute([$actorId, $remarks, $maturityLevel, $cycleId]);
+            WHERE cycle_id = ? AND school_id = ? AND status = 'submitted'
+        ");
+        $validationUpdate->execute([$actorId, $remarks, $maturityLevel, $cycleId, SCHOOL_ID]);
+        if ($validationUpdate->rowCount() !== 1) {
+            throw new RuntimeException('The assessment cycle changed during validation.');
+        }
 
         logCycleStage(
             $db,
@@ -584,18 +744,25 @@ function handleWorkflowPost(PDO $db): void
         // coordinator validates now but wants to finalize later, so we do
         // both transitions in one click instead of leaving the cycle
         // sitting in an easy-to-forget intermediate "validated" state.
-        $db->prepare("
+        $finalizeUpdate = $db->prepare("
             UPDATE sbm_cycles
             SET status = 'finalized',
                 finalized_at = NOW()
-            WHERE cycle_id = ?
-        ")->execute([$cycleId]);
+            WHERE cycle_id = ? AND school_id = ? AND status = 'validated'
+        ");
+        $finalizeUpdate->execute([$cycleId, SCHOOL_ID]);
+        if ($finalizeUpdate->rowCount() !== 1) {
+            throw new RuntimeException('The assessment cycle could not be finalized after validation.');
+        }
 
         logCycleStage($db, $cycleId, 'validated', 'finalized', $actorId, 'Cycle locked and archived.');
 
         $db->commit();
-    } catch (Exception $e) {
-        $db->rollBack();
+    } catch (Throwable $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        error_log('Assessment validation failed: ' . $e->getMessage());
         echo json_encode(['ok' => false, 'msg' => 'Validation failed, nothing was changed. Please try again.']);
         exit;
     }
@@ -683,7 +850,16 @@ function handleWorkflowPost(PDO $db): void
                    COUNT(DISTINCT tia.indicator_code) AS assigned_count
             FROM teacher_indicator_assignments tia
             JOIN users u ON tia.teacher_id = u.user_id
-            LEFT JOIN teacher_submissions ts ON ts.teacher_id = u.user_id AND ts.cycle_id = ?
+            LEFT JOIN teacher_submissions ts
+                ON ts.teacher_id = u.user_id
+               AND ts.cycle_id = ?
+               AND ts.submission_id = (
+                   SELECT MAX(latest.submission_id)
+                   FROM teacher_submissions latest
+                   WHERE latest.teacher_id = u.user_id
+                     AND latest.cycle_id = ts.cycle_id
+                     AND latest.school_id = ts.school_id
+               )
             WHERE tia.cycle_id = ?
             GROUP BY u.user_id, u.full_name, u.role, ts.status, ts.submitted_at
         ");

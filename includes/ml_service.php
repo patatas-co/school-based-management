@@ -168,7 +168,7 @@ function runMLPipeline(PDO $db, int $cycleId): bool
         FROM teacher_responses tr
         JOIN sbm_indicators i  ON tr.indicator_id  = i.indicator_id
         JOIN sbm_dimensions d  ON i.dimension_id   = d.dimension_id
-        WHERE tr.cycle_id = ?
+        WHERE tr.cycle_id = ? AND tr.status = 'submitted'
         GROUP BY i.indicator_id
         ORDER BY d.dimension_no, AVG(tr.rating) ASC
     ");
@@ -218,7 +218,7 @@ function runMLPipeline(PDO $db, int $cycleId): bool
         FROM teacher_responses tr
         JOIN sbm_indicators i ON tr.indicator_id = i.indicator_id
         JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
-        WHERE tr.cycle_id = ? 
+        WHERE tr.cycle_id = ? AND tr.status = 'submitted'
           AND tr.remarks IS NOT NULL 
           AND tr.remarks != ''
     ");

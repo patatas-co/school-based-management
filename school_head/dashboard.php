@@ -57,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'get_a
             SELECT cycle_id, indicator_id, rating FROM sbm_responses
             UNION ALL
             SELECT cycle_id, indicator_id, rating FROM teacher_responses
+            WHERE status = 'submitted'
         ) AS all_r
         JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
         JOIN sbm_cycles c ON all_r.cycle_id = c.cycle_id
@@ -226,6 +227,13 @@ $stSubmittedTeachers = $db->prepare("
   FROM teacher_submissions ts
   JOIN sbm_cycles c ON ts.cycle_id = c.cycle_id
   WHERE c.sy_id = ? AND c.school_id = ? AND ts.status = 'submitted'
+    AND ts.submission_id = (
+      SELECT MAX(latest.submission_id)
+      FROM teacher_submissions latest
+      WHERE latest.cycle_id = ts.cycle_id
+        AND latest.school_id = ts.school_id
+        AND latest.teacher_id = ts.teacher_id
+    )
 ");
 $stSubmittedTeachers->execute([$selectedSyId, $mySchoolId]);
 $submittedTeachers = (int) $stSubmittedTeachers->fetchColumn();
@@ -343,6 +351,7 @@ $weakQ = $db->prepare("
         SELECT cycle_id, indicator_id, rating FROM sbm_responses
         UNION ALL
         SELECT cycle_id, indicator_id, rating FROM teacher_responses
+        WHERE status = 'submitted'
     ) AS all_r
     JOIN sbm_indicators i   ON all_r.indicator_id = i.indicator_id
     JOIN sbm_dimensions d   ON i.dimension_id = d.dimension_id
@@ -367,6 +376,7 @@ $consistentlyWeakQ = $db->prepare("
         SELECT cycle_id, indicator_id, rating FROM sbm_responses
         UNION ALL
         SELECT cycle_id, indicator_id, rating FROM teacher_responses
+        WHERE status = 'submitted'
     ) AS all_r
     JOIN sbm_indicators i ON all_r.indicator_id = i.indicator_id
     JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
@@ -377,6 +387,7 @@ $consistentlyWeakQ = $db->prepare("
             SELECT cycle_id, indicator_id, rating FROM sbm_responses
             UNION ALL
             SELECT cycle_id, indicator_id, rating FROM teacher_responses
+            WHERE status = 'submitted'
         ) r2
         JOIN sbm_cycles c2 ON r2.cycle_id = c2.cycle_id AND c2.school_id = ?
         GROUP BY r2.indicator_id, r2.cycle_id
@@ -3566,6 +3577,7 @@ include __DIR__ . '/../includes/header.php';
           SELECT cycle_id, indicator_id, rating FROM sbm_responses
           UNION ALL
           SELECT cycle_id, indicator_id, rating FROM teacher_responses
+          WHERE status = 'submitted'
       ) AS all_r
       JOIN sbm_indicators i  ON all_r.indicator_id = i.indicator_id
       JOIN sbm_dimensions d  ON i.dimension_id = d.dimension_id

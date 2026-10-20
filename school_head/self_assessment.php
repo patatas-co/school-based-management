@@ -309,8 +309,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       $totalTeachersQ->execute([$schoolId]);
       $totalTeachers = (int) $totalTeachersQ->fetchColumn();
 
-      $submittedTeachersQ = $db->prepare("SELECT COUNT(*) FROM teacher_submissions WHERE cycle_id=? AND status='submitted'");
-      $submittedTeachersQ->execute([$cyc['cycle_id']]);
+      $submittedTeachersQ = $db->prepare("
+        SELECT COUNT(DISTINCT latest.teacher_id)
+        FROM teacher_submissions latest
+        WHERE latest.cycle_id = ? AND latest.school_id = ? AND latest.status = 'submitted'
+          AND latest.submission_id = (
+              SELECT MAX(current.submission_id)
+              FROM teacher_submissions current
+              WHERE current.cycle_id = latest.cycle_id
+                AND current.school_id = latest.school_id
+                AND current.teacher_id = latest.teacher_id
+          )
+      ");
+      $submittedTeachersQ->execute([$cyc['cycle_id'], $schoolId]);
       $submittedTeachers = (int) $submittedTeachersQ->fetchColumn();
 
       if ($submittedTeachers < $totalTeachers && !$forceSubmit) {
@@ -517,17 +528,30 @@ $pendingCount = 0;
 $teacherTotalPages = 1;
 
 if ($cycle) {
+  $latestTeacherSubmissionJoin = "
+    LEFT JOIN teacher_submissions ts
+      ON ts.teacher_id = u.user_id
+     AND ts.cycle_id = ?
+     AND ts.school_id = ?
+     AND ts.submission_id = (
+         SELECT MAX(latest.submission_id)
+         FROM teacher_submissions latest
+         WHERE latest.teacher_id = u.user_id
+           AND latest.cycle_id = ts.cycle_id
+           AND latest.school_id = ts.school_id
+     )
+  ";
+
   // ── Global totals (always all teachers, ignoring search) ──
   $totStmt = $db->prepare("
         SELECT
           COUNT(*) AS total,
           SUM(CASE WHEN ts.status = 'submitted' THEN 1 ELSE 0 END) AS submitted
         FROM users u
-        LEFT JOIN teacher_submissions ts
-            ON ts.teacher_id = u.user_id AND ts.cycle_id = ?
+        $latestTeacherSubmissionJoin
         WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active'
     ");
-  $totStmt->execute([$cycle['cycle_id'], $schoolId]);
+  $totStmt->execute([$cycle['cycle_id'], $schoolId, $schoolId]);
   $totRow = $totStmt->fetch();
   $totalTeachers = (int) $totRow['total'];
   $submittedTeachers = (int) $totRow['submitted'];
@@ -537,13 +561,13 @@ if ($cycle) {
   $searchParam = "%{$teacherSearch}%";
   $filtStmt = $db->prepare("
         SELECT COUNT(*) FROM users u
-        LEFT JOIN teacher_submissions ts
-            ON ts.teacher_id = u.user_id AND ts.cycle_id = ?
+        $latestTeacherSubmissionJoin
         WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active'
           AND (? = '%%' OR u.full_name LIKE ? OR u.username LIKE ?)
     ");
   $filtStmt->execute([
     $cycle['cycle_id'],
+    $schoolId,
     $schoolId,
     $searchParam,
     $searchParam,
@@ -561,8 +585,7 @@ if ($cycle) {
                ts.submitted_at,
                ts.response_count
         FROM users u
-        LEFT JOIN teacher_submissions ts
-            ON ts.teacher_id = u.user_id AND ts.cycle_id = ?
+        $latestTeacherSubmissionJoin
         WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active'
           AND (? = '%%' OR u.full_name LIKE ? OR u.username LIKE ?)
         ORDER BY
@@ -572,6 +595,7 @@ if ($cycle) {
     ");
   $pageStmt->execute([
     $cycle['cycle_id'],
+    $schoolId,
     $schoolId,
     $searchParam,
     $searchParam,
@@ -593,7 +617,7 @@ if ($cycle) {
                    GROUP_CONCAT(u.full_name ORDER BY u.full_name SEPARATOR ', ') teachers
             FROM teacher_responses tr
             JOIN users u ON tr.teacher_id = u.user_id
-            WHERE tr.cycle_id = ?
+            WHERE tr.cycle_id = ? AND tr.status = 'submitted'
             GROUP BY tr.indicator_id
         ");
     $tr->execute([$cycle['cycle_id']]);

@@ -653,6 +653,7 @@ $weakQ = $db->prepare("
         SELECT cycle_id, indicator_id, rating FROM sbm_responses
         UNION ALL
         SELECT cycle_id, indicator_id, rating FROM teacher_responses
+        WHERE status = 'submitted'
     ) AS all_r
     JOIN sbm_indicators i   ON all_r.indicator_id = i.indicator_id
     JOIN sbm_dimensions d   ON i.dimension_id = d.dimension_id

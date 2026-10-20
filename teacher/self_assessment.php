@@ -7,6 +7,20 @@ require_once __DIR__ . '/../includes/form_version_helper.php';
 requireRole('teacher');
 $db = getDB();
 
+function latestTeacherSubmissionStatus(PDO $db, int $cycleId, int $schoolId, int $teacherId): ?string
+{
+    $stmt = $db->prepare("
+        SELECT status
+        FROM teacher_submissions
+        WHERE cycle_id = ? AND school_id = ? AND teacher_id = ?
+        ORDER BY submission_id DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$cycleId, $schoolId, $teacherId]);
+    $status = $stmt->fetchColumn();
+    return $status === false || $status === null ? null : (string) $status;
+}
+
 $uid = $_SESSION['user_id'];
 $schoolId = SCHOOL_ID; // Always DIHS — single school system
 $syId = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
@@ -41,11 +55,18 @@ if (!$syId) {
 $cycleCheck = $db->prepare("SELECT cycle_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?");
 $cycleCheck->execute([$schoolId, $syId]);
 $cycleCheck = $cycleCheck->fetch();
+$currentSubmissionStatus = $cycleCheck
+    ? latestTeacherSubmissionStatus($db, (int) $cycleCheck['cycle_id'], $schoolId, (int) $uid)
+    : null;
+$perTeacherReturnOpen = $cycleCheck
+    && $cycleCheck['status'] === 'submitted'
+    && $currentSubmissionStatus === 'returned';
 
 // A cycle row may be created in draft status while the School Head is
 // configuring the assessment. Teachers must not see or modify it until it
 // has been explicitly started.
-$cycleIsOpen = $cycleCheck && in_array($cycleCheck['status'], ['in_progress', 'returned'], true);
+$cycleIsOpen = $cycleCheck
+    && (in_array($cycleCheck['status'], ['in_progress', 'returned'], true) || $perTeacherReturnOpen);
 
 if (!$cycleIsOpen) {
     $pageTitle = 'SBM Self-Assessment';
@@ -64,11 +85,15 @@ if (!$cycleIsOpen) {
                 </svg>
             </div>
             <h3 style="font-size:20px;font-weight:800;color:var(--n800);margin-bottom:10px;">
-                Assessment Not Started Yet
+                <?= $cycleCheck && $cycleCheck['status'] === 'submitted' ? 'Assessment Locked for Review' : 'Assessment Not Started Yet' ?>
             </h3>
             <p style="font-size:14px;color:var(--n500);max-width:420px;margin:0 auto 8px;line-height:1.7;">
-                The School Head has not started the SBM Self-Assessment cycle for this school year yet.
-                You will be notified once it becomes available.
+                <?php if ($cycleCheck && $cycleCheck['status'] === 'submitted'): ?>
+                    Your submission is locked while the coordinator reviews the cycle. You may edit it only if the coordinator returns it to you.
+                <?php else: ?>
+                    The School Head has not started the SBM Self-Assessment cycle for this school year yet.
+                    You will be notified once it becomes available.
+                <?php endif; ?>
             </p>
             <p style="font-size:12.5px;color:var(--n400);">
                 Please check back later or contact your School Head.
@@ -159,43 +184,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             echo json_encode(['ok' => false, 'msg' => 'No active cycle.']);
             exit;
         }
-        if (!in_array($cycleRow['status'], ['in_progress', 'returned'], true)) {
+        $isReturnedSubmission = $cycleRow['status'] === 'submitted'
+            && latestTeacherSubmissionStatus($db, (int) $cycleRow['cycle_id'], $schoolId, (int) $uid) === 'returned';
+        if (!in_array($cycleRow['status'], ['in_progress', 'returned'], true) && !$isReturnedSubmission) {
             echo json_encode(['ok' => false, 'msg' => 'Assessment has not been started. Please wait for the School Head to start it.']);
             exit;
         }
 
-        $db->prepare("DELETE FROM teacher_responses WHERE cycle_id=? AND indicator_id=? AND teacher_id=?")
-            ->execute([$cycleRow['cycle_id'], $indicatorId, $uid]);
+        $db->prepare("DELETE FROM teacher_responses WHERE cycle_id=? AND school_id=? AND indicator_id=? AND teacher_id=?")
+            ->execute([$cycleRow['cycle_id'], $schoolId, $indicatorId, $uid]);
 
         echo json_encode(['ok' => true, 'msg' => 'Rating cleared.']);
         exit;
     }
 
     if ($_POST['action'] === 'submit') {
-        $cycleRow = $db->prepare(
-            "SELECT cycle_id, status FROM sbm_cycles WHERE school_id=? AND sy_id=?"
-        );
-        $cycleRow->execute([$schoolId, $syId]);
-        $row = $cycleRow->fetch();
-        $cycleId = $row['cycle_id'] ?? null;
-        $status = $row['status'] ?? null;
-
-        if (!$cycleId) {
-            echo json_encode([
-                'ok' => false,
-                'msg' => 'No active assessment cycle exists yet. Please wait for the School Head to start the assessment.'
-            ]);
-            exit;
-        }
-
-        if (!in_array($status, ['in_progress', 'returned'], true)) {
-            echo json_encode([
-                'ok' => false,
-                'msg' => 'Assessment has not been started. Please wait for the School Head to start it.'
-            ]);
-            exit;
-        }
-
         if (empty($assignedCodes)) {
             echo json_encode([
                 'ok' => false,
@@ -204,60 +207,110 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             exit;
         }
 
-        // Count how many teacher indicators this teacher has answered
-        $placeholders = implode(
-            ',',
-            array_fill(0, count($assignedCodes), '?')
-        );
-        $countStmt = $db->prepare("
-        SELECT COUNT(*) FROM teacher_responses tr
-        JOIN sbm_indicators i ON tr.indicator_id = i.indicator_id
-        WHERE tr.cycle_id  = ?
-          AND tr.teacher_id = ?
-          AND i.indicator_code IN ($placeholders)
-    ");
-        $countStmt->execute(
-            array_merge([$cycleId, $uid], $assignedCodes)
-        );
-        $answered = (int) $countStmt->fetchColumn();
-        $required = count($assignedCodes);
+        $db->beginTransaction();
+        try {
+            $cycleRow = $db->prepare("
+                SELECT cycle_id, school_id, sy_id, status
+                FROM sbm_cycles
+                WHERE school_id = ? AND sy_id = ?
+                FOR UPDATE
+            ");
+            $cycleRow->execute([$schoolId, $syId]);
+            $row = $cycleRow->fetch();
+            if (!$row) {
+                $db->rollBack();
+                echo json_encode([
+                    'ok' => false,
+                    'msg' => 'No active assessment cycle exists yet. Please wait for the School Head to start the assessment.'
+                ]);
+                exit;
+            }
 
-        if ($answered < $required) {
+            $cycleId = (int) $row['cycle_id'];
+            $submissionStmt = $db->prepare("
+                SELECT submission_id, status
+                FROM teacher_submissions
+                WHERE cycle_id = ? AND school_id = ? AND teacher_id = ?
+                ORDER BY submission_id DESC
+                LIMIT 1
+                FOR UPDATE
+            ");
+            $submissionStmt->execute([$cycleId, $schoolId, $uid]);
+            $submission = $submissionStmt->fetch();
+            $isReturnResubmission = $row['status'] === 'submitted'
+                && ($submission['status'] ?? null) === 'returned';
+            if (!in_array($row['status'], ['in_progress', 'returned'], true) && !$isReturnResubmission) {
+                $db->rollBack();
+                echo json_encode([
+                    'ok' => false,
+                    'msg' => 'This assessment is not open for submission.'
+                ]);
+                exit;
+            }
+
+            $placeholders = implode(',', array_fill(0, count($assignedCodes), '?'));
+            $countStmt = $db->prepare("
+                SELECT COUNT(*)
+                FROM teacher_responses tr
+                JOIN sbm_indicators i ON tr.indicator_id = i.indicator_id
+                WHERE tr.cycle_id = ? AND tr.school_id = ? AND tr.teacher_id = ?
+                  AND i.indicator_code IN ($placeholders)
+            ");
+            $countStmt->execute(array_merge([$cycleId, $schoolId, $uid], $assignedCodes));
+            $answered = (int) $countStmt->fetchColumn();
+            $required = count($assignedCodes);
+            if ($answered < $required) {
+                $db->rollBack();
+                echo json_encode([
+                    'ok' => false,
+                    'msg' => "Please rate all your indicators before submitting. ($answered/$required done)"
+                ]);
+                exit;
+            }
+
+            if ($submission) {
+                $db->prepare("
+                    UPDATE teacher_submissions
+                    SET status = 'submitted', submitted_at = NOW(), response_count = ?
+                    WHERE submission_id = ? AND cycle_id = ? AND school_id = ? AND teacher_id = ?
+                ")->execute([$answered, $submission['submission_id'], $cycleId, $schoolId, $uid]);
+            } else {
+                $db->prepare("
+                    INSERT INTO teacher_submissions
+                        (cycle_id, teacher_id, school_id, sy_id, status, submitted_at, response_count)
+                    VALUES (?, ?, ?, ?, 'submitted', NOW(), ?)
+                ")->execute([$cycleId, $uid, $schoolId, $row['sy_id'], $answered]);
+            }
+
+            $db->prepare("
+                UPDATE teacher_responses
+                SET status = 'submitted'
+                WHERE cycle_id = ? AND school_id = ? AND teacher_id = ?
+            ")->execute([$cycleId, $schoolId, $uid]);
+
+            if ($isReturnResubmission) {
+                $db->prepare("
+                    INSERT INTO teacher_submission_history
+                        (cycle_id, school_id, teacher_id, submission_id, actor_id, event_type)
+                    VALUES (?, ?, ?, ?, ?, 'resubmitted')
+                ")->execute([$cycleId, $schoolId, $uid, $submission['submission_id'], $uid]);
+
+                require_once __DIR__ . '/../includes/assessment_scoring.php';
+                recomputeSbmCycleScores($db, $cycleId, $schoolId, (int) $activeFormVersionId);
+            }
+
+            $db->commit();
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log('Teacher assessment submission failed: ' . $e->getMessage());
             echo json_encode([
                 'ok' => false,
-                'msg' => "Please rate all your indicators before submitting. 
-                      ($answered/$required done)"
+                'msg' => 'Your assessment could not be submitted. Please try again.'
             ]);
             exit;
         }
-        // Derive school_id and sy_id from the cycle record to avoid denormalization bugs
-        $cycleInfo = $db->prepare("SELECT school_id, sy_id FROM sbm_cycles WHERE cycle_id=?");
-        $cycleInfo->execute([$cycleId]);
-        $cycleInfo = $cycleInfo->fetch();
-
-        $submissionStmt = $db->prepare(
-            "SELECT submission_id FROM teacher_submissions
-             WHERE cycle_id=? AND teacher_id=?
-             ORDER BY submission_id DESC LIMIT 1"
-        );
-        $submissionStmt->execute([$cycleId, $uid]);
-        $submissionId = $submissionStmt->fetchColumn();
-        if ($submissionId) {
-            $db->prepare(
-                "UPDATE teacher_submissions
-                 SET status='submitted', submitted_at=NOW(), response_count=?
-                 WHERE submission_id=?"
-            )->execute([$answered, $submissionId]);
-        } else {
-            $db->prepare(
-                "INSERT INTO teacher_submissions
-                 (cycle_id, teacher_id, school_id, sy_id, status, submitted_at, response_count)
-                 VALUES (?, ?, ?, ?, 'submitted', NOW(), ?)"
-            )->execute([$cycleId, $uid, $cycleInfo['school_id'], $cycleInfo['sy_id'], $answered]);
-        }
-
-        $db->prepare("UPDATE teacher_responses SET status='submitted' WHERE cycle_id=? AND teacher_id=?")
-            ->execute([$cycleId, $uid]);
 
         logActivity(
             'teacher_submit_assessment',
@@ -267,7 +320,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         echo json_encode([
             'ok' => true,
-            'msg' => 'Your assessment has been submitted to the School Head.'
+            'msg' => $isReturnResubmission
+                ? 'Your revised assessment has been resubmitted to the SBM Coordinator.'
+                : 'Your assessment has been submitted to the School Head.'
         ]);
         exit;
     }
@@ -302,7 +357,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'msg' => 'No active assessment cycle yet. Please wait for the School Head to start the assessment.'
             ]);
             exit;
-        } elseif (!in_array($cycleRow['status'], ['in_progress', 'returned'], true)) {
+        } elseif (
+            !in_array($cycleRow['status'], ['in_progress', 'returned'], true)
+            && !($cycleRow['status'] === 'submitted'
+                && latestTeacherSubmissionStatus($db, (int) $cycleRow['cycle_id'], $schoolId, (int) $uid) === 'returned')
+        ) {
             echo json_encode([
                 'ok' => false,
                 'msg' => 'Assessment has not been started. Please wait for the School Head to start it.'
@@ -351,8 +410,8 @@ $cycle = $cycle->fetch();
 // This teacher's own responses
 $responses = [];
 if ($cycle) {
-    $r = $db->prepare("SELECT * FROM teacher_responses WHERE cycle_id=? AND teacher_id=?");
-    $r->execute([$cycle['cycle_id'], $uid]);
+    $r = $db->prepare("SELECT * FROM teacher_responses WHERE cycle_id=? AND school_id=? AND teacher_id=?");
+    $r->execute([$cycle['cycle_id'], $schoolId, $uid]);
     foreach ($r->fetchAll() as $row)
         $responses[$row['indicator_id']] = $row;
 }
@@ -365,25 +424,15 @@ $ratingLabels = [1 => 'Not yet Manifested', 2 => 'Rarely Manifested', 3 => 'Freq
 $ratingColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A'];
 $ratingBgs = [1 => '#FEE2E2', 2 => '#FEF3C7', 3 => '#DBEAFE', 4 => '#DCFCE7'];
 
-// Lock if cycle is submitted/validated OR if this teacher already submitted
+// A coordinator-returned teacher may edit only their own submission while the
+// submitted cycle remains locked for every other evaluator.
 $cycleIsLocked = $cycle && in_array(
     $cycle['status'],
     ['submitted', 'validated']
 );
 
-$mySubCheck = null;
-if ($cycle) {
-    $subQ = $db->prepare("
-        SELECT status FROM teacher_submissions
-        WHERE cycle_id=? AND teacher_id=?
-        ORDER BY submission_id DESC
-        LIMIT 1
-    ");
-    $subQ->execute([$cycle['cycle_id'], $uid]);
-    $mySubCheck = $subQ->fetchColumn();
-}
-
-$isLocked = $cycleIsLocked || ($mySubCheck === 'submitted');
+$mySubCheck = $currentSubmissionStatus;
+$isLocked = ($cycleIsLocked && !$perTeacherReturnOpen) || ($mySubCheck === 'submitted');
 $totalDone = count($responses);
 $totalInds = count($indicators);
 $progress = $totalInds > 0 ? round(($totalDone / $totalInds) * 100) : 0;
@@ -672,13 +721,25 @@ include __DIR__ . '/../includes/header.php';
 $subCheck = $db->prepare("
     SELECT status, submitted_at
     FROM teacher_submissions
-    WHERE cycle_id=? AND teacher_id=?
+    WHERE cycle_id=? AND school_id=? AND teacher_id=?
     ORDER BY submission_id DESC
     LIMIT 1
 ");
-$subCheck->execute([isset($cycle['cycle_id']) ? $cycle['cycle_id'] : 0, $uid]);
+$subCheck->execute([isset($cycle['cycle_id']) ? $cycle['cycle_id'] : 0, $schoolId, $uid]);
 $mySubmission = $subCheck->fetch();
 $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
+$myReturnRemarks = null;
+if ($mySubmission && $mySubmission['status'] === 'returned') {
+    $returnHistoryStmt = $db->prepare("
+        SELECT remarks
+        FROM teacher_submission_history
+        WHERE cycle_id = ? AND school_id = ? AND teacher_id = ? AND event_type = 'returned'
+        ORDER BY event_id DESC
+        LIMIT 1
+    ");
+    $returnHistoryStmt->execute([(int) $cycle['cycle_id'], $schoolId, $uid]);
+    $myReturnRemarks = $returnHistoryStmt->fetchColumn();
+}
 ?>
 
 <?php if ($iSubmitted): ?>
@@ -701,6 +762,12 @@ $iSubmitted = $mySubmission && $mySubmission['status'] === 'submitted';
 <?php else: ?>
 
 <!-- ── NOTICE ── -->
+<?php if ($mySubmission && $mySubmission['status'] === 'returned'): ?>
+<div role="alert" aria-live="polite" style="display:flex;align-items:baseline;gap:8px;margin:0 0 16px;padding:10px 12px;border-left:3px solid #D97706;background:#FFFBEB;color:var(--n600);font-size:12.5px;line-height:1.45;">
+    <strong style="color:#92400E;white-space:nowrap;">Revision requested</strong>
+    <span><?= e($myReturnRemarks ?: 'The SBM Coordinator returned your submission for revision.') ?></span>
+</div>
+<?php endif; ?>
 <?php if ($cycle && !empty($cycle['return_remarks'])): ?>
 <style>.teacher-revision-note[hidden]{display:none!important;}</style>
 <div id="teacherRevisionNote" class="teacher-revision-note" style="display:flex;align-items:baseline;gap:8px;margin:0 0 16px;padding:7px 10px;border-left:3px solid #D97706;color:var(--n600);font-size:12.5px;line-height:1.45;">

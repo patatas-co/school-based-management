@@ -797,7 +797,7 @@ function sfIndicatorRating(PDO $db, int $cycleId, int $schoolId, int $indicatorI
     if (in_array($indicatorCode, $teacherCodes, true)) {
         $teacherStmt = $db->prepare("
             SELECT AVG(rating) FROM teacher_responses
-            WHERE cycle_id = ? AND indicator_id = ?
+            WHERE cycle_id = ? AND indicator_id = ? AND status = 'submitted'
         ");
         $teacherStmt->execute([$cycleId, $indicatorId]);
         $teacherRating = $teacherStmt->fetchColumn();

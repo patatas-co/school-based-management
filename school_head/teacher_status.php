@@ -46,11 +46,11 @@ if ($cycle) {
       SELECT ts1.*
       FROM teacher_submissions ts1
       INNER JOIN (
-        SELECT cycle_id, teacher_id, MAX(submission_id) AS submission_id
+        SELECT cycle_id, school_id, teacher_id, MAX(submission_id) AS submission_id
         FROM teacher_submissions
-        GROUP BY cycle_id, teacher_id
+        GROUP BY cycle_id, school_id, teacher_id
       ) latest_ts ON latest_ts.submission_id = ts1.submission_id
-    ) ts ON ts.teacher_id = u.user_id AND ts.cycle_id = ?
+    ) ts ON ts.teacher_id = u.user_id AND ts.cycle_id = ? AND ts.school_id = ?
   ";
 
     $totStmt = $db->prepare("
@@ -61,7 +61,7 @@ if ($cycle) {
     $latestTeacherSubmissionJoin
         WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active'
     ");
-    $totStmt->execute([$cycle['cycle_id'], $schoolId]);
+    $totStmt->execute([$cycle['cycle_id'], $schoolId, $schoolId]);
     $totRow            = $totStmt->fetch();
     $totalTeachers     = (int)$totRow['total'];
     $submittedTeachers = (int)$totRow['submitted'];
@@ -78,7 +78,7 @@ if ($cycle) {
         ? "AND (u.full_name LIKE ? OR u.username LIKE ?)"
         : '';
 
-    $countParams = [$cycle['cycle_id'], $schoolId];
+    $countParams = [$cycle['cycle_id'], $schoolId, $schoolId];
     if ($teacherSearch !== '') { $countParams[] = $searchParam; $countParams[] = $searchParam; }
 
     $filtStmt = $db->prepare("
@@ -95,7 +95,7 @@ if ($cycle) {
     $offset            = ($teacherPage - 1) * $perPage;
 
     // ── Paginated fetch ─────────────────────────────────────────
-    $pageParams = [$cycle['cycle_id'], $schoolId];
+    $pageParams = [$cycle['cycle_id'], $schoolId, $schoolId];
     if ($teacherSearch !== '') { $pageParams[] = $searchParam; $pageParams[] = $searchParam; }
     $pageParams[] = $perPage;
     $pageParams[] = $offset;
@@ -183,6 +183,7 @@ include __DIR__.'/../includes/header.php';
 .ts-row.done     { background:#F0FDF4;border-color:#BBF7D0; }
 .ts-avatar       { width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0; }
 .ts-avatar.pending { background:#FEF3C7;color:#92400E; }
+.ts-avatar.returned { background:#FFEDD5;color:#9A3412; }
 .ts-avatar.done    { background:#DCFCE7;color:#166534; }
 .ts-info         { flex:1;min-width:0; }
 .ts-name         { font-size:13px;font-weight:600;color:var(--n800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
@@ -191,6 +192,7 @@ include __DIR__.'/../includes/header.php';
 .ts-meta a:hover { text-decoration:underline; }
 .ts-badge        { font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px;flex-shrink:0; }
 .ts-badge.pending { background:#FEF3C7;color:#D97706; }
+.ts-badge.returned { background:#FFEDD5;color:#C2410C; }
 .ts-badge.done    { background:#DCFCE7;color:#16A34A; }
 .ts-empty        { text-align:center;padding:40px 20px;color:var(--n400);font-size:13px; }
 
@@ -367,7 +369,7 @@ include __DIR__.'/../includes/header.php';
       </svg>
       <span>
         <strong><?= $pendingCount ?> teacher<?= $pendingCount > 1 ? 's' : '' ?></strong>
-        <?= $pendingCount > 1 ? 'have' : 'has' ?> not yet submitted.
+        <?= $pendingCount > 1 ? 'are' : 'is' ?> still pending, including anyone returned for revision.
         Teacher averages will be based on responses received so far.
       </span>
     </div>
@@ -398,7 +400,8 @@ include __DIR__.'/../includes/header.php';
       <tbody>
         <?php foreach ($pendingTeachers as $t):
           $submitted  = $t['sub_status'] === 'submitted';
-          $statusClass = $submitted ? 'done' : 'pending';
+          $returned = $t['sub_status'] === 'returned';
+          $statusClass = $submitted ? 'done' : ($returned ? 'returned' : 'pending');
           // Initials avatar
           $parts    = array_filter(explode(' ', trim($t['full_name'])));
           $initials = strtoupper(substr($parts[0] ?? 'T', 0, 1) . (isset($parts[1]) ? substr($parts[1], 0, 1) : ''));
@@ -416,6 +419,8 @@ include __DIR__.'/../includes/header.php';
           <td class="ts-td-sub">
             <?php if ($submitted): ?>
               <?= $t['submitted_at'] ? date('M d, Y · g:i A', strtotime($t['submitted_at'])) : '—' ?>
+            <?php elseif ($returned): ?>
+              Returned for revision
             <?php else: ?>
               Not yet submitted
               <?php if ($t['email']): ?>
@@ -425,7 +430,7 @@ include __DIR__.'/../includes/header.php';
           </td>
           <td class="ts-td-status">
             <span class="ts-badge <?= $statusClass ?>">
-              <?= $submitted ? 'Done' : 'Pending' ?>
+              <?= $submitted ? 'Done' : ($returned ? 'Returned' : 'Pending') ?>
             </span>
           </td>
         </tr>

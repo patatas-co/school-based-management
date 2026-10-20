@@ -820,6 +820,7 @@ include __DIR__ . '/../includes/header.php';
                             $evStatus = $ev['submission_status'] ?? 'not_started';
                             $evColors = [
                                 'submitted' => ['#DCFCE7', '#16A34A'],
+                                'returned' => ['#FFEDD5', '#C2410C'],
                                 'draft' => ['#DBEAFE', '#2563EB'],
                                 'not_started' => ['#F3F4F6', '#6B7280'],
                             ];
