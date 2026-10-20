@@ -231,8 +231,102 @@ function sendAssessmentReturnedEmail(PDO $db, array $user, string $schoolYear, s
   }
 }
 
+function sendTeacherAssessmentReturnedEmail(PDO $db, array $user, string $schoolYear, string $remarks, string $assessmentLink): bool
+{
+  $title = 'Your SBM Self-Assessment Was Returned';
+  $message = "The SBM Coordinator returned your assessment for SY {$schoolYear} for revision. Coordinator remarks: {$remarks}";
+  $html = buildActionEmailHtml(
+    $title,
+    "Hello {$user['full_name']},",
+    $message,
+    'Review My Assessment',
+    $assessmentLink,
+    'Please review the remarks and revise your assigned indicators or evidence, then resubmit your assessment.',
+    'If you have already revised and resubmitted your assessment, please disregard this message.'
+  );
+
+  $mail = new PHPMailer(true);
+  try {
+    _configureMailer($mail);
+    $mail->addAddress($user['email'], $user['full_name']);
+    $mail->isHTML(true);
+    $mail->Subject = 'SBM Assessment Returned for Revision — SY ' . $schoolYear;
+    $mail->Body = $html;
+    $mail->AltBody = "Hello {$user['full_name']},\n\n"
+      . "The SBM Coordinator returned your assessment for SY {$schoolYear} for revision.\n\n"
+      . "Coordinator remarks:\n{$remarks}\n\n"
+      . "Please review the remarks, revise your assigned indicators or evidence, and resubmit your assessment.\n\n"
+      . "Review your assessment: {$assessmentLink}";
+    $mail->send();
+
+    $db->prepare("
+      INSERT INTO email_logs (user_id, email_type, recipient_email, status)
+      VALUES (?, 'teacher_assessment_returned', ?, 'sent')
+    ")->execute([$user['user_id'], $user['email']]);
+    return true;
+  } catch (Exception $e) {
+    $errorMessage = $mail->ErrorInfo ?: $e->getMessage();
+    $db->prepare("
+      INSERT INTO email_logs (user_id, email_type, recipient_email, status, error_message)
+      VALUES (?, 'teacher_assessment_returned', ?, 'failed', ?)
+    ")->execute([$user['user_id'], $user['email'], $errorMessage]);
+    error_log('SBM Teacher Assessment Return Email Error: ' . $errorMessage);
+    return false;
+  }
+}
+
+function sendAssessmentReminderEmail(PDO $db, array $user, string $schoolYear, string $assessmentLink, bool $isReturned): bool
+{
+  $title = 'Reminder: Complete Your SBM Self-Assessment';
+  $message = $isReturned
+    ? "Your SBM Self-Assessment for SY {$schoolYear} was returned for revision. Please review your assessment, make the requested updates, and resubmit it."
+    : "This is a reminder to complete and submit your SBM Self-Assessment for SY {$schoolYear}.";
+  $completionNote = $isReturned
+    ? 'Please resubmit your assessment after making the requested revisions.'
+    : 'Please submit your assessment once it is complete.';
+  $html = buildActionEmailHtml(
+    $title,
+    "Hello {$user['full_name']},",
+    $message,
+    'Open My Assessment',
+    $assessmentLink,
+    $completionNote,
+    'If you have already completed and submitted your assessment, please disregard this reminder.'
+  );
+
+  $mail = new PHPMailer(true);
+  try {
+    _configureMailer($mail);
+    $mail->addAddress($user['email'], $user['full_name']);
+    $mail->isHTML(true);
+    $mail->Subject = 'SBM Self-Assessment Reminder — SY ' . $schoolYear;
+    $mail->Body = $html;
+    $mail->AltBody = "Hello {$user['full_name']},\n\n"
+      . $message . "\n\n"
+      . $completionNote . "\n\n"
+      . 'Open your assessment: ' . $assessmentLink . "\n\n"
+      . 'If you have already completed and submitted your assessment, please disregard this reminder.';
+    $mail->send();
+
+    $db->prepare("
+      INSERT INTO email_logs (user_id, email_type, recipient_email, status)
+      VALUES (?, 'assessment_reminder', ?, 'sent')
+    ")->execute([$user['user_id'], $user['email']]);
+    return true;
+  } catch (Exception $e) {
+    $errorMessage = $mail->ErrorInfo ?: $e->getMessage();
+    $db->prepare("
+      INSERT INTO email_logs (user_id, email_type, recipient_email, status, error_message)
+      VALUES (?, 'assessment_reminder', ?, 'failed', ?)
+    ")->execute([$user['user_id'], $user['email'], $errorMessage]);
+    error_log('SBM Assessment Reminder Email Error: ' . $errorMessage);
+    return false;
+  }
+}
+
 function _configureMailer(PHPMailer $mail): void
 {
+  $mail->CharSet = PHPMailer::CHARSET_UTF8;
   $mail->isSMTP();
   $mail->Host = $_ENV['SBM_MAIL_HOST'] ?? 'smtp.gmail.com';
   $mail->SMTPAuth = true;

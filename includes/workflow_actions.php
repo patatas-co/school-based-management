@@ -329,7 +329,7 @@ function handleWorkflowPost(PDO $db): void
             }
 
             $teacherQuery = $db->prepare("
-                SELECT 1
+                SELECT u.user_id, u.full_name, u.email
                 FROM users u
                 WHERE u.user_id = ? AND u.school_id = ? AND u.role = 'teacher'
                   AND EXISTS (
@@ -341,7 +341,8 @@ function handleWorkflowPost(PDO $db): void
                 LIMIT 1
             ");
             $teacherQuery->execute([$teacherId, SCHOOL_ID, $cycleId]);
-            if (!$teacherQuery->fetchColumn()) {
+            $teacher = $teacherQuery->fetch(PDO::FETCH_ASSOC);
+            if (!$teacher) {
                 $db->rollBack();
                 echo json_encode(['ok' => false, 'msg' => 'That teacher is not assigned to this assessment cycle.']);
                 exit;
@@ -387,6 +388,16 @@ function handleWorkflowPost(PDO $db): void
                 VALUES (?, ?, ?, ?, ?, 'returned', ?)
             ")->execute([$cycleId, SCHOOL_ID, $teacherId, $submissionId, $actorId, $remarks]);
 
+            $schoolYearQuery = $db->prepare("
+                SELECT sy.label
+                FROM sbm_cycles c
+                JOIN school_years sy ON sy.sy_id = c.sy_id
+                WHERE c.cycle_id = ? AND c.school_id = ?
+                LIMIT 1
+            ");
+            $schoolYearQuery->execute([$cycleId, SCHOOL_ID]);
+            $schoolYear = (string) ($schoolYearQuery->fetchColumn() ?: '');
+
             if (function_exists('logActivity')) {
                 logActivity(
                     'return_teacher_submission',
@@ -396,7 +407,28 @@ function handleWorkflowPost(PDO $db): void
             }
             $db->commit();
 
-            echo json_encode(['ok' => true, 'msg' => 'Teacher submission returned for revision. The teacher will see your remarks on their assessment page.']);
+            require_once __DIR__ . '/email_service.php';
+            $assessmentLink = baseUrl() . '/teacher/self_assessment.php';
+            if (trim((string) $teacher['email']) === '') {
+                echo json_encode([
+                    'ok' => true,
+                    'msg' => 'Teacher submission returned for revision, but no notification was sent because the teacher has no email address on file.',
+                ]);
+                exit;
+            }
+            $emailSent = sendTeacherAssessmentReturnedEmail(
+                $db,
+                $teacher,
+                $schoolYear,
+                $remarks,
+                $assessmentLink
+            );
+            echo json_encode([
+                'ok' => true,
+                'msg' => $emailSent
+                    ? 'Teacher submission returned for revision. A notification email was sent with your remarks.'
+                    : 'Teacher submission returned for revision, but the notification email could not be sent. Check the email log.',
+            ]);
         } catch (Throwable $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();

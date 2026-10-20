@@ -381,7 +381,7 @@ $previewRatingLabels = [
 ];
 if ($cycle && $cycle['status'] === 'submitted') {
   $previewResponses = $db->prepare("
-    SELECT r.rating, r.evidence_text, i.indicator_code, i.indicator_text, i.mov_guide,
+    SELECT r.indicator_id, r.rating, r.evidence_text, i.indicator_code, i.indicator_text, i.mov_guide,
            i.sort_order, d.dimension_no, d.dimension_name, d.color_hex,
            u.full_name AS rated_by_name
     FROM sbm_responses r
@@ -392,14 +392,27 @@ if ($cycle && $cycle['status'] === 'submitted') {
     ORDER BY d.dimension_no, i.sort_order
   ");
   $previewResponses->execute([$cycle['cycle_id'], $schoolId]);
+  $schoolHeadAttachments = $db->prepare("
+    SELECT attachment_id, indicator_id, original_name
+    FROM response_attachments
+    WHERE cycle_id = ? AND school_id = ?
+      AND deleted_at IS NULL AND is_current_version = 1
+    ORDER BY indicator_id, uploaded_at, attachment_id
+  ");
+  $schoolHeadAttachments->execute([$cycle['cycle_id'], $schoolId]);
+  $schoolHeadAttachmentsByIndicator = [];
+  foreach ($schoolHeadAttachments->fetchAll(PDO::FETCH_ASSOC) as $attachment) {
+    $schoolHeadAttachmentsByIndicator[(int) $attachment['indicator_id']][] = $attachment;
+  }
   foreach ($previewResponses->fetchAll(PDO::FETCH_ASSOC) as $response) {
+    $response['attachments'] = $schoolHeadAttachmentsByIndicator[(int) $response['indicator_id']] ?? [];
     $schoolHeadPreview[(int) $response['dimension_no']][] = $response;
   }
 
   $teacherPreview = $db->prepare("
     SELECT tr.teacher_id AS evaluator_id, u.full_name AS evaluator_name,
            'Teacher' AS evaluator_role, tr.rating, tr.remarks AS evaluator_remarks,
-           i.indicator_code, i.indicator_text, i.mov_guide, i.sort_order,
+           i.indicator_id, i.indicator_code, i.indicator_text, i.mov_guide, i.sort_order,
            d.dimension_no, d.dimension_name, d.color_hex
     FROM teacher_responses tr
     JOIN (
@@ -420,6 +433,24 @@ if ($cycle && $cycle['status'] === 'submitted') {
     ORDER BY u.full_name, d.dimension_no, i.sort_order
   ");
   $teacherPreview->execute([$cycle['cycle_id'], $schoolId, $cycle['cycle_id'], $schoolId]);
+  $teacherResponses = $teacherPreview->fetchAll(PDO::FETCH_ASSOC);
+  $teacherAttachments = $db->prepare("
+    SELECT attachment_id, indicator_id, uploaded_by, original_name
+    FROM response_attachments
+    WHERE cycle_id = ? AND school_id = ? AND uploader_role = 'teacher'
+      AND deleted_at IS NULL AND is_current_version = 1
+    ORDER BY uploaded_by, indicator_id, uploaded_at, attachment_id
+  ");
+  $teacherAttachments->execute([$cycle['cycle_id'], $schoolId]);
+  $teacherAttachmentsByTeacherAndIndicator = [];
+  foreach ($teacherAttachments->fetchAll(PDO::FETCH_ASSOC) as $attachment) {
+    $teacherAttachmentsByTeacherAndIndicator[(int) $attachment['uploaded_by']][(int) $attachment['indicator_id']][] = $attachment;
+  }
+  foreach ($teacherResponses as &$response) {
+    $response['attachments'] =
+      $teacherAttachmentsByTeacherAndIndicator[(int) $response['evaluator_id']][(int) $response['indicator_id']] ?? [];
+  }
+  unset($response);
   $stakeholderPreview = $db->prepare("
     SELECT sr.stakeholder_id AS evaluator_id, u.full_name AS evaluator_name,
            'Stakeholder' AS evaluator_role, sr.rating, sr.remarks AS evaluator_remarks,
@@ -445,7 +476,7 @@ if ($cycle && $cycle['status'] === 'submitted') {
   $stakeholderPreview->execute([$cycle['cycle_id'], $schoolId, $cycle['cycle_id'], $schoolId]);
 
   foreach (array_merge(
-    $teacherPreview->fetchAll(PDO::FETCH_ASSOC),
+    $teacherResponses,
     $stakeholderPreview->fetchAll(PDO::FETCH_ASSOC)
   ) as $response) {
     $evaluatorKey = $response['evaluator_role'] . ':' . (int) $response['evaluator_id'];
@@ -457,12 +488,22 @@ if ($cycle && $cycle['status'] === 'submitted') {
         'dimensions' => [],
         'indicator_count' => 0,
         'remark_count' => 0,
+        'evidence_count' => 0,
+        'match_count' => 0,
       ];
     }
     $evaluatorPreview[$evaluatorKey]['dimensions'][(int) $response['dimension_no']][] = $response;
     $evaluatorPreview[$evaluatorKey]['indicator_count']++;
-    if (trim((string) ($response['evaluator_remarks'] ?? '')) !== '') {
+    $hasRemark = trim((string) ($response['evaluator_remarks'] ?? '')) !== '';
+    $hasEvidence = !empty($response['attachments']);
+    if ($hasRemark) {
       $evaluatorPreview[$evaluatorKey]['remark_count']++;
+    }
+    if ($hasEvidence) {
+      $evaluatorPreview[$evaluatorKey]['evidence_count']++;
+    }
+    if ($hasRemark || $hasEvidence) {
+      $evaluatorPreview[$evaluatorKey]['match_count']++;
     }
   }
 }
@@ -2659,8 +2700,8 @@ include __DIR__ . '/../includes/header.php';
             </p>
 
             <label style="display:flex;align-items:center;gap:7px;margin:0 0 12px;font-size:12px;color:var(--n-700,#334155);">
-              <input type="checkbox" id="previewRemarksOnly">
-              Show only indicators with remarks
+              <input type="checkbox" id="previewRemarksOrEvidenceOnly">
+              Show only indicators with remarks or evidence
             </label>
 
             <div role="tablist" aria-label="Preview response source" style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;border-bottom:1px solid var(--n-200,#E2E8F0);">
@@ -2704,13 +2745,30 @@ include __DIR__ . '/../includes/header.php';
                         </thead>
                         <tbody>
                           <?php foreach ($dimensionResponses as $response): ?>
-                            <?php $rating = (int) $response['rating']; $hasEvidence = trim((string) ($response['evidence_text'] ?? '')) !== ''; ?>
-                            <tr data-preview-remark="<?= $hasEvidence ? '1' : '0' ?>">
+                            <?php
+                            $rating = (int) $response['rating'];
+                            $evidenceText = trim((string) ($response['evidence_text'] ?? ''));
+                            $responseAttachments = $response['attachments'] ?? [];
+                            $hasEvidence = $evidenceText !== '' || !empty($responseAttachments);
+                            ?>
+                            <tr data-preview-match="<?= $hasEvidence ? '1' : '0' ?>">
                               <td><span style="font-family:monospace;font-size:11px;font-weight:700;"><?= e($response['indicator_code']) ?></span></td>
                               <td style="font-size:12px;line-height:1.45;"><?= e($response['indicator_text']) ?></td>
                               <td style="font-size:11px;color:var(--n-500,#64748B);"><?= e($response['mov_guide'] ?: '—') ?></td>
                               <td style="white-space:nowrap;font-size:12px;font-weight:700;"><?= $rating ?> — <?= e($previewRatingLabels[$rating] ?? 'Unknown rating') ?></td>
-                              <td style="font-size:12px;"><?= e($response['evidence_text'] ?: '—') ?></td>
+                              <td style="font-size:12px;">
+                                <?php if (!$hasEvidence): ?>
+                                  —
+                                <?php else: ?>
+                                  <?php if ($evidenceText !== ''): ?><?= e($evidenceText) ?><?php endif; ?>
+                                  <?php $isFirstAttachment = true; ?>
+                                  <?php foreach ($responseAttachments as $attachment): ?>
+                                    <?php if ($evidenceText !== '' || !$isFirstAttachment): ?><br><?php endif; ?>
+                                    <a href="../includes/serve_attachment.php?id=<?= (int) $attachment['attachment_id'] ?>"><?= e($attachment['original_name']) ?></a>
+                                    <?php $isFirstAttachment = false; ?>
+                                  <?php endforeach; ?>
+                                <?php endif; ?>
+                              </td>
                               <td style="font-size:12px;"><?= e($response['rated_by_name'] ?: '—') ?></td>
                             </tr>
                           <?php endforeach; ?>
@@ -2723,17 +2781,17 @@ include __DIR__ . '/../includes/header.php';
                 <p style="font-size:12px;color:var(--n-500,#64748B);">No consolidated SBM indicator responses were found for this cycle.</p>
               <?php endif; ?>
               <p data-preview-empty-state hidden style="font-size:12px;color:var(--n-500,#64748B);margin:0 0 10px;" aria-live="polite">
-                No indicators with remarks match this filter.
+                No indicators with remarks or evidence match this filter.
               </p>
             </section>
 
             <section id="previewPane-teachers" role="tabpanel" aria-labelledby="previewTab-teachers"
               data-preview-pane="teachers" <?= $activePreviewTab !== 'teachers' ? 'hidden' : '' ?>>
               <?php foreach ($teacherEvaluatorPreview as $evaluator): ?>
-                <details data-preview-evaluator data-remark-count="<?= (int) $evaluator['remark_count'] ?>"
+                <details data-preview-evaluator data-match-count="<?= (int) $evaluator['match_count'] ?>"
                   style="margin-bottom:8px;border:1px solid var(--n-200,#E2E8F0);border-radius:7px;background:#fff;">
                   <summary style="padding:9px 10px;cursor:pointer;font-size:12px;font-weight:700;color:var(--n-700,#334155);">
-                    <?= e($evaluator['name']) ?> · <?= (int) $evaluator['indicator_count'] ?> indicators · <?= (int) $evaluator['remark_count'] ?> with remarks
+                    <?= e($evaluator['name']) ?> · <?= (int) $evaluator['indicator_count'] ?> indicators · <?= (int) $evaluator['remark_count'] ?> with remarks · <?= (int) $evaluator['evidence_count'] ?> with evidence
                   </summary>
                   <div style="padding:0 10px 10px;">
                     <?php foreach ($evaluator['dimensions'] as $dimensionResponses): $firstResponse = $dimensionResponses[0]; ?>
@@ -2743,15 +2801,32 @@ include __DIR__ . '/../includes/header.php';
                         </div>
                         <div class="tbl-wrap">
                           <table class="ind-table">
-                            <thead><tr><th>Code</th><th>Indicator</th><th>Rating</th><th>Evaluator remarks</th></tr></thead>
+                            <thead><tr><th>Code</th><th>Indicator</th><th>Rating</th><th>Evaluator remarks</th><th>Evidence</th></tr></thead>
                             <tbody>
                               <?php foreach ($dimensionResponses as $response): ?>
-                                <?php $hasRemark = trim((string) ($response['evaluator_remarks'] ?? '')) !== ''; $rating = (int) $response['rating']; ?>
-                                <tr data-preview-remark="<?= $hasRemark ? '1' : '0' ?>">
+                                <?php
+                                $hasRemark = trim((string) ($response['evaluator_remarks'] ?? '')) !== '';
+                                $responseAttachments = $response['attachments'] ?? [];
+                                $hasEvidence = !empty($responseAttachments);
+                                $rating = (int) $response['rating'];
+                                ?>
+                                <tr data-preview-match="<?= $hasRemark || $hasEvidence ? '1' : '0' ?>">
                                   <td><span style="font-family:monospace;font-size:11px;font-weight:700;"><?= e($response['indicator_code']) ?></span></td>
                                   <td style="font-size:12px;line-height:1.45;"><?= e($response['indicator_text']) ?></td>
                                   <td style="white-space:nowrap;font-size:12px;font-weight:700;"><?= $rating ?> — <?= e($previewRatingLabels[$rating] ?? 'Unknown rating') ?></td>
                                   <td style="font-size:12px;"><?= e($response['evaluator_remarks'] ?: '—') ?></td>
+                                  <td style="font-size:12px;">
+                                    <?php if (!$hasEvidence): ?>
+                                      —
+                                    <?php else: ?>
+                                      <?php $isFirstAttachment = true; ?>
+                                      <?php foreach ($responseAttachments as $attachment): ?>
+                                        <?php if (!$isFirstAttachment): ?><br><?php endif; ?>
+                                        <a href="../includes/serve_attachment.php?id=<?= (int) $attachment['attachment_id'] ?>"><?= e($attachment['original_name']) ?></a>
+                                        <?php $isFirstAttachment = false; ?>
+                                      <?php endforeach; ?>
+                                    <?php endif; ?>
+                                  </td>
                                 </tr>
                               <?php endforeach; ?>
                             </tbody>
@@ -2775,14 +2850,14 @@ include __DIR__ . '/../includes/header.php';
                 </details>
               <?php endforeach; ?>
               <p data-preview-empty-state hidden style="font-size:12px;color:var(--n-500,#64748B);margin:0 0 10px;" aria-live="polite">
-                No teacher indicators with remarks match this filter.
+                No teacher indicators with remarks or evidence match this filter.
               </p>
             </section>
 
             <section id="previewPane-external" role="tabpanel" aria-labelledby="previewTab-external"
               data-preview-pane="external" <?= $activePreviewTab !== 'external' ? 'hidden' : '' ?>>
               <?php foreach ($externalEvaluatorPreview as $evaluator): ?>
-                <details data-preview-evaluator data-remark-count="<?= (int) $evaluator['remark_count'] ?>"
+                <details data-preview-evaluator data-match-count="<?= (int) $evaluator['match_count'] ?>"
                   style="margin-bottom:8px;border:1px solid var(--n-200,#E2E8F0);border-radius:7px;background:#fff;">
                   <summary style="padding:9px 10px;cursor:pointer;font-size:12px;font-weight:700;color:var(--n-700,#334155);">
                     <?= e($evaluator['name']) ?> · <?= (int) $evaluator['indicator_count'] ?> indicators · <?= (int) $evaluator['remark_count'] ?> with remarks
@@ -2799,7 +2874,7 @@ include __DIR__ . '/../includes/header.php';
                             <tbody>
                               <?php foreach ($dimensionResponses as $response): ?>
                                 <?php $hasRemark = trim((string) ($response['evaluator_remarks'] ?? '')) !== ''; $rating = (int) $response['rating']; ?>
-                                <tr data-preview-remark="<?= $hasRemark ? '1' : '0' ?>">
+                                <tr data-preview-match="<?= $hasRemark ? '1' : '0' ?>">
                                   <td><span style="font-family:monospace;font-size:11px;font-weight:700;"><?= e($response['indicator_code']) ?></span></td>
                                   <td style="font-size:12px;line-height:1.45;"><?= e($response['indicator_text']) ?></td>
                                   <td style="white-space:nowrap;font-size:12px;font-weight:700;"><?= $rating ?> — <?= e($previewRatingLabels[$rating] ?? 'Unknown rating') ?></td>
@@ -2856,8 +2931,8 @@ include __DIR__ . '/../includes/header.php';
   <?php endif; ?>
 
   <script>
-    (function initPreviewTabsAndRemarksFilter() {
-      const toggle = document.getElementById('previewRemarksOnly');
+    (function initPreviewTabsAndEvidenceFilter() {
+      const toggle = document.getElementById('previewRemarksOrEvidenceOnly');
       const tabs = Array.from(document.querySelectorAll('[data-preview-tab]'));
       const panes = Array.from(document.querySelectorAll('[data-preview-pane]'));
       if (!toggle || !tabs.length || !panes.length) return;
@@ -2869,22 +2944,22 @@ include __DIR__ . '/../includes/header.php';
         return panes.find(pane => pane.dataset.previewPane === activeTab.dataset.previewTab);
       }
 
-      function applyRemarksFilter() {
+      function applyEvidenceFilter() {
         const pane = activePane();
         if (!pane) return;
         const enabled = toggle.checked;
         let visibleRows = 0;
 
-        pane.querySelectorAll('[data-preview-remark]').forEach(row => {
-          row.hidden = enabled && row.dataset.previewRemark !== '1';
+        pane.querySelectorAll('[data-preview-match]').forEach(row => {
+          row.hidden = enabled && row.dataset.previewMatch !== '1';
           if (!row.hidden) visibleRows++;
         });
 
         pane.querySelectorAll('[data-preview-dimension]').forEach(dimension => {
-          dimension.hidden = enabled && !dimension.querySelector('[data-preview-remark="1"]');
+          dimension.hidden = enabled && !dimension.querySelector('[data-preview-match="1"]');
         });
         pane.querySelectorAll('[data-preview-evaluator]').forEach(evaluator => {
-          evaluator.hidden = enabled && Number(evaluator.dataset.remarkCount) === 0;
+          evaluator.hidden = enabled && Number(evaluator.dataset.matchCount) === 0;
         });
 
         const emptyState = pane.querySelector('[data-preview-empty-state]');
@@ -2903,7 +2978,7 @@ include __DIR__ . '/../includes/header.php';
         panes.forEach(pane => {
           pane.hidden = pane.dataset.previewPane !== activeTab.dataset.previewTab;
         });
-        applyRemarksFilter();
+        applyEvidenceFilter();
       }
 
       tabs.forEach((tab, index) => {
@@ -2917,7 +2992,7 @@ include __DIR__ . '/../includes/header.php';
           selectTab(next);
         });
       });
-      toggle.addEventListener('change', applyRemarksFilter);
+      toggle.addEventListener('change', applyEvidenceFilter);
       selectTab(activeTab);
     })();
 

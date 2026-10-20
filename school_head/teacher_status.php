@@ -10,6 +10,19 @@ $db       = getDB();
 $schoolId = SCHOOL_ID;
 $syId     = $db->query("SELECT sy_id FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 
+if (!$syId && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'send_teacher_reminder') {
+    header('Content-Type: application/json; charset=utf-8');
+    if (($_SESSION['role'] ?? '') !== 'sbm_coordinator') {
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'msg' => 'Only the SBM Coordinator can send teacher reminders.']);
+        exit;
+    }
+    verifyCsrf();
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'msg' => 'There is no current school year for this reminder.']);
+    exit;
+}
+
 if (!$syId) {
     $pageTitle  = 'Teacher Submission Status';
     $activePage = 'teacher_status.php';
@@ -23,6 +36,123 @@ if (!$syId) {
 $cycle = $db->prepare("SELECT * FROM sbm_cycles WHERE school_id=? AND sy_id=?");
 $cycle->execute([$schoolId, $syId]);
 $cycle = $cycle->fetch();
+
+$currentSY = $db->query("SELECT label FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'send_teacher_reminder') {
+    header('Content-Type: application/json; charset=utf-8');
+    if (($_SESSION['role'] ?? '') !== 'sbm_coordinator') {
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'msg' => 'Only the SBM Coordinator can send teacher reminders.']);
+        exit;
+    }
+
+    verifyCsrf();
+    $teacherId = (int) ($_POST['teacher_id'] ?? 0);
+    if (!$syId || !$cycle || (int) ($_POST['cycle_id'] ?? 0) !== (int) $cycle['cycle_id'] || $teacherId <= 0) {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'msg' => 'The current assessment cycle or teacher is invalid. Refresh the page and try again.']);
+        exit;
+    }
+
+    try {
+        $db->beginTransaction();
+        $teacherStmt = $db->prepare("
+            SELECT user_id, full_name, email
+            FROM users
+            WHERE user_id = ? AND school_id = ? AND role = 'teacher' AND status = 'active'
+            FOR UPDATE
+        ");
+        $teacherStmt->execute([$teacherId, $schoolId]);
+        $teacher = $teacherStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$teacher) {
+            throw new DomainException('This teacher is not active in your school.');
+        }
+        if (trim((string) $teacher['email']) === '') {
+            throw new DomainException('This teacher does not have an email address on file.');
+        }
+
+        $submissionStmt = $db->prepare("
+            SELECT status
+            FROM teacher_submissions
+            WHERE cycle_id = ? AND school_id = ? AND teacher_id = ?
+            ORDER BY submission_id DESC
+            LIMIT 1
+        ");
+        $submissionStmt->execute([$cycle['cycle_id'], $schoolId, $teacherId]);
+        $submissionStatus = $submissionStmt->fetchColumn();
+        if ($submissionStatus === 'submitted') {
+            throw new DomainException('This teacher has already submitted the current assessment.');
+        }
+
+        $cooldownStmt = $db->prepare("
+            SELECT sent_at
+            FROM email_logs
+            WHERE user_id = ? AND email_type = 'assessment_reminder' AND status = 'sent'
+              AND sent_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+            ORDER BY sent_at DESC
+            LIMIT 1
+        ");
+        $cooldownStmt->execute([$teacherId]);
+        if ($cooldownStmt->fetchColumn()) {
+            throw new DomainException('A reminder was sent to this teacher within the last 24 hours. Please try again later.');
+        }
+
+        require_once __DIR__ . '/../includes/email_service.php';
+        $assessmentLink = baseUrl() . '/teacher/self_assessment.php';
+        $isReturned = $submissionStatus === 'returned';
+        $sent = sendAssessmentReminderEmail(
+            $db,
+            $teacher,
+            (string) $currentSY,
+            $assessmentLink,
+            $isReturned
+        );
+
+        $details = sprintf(
+            'Teacher ID %d; cycle ID %d; delivery %s',
+            $teacherId,
+            (int) $cycle['cycle_id'],
+            $sent ? 'sent' : 'failed'
+        );
+        $db->prepare("
+            INSERT INTO activity_log (user_id, action, module, details, ip_address)
+            VALUES (?, 'send_teacher_assessment_reminder', 'teacher_status', ?, ?)
+        ")->execute([
+            (int) $_SESSION['user_id'],
+            $details,
+            $_SERVER['REMOTE_ADDR'] ?? null,
+        ]);
+        $db->commit();
+
+        if (!$sent) {
+            http_response_code(502);
+            echo json_encode(['ok' => false, 'msg' => 'The reminder email could not be sent. Please try again later.']);
+            exit;
+        }
+
+        echo json_encode([
+            'ok' => true,
+            'msg' => $isReturned
+                ? 'Revision reminder sent to the teacher.'
+                : 'Assessment reminder sent to the teacher.',
+        ]);
+    } catch (DomainException $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'msg' => $e->getMessage()]);
+    } catch (Throwable $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        error_log('Coordinator teacher reminder failed: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'msg' => 'The reminder could not be processed. Please try again later.']);
+    }
+    exit;
+}
 
 // ── Search / pagination / filter params ──────────────────────
 $teacherSearch  = trim($_GET['ts'] ?? '');
@@ -38,7 +168,6 @@ $pendingCount      = 0;
 $teacherTotalPages = 1;
 $pendingTeachers   = [];
 $filteredTotal     = 0;
-$currentSY         = $db->query("SELECT label FROM school_years WHERE is_current=1 LIMIT 1")->fetchColumn();
 
 if ($cycle) {
   $latestTeacherSubmissionJoin = "
@@ -423,9 +552,17 @@ include __DIR__.'/../includes/header.php';
               Returned for revision
             <?php else: ?>
               Not yet submitted
-              <?php if ($t['email']): ?>
-                · <a href="mailto:<?= e($t['email']) ?>?subject=<?= urlencode('SBM Self-Assessment Reminder') ?>&body=<?= urlencode("Dear {$t['full_name']},\n\nThis is a reminder to please submit your SBM Self-Assessment at your earliest convenience.\n\nThank you.") ?>">Send reminder</a>
-              <?php endif; ?>
+            <?php endif; ?>
+            <?php if (!$submitted && !empty($_COORDINATOR_VIEW) && !empty($t['email'])): ?>
+              <div style="margin-top:6px;">
+                <button type="button" class="btn btn-secondary btn-sm"
+                  data-reminder-button
+                  data-teacher-id="<?= (int) $t['user_id'] ?>"
+                  data-cycle-id="<?= (int) $cycle['cycle_id'] ?>"
+                  data-csrf="<?= e(csrfToken()) ?>">Remind</button>
+                <span id="reminder-feedback-<?= (int) $t['user_id'] ?>"
+                  role="status" aria-live="polite" style="font-size:11px;margin-left:6px;"></span>
+              </div>
             <?php endif; ?>
           </td>
           <td class="ts-td-status">
@@ -544,6 +681,59 @@ include __DIR__.'/../includes/header.php';
 
   // Initialize on page load
   bindSearchLogic();
+
+  document.addEventListener('click', async function (event) {
+    const button = event.target instanceof Element
+      ? event.target.closest('[data-reminder-button]')
+      : null;
+    if (!button || button.disabled) return;
+
+    const feedback = document.getElementById(`reminder-feedback-${button.dataset.teacherId}`);
+    const formData = new FormData();
+    formData.append('action', 'send_teacher_reminder');
+    formData.append('teacher_id', button.dataset.teacherId);
+    formData.append('cycle_id', button.dataset.cycleId);
+    formData.append('csrf_token', button.dataset.csrf);
+    button.disabled = true;
+    button.textContent = 'Sending…';
+    if (feedback) {
+      feedback.textContent = '';
+      feedback.style.color = '';
+    }
+
+    try {
+      const response = await fetch(window.location.href, {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        body: formData
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        if (feedback) {
+          feedback.textContent = result.msg || 'The reminder could not be sent.';
+          feedback.style.color = '#B91C1C';
+        }
+        return;
+      }
+
+      if (feedback) {
+        feedback.textContent = result.msg;
+        feedback.style.color = '#15803D';
+      }
+      button.textContent = 'Sent';
+      return;
+    } catch (error) {
+      if (feedback) {
+        feedback.textContent = 'The reminder could not be sent. Please try again.';
+        feedback.style.color = '#B91C1C';
+      }
+    } finally {
+      if (button.isConnected && button.textContent !== 'Sent') {
+        button.disabled = false;
+        button.textContent = 'Remind';
+      }
+    }
+  });
 })();
 </script>
 

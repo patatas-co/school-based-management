@@ -557,7 +557,7 @@ $successMsg = $mode === 'reset'
       align-items: center;
     }
 
-    input[type="password"] {
+    .input-wrap input {
       width: 100%;
       padding: 12px 40px 12px 42px;
       border: 1.5px solid var(--n200);
@@ -572,12 +572,12 @@ $successMsg = $mode === 'reset'
       height: 46px;
     }
 
-    input[type="password"]:focus {
+    .input-wrap input:focus {
       border-color: var(--green);
       box-shadow: 0 0 0 3px rgba(22, 163, 74, .12);
     }
 
-    input[type="password"]::placeholder {
+    .input-wrap input::placeholder {
       color: var(--light);
       font-size: 13.5px;
     }
