@@ -12,6 +12,8 @@ function sbmRenderBadgeOrText(
     $textColors = [
         'neutral' => '#6B7280',
         'success' => '#15803D',
+        'neutral-light' => '#D1D5DB',
+        'success-light' => '#86EFAC',
     ];
 
     if ($textOnly || ($showOnlyIfException && !$isException)) {

@@ -297,11 +297,6 @@ include __DIR__.'/../includes/header.php';
 .ts-meta         { font-size:11.5px;color:var(--n500);margin-top:2px; }
 .ts-meta a       { color:var(--blue);text-decoration:none; }
 .ts-meta a:hover { text-decoration:underline; }
-.ts-badge        { display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;padding:0;border-radius:0;background:transparent;flex-shrink:0;color:var(--n600); }
-.ts-badge::before { content:"";width:8px;height:8px;border-radius:50%;background:#D5D9E0; }
-.ts-badge.pending::before { background:#D6A74F; }
-.ts-badge.returned::before { background:#D6A74F; }
-.ts-badge.done::before { background:#73A88C; }
 .ts-empty        { text-align:center;padding:40px 20px;color:var(--n400);font-size:13px; }
 
 /* ── Table layout ─────────────────────────────────────── */
@@ -309,18 +304,17 @@ include __DIR__.'/../includes/header.php';
 .ts-table.tbl-enhanced thead th { padding:9px 12px; }
 .ts-table.tbl-enhanced tbody td { padding:7px 12px; }
 .ts-table.tbl-enhanced tbody tr:hover td { background:#F9FAFB; }
-.ts-table.tbl-enhanced tbody tr.ts-row-pending td { background:#FFFCF6; }
-.ts-table.tbl-enhanced tbody tr.ts-row-pending:hover td { background:#FFF9ED; }
-.ts-table th.ts-th-teacher { width:31%; }
+.ts-table.tbl-enhanced tbody tr.ts-row-pending td { background:#FFF9ED; }
+.ts-table.tbl-enhanced tbody tr.ts-row-pending td:first-child { box-shadow:inset 3px 0 0 #D6A74F; }
+.ts-table.tbl-enhanced tbody tr.ts-row-pending:hover td { background:#FFF5E3; }
+.ts-table th.ts-th-teacher { width:38%; }
 .ts-table th.ts-th-department { width:20%; }
-.ts-table th.ts-th-submitted { width:23%; }
-.ts-table th.ts-th-status { width:15%; }
-.ts-table th.ts-th-actions { width:11%;text-align:right; }
+.ts-table th.ts-th-submitted { width:24%; }
+.ts-table th.ts-th-actions { width:18%;text-align:right; }
 .ts-table td.ts-td-actions { text-align:right;white-space:nowrap; }
 .ts-td-sub      { font-size:12px;color:var(--n500)!important; }
 .ts-neutral-avatar { width:34px;height:34px;border-radius:9px;background:var(--n-100);color:var(--n-600); }
-.ts-department-chip { display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;border:1px solid var(--n-200);background:var(--n-100);color:var(--n-600);font-size:11px;font-weight:600; }
-.ts-td-status-inner { display:flex;align-items:center;justify-content:flex-start; }
+.ts-department { color:var(--n500);font-size:12px;font-weight:400; }
 .ts-remind-link { display:inline-flex;align-items:center;justify-content:center;min-height:26px;padding:3px 9px;border:1px solid var(--n-400);border-radius:5px;background:#fff;color:var(--n-700);font:inherit;font-size:11.5px;text-decoration:none;cursor:pointer; }
 .ts-remind-link:hover { border-color:var(--n-500);color:var(--n-800);background:var(--n-50); }
 
@@ -344,6 +338,32 @@ include __DIR__.'/../includes/header.php';
   .ts-pbtn        { min-width:30px;height:30px;font-size:11.5px; }
   .ts-table.tbl-enhanced thead th,
   .ts-table.tbl-enhanced tbody td { padding-left:8px;padding-right:8px; }
+}
+
+@media(max-width:900px){
+  .ts-table th.ts-th-teacher { width:36%; }
+  .ts-table th.ts-th-department { width:19%; }
+  .ts-table th.ts-th-submitted { width:27%; }
+  .ts-table th.ts-th-actions { width:18%; }
+}
+
+@media(max-width:600px){
+  .ts-table { min-width:560px; }
+  .ts-table th.ts-th-teacher { width:38%; }
+  .ts-table th.ts-th-department { width:18%; }
+  .ts-table th.ts-th-submitted { width:26%; }
+  .ts-table th.ts-th-actions { width:18%; }
+  .ts-table.tbl-enhanced thead th { font-size:9px; }
+  .ts-table.tbl-enhanced thead th,
+  .ts-table.tbl-enhanced tbody td { padding-left:6px;padding-right:6px; }
+  .ts-table .cell-avatar { gap:6px; }
+  .ts-table .cell-av { width:28px;height:28px;flex:0 0 28px; }
+  .ts-table .cell-av-name { font-size:11px; }
+  .ts-table .cell-av-sub { font-size:10px; }
+  .ts-table .ts-td-sub { font-size:10.5px; }
+  .ts-table th.ts-th-actions,
+  .ts-table td.ts-td-actions { text-align:right; }
+  .ts-remind-link { min-height:24px;padding:2px 5px;font-size:10px; }
 }
 </style>
 
@@ -436,7 +456,6 @@ include __DIR__.'/../includes/header.php';
           <th class="ts-th-teacher">Teacher</th>
           <th class="ts-th-department">Department</th>
           <th class="ts-th-submitted">Submitted On</th>
-          <th class="ts-th-status">Status</th>
           <th class="ts-th-actions">Actions</th>
         </tr>
       </thead>
@@ -444,7 +463,6 @@ include __DIR__.'/../includes/header.php';
         <?php foreach ($pendingTeachers as $t):
           $submitted  = $t['sub_status'] === 'submitted';
           $returned = $t['sub_status'] === 'returned';
-          $statusClass = $submitted ? 'done' : ($returned ? 'returned' : 'pending');
           // Initials avatar
           $parts    = array_filter(explode(' ', trim($t['full_name'])));
           $initials = strtoupper(substr($parts[0] ?? 'T', 0, 1) . (isset($parts[1]) ? substr($parts[1], 0, 1) : ''));
@@ -461,9 +479,9 @@ include __DIR__.'/../includes/header.php';
           </td>
           <td class="ts-td-sub">
             <?php if (trim((string) ($t['department'] ?? '')) !== ''): ?>
-              <span class="ts-department-chip"><?= e($t['department']) ?></span>
+              <span class="ts-department"><?= e($t['department']) ?></span>
             <?php else: ?>
-              <span style="color:var(--n-400);">Not set</span>
+              <span style="color:var(--n-400);font-style:italic;">Not set</span>
             <?php endif; ?>
           </td>
           <td class="ts-td-sub">
@@ -474,11 +492,6 @@ include __DIR__.'/../includes/header.php';
             <?php else: ?>
               Not yet submitted
             <?php endif; ?>
-          </td>
-          <td class="ts-td-status">
-            <span class="ts-badge <?= $submitted ? 'done' : 'pending' ?>">
-              <?= $submitted ? 'Submitted' : 'Pending' ?>
-            </span>
           </td>
           <td class="ts-td-actions">
             <?php if (!$submitted && !empty($_COORDINATOR_VIEW) && !empty($t['email'])): ?>

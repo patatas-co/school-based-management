@@ -6,6 +6,7 @@ ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/presentation_badges.php';
 require_once __DIR__ . '/../includes/improvement_plan_workflow.php';
 require_once __DIR__ . '/../includes/workflow_actions.php';
 requireRole('sbm_coordinator');
@@ -460,6 +461,29 @@ $historyQ = $db->prepare("
 ");
 $historyQ->execute([$schoolId]);
 $cycleHistory = $historyQ->fetchAll();
+$cycleMaturityPresentation = [];
+foreach ($cycleHistory as $historyIndex => $historyCycle) {
+  $historyMaturity = sbmMaturityLevel((float) $historyCycle['overall_score'])['label'];
+  if (strpos($historyMaturity, 'Advanced') === 0) {
+    $historyMaturity = 'Advanced';
+  }
+  $previousMaturity = null;
+  if ($historyIndex > 0) {
+    $previousMaturity = sbmMaturityLevel((float) $cycleHistory[$historyIndex - 1]['overall_score'])['label'];
+    if (strpos($previousMaturity, 'Advanced') === 0) {
+      $previousMaturity = 'Advanced';
+    }
+  }
+  $cycleMaturityPresentation[$historyIndex] = [
+    'label' => $historyMaturity,
+    'is_exception' => $historyMaturity !== 'Advanced'
+      || ($previousMaturity !== null && $historyMaturity !== $previousMaturity),
+  ];
+}
+$dashboardMaturity = $mat ? $mat['label'] : null;
+if ($dashboardMaturity !== null && strpos($dashboardMaturity, 'Advanced') === 0) {
+  $dashboardMaturity = 'Advanced';
+}
 
 // Trend data
 $trendQ = $db->prepare("
@@ -2490,7 +2514,16 @@ include __DIR__ . '/../includes/header.php';
       <div class="hero-score-chip">
         <div class="hero-score-num"><?= number_format($cycle['overall_score'], 1) ?></div>
         <div class="hero-score-label">Overall Score</div>
-        <div class="hero-score-mat"><?= e($cycle['maturity_level']) ?></div>
+        <?php if ($dashboardMaturity !== null): ?>
+          <div class="hero-score-mat"><?= sbmRenderBadgeOrText(
+            $dashboardMaturity,
+            false,
+            true,
+            'warning',
+            $dashboardMaturity === 'Advanced' ? 'success-light' : 'neutral-light',
+            true
+          ) ?></div>
+        <?php endif; ?>
       </div>
     <?php endif; ?>
 
@@ -2821,7 +2854,7 @@ include __DIR__ . '/../includes/header.php';
               </tr>
             </thead>
             <tbody>
-              <?php foreach (array_reverse($cycleHistory) as $ch): ?>
+              <?php foreach (array_reverse($cycleHistory, true) as $historyIndex => $ch): ?>
                 <tr>
                   <td style="font-weight:600;">SY <?= e($ch['sy_label']) ?></td>
                   <td>
@@ -2829,12 +2862,14 @@ include __DIR__ . '/../includes/header.php';
                       <span style="font-family:var(--font-display);font-size:15px;font-weight:800;color:<?= sbmMaturityLevel(floatval($ch['overall_score']))['color'] ?>;"><?= $ch['overall_score'] ?>%</span>
                     <?php else: ?><span style="color:var(--n-300);">—</span><?php endif; ?>
                   </td>
-                  <td>
-                    <?php if ($ch['maturity_level']): ?>
-                      <span class="pill pill-<?= e($ch['maturity_level']) ?>"><?= e($ch['maturity_level']) ?></span>
-                    <?php else: ?>—<?php endif; ?>
-                  </td>
-                  <td><span class="pill pill-<?= e($ch['status']) ?>"><?= ucfirst(str_replace('_', ' ', $ch['status'])) ?></span></td>
+                  <td><?= sbmRenderBadgeOrText(
+                    $cycleMaturityPresentation[$historyIndex]['label'],
+                    $cycleMaturityPresentation[$historyIndex]['is_exception']
+                  ) ?></td>
+                  <td><?= sbmRenderBadgeOrText(
+                    ucfirst(str_replace('_', ' ', $ch['status'])),
+                    $ch['status'] === 'submitted'
+                  ) ?></td>
                   <td style="font-size:12px;color:var(--n-400);">
                     <?= $ch['validated_at'] ? date('M d, Y', strtotime($ch['validated_at'])) : '—' ?>
                   </td>
@@ -3185,7 +3220,7 @@ include __DIR__ . '/../includes/header.php';
             </tr>
           </thead>
           <tbody>
-            <?php foreach (array_reverse($cycleHistory) as $ch): ?>
+            <?php foreach (array_reverse($cycleHistory, true) as $historyIndex => $ch): ?>
               <tr>
                 <td style="font-weight:600;">SY <?= e($ch['sy_label']) ?></td>
                 <td>
@@ -3193,12 +3228,14 @@ include __DIR__ . '/../includes/header.php';
                     <span style="font-family:var(--font-display);font-size:15px;font-weight:800;color:<?= sbmMaturityLevel(floatval($ch['overall_score']))['color'] ?>;"><?= $ch['overall_score'] ?>%</span>
                   <?php else: ?><span style="color:var(--n-300);">—</span><?php endif; ?>
                 </td>
-                <td>
-                  <?php if ($ch['maturity_level']): ?>
-                    <span class="pill pill-<?= e($ch['maturity_level']) ?>"><?= e($ch['maturity_level']) ?></span>
-                  <?php else: ?>—<?php endif; ?>
-                </td>
-                <td><span class="pill pill-<?= e($ch['status']) ?>"><?= ucfirst(str_replace('_', ' ', $ch['status'])) ?></span></td>
+                <td><?= sbmRenderBadgeOrText(
+                  $cycleMaturityPresentation[$historyIndex]['label'],
+                  $cycleMaturityPresentation[$historyIndex]['is_exception']
+                ) ?></td>
+                <td><?= sbmRenderBadgeOrText(
+                  ucfirst(str_replace('_', ' ', $ch['status'])),
+                  $ch['status'] === 'submitted'
+                ) ?></td>
                 <td style="font-size:12px;color:var(--n-400);">
                   <?= $ch['validated_at'] ? date('M d, Y', strtotime($ch['validated_at'])) : '—' ?>
                 </td>

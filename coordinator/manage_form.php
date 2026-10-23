@@ -200,6 +200,7 @@ if ($activeVersion) {
 
 // Check if any active cycle exists — warn coordinator
 $activeCycle = $db->query("SELECT cycle_id, status FROM sbm_cycles WHERE status IN('in_progress','submitted','consolidating') LIMIT 1")->fetch();
+$hasSubmittedCycle = $activeCycle && $activeCycle['status'] === 'submitted';
 
 $pageTitle = 'Manage Form';
 $activePage = 'manage_form.php';
@@ -471,6 +472,7 @@ include __DIR__ . '/../includes/header.php';
 @media (max-width: 640px) {
     .mf-publish-panel { padding: 12px 16px; }
     .mf-publish-panel #newVersionLabel { width: 100% !important; }
+    .mf-publish-warning-note { flex-basis: 100%; }
 }
 
 .mf-publish-info {
@@ -505,17 +507,18 @@ include __DIR__ . '/../includes/header.php';
 /* ── WARNING BANNER ── */
 .mf-warning {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 10px;
-    padding: 12px 16px;
-    background: #FEF3C7;
-    border: 1px solid #FDE68A;
-    border-radius: 9px;
+    padding: 9px 13px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
     font-size: 13px;
-    color: #92400E;
+    color: #64748B;
     margin-bottom: 18px;
 }
-.mf-warning svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; margin-top: 1px; }
+.mf-warning svg { width: 15px; height: 15px; stroke: #94A3B8; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.mf-publish-warning-note { flex:1 1 280px;max-width:480px;font-size:11.5px;font-weight:400;color:var(--n-500);line-height:1.45; }
 
 /* ── IMPORT FROM DOCUMENT ── */
 .mf-import-desc {
@@ -632,13 +635,10 @@ include __DIR__ . '/../includes/header.php';
 }
 </style>
 
-<?php if ($activeCycle): ?>
+<?php if ($hasSubmittedCycle): ?>
 <div class="mf-warning">
     <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    <div>
-        <strong>Assessment in Progress</strong> — A cycle is currently <strong><?= ucfirst(str_replace('_',' ',$activeCycle['status'])) ?></strong>.
-        Publishing a new form version will only apply to <em>future</em> cycles. All submitted and in-progress data remain linked to their original version.
-    </div>
+    <div>A cycle is submitted. New form versions apply to future cycles only.</div>
 </div>
 <?php endif; ?>
 
@@ -649,7 +649,7 @@ include __DIR__ . '/../includes/header.php';
         <div class="card">
             <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
                 <span class="card-title">Version History</span>
-                <span style="font-size:11.5px;color:var(--n-400);"><?= count($versions) ?> version(s)</span>
+                <span style="font-size:11.5px;color:var(--n-400);"><?= count($versions) ?> version<?= count($versions) === 1 ? '' : 's' ?></span>
             </div>
             <div class="card-body" style="padding:12px 12px 0;display:flex;gap:8px;flex-wrap:wrap;">
                 <button class="btn btn-secondary btn-sm" id="btnPreviewActive" onclick="previewVersion(<?= $activeVersion ? $activeVersion['version_id'] : 0 ?>)" style="flex:1;justify-content:center;">
@@ -685,9 +685,6 @@ include __DIR__ . '/../includes/header.php';
                             <div class="mf-v-meta">
                                 <?= $dimCount ?>D · <?= $indCount ?>I ·
                                 <?= $v['published_at'] ? date('M d, Y', strtotime($v['published_at'])) : 'Draft' ?>
-                                <?php if ($isCurrent): ?>
-                                    <span style="color:var(--brand-600);font-weight:700;"> · Active</span>
-                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -725,10 +722,6 @@ include __DIR__ . '/../includes/header.php';
         <div id="viewMode">
             <div class="mf-editor-header">
                 <div style="display:flex;align-items:center;gap:10px;">
-                    <span class="mf-mode-badge mf-mode-view">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                        View Mode
-                    </span>
                     <?php if ($activeVersion): ?>
                     <span style="font-size:13px;color:var(--n-500);">
                         Active: <strong style="color:var(--n-800);"><?= e($activeVersion['label'] ?? 'Version ' . $activeVersion['version_number']) ?></strong>
@@ -832,6 +825,9 @@ include __DIR__ . '/../includes/header.php';
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <input type="text" class="fc" id="newVersionLabel" placeholder="Version label (e.g. DO 007 s.2025 Update)"
                style="width:280px;padding:7px 12px;font-size:13px;">
+        <?php if ($hasSubmittedCycle): ?>
+            <span class="mf-publish-warning-note">This version will apply to future cycles only. Submitted and in-progress data stay linked to their original version.</span>
+        <?php endif; ?>
         <button class="btn btn-primary" onclick="publishNewVersion()" id="btnPublish">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
             Publish New Version
