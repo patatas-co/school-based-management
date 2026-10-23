@@ -1,5 +1,6 @@
 <?php
 // includes/report_annex_a.php
+require_once __DIR__ . '/presentation_badges.php';
 // Shared Annex A report renderer.
 // Requires: $reportData, $dimScores, $responses, $db
 // All three must be set before including this file.
@@ -95,9 +96,8 @@ if (!$reportData): ?>
       </div>
       <?php if ($reportData['maturity_level']):
         $mat = sbmMaturityLevel(floatval($reportData['overall_score'])); ?>
-        <div
-          style="margin-top:12px;display:inline-flex;padding:6px 18px;border-radius:999px;background:<?= $mat['bg'] ?>;color:<?= $mat['color'] ?>;font-weight:700;font-size:14px;">
-          Maturity Level: <?= e($mat['label']) ?>
+        <div style="margin-top:12px;font-weight:700;font-size:14px;">
+          Maturity Level: <?= sbmRenderBadgeOrText($mat['label'], strpos($mat['label'], 'Advanced') !== 0) ?>
         </div>
       <?php endif; ?>
     </div>
@@ -119,7 +119,10 @@ if (!$reportData): ?>
           </thead>
           <tbody>
             <?php foreach (($dimScores ?? []) as $ds): ?>
-              <?php $mat = sbmMaturityLevel(floatval($ds['percentage'])); ?>
+              <?php
+              $mat = sbmMaturityLevel(floatval($ds['percentage']));
+              $maturityLabel = $mat['label'] === 'Advanced (Accredited)' ? 'Advanced' : $mat['label'];
+              ?>
               <tr>
                 <td style="font-weight:700;color:<?= e($ds['color_hex']) ?>;"><?= $ds['dimension_no'] ?></td>
                 <td><strong><?= e($ds['dimension_name']) ?></strong></td>
@@ -133,9 +136,7 @@ if (!$reportData): ?>
                     <strong style="color:<?= $mat['color'] ?>;"><?= number_format($ds['percentage'], 1) ?>%</strong>
                   </div>
                 </td>
-                <td><span
-                    style="display:inline-flex;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;background:<?= $mat['bg'] ?>;color:<?= $mat['color'] ?>;"><?= $mat['label'] ?></span>
-                </td>
+                <td><?= sbmRenderBadgeOrText($maturityLabel, $maturityLabel !== 'Advanced') ?></td>
               </tr>
             <?php endforeach; ?>
           </tbody>

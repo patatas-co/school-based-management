@@ -3,6 +3,7 @@ ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/presentation_badges.php';
 require_once __DIR__ . '/../includes/assessment_scoring.php';
 function buildInPlaceholders(array $arr): string
 {
@@ -1613,6 +1614,8 @@ define('TIER_IMPROVE_MAX',  62.5);
           $level = $score !== null ? interventionLevel($score) : ['label'=>'No data','class'=>'level-low','dot'=>'⚪'];
           $color = $score !== null ? scoreBarColor($score) : '#CBD5E1';
           $pct   = $score ?? 0;
+          $isLevelException = $level['label'] !== 'Acceptable/Sustained';
+          $levelTone = $level['class'] === 'level-critical' ? 'danger' : 'warning';
         ?>
         <tr>
           <td><span class="ind-code-badge"><?= e($ind['indicator_code']) ?></span></td>
@@ -1634,7 +1637,7 @@ define('TIER_IMPROVE_MAX',  62.5);
               <span style="font-size:12px;color:var(--n400);">— not rated</span>
             <?php endif; ?>
           </td>
-          <td><span class="intervention-level-pill <?= $level['class'] ?>"><?= $level['label'] ?></span></td>
+          <td><?= sbmRenderBadgeOrText($level['label'], $isLevelException, true, $levelTone) ?></td>
         </tr>
         <?php endforeach; ?>
       <?php endif; ?>

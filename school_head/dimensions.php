@@ -2,6 +2,7 @@
 ob_start();
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/auth.php';
+require_once __DIR__.'/../includes/presentation_badges.php';
 requireRole('school_head', 'sbm_coordinator');
 $db = getDB();
 $schoolId = $_SESSION['school_id'] ?? 0;
@@ -73,12 +74,17 @@ include __DIR__.'/../includes/header.php';
       <div>
         <div style="font-size:11.5px;color:var(--n500);margin-bottom:2px;">Overall SBM Score</div>
         <div style="font-size:28px;font-weight:800;color:var(--g600);"><?= number_format($cycle['overall_score']??0,1) ?>%</div>
-      </div>
-      <div><?php 
+        <?php
         $overallScore = (float)($cycle['overall_score'] ?? 0);
         $overallMat = sbmMaturityLevel($overallScore);
-        echo sbmMaturityBadge(!empty($cycle['maturity_level']) ? $cycle['maturity_level'] : $overallMat['label']);
-      ?></div>
+        $overallMaturity = !empty($cycle['maturity_level']) ? $cycle['maturity_level'] : $overallMat['label'];
+        $isAdvanced = strpos($overallMaturity, 'Advanced') === 0;
+        $bannerMaturity = $isAdvanced ? 'Advanced' : $overallMaturity;
+        ?>
+        <div style="margin-top:2px;">
+          <?= sbmRenderBadgeOrText($bannerMaturity, false, true, 'warning', $isAdvanced ? 'success' : 'neutral', true) ?>
+        </div>
+      </div>
       <div><span class="pill pill-<?= e($cycle['status']) ?>"><?= ucfirst(str_replace('_',' ',$cycle['status'])) ?></span></div>
     </div>
   </div>
@@ -102,7 +108,7 @@ include __DIR__.'/../includes/header.php';
   <div class="prog" style="margin-bottom:10px;"><div class="prog-fill" style="width:<?= min(100,$pct) ?>%;background:<?= e($d['color_hex']) ?>;"></div></div>
   <div class="flex-cb">
     <span style="font-size:12px;color:var(--n500);"><?= $done ?>/<?= $d['indicator_count'] ?> indicators rated</span>
-    <?php if($pct): ?><?= sbmMaturityBadge($maturity) ?><?php endif; ?>
+    <?php if($pct): ?><?= sbmRenderBadgeOrText($maturity, $maturity !== 'Advanced') ?><?php endif; ?>
   </div>
   <?php if ($score): ?>
   <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--n100);display:flex;gap:16px;">

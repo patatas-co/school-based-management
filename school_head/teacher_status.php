@@ -257,84 +257,72 @@ function tsUrl(int $page, string $search = '', string $filter = 'all'): string {
     return $base . ($q ? '?' . http_build_query($q) : '');
 }
 
-$submittedPct = $totalTeachers > 0 ? round(($submittedTeachers / $totalTeachers) * 100) : 0;
 $pageTitle    = 'Teacher Submission Status';
 $activePage   = 'teacher_status.php';
 include __DIR__.'/../includes/header.php';
 ?>
 
 <style>
-/* ── Spinner Animation ───────────────────────────────── */
-@keyframes spin-anim {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-.spin { animation: spin-anim 1s linear infinite; }
-
 /* ── Page layout ─────────────────────────────────────── */
-.ts-page-wrap    { width: 100%; padding: 0 20px; }
-
-/* ── Summary cards ───────────────────────────────────── */
-.ts-summary      { display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px; }
-.ts-card         { background:var(--white);border:1px solid var(--n200);border-radius:var(--radius);padding:16px 20px;display:flex;flex-direction:column;gap:4px; }
-.ts-card-val     { font-size:28px;font-weight:800;font-family:var(--font-display); }
-.ts-card-lbl     { font-size:12px;font-weight:600;color:var(--n500);text-transform:uppercase;letter-spacing:.04em; }
-.ts-card-bar     { height:4px;border-radius:999px;background:var(--n100);margin-top:8px;overflow:hidden; }
-.ts-card-fill    { height:100%;border-radius:999px;transition:width .4s; }
+.ts-page-wrap    { width: 100%;padding:0 20px;box-sizing:border-box; }
 
 /* ── Panel ───────────────────────────────────────────── */
-.ts-panel        { background:var(--white);border:1px solid var(--n200);border-radius:var(--radius);overflow:hidden; }
-.ts-panel-head   { padding:16px 20px 0;border-bottom:1px solid var(--n100); }
-.ts-panel-title  { font-size:14px;font-weight:700;color:var(--n800);margin-bottom:12px; }
-
-/* ── Toolbar ─────────────────────────────────────────── */
-.ts-toolbar      { display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid var(--n100); }
-.ts-search-wrap  { position:relative;flex:1;min-width:200px; }
-.ts-search-icon  { position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--n400);pointer-events:none; }
-.ts-search-input { width:100%;padding:8px 10px 8px 34px;font-size:13px;border:1px solid var(--n200);border-radius:8px;outline:none;color:var(--n800);background:var(--n50);transition:border-color .15s; }
-.ts-search-input:focus { border-color:var(--blue);background:var(--white); }
-.ts-filter-tabs  { display:flex;gap:4px; }
-.ts-tab          { padding:7px 14px;font-size:12.5px;font-weight:600;border:1px solid var(--n200);border-radius:8px;background:var(--white);color:var(--n500);cursor:pointer;text-decoration:none;white-space:nowrap;transition:all .15s; }
-.ts-tab:hover    { background:var(--n100); }
-.ts-tab.active-all     { background:var(--n800);color:#fff;border-color:var(--n800); }
-.ts-tab.active-pending { background:#FEF3C7;color:#92400E;border-color:#FDE68A; }
-.ts-tab.active-done    { background:#DCFCE7;color:#166534;border-color:#86EFAC; }
-.ts-clear        { font-size:12px;color:var(--n400);text-decoration:none;white-space:nowrap;padding:4px 6px;border-radius:6px; }
-.ts-clear:hover  { background:var(--n100); }
+.ts-panel        { margin-bottom:16px;border-color:var(--n-150);box-shadow:none;overflow:hidden; }
+/* ── Filters and search ───────────────────────────────── */
+.ts-toolbar      { display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;width:100%;padding:8px 20px;border-bottom:1px solid var(--n100); }
+.ts-search-wrap  { flex:0 1 320px;min-width:220px; }
+.ts-search-wrap input { width:100%; }
+.ts-filter-tabs  { display:flex;align-items:center;gap:0;overflow-x:auto;white-space:nowrap;margin-left:auto; }
+.ts-tab          { padding:7px 10px;font-size:12px;font-weight:500;border:0;border-bottom:1px solid transparent;background:transparent;color:var(--n500);cursor:pointer;text-decoration:none;white-space:nowrap;transition:color .15s,border-color .15s; }
+.ts-tab:hover    { color:var(--n800); }
+.ts-tab.active-all,
+.ts-tab.active-pending,
+.ts-tab.active-done { color:var(--n900);font-weight:600;border-bottom-color:var(--n700); }
+.ts-tab-separator { color:var(--n300);font-size:12px; }
+.ts-clear        { font-size:12px;color:var(--n500);text-decoration:none;white-space:nowrap;padding:4px 6px; }
+.ts-clear:hover  { color:var(--n800); }
 
 /* ── Warning banner ──────────────────────────────────── */
-.ts-warning      { display:flex;align-items:center;gap:8px;margin:0;padding:9px 14px;background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;font-size:12.5px;color:#92400E; }
-
 /* ── Teacher rows ────────────────────────────────────── */
 .ts-list         { padding:10px 20px; display:flex;flex-direction:column;gap:6px; }
 .ts-row          { display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:9px;border:1px solid transparent; }
 .ts-row.pending  { background:#FFF7ED;border-color:#FDE68A; }
 .ts-row.done     { background:#F0FDF4;border-color:#BBF7D0; }
-.ts-avatar       { width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0; }
-.ts-avatar.pending { background:#FEF3C7;color:#92400E; }
-.ts-avatar.returned { background:#FFEDD5;color:#9A3412; }
-.ts-avatar.done    { background:#DCFCE7;color:#166534; }
+.ts-avatar       { width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;background:#F1F3F5;color:#667085; }
+.ts-avatar.pending,
+.ts-avatar.returned,
+.ts-avatar.done    { background:#F1F3F5;color:#667085; }
 .ts-info         { flex:1;min-width:0; }
 .ts-name         { font-size:13px;font-weight:600;color:var(--n800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .ts-meta         { font-size:11.5px;color:var(--n500);margin-top:2px; }
 .ts-meta a       { color:var(--blue);text-decoration:none; }
 .ts-meta a:hover { text-decoration:underline; }
-.ts-badge        { font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px;flex-shrink:0; }
-.ts-badge.pending { background:#FEF3C7;color:#D97706; }
-.ts-badge.returned { background:#FFEDD5;color:#C2410C; }
-.ts-badge.done    { background:#DCFCE7;color:#16A34A; }
+.ts-badge        { display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;padding:0;border-radius:0;background:transparent;flex-shrink:0;color:var(--n600); }
+.ts-badge::before { content:"";width:8px;height:8px;border-radius:50%;background:#D5D9E0; }
+.ts-badge.pending::before { background:#D6A74F; }
+.ts-badge.returned::before { background:#D6A74F; }
+.ts-badge.done::before { background:#73A88C; }
 .ts-empty        { text-align:center;padding:40px 20px;color:var(--n400);font-size:13px; }
 
 /* ── Table layout ─────────────────────────────────────── */
-.ts-table        { width:100%;border-collapse:collapse; }
-.ts-table th     { text-align:left;font-size:11px;font-weight:700;color:var(--n400);text-transform:uppercase;letter-spacing:.04em;padding:10px 14px;border-bottom:1px solid var(--n200); }
-.ts-table th.ts-th-status { text-align:right; }
-.ts-table td     { padding:12px 14px;font-size:13px;color:var(--n800);vertical-align:middle; }
-.ts-table tbody tr { transition:background .12s; }
-.ts-table tbody tr:hover { background:var(--n50); }
-.ts-table tbody tr + tr td { border-top:1px solid var(--n100); }
-.ts-table td.ts-td-status { text-align:right; }
-.ts-td-sub      { font-size:12px;color:var(--n500); }
+.ts-table        { table-layout:fixed; }
+.ts-table.tbl-enhanced thead th { padding:9px 12px; }
+.ts-table.tbl-enhanced tbody td { padding:7px 12px; }
+.ts-table.tbl-enhanced tbody tr:hover td { background:#F9FAFB; }
+.ts-table.tbl-enhanced tbody tr.ts-row-pending td { background:#FFFCF6; }
+.ts-table.tbl-enhanced tbody tr.ts-row-pending:hover td { background:#FFF9ED; }
+.ts-table th.ts-th-teacher { width:31%; }
+.ts-table th.ts-th-department { width:20%; }
+.ts-table th.ts-th-submitted { width:23%; }
+.ts-table th.ts-th-status { width:15%; }
+.ts-table th.ts-th-actions { width:11%;text-align:right; }
+.ts-table td.ts-td-actions { text-align:right;white-space:nowrap; }
+.ts-td-sub      { font-size:12px;color:var(--n500)!important; }
+.ts-neutral-avatar { width:34px;height:34px;border-radius:9px;background:var(--n-100);color:var(--n-600); }
+.ts-department-chip { display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;border:1px solid var(--n-200);background:var(--n-100);color:var(--n-600);font-size:11px;font-weight:600; }
+.ts-td-status-inner { display:flex;align-items:center;justify-content:flex-start; }
+.ts-remind-link { display:inline-flex;align-items:center;justify-content:center;min-height:26px;padding:3px 9px;border:1px solid var(--n-400);border-radius:5px;background:#fff;color:var(--n-700);font:inherit;font-size:11.5px;text-decoration:none;cursor:pointer; }
+.ts-remind-link:hover { border-color:var(--n-500);color:var(--n-800);background:var(--n-50); }
 
 /* ── Pagination ──────────────────────────────────────── */
 .ts-pager        { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:12px 20px;border-top:1px solid var(--n100); }
@@ -350,9 +338,12 @@ include __DIR__.'/../includes/header.php';
 .ts-nocycle-icon { width:64px;height:64px;border-radius:50%;background:var(--n100);display:flex;align-items:center;justify-content:center;margin:0 auto 16px; }
 
 @media(max-width:600px){
-  .ts-summary     { grid-template-columns:1fr 1fr; }
-  .ts-filter-tabs { display:none; }
+  .ts-toolbar { padding:12px 16px; }
+  .ts-search-wrap { flex-basis:100%;min-width:0; }
+  .ts-filter-tabs { max-width:100%; }
   .ts-pbtn        { min-width:30px;height:30px;font-size:11.5px; }
+  .ts-table.tbl-enhanced thead th,
+  .ts-table.tbl-enhanced tbody td { padding-left:8px;padding-right:8px; }
 }
 </style>
 
@@ -362,16 +353,6 @@ include __DIR__.'/../includes/header.php';
   <div class="page-head-text">
     <h2>Teacher Submission Status</h2>
     <p>Monitor teacher assessment submissions for <?= e($currentSY ?: 'the current school year') ?>.</p>
-  </div>
-  <div class="page-head-actions">
-    <button id="refreshDataBtn" class="btn btn-secondary" onclick="refreshTeacherStatus()" style="display:inline-flex;align-items:center;gap:6px;">
-      <svg id="refreshIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;">
-        <polyline points="23 4 23 10 17 10"></polyline>
-        <polyline points="1 20 1 14 7 14"></polyline>
-        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-      </svg>
-      Refresh Data
-    </button>
   </div>
 </div>
 <?php endif; ?>
@@ -403,108 +384,40 @@ include __DIR__.'/../includes/header.php';
 
 <div class="ts-page-wrap" id="tsContentArea">
 
-<!-- ── Summary cards ─────────────────────────────────────────── -->
-<div class="ts-summary">
-  <div class="ts-card">
-    <span class="ts-card-val" style="color:#16A34A;"><?= $submittedTeachers ?></span>
-    <span class="ts-card-lbl">Submitted</span>
-    <div class="ts-card-bar">
-      <div class="ts-card-fill" style="width:<?= $submittedPct ?>%;background:#16A34A;"></div>
-    </div>
-  </div>
-  <div class="ts-card">
-    <span class="ts-card-val" style="color:#D97706;"><?= $pendingCount ?></span>
-    <span class="ts-card-lbl">Pending</span>
-    <div class="ts-card-bar">
-      <div class="ts-card-fill"
-           style="width:<?= $totalTeachers > 0 ? round(($pendingCount/$totalTeachers)*100) : 0 ?>%;
-                  background:#D97706;"></div>
-    </div>
-  </div>
-  <div class="ts-card">
-    <span class="ts-card-val" style="color:var(--n700);"><?= $totalTeachers ?></span>
-    <span class="ts-card-lbl">Total Teachers</span>
-    <div class="ts-card-bar">
-      <div class="ts-card-fill" style="width:100%;background:var(--n300);"></div>
-    </div>
-  </div>
-</div>
-
 <!-- ── Main panel ─────────────────────────────────────────────── -->
-<div class="ts-panel">
+<div class="card ts-panel">
 
-  <div class="ts-panel-head" style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;">
-    <div class="ts-panel-title" style="margin-bottom:0;">
-      All Teachers
-      <span style="font-size:11px;font-weight:600;color:var(--n400);margin-left:6px;">
-        <?= $submittedPct ?>% submitted
-      </span>
-    </div>
-    <?php if (!empty($_COORDINATOR_VIEW)): ?>
-    <button id="refreshDataBtn" class="btn btn-secondary btn-sm" onclick="refreshTeacherStatus()" style="display:inline-flex;align-items:center;gap:6px;flex-shrink:0;">
-      <svg id="refreshIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
-        <polyline points="23 4 23 10 17 10"></polyline>
-        <polyline points="1 20 1 14 7 14"></polyline>
-        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-      </svg>
-      Refresh Data
-    </button>
-    <?php endif; ?>
-  </div>
-
-  <!-- Toolbar: search + filter tabs -->
   <div class="ts-toolbar">
     <form method="GET" action="" style="display:contents;" id="tsSearchForm">
-      <div class="ts-search-wrap">
-        <svg class="ts-search-icon" viewBox="0 0 24 24" fill="none" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
+      <div class="search ts-search-wrap">
+        <span class="si">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </span>
         <input id="tsSearchInput"
-               class="ts-search-input"
                type="text" name="ts"
                value="<?= e($teacherSearch) ?>"
                placeholder="Search by name or username…"
                autocomplete="off"
+               aria-label="Search teachers"
                oninput="tsDebounce(this.form)">
         <input type="hidden" name="tf" value="<?= e($tsFilter) ?>">
         <input type="hidden" name="tp" value="1">
       </div>
     </form>
-
     <div class="ts-filter-tabs">
-      <?php foreach (['all' => 'All', 'pending' => 'Pending', 'done' => 'Submitted'] as $fk => $fl): ?>
+      <?php foreach (['all' => ['All', $totalTeachers], 'pending' => ['Pending', $pendingCount], 'done' => ['Submitted', $submittedTeachers]] as $fk => [$fl, $filterCount]): ?>
+      <?php if ($fk !== 'all'): ?><span class="ts-tab-separator" aria-hidden="true">·</span><?php endif; ?>
       <a href="<?= e(tsUrl(1, $teacherSearch, $fk)) ?>"
          class="ts-tab <?= $tsFilter === $fk ? 'active-'.$fk : '' ?>">
-        <?= $fl ?>
+        <?= $fl ?> <?= $filterCount ?>
       </a>
       <?php endforeach; ?>
     </div>
-
-    <?php if ($teacherSearch !== ''): ?>
-    <a href="<?= e(tsUrl(1, '', $tsFilter)) ?>" class="ts-clear">✕ Clear</a>
-    <?php endif; ?>
   </div>
 
-  <!-- Warning if teachers still pending -->
-  <?php if ($pendingCount > 0): ?>
-  <div style="padding:10px 20px 0;">
-    <div class="ts-warning">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="8" x2="12" y2="12"/>
-        <line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-      <span>
-        <strong><?= $pendingCount ?> teacher<?= $pendingCount > 1 ? 's' : '' ?></strong>
-        <?= $pendingCount > 1 ? 'are' : 'is' ?> still pending, including anyone returned for revision.
-        Teacher averages will be based on responses received so far.
-      </span>
-    </div>
-  </div>
-  <?php endif; ?>
-
+  <div id="tsResultsArea">
   <!-- Teacher list -->
   <?php if (empty($pendingTeachers)): ?>
   <div class="ts-empty">
@@ -516,14 +429,15 @@ include __DIR__.'/../includes/header.php';
     <?php endif; ?>
   </div>
   <?php else: ?>
-  <div style="padding:0 20px 10px;overflow-x:auto;width:100%;box-sizing:border-box;">
-    <table class="ts-table" style="min-width:100%;">
+  <div class="tbl-wrap">
+    <table class="tbl-enhanced ts-table">
       <thead>
         <tr>
-          <th>Teacher</th>
-          <th>Department</th>
-          <th>Submitted On</th>
+          <th class="ts-th-teacher">Teacher</th>
+          <th class="ts-th-department">Department</th>
+          <th class="ts-th-submitted">Submitted On</th>
           <th class="ts-th-status">Status</th>
+          <th class="ts-th-actions">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -535,15 +449,22 @@ include __DIR__.'/../includes/header.php';
           $parts    = array_filter(explode(' ', trim($t['full_name'])));
           $initials = strtoupper(substr($parts[0] ?? 'T', 0, 1) . (isset($parts[1]) ? substr($parts[1], 0, 1) : ''));
         ?>
-        <tr>
+        <tr class="<?= !$submitted ? 'ts-row-pending' : '' ?>">
           <td>
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div class="ts-avatar <?= $statusClass ?>"><?= e($initials) ?></div>
-              <div class="ts-name"><?= e($t['full_name']) ?></div>
+            <div class="cell-avatar">
+              <div class="cell-av ts-neutral-avatar"><?= e($initials) ?></div>
+              <div class="cell-av-info">
+                <div class="cell-av-name"><?= e($t['full_name']) ?></div>
+                <div class="cell-av-sub"><?= e($t['email']) ?></div>
+              </div>
             </div>
           </td>
           <td class="ts-td-sub">
-            <?= e($t['department'] ?? '—') ?>
+            <?php if (trim((string) ($t['department'] ?? '')) !== ''): ?>
+              <span class="ts-department-chip"><?= e($t['department']) ?></span>
+            <?php else: ?>
+              <span style="color:var(--n-400);">Not set</span>
+            <?php endif; ?>
           </td>
           <td class="ts-td-sub">
             <?php if ($submitted): ?>
@@ -553,22 +474,22 @@ include __DIR__.'/../includes/header.php';
             <?php else: ?>
               Not yet submitted
             <?php endif; ?>
-            <?php if (!$submitted && !empty($_COORDINATOR_VIEW) && !empty($t['email'])): ?>
-              <div style="margin-top:6px;">
-                <button type="button" class="btn btn-secondary btn-sm"
-                  data-reminder-button
-                  data-teacher-id="<?= (int) $t['user_id'] ?>"
-                  data-cycle-id="<?= (int) $cycle['cycle_id'] ?>"
-                  data-csrf="<?= e(csrfToken()) ?>">Remind</button>
-                <span id="reminder-feedback-<?= (int) $t['user_id'] ?>"
-                  role="status" aria-live="polite" style="font-size:11px;margin-left:6px;"></span>
-              </div>
-            <?php endif; ?>
           </td>
           <td class="ts-td-status">
-            <span class="ts-badge <?= $statusClass ?>">
-              <?= $submitted ? 'Done' : ($returned ? 'Returned' : 'Pending') ?>
+            <span class="ts-badge <?= $submitted ? 'done' : 'pending' ?>">
+              <?= $submitted ? 'Submitted' : 'Pending' ?>
             </span>
+          </td>
+          <td class="ts-td-actions">
+            <?php if (!$submitted && !empty($_COORDINATOR_VIEW) && !empty($t['email'])): ?>
+              <button type="button" class="ts-remind-link"
+                data-reminder-button
+                data-teacher-id="<?= (int) $t['user_id'] ?>"
+                data-cycle-id="<?= (int) $cycle['cycle_id'] ?>"
+                data-csrf="<?= e(csrfToken()) ?>">Remind</button>
+              <span id="reminder-feedback-<?= (int) $t['user_id'] ?>"
+                role="status" aria-live="polite" style="font-size:11px;"></span>
+            <?php endif; ?>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -607,6 +528,7 @@ include __DIR__.'/../includes/header.php';
     </div>
   </div>
   <?php endif; ?>
+  </div>
 
 </div><!-- /.ts-panel -->
 </div><!-- /.ts-page-wrap -->
@@ -615,38 +537,91 @@ include __DIR__.'/../includes/header.php';
 
 <script>
 (function () {
-  // ── Refresh logic (AJAX DOM Swap) ─────────────────────────
+  const REFRESH_MS = 10000;
+  let requestInFlight = false;
+  let searchSubmitTimer = null;
+  const requestWaiters = [];
+
+  function acquireRequestSlot() {
+    if (!requestInFlight) {
+      requestInFlight = true;
+      return Promise.resolve();
+    }
+
+    return new Promise(resolve => requestWaiters.push(resolve));
+  }
+
+  function releaseRequestSlot() {
+    const nextRequest = requestWaiters.shift();
+    if (nextRequest) {
+      nextRequest();
+    } else {
+      requestInFlight = false;
+    }
+  }
+
   window.refreshTeacherStatus = async function() {
-    const btn = document.getElementById('refreshDataBtn');
-    const icon = document.getElementById('refreshIcon');
     const contentArea = document.getElementById('tsContentArea');
-    
-    if (!btn || !contentArea) return;
-    
-    // Start loading state
-    btn.disabled = true;
-    btn.style.opacity = '0.7';
-    icon.classList.add('spin');
-    
+    const resultsArea = document.getElementById('tsResultsArea');
+    const currentTabs = contentArea?.querySelector('.ts-filter-tabs');
+    if (
+      document.hidden ||
+      !contentArea ||
+      !resultsArea ||
+      !currentTabs ||
+      searchSubmitTimer !== null ||
+      requestInFlight ||
+      requestWaiters.length > 0
+    ) return;
+
+    requestInFlight = true;
     try {
-      const res = await fetch(window.location.href);
-      if (!res.ok) throw new Error('Fetch failed');
-      const html = await res.text();
-      
+      const url = new URL(window.location.href);
+      const searchInput = document.getElementById('tsSearchInput');
+      const filterInput = document.querySelector('#tsSearchForm [name="tf"]');
+      const searchText = searchInput?.value ?? '';
+      const activeFilter = filterInput?.value ?? 'all';
+      const searchChanged = searchText !== (url.searchParams.get('ts') ?? '');
+
+      if (searchText !== '') url.searchParams.set('ts', searchText);
+      else url.searchParams.delete('ts');
+      if (activeFilter !== 'all') url.searchParams.set('tf', activeFilter);
+      else url.searchParams.delete('tf');
+      if (searchChanged) url.searchParams.set('tp', '1');
+
+      const response = await fetch(url.toString(), { headers: { Accept: 'text/html' } });
+      if (!response.ok) return;
+      const html = await response.text();
       const doc = new DOMParser().parseFromString(html, 'text/html');
-      const newContent = doc.getElementById('tsContentArea');
-      
-      if (newContent) {
-        contentArea.innerHTML = newContent.innerHTML;
-        bindSearchLogic(); // Rebind events on new elements
-      }
-    } catch (err) {
-      console.error('Refresh Failed', err);
+      const newResults = doc.getElementById('tsResultsArea');
+      const newTabs = doc.querySelector('#tsContentArea .ts-filter-tabs');
+      if (!newResults || !newTabs) return;
+      if (requestWaiters.length > 0) return;
+
+      const scrollX = window.scrollX;
+      const scrollY = window.scrollY;
+      const tableWrap = resultsArea.querySelector('.tbl-wrap');
+      const tableScrollLeft = tableWrap?.scrollLeft ?? 0;
+      const previousActions = new Map();
+      resultsArea.querySelectorAll('[data-reminder-button]').forEach(button => {
+        const actionCell = button.closest('.ts-td-actions');
+        if (actionCell) previousActions.set(button.dataset.teacherId, actionCell.innerHTML);
+      });
+      newResults.querySelectorAll('[data-reminder-button]').forEach(button => {
+        const previousAction = previousActions.get(button.dataset.teacherId);
+        const actionCell = button.closest('.ts-td-actions');
+        if (previousAction !== undefined && actionCell) actionCell.innerHTML = previousAction;
+      });
+
+      resultsArea.replaceChildren(...Array.from(newResults.childNodes, node => node.cloneNode(true)));
+      currentTabs.replaceChildren(...Array.from(newTabs.childNodes, node => node.cloneNode(true)));
+      const refreshedTableWrap = resultsArea.querySelector('.tbl-wrap');
+      if (refreshedTableWrap) refreshedTableWrap.scrollLeft = tableScrollLeft;
+      window.scrollTo(scrollX, scrollY);
+    } catch (error) {
+      // Background refresh failures leave the current table unchanged.
     } finally {
-      // Stop loading state
-      btn.disabled = false;
-      btn.style.opacity = '1';
-      icon.classList.remove('spin');
+      releaseRequestSlot();
     }
   };
 
@@ -662,17 +637,20 @@ include __DIR__.'/../includes/header.php';
       inp.setSelectionRange(pos, pos);
     }
 
-    let _timer;
     window.tsDebounce = function (form) {
       sessionStorage.setItem(INPUT_KEY, '1');
       sessionStorage.setItem(POS_KEY, inp?.selectionStart ?? inp?.value.length ?? 0);
-      clearTimeout(_timer);
-      _timer = setTimeout(() => form.submit(), 500);
+      clearTimeout(searchSubmitTimer);
+      searchSubmitTimer = window.setTimeout(() => {
+        searchSubmitTimer = null;
+        form.submit();
+      }, 500);
     };
 
     if (inp) {
       inp.addEventListener('blur', () => {
-        clearTimeout(_timer);
+        clearTimeout(searchSubmitTimer);
+        searchSubmitTimer = null;
         sessionStorage.removeItem(INPUT_KEY);
         sessionStorage.removeItem(POS_KEY);
       });
@@ -681,6 +659,17 @@ include __DIR__.'/../includes/header.php';
 
   // Initialize on page load
   bindSearchLogic();
+
+  let refreshTimer;
+  if (document.getElementById('tsContentArea')) {
+    refreshTimer = window.setInterval(() => {
+      if (!document.hidden) window.refreshTeacherStatus();
+    }, REFRESH_MS);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) window.refreshTeacherStatus();
+    });
+    window.addEventListener('beforeunload', () => window.clearInterval(refreshTimer));
+  }
 
   document.addEventListener('click', async function (event) {
     const button = event.target instanceof Element
@@ -701,6 +690,7 @@ include __DIR__.'/../includes/header.php';
       feedback.style.color = '';
     }
 
+    await acquireRequestSlot();
     try {
       const response = await fetch(window.location.href, {
         method: 'POST',
@@ -732,6 +722,7 @@ include __DIR__.'/../includes/header.php';
         button.disabled = false;
         button.textContent = 'Remind';
       }
+      releaseRequestSlot();
     }
   });
 })();
