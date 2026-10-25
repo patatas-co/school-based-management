@@ -486,6 +486,7 @@ foreach ($indicators as $ind)
   $grouped[$ind['dimension_no']][] = $ind;
 
 $ratingLabels = [1 => 'Not yet Manifested', 2 => 'Rarely Manifested', 3 => 'Frequently Manifested', 4 => 'Always manifested'];
+$ratingDisplayLabels = [1 => 'Not yet manifested', 2 => 'Rarely manifested', 3 => 'Frequently manifested', 4 => 'Always manifested'];
 $ratingColors = [1 => '#DC2626', 2 => '#D97706', 3 => '#2563EB', 4 => '#16A34A'];
 $ratingBgs = [1 => '#FEE2E2', 2 => '#FEF3C7', 3 => '#DBEAFE', 4 => '#DCFCE7'];
 
@@ -872,13 +873,26 @@ include __DIR__ . '/../includes/header.php';
   }
 
   .indicator-row.rated {
-    border-color: #86EFAC;
-    background: #F0FDF4;
+    border-color: var(--n200);
+    background: var(--white);
+  }
+
+  .indicator-row.unanswered {
+    border-color: #FDE68A;
+    background: #FFFBEB;
   }
 
   .indicator-row.teacher-only {
-    border-color: #BFDBFE;
-    background: #EFF6FF;
+    border-color: var(--n200);
+    background: var(--white);
+  }
+
+  .indicator-row.read-only {
+    border-color: #E5E7EB;
+    background: #FAFAFA;
+    caret-color: transparent;
+    cursor: default;
+    user-select: text;
   }
 
   /* Hidden by filter — smooth fade out */
@@ -918,6 +932,7 @@ include __DIR__ . '/../includes/header.php';
     gap: 7px;
     flex-wrap: wrap;
     margin-bottom: 10px;
+    min-width: 0;
   }
 
   .rating-btn {
@@ -965,6 +980,107 @@ include __DIR__ . '/../includes/header.php';
     background: #DCFCE7;
     border-color: #16A34A;
     color: #16A34A;
+  }
+
+  .rating-group.read-only .rating-btn {
+    border-color: transparent;
+    background: transparent;
+    color: var(--n400);
+    cursor: default;
+    opacity: 1;
+  }
+
+  .rating-group.read-only .rating-btn.selected-1,
+  .rating-group.read-only .rating-btn.selected-2,
+  .rating-group.read-only .rating-btn.selected-3,
+  .rating-group.read-only .rating-btn.selected-4 {
+    border-color: transparent;
+    background: #EEF0F2;
+    color: #4B5563;
+    font-weight: 600;
+  }
+
+  .rating-group.read-only .rating-btn:hover,
+  .rating-group.read-only .rating-btn:focus,
+  .rating-group.read-only .rating-btn:focus-visible,
+  .rating-group.read-only .rating-btn:active {
+    border-color: transparent;
+    background: transparent;
+    color: var(--n400);
+    box-shadow: none;
+    outline: none;
+    cursor: default;
+  }
+
+  .rating-group.read-only .rating-btn.selected-1:hover,
+  .rating-group.read-only .rating-btn.selected-1:focus,
+  .rating-group.read-only .rating-btn.selected-1:focus-visible,
+  .rating-group.read-only .rating-btn.selected-1:active,
+  .rating-group.read-only .rating-btn.selected-2:hover,
+  .rating-group.read-only .rating-btn.selected-2:focus,
+  .rating-group.read-only .rating-btn.selected-2:focus-visible,
+  .rating-group.read-only .rating-btn.selected-2:active,
+  .rating-group.read-only .rating-btn.selected-3:hover,
+  .rating-group.read-only .rating-btn.selected-3:focus,
+  .rating-group.read-only .rating-btn.selected-3:focus-visible,
+  .rating-group.read-only .rating-btn.selected-3:active,
+  .rating-group.read-only .rating-btn.selected-4:hover,
+  .rating-group.read-only .rating-btn.selected-4:focus,
+  .rating-group.read-only .rating-btn.selected-4:focus-visible,
+  .rating-group.read-only .rating-btn.selected-4:active {
+    border-color: transparent;
+    background: #EEF0F2;
+    color: #4B5563;
+    box-shadow: none;
+    outline: none;
+    cursor: default;
+  }
+
+  .indicator-row.read-only .fc,
+  .indicator-row.read-only .fc:disabled {
+    background: #F5F5F5;
+    color: #6B7280;
+    opacity: 1;
+    resize: none;
+    cursor: default;
+    caret-color: transparent;
+  }
+
+  .indicator-row.read-only .fc::placeholder {
+    opacity: 0;
+  }
+
+  .read-only-empty-evidence {
+    margin: 2px 0 10px;
+    color: var(--n400);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 600px) {
+    .rating-btn {
+      padding: 7px 10px;
+      font-size: 11px;
+      white-space: normal;
+      text-align: center;
+    }
+  }
+
+  .dim-incomplete-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    border: 1px solid #FDE68A;
+    border-radius: 999px;
+    background: #FFFBEB;
+    color: #B45309;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .indicator-row .attach-zone.read-only-empty {
+    display: none;
   }
 
   /* ── Finalized report-style rating display ─────────────── */
@@ -1038,18 +1154,18 @@ include __DIR__ . '/../includes/header.php';
     align-items: center;
     gap: 12px;
     padding: 12px 14px;
-    background: var(--blueb);
-    border: 1px solid #BFDBFE;
+    background: var(--white);
+    border: 1px solid var(--n200);
     border-radius: 8px;
     margin-top: 4px;
   }
 
   .teacher-info-icon {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
     border-radius: 8px;
-    background: var(--blue);
+    background: var(--n100);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1058,7 +1174,7 @@ include __DIR__ . '/../includes/header.php';
   .teacher-info-icon svg {
     width: 18px !important;
     height: 18px !important;
-    stroke: #fff;
+    stroke: var(--n600);
     fill: none;
     stroke-width: 2;
     stroke-linecap: round;
@@ -1075,7 +1191,7 @@ include __DIR__ . '/../includes/header.php';
   .teacher-info-title {
     font-size: 12.5px;
     font-weight: 700;
-    color: var(--blue);
+    color: var(--n700);
     margin-bottom: 3px;
   }
 
@@ -1088,7 +1204,20 @@ include __DIR__ . '/../includes/header.php';
   .teacher-avg-rating {
     font-size: 15px;
     font-weight: 800;
-    color: var(--blue);
+    color: var(--n900);
+  }
+
+  .indicator-row.read-only .teacher-info-box {
+    background: var(--white);
+  }
+
+  .indicator-row.read-only .teacher-info-title,
+  .indicator-row.read-only .teacher-info-body {
+    color: #6B7280;
+  }
+
+  .indicator-row.read-only .teacher-avg-rating {
+    color: #4B5563;
   }
 
   /* ══════════════════════════════════════════════════════
@@ -1688,7 +1817,7 @@ foreach ($grouped as $dimNo => $inds) {
 <?php if ($cycle && $cycle['status'] !== 'draft' && $isLocked): ?>
 <div class="page-head" style="justify-content:flex-end;margin-bottom:16px;">
   <div class="page-head-actions">
-    <span class="pill pill-<?= e($cycle['status']) ?>" style="font-size:13px;padding:6px 14px;">
+    <span class="pill pill-<?= e($cycle['status']) ?>" style="font-size:12px;font-weight:600;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;">
       <?= ucfirst(str_replace('_', ' ', $cycle['status'])) ?>
     </span>
   </div>
@@ -1705,8 +1834,8 @@ foreach ($grouped as $dimNo => $inds) {
     </span>
   </div>
 <?php elseif ($isLocked): ?>
-  <div class="alert alert-info" style="margin-bottom:16px;">
-    <?= svgIcon('info') ?> This assessment has been <strong><?= e($cycle['status']) ?></strong>. Responses are read-only.
+  <div class="alert alert-info" style="margin-bottom:16px;background:#F8FAFC;border:1px solid var(--n200);color:var(--n600);font-size:12.5px;padding:10px 14px;">
+    <?= svgIcon('info') ?> <span>Responses are read-only.</span>
   </div>
 <?php endif; ?>
 
@@ -1793,23 +1922,15 @@ foreach ($grouped as $dimNo => $inds) {
           </div>
         </div>
 
-        <div style="font-size:13px;font-weight:700;color:<?= e($dim['color_hex']) ?>;margin-right:6px;">
+        <div style="font-size:13px;font-weight:600;color:var(--n900);margin-right:6px;">
           <?= $dimScores[$dimNo] !== null ? number_format($dimScores[$dimNo], 1) . '%' : '—' ?>
         </div>
 
-        <?php if ($allDone): ?>
-          <span style="font-size:11px;font-weight:700;color:#16A34A;
-                 background:#DCFCE7;border:1px solid #86EFAC;
-                 border-radius:999px;padding:3px 10px;flex-shrink:0;">
-            Complete
-          </span>
-        <?php else: ?>
-          <span style="font-size:11px;font-weight:600;color:var(--n500);
-                 background:var(--n100);border-radius:999px;
-                 padding:3px 10px;flex-shrink:0;" id="dimLeft<?= $dimNo ?>">
-            <?= count($inds) - $dimDone ?> left
-          </span>
-        <?php endif; ?>
+        <span id="dimLeft<?= $dimNo ?>">
+          <?php if (!$allDone): ?>
+            <?= sbmRenderBadgeOrText($dimDone . '/' . count($inds) . ' rated', true, true, 'warning') ?>
+          <?php endif; ?>
+        </span>
 
         <?php if (!$isLocked): ?>
           <button class="clear-dim-btn" id="clearDimBtn<?= $dimNo ?>"
@@ -1876,7 +1997,7 @@ foreach ($grouped as $dimNo => $inds) {
                       <?php if ($ratingR): ?>
                         <span class="rating-pill"
                           style="background:<?= $ratingBgs[$ratingR] ?>;color:<?= $ratingColors[$ratingR] ?>;">
-                          <?= $ratingR ?> — <?= $ratingLabels[$ratingR] ?>
+                          <?= $ratingR ?> — <?= $ratingDisplayLabels[$ratingR] ?>
                         </span>
                       <?php else: ?>
                         <span style="font-size:11.5px;color:var(--n300);font-weight:600;">Not rated</span>
@@ -1942,8 +2063,9 @@ foreach ($grouped as $dimNo => $inds) {
             || in_array($ind['indicator_code'], SH_RATEABLE_CODES);
           $isTeacher = in_array($ind['indicator_code'], TEACHER_INDICATOR_CODES);
           ?>
-          <div class="indicator-row <?= $rated ? 'rated' : '' ?> <?= $isTeacherCard ? 'teacher-only' : '' ?>"
+          <div class="indicator-row <?= $rated ? 'rated' : '' ?> <?= (!$rated && empty($sharedDone[$ind['indicator_id']])) ? 'unanswered' : '' ?> <?= $isTeacherCard ? 'teacher-only' : '' ?> <?= $isLocked ? 'read-only' : '' ?>"
             id="row<?= $ind['indicator_id'] ?>" data-sh="<?= $isSH ? 1 : 0 ?>" data-teacher="<?= $isTeacher ? 1 : 0 ?>"
+            data-shared-done="<?= !empty($sharedDone[$ind['indicator_id']]) ? '1' : '0' ?>"
             data-submit-required="<?= $_SESSION['role'] === 'school_head' && in_array($ind['indicator_code'], SH_ONLY_INDICATOR_CODES, true) ? '1' : '0' ?>"
             data-code="<?= e($ind['indicator_code']) ?>">
 
@@ -1956,48 +2078,24 @@ foreach ($grouped as $dimNo => $inds) {
                   <?= e($ind['indicator_code']) ?>
                 </span>
 
-                <?php if ($isTeacherCard): ?>
-                  <span class="role-tag role-teacher">
-                    <span style="display:inline-flex;width:11px;height:11px;flex-shrink:0;">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" style="width:11px;height:11px;">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                      </svg>
-                    </span>
-                    Teacher Indicator
-                  </span>
-                <?php else: ?>
-                  <span class="role-tag role-sh">
-                    <span style="display:inline-flex;width:11px;height:11px;flex-shrink:0;">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" style="width:11px;height:11px;">
-                        <circle cx="12" cy="8" r="4" />
-                        <path d="M20 21a8 8 0 1 0-16 0" />
-                      </svg>
-                    </span>
-                    School Head
-                  </span>
+                <?php if ($role !== 'sh'): ?>
+                  <?= sbmRenderBadgeOrText(ucfirst($role), true, true, 'warning') ?>
                 <?php endif; ?>
 
               </div>
 
-              <?php if (!$isTeacherCard): ?>
+              <?php if (!$isTeacherCard && $canEdit): ?>
                 <div style="display:flex;align-items:center;gap:6px;">
                   <span id="savedBadge<?= $ind['indicator_id'] ?>" style="font-size:11px;color:var(--g600);font-weight:600;">
                     <?= $rated ? 'Saved' : '' ?>
                   </span>
-                  <?php if ($canEdit): ?>
-                    <button class="clear-btn" id="clearBtn<?= $ind['indicator_id'] ?>"
-                      onclick="confirmClear(<?= $ind['indicator_id'] ?>)" title="Clear this rating">
-                      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
-                      </svg>
-                      Clear
-                    </button>
-                  <?php endif; ?>
+                  <button class="clear-btn" id="clearBtn<?= $ind['indicator_id'] ?>"
+                    onclick="confirmClear(<?= $ind['indicator_id'] ?>)" title="Clear this rating">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+                    </svg>
+                    Clear
+                  </button>
                 </div>
               <?php endif; ?>
             </div><!-- /.flex-cb -->
@@ -2019,7 +2117,7 @@ foreach ($grouped as $dimNo => $inds) {
                 <div class="report-rating-row">
                   <?php if ($resp && $resp['rating']): ?>
                     <span class="report-rating-badge" style="color:<?= $ratingColors[(int) $resp['rating']] ?>;">
-                      <?= (int) $resp['rating'] ?> — <?= $ratingLabels[(int) $resp['rating']] ?>
+                      <?= (int) $resp['rating'] ?> — <?= $ratingDisplayLabels[(int) $resp['rating']] ?>
                     </span>
                   <?php else: ?>
                     <span class="report-rating-badge report-rating-none">Not rated</span>
@@ -2028,24 +2126,31 @@ foreach ($grouped as $dimNo => $inds) {
 
                 <?php if (!empty($resp['evidence_text'])): ?>
                   <div class="report-evidence-text"><?= nl2br(e($resp['evidence_text'])) ?></div>
+                <?php else: ?>
+                  <div class="read-only-empty-evidence">No evidence provided</div>
                 <?php endif; ?>
 
               <?php else: ?>
                 <!-- SCHOOL HEAD RATING -->
-                <div class="rating-group" id="ratingGroup<?= $ind['indicator_id'] ?>">
+                <div class="rating-group<?= !$canEdit ? ' read-only' : '' ?>" id="ratingGroup<?= $ind['indicator_id'] ?>">
                   <?php foreach ([1, 2, 3, 4] as $r): ?>
                     <button <?= !$canEdit ? 'disabled' : '' ?> type="button"
                       class="rating-btn <?= $resp && $resp['rating'] == $r ? 'selected-' . $r : '' ?>"
                       data-ind="<?= $ind['indicator_id'] ?>" data-rating="<?= $r ?>"
                       onclick="selectRating(<?= $ind['indicator_id'] ?>,<?= $r ?>)">
-                      <?= $r ?> — <?= $ratingLabels[$r] ?>
+                      <?= $r ?> — <?= $ratingDisplayLabels[$r] ?>
                     </button>
                   <?php endforeach; ?>
                 </div>
 
-                <textarea class="fc" id="evidence<?= $ind['indicator_id'] ?>" rows="2"
-                  placeholder="Describe evidence or attach MOV reference…" <?= !$canEdit ? 'disabled' : '' ?>
-                  onblur="saveResponse(<?= $ind['indicator_id'] ?>)"><?= e($resp['evidence_text'] ?? '') ?></textarea>
+                <?php if ($isLocked && trim((string) ($resp['evidence_text'] ?? '')) === ''): ?>
+                  <div class="read-only-empty-evidence">No evidence provided</div>
+                <?php else: ?>
+                  <textarea class="fc" id="evidence<?= $ind['indicator_id'] ?>" rows="2"
+                    placeholder="Describe evidence or attach MOV reference…" <?= !$canEdit ? 'disabled' : '' ?>
+                    <?= !$canEdit ? 'readonly tabindex="-1"' : '' ?>
+                    onblur="saveResponse(<?= $ind['indicator_id'] ?>)"><?= e($resp['evidence_text'] ?? '') ?></textarea>
+                <?php endif; ?>
                 <div id="attachWidget_<?= $ind['indicator_id'] ?>"></div>
               <?php endif; ?>
             <?php endif; ?>
@@ -2066,6 +2171,7 @@ foreach ($grouped as $dimNo => $inds) {
                 </div>
                 <div class="teacher-info-text" style="flex:1;">
                   <?php if ($trData && (int) $trData['teacher_count'] > 0): ?>
+                    <?php $teacherCount = (int) $trData['teacher_count']; ?>
                     <div class="teacher-info-title">
                       Teacher Average:
                       <div class="teacher-avg-rating">
@@ -2073,7 +2179,7 @@ foreach ($grouped as $dimNo => $inds) {
                       </div>
                     </div>
                     <div class="teacher-info-body">
-                      <?= (int) $trData['teacher_count'] ?> teacher response(s)
+                      <?= $teacherCount ?> teacher response<?= $teacherCount === 1 ? '' : 's' ?>
                     </div>
                   <?php else: ?>
                     <div class="teacher-info-title">
@@ -2238,15 +2344,9 @@ foreach ($grouped as $dimNo => $inds) {
       }
 
       if (leftBadge) {
-        if (leftVisible === 0) {
-          leftBadge.textContent = 'Complete';
-          leftBadge.className = 'pill pill-success'; // Use standard pill classes for consistency
-          leftBadge.style = 'font-size:11px;font-weight:700;padding:3px 10px;flex-shrink:0;';
-        } else {
-          leftBadge.textContent = `${leftVisible} left`;
-          leftBadge.className = '';
-          leftBadge.style = 'font-size:11px;font-weight:600;color:var(--n500);background:var(--n100);border-radius:999px;padding:3px 10px;flex-shrink:0;';
-        }
+        leftBadge.innerHTML = leftVisible > 0
+          ? `<span class="dim-incomplete-badge">${ratedVisible}/${totalVisible} rated</span>`
+          : '';
       }
 
       if (tabCount) tabCount.textContent = `(${ratedVisible}/${totalVisible})`;
@@ -2261,18 +2361,6 @@ foreach ($grouped as $dimNo => $inds) {
       }
     }
 
-    // Update dim header "Complete" badge (dimHeader section, not the top step bar)
-    if (ratedVisible === totalVisible) {
-      const leftBadge = document.getElementById('dimLeft' + dimNo);
-      if (leftBadge) {
-        leftBadge.textContent = 'Complete';
-        leftBadge.style.color = '#16A34A';
-        leftBadge.style.background = '#DCFCE7';
-        leftBadge.style.borderColor = '#86EFAC';
-      }
-
-     // Auto-collapse removed per request — dimension stays open when complete.
-    }
   }
 
   // ── Clear response ────────────────────────────────────────
@@ -2298,6 +2386,7 @@ foreach ($grouped as $dimNo => $inds) {
 
     // Reset card UI
     row.classList.remove('rated');
+    if (row.dataset.sharedDone !== '1') row.classList.add('unanswered');
     delete currentRatings[indId];
 
     // Reset all rating buttons to unselected
@@ -2379,6 +2468,7 @@ foreach ($grouped as $dimNo => $inds) {
 
       const prevRating = progress.prevRatings[indId] ?? null;
       row.classList.remove('rated');
+      if (row.dataset.sharedDone !== '1') row.classList.add('unanswered');
       delete currentRatings[indId];
 
       document.querySelectorAll(`#ratingGroup${indId} .rating-btn`).forEach(btn => {
@@ -2433,7 +2523,10 @@ foreach ($grouped as $dimNo => $inds) {
 
     if (r.ok) {
       const isNewResponse = !wasRated;
-      if (row) row.classList.add('rated');
+      if (row) {
+        row.classList.add('rated');
+        row.classList.remove('unanswered');
+      }
       const badge = document.getElementById(`savedBadge${indId}`);
       if (badge) {
         badge.textContent = 'Saved';
@@ -2541,7 +2634,10 @@ foreach ($grouped as $dimNo => $inds) {
         byInd[a.indicator_id].push(a);
       });
       indIds.forEach(id => {
-        renderAttachWidget(id, cycleId, byInd[id] || [], isLocked);
+        const attachments = byInd[id] || [];
+        renderAttachWidget(id, cycleId, attachments, isLocked);
+        const zone = document.getElementById('attachZone_' + id);
+        if (isLocked && attachments.length === 0 && zone) zone.classList.add('read-only-empty');
       });
     } catch (e) {
       indIds.forEach(id => renderAttachWidget(id, cycleId, [], isLocked));
