@@ -345,7 +345,13 @@ def full_analysis(payload: dict) -> dict:
     if dim_scores and all(isinstance(k, str) for k in dim_scores):
         dim_scores = {int(k): v for k, v in dim_scores.items()}
 
-    indicators = payload.get("indicators", [])
+    indicators = [
+        {
+            **ind,
+            "avg_rating": ind.get("avg_rating", ind.get("rating", 4)),
+        }
+        for ind in payload.get("indicators", [])
+    ]
 
     # ── Step 1: Forecast (gets slope for DT context) ─────────────────
     forecast_result = forecast_maturity(payload.get("history", []))
