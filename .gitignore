@@ -77,3 +77,6 @@ assets/uploads/
 *.temp
 tmp/
 temp/
+
+#root
+*index.php

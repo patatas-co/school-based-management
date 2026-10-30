@@ -533,32 +533,44 @@ include __DIR__ . '/../includes/header.php';
     color: var(--brand-700, #1D4ED8);
   }
   .review-footer {
-    position: sticky;
+    position: fixed;
+    right: 0;
     bottom: 0;
+    left: var(--sidebar-w);
     z-index: 20;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin: 0 -24px;
+    margin: 0;
     border-top: 1px solid var(--n-200, #E2E8F0);
     padding: 12px 24px;
     background: rgba(255, 255, 255, .97);
     box-shadow: 0 -4px 14px rgba(15, 23, 42, .06);
+  }
+  .main-wrap.expanded .review-footer {
+    left: var(--sidebar-mini);
   }
   @media (max-width: 800px) {
     .review-mini-nav {
       padding: 10px;
     }
     .review-footer {
-      margin: 0 -16px;
       padding-right: 16px;
       padding-left: 16px;
+    }
+  }
+  @media (max-width: 768px) {
+    .review-footer {
+      left: 0;
     }
   }
   @media (max-width: 560px) {
     .review-summary {
       grid-template-columns: 1fr;
+    }
+    .review-layout {
+      padding-bottom: 130px;
     }
     .review-footer {
       align-items: stretch;

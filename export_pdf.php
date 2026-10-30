@@ -87,15 +87,29 @@ $dimScoresStmt->execute([$cycleId]);
 $dimScores = $dimScoresStmt->fetchAll();
 
 // ── Load all responses ────────────────────────────────────────
-$respStmt = $db->prepare("
-    SELECT r.*, i.indicator_code, i.indicator_text, i.mov_guide, i.sort_order,
-           d.dimension_no, d.dimension_name, d.color_hex
-    FROM sbm_responses r
-    JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
-    JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
-    WHERE r.cycle_id = ?
-    ORDER BY d.dimension_no, i.sort_order
-");
+if ($type === 'annex_a') {
+    $respStmt = $db->prepare("
+        SELECT r.rating, r.evidence_text,
+               i.indicator_id, i.indicator_code, i.indicator_text, i.mov_guide, i.sort_order,
+               d.dimension_no, d.dimension_name, d.color_hex
+        FROM sbm_indicators i
+        JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
+        LEFT JOIN sbm_responses r ON r.indicator_id = i.indicator_id AND r.cycle_id = ?
+        WHERE i.is_active = 1
+          AND d.form_version_id = (SELECT version_id FROM form_versions WHERE is_active = 1 LIMIT 1)
+        ORDER BY d.dimension_no, i.sort_order
+    ");
+} else {
+    $respStmt = $db->prepare("
+        SELECT r.*, i.indicator_code, i.indicator_text, i.mov_guide, i.sort_order,
+               d.dimension_no, d.dimension_name, d.color_hex
+        FROM sbm_responses r
+        JOIN sbm_indicators i ON r.indicator_id = i.indicator_id
+        JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
+        WHERE r.cycle_id = ?
+        ORDER BY d.dimension_no, i.sort_order
+    ");
+}
 $respStmt->execute([$cycleId]);
 $responses = $respStmt->fetchAll();
 
@@ -103,6 +117,26 @@ $responses = $respStmt->fetchAll();
 $grouped = [];
 foreach ($responses as $r) {
     $grouped[$r['dimension_no']][] = $r;
+}
+
+$annexGrouped = $grouped;
+if ($type === 'dimension') {
+    $annexRespStmt = $db->prepare("
+        SELECT r.rating, r.evidence_text,
+               i.indicator_id, i.indicator_code, i.indicator_text, i.mov_guide, i.sort_order,
+               d.dimension_no, d.dimension_name, d.color_hex
+        FROM sbm_indicators i
+        JOIN sbm_dimensions d ON i.dimension_id = d.dimension_id
+        LEFT JOIN sbm_responses r ON r.indicator_id = i.indicator_id AND r.cycle_id = ?
+        WHERE i.is_active = 1
+          AND d.form_version_id = (SELECT version_id FROM form_versions WHERE is_active = 1 LIMIT 1)
+        ORDER BY d.dimension_no, i.sort_order
+    ");
+    $annexRespStmt->execute([$cycleId]);
+    $annexGrouped = [];
+    foreach ($annexRespStmt->fetchAll() as $response) {
+        $annexGrouped[$response['dimension_no']][] = $response;
+    }
 }
 
 // ── Load improvement plans (for improvement type) ─────────────
@@ -158,6 +192,14 @@ function getMaturityLabel(float $pct): array {
 }
 
 $overallMat = getMaturityLabel((float)($cycle['overall_score'] ?? 0));
+$annexDimensionDescriptions = [
+    1 => 'School personnel and stakeholders work collaboratively to enhance learning standards to continually build a relevant and inclusive learning community and achieve improved learning outcomes.',
+    2 => 'The school and its community work collaboratively to ensure equitable access to a learner-centered, motivating, healthy, safe, secure, inclusive, resilient, and enabling learning environment and to achieve improved learning outcomes.',
+    3 => 'School personnel and stakeholders are empowered and actively engaged in taking on appropriate leadership roles and responsibilities to continuously improve the school for improved learning outcomes.',
+    4 => 'The school and its community come together to take responsibility for ensuring participation, transparency, and accountability, as well as the implementation of a plan to continuously improve the delivery of basic education services, organizational health, and performance for improved learning outcomes.',
+    5 => 'School personnel collaborate to continuously improve individual capabilities and team capacity to create an environment that shall yield high performance for improved learning outcomes.',
+    6 => 'The school judiciously manages and mobilizes resources to support programs, projects, and activities that contribute to the improvement of learning outcomes.',
+];
 
 // ── Build HTML content ────────────────────────────────────────
 ob_start();
@@ -283,56 +325,6 @@ ob_start();
     border-bottom: 1px solid #E5E7EB;
   }
 
-  /* ── Indicator table ── */
-  .ind-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-    margin-bottom: 14px;
-    font-size: 8pt;
-  }
-  .ind-table thead { display: table-header-group; }
-  .ind-table tr { page-break-inside: avoid; }
-  .ind-table th {
-    background: #F3F4F6;
-    padding: 5px 8px;
-    text-align: left;
-    font-size: 7.5pt;
-    font-weight: bold;
-    color: #111827;
-    border: 1px solid #9CA3AF;
-    text-transform: uppercase;
-  }
-  .ind-table td {
-    padding: 5px 8px;
-    border: 1px solid #B8BEC7;
-    color: #1F2937;
-    vertical-align: top;
-    overflow-wrap: anywhere;
-  }
-  .ind-table tbody tr:nth-child(even) td { background: #fff; }
-  .ind-dimension-title {
-    margin: 10px 0 4px;
-    padding: 5px 0;
-    color: #111827;
-    font-size: 8.5pt;
-    font-weight: bold;
-    text-transform: uppercase;
-    page-break-after: avoid;
-  }
-  .ind-dimension-section { page-break-inside: avoid; }
-  .ind-code {
-    font-family: monospace;
-    font-size: 7.5pt;
-    font-weight: bold;
-    color: #1F2937;
-    text-align: center;
-    white-space: nowrap;
-  }
-  .ind-rating {
-    color: #1F2937;
-    text-align: center;
-  }
   .rating-pill {
     display: inline-block;
     padding: 2px 7px;
@@ -445,13 +437,105 @@ ob_start();
   .signature-name  { font-weight: bold; font-size: 8.5pt; }
   .signature-title { font-size: 7.5pt; color: #6B7280; }
 
+  /* ── Annex A checklist layout ── */
+  .annex-a-report {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 10.5pt;
+    color: #050505;
+    line-height: 1.06;
+  }
+  .annex-page-title {
+    margin: 0 0 9mm;
+    font-size: 11.5pt;
+    font-weight: bold;
+  }
+  .annex-page-one .annex-page-title {
+    margin-bottom: 8mm;
+  }
+  .annex-intro {
+    margin: 0 0 4mm;
+    font-size: 10.7pt;
+    line-height: 1.05;
+    text-align: justify;
+  }
+  .annex-section {
+    margin: 0 0 8mm;
+  }
+  .annex-page-one .annex-section {
+    margin-bottom: 0;
+  }
+  .annex-section-description {
+    border: 1.2px solid #111;
+    border-bottom: 0;
+    padding: 1.2mm 1mm 1mm;
+    font-size: 10.7pt;
+    font-weight: normal;
+    line-height: 1.02;
+  }
+  .annex-section-description strong {
+    display: inline;
+    font-size: 11pt;
+    font-weight: bold;
+    line-height: 1;
+  }
+  .annex-checklist-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 10.5pt;
+    line-height: 1.06;
+  }
+  .annex-checklist-table th,
+  .annex-checklist-table td {
+    border: 1.2px solid #111;
+  }
+  .annex-checklist-table th {
+    padding: 1mm;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: bold;
+  }
+  .annex-checklist-table td.indicator {
+    padding: 2mm 1.5mm;
+    vertical-align: top;
+  }
+  .annex-checklist-table td.choice {
+    padding: 1.5mm 1mm;
+    vertical-align: top;
+    text-align: right;
+  }
+  .annex-checklist-table td.remarks {
+    padding: 1mm;
+  }
+  .annex-manifestation-title {
+    padding-bottom: .7mm !important;
+    font-size: 9.5pt;
+    line-height: 1;
+  }
+  .annex-scale-heading {
+    font-size: 8.7pt;
+    line-height: .95;
+  }
+  .annex-row-short td { height: 14mm; }
+  .annex-row-medium td { height: 18mm; }
+  .annex-row-tall td { height: 23mm; }
+  .annex-row-x-tall td { height: 28mm; }
+  .annex-continuation { margin-bottom: 8mm; }
+  .annex-page-number {
+    margin-top: 2mm;
+    padding-right: 1mm;
+    text-align: right;
+    font-size: 10pt;
+  }
+
   /* ── Page break ── */
   .pagebreak { page-break-after: always; }
 </style>
 </head>
-<body>
+<body class="<?= $type === 'annex_a' ? 'annex-a-report' : '' ?>">
 
 <!-- Page header -->
+<?php if($type !== 'annex_a'): ?>
 <div class="page-header">
   <p style="font-size:8pt;color:#6B7280;margin-bottom:4px;">
     Republic of the Philippines · Department of Education
@@ -463,7 +547,7 @@ ob_start();
   <h1>School-Based Management Dimension Performance Summary</h1>
   <?php else: ?>
   <h1>SBM Self-Assessment Checklist</h1>
-  <h2>Annex A — Self-Assessment Checklist</h2>
+  <h2>Assessment ratings and remarks</h2>
   <?php endif; ?>
 </div>
 
@@ -538,6 +622,7 @@ ob_start();
   </tr>
 </table>
 <?php endif; ?>
+<?php endif; ?>
 
 <?php if($type === 'dimension'): ?>
 <!-- ═══════════════════════════════════════════════════════════
@@ -593,48 +678,6 @@ ob_start();
   </tbody>
 </table>
 
-<!-- Indicator breakdown per dimension -->
-<?php $isFirstDimension = true; ?>
-<?php foreach($grouped as $dimNo => $inds):
-  $first = $inds[0];
-  $rated1 = count(array_filter($inds, fn($i) => $i['rating'] == 1));
-  $rated2 = count(array_filter($inds, fn($i) => $i['rating'] == 2));
-  $rated3 = count(array_filter($inds, fn($i) => $i['rating'] == 3));
-  $rated4 = count(array_filter($inds, fn($i) => $i['rating'] == 4));
-?>
-<div class="ind-dimension-section">
-<?php if ($isFirstDimension): ?>
-<div class="section-heading">Indicator Ratings by Dimension</div>
-<?php endif; ?>
-<div class="ind-dimension-title">
-  Dimension <?= $dimNo ?>: <?= htmlspecialchars($first['dimension_name']) ?>
-</div>
-<table class="ind-table">
-  <thead>
-    <tr>
-      <th style="width:12%;text-align:center;">Code</th>
-      <th style="width:58%;">Indicator</th>
-      <th style="width:30%;text-align:center;">Rating</th>
-    </tr>
-  </thead>
-  <tbody>
-  <?php foreach($inds as $ind): ?>
-  <tr>
-    <td style="text-align:center;"><span class="ind-code"><?= htmlspecialchars($ind['indicator_code']) ?></span></td>
-    <td style="font-size:7.5pt;line-height:1.4;">
-        <?= htmlspecialchars($ind['indicator_text']) ?>
-    </td>
-    <td class="ind-rating">
-      <?= $ind['rating'] ?> — <?= htmlspecialchars($ratingLabels[$ind['rating']]) ?>
-    </td>
-  </tr>
-  <?php endforeach; ?>
-  </tbody>
-</table>
-</div>
-<?php $isFirstDimension = false; ?>
-<?php endforeach; ?>
-
 <?php elseif($type === 'improvement'): ?>
 <!-- ═══════════════════════════════════════════════════════════
      SCHOOL IMPROVEMENT PLAN
@@ -688,81 +731,13 @@ ob_start();
 
 <?php else: ?>
 <!-- ═══════════════════════════════════════════════════════════
-     ANNEX A — FULL CHECKLIST (default)
+     ASSESSMENT CHECKLIST (default)
 ═══════════════════════════════════════════════════════════ -->
-<div class="section-heading">Self-Assessment Checklist (Annex A)</div>
-
-<?php foreach($grouped as $dimNo => $inds):
-  $first = $inds[0];
-  $dsDim = null;
-  foreach($dimScores as $ds) {
-    if ($ds['dimension_no'] == $dimNo) { $dsDim = $ds; break; }
-  }
-  $mat = $dsDim ? getMaturityLabel((float)$dsDim['percentage']) : null;
-?>
-<table class="ind-table">
-  <thead>
-    <tr>
-      <td colspan="5"
-          style="background:<?= htmlspecialchars($first['color_hex']) ?>;
-                 color:#fff;font-weight:bold;padding:6px 8px;font-size:8.5pt;">
-        Dimension <?= $dimNo ?>: <?= htmlspecialchars($first['dimension_name']) ?>
-        <?php if($dsDim): ?>
-          &nbsp;·&nbsp;
-          <span style="font-size:8pt;">
-            <?= number_format($dsDim['percentage'], 1) ?>%
-            (<?= $mat['label'] ?>)
-            &nbsp;—&nbsp;
-            Raw: <?= number_format($dsDim['raw_score'], 1) ?>/<?= number_format($dsDim['max_score'], 1) ?> pts
-          </span>
-        <?php endif; ?>
-      </td>
-    </tr>
-    <tr>
-      <th style="width:7%;">Code</th>
-      <th style="width:38%;">Indicator / Key Action</th>
-      <th style="width:22%;">Means of Verification</th>
-      <th style="width:17%;">Rating</th>
-      <th style="width:16%;">Evidence / MOV Notes</th>
-    </tr>
-  </thead>
-  <tbody>
-  <?php foreach($inds as $ind): ?>
-  <tr>
-    <td style="text-align:center;">
-      <span class="ind-code"><?= htmlspecialchars($ind['indicator_code']) ?></span>
-    </td>
-    <td style="font-size:7.5pt;line-height:1.4;">
-        <?= htmlspecialchars($ind['indicator_text']) ?>
-    </td>
-    <td style="font-size:7pt;color:#6B7280;font-style:italic;line-height:1.4;">
-        <?= htmlspecialchars($ind['mov_guide'] ?? '—') ?>
-    </td>
-    <td style="text-align:center;">
-      <span class="rating-pill"
-            style="background:<?= $ratingBgs[$ind['rating']] ?>;
-                   color:<?= $ratingColors[$ind['rating']] ?>;">
-        <?= $ind['rating'] ?> — <?= $ratingLabels[$ind['rating']] ?>
-      </span>
-    </td>
-    <td style="font-size:7.5pt;color:#374151;line-height:1.4;">
-        <?= htmlspecialchars($ind['evidence_text'] ?? '—') ?>
-    </td>
-  </tr>
-  <?php endforeach; ?>
-  </tbody>
-</table>
-<?php endforeach; ?>
-
-<?php if(empty($grouped)): ?>
-<p style="text-align:center;color:#9CA3AF;padding:20px;">
-    No indicator responses recorded yet.
-</p>
-<?php endif; ?>
-
+<?php include __DIR__ . '/includes/annex_checklist_pdf.php'; ?>
 <?php endif; // end type switch ?>
 
 <!-- ── Signature Block ── -->
+<?php if($type !== 'annex_a'): ?>
 <table class="signature-block">
   <tr>
     <td>
@@ -788,6 +763,14 @@ ob_start();
   <?= date('F d, Y \a\t g:i A') ?> &nbsp;·&nbsp;
   <?= htmlspecialchars($cycle['school_name']) ?>
 </div>
+<?php endif; ?>
+
+<?php if($type === 'dimension'): ?>
+<sethtmlpageheader value="off" />
+<sethtmlpagefooter value="off" />
+<pagebreak margin-top="12.5mm" margin-bottom="15mm" margin-left="13.5mm" margin-right="13.5mm" />
+<?php include __DIR__ . '/includes/annex_checklist_pdf.php'; ?>
+<?php endif; ?>
 
 </body>
 </html>
@@ -799,23 +782,22 @@ try {
     $mpdf = new \Mpdf\Mpdf([
         'mode'          => 'utf-8',
         'format'        => 'A4',
-        'orientation'   => 'L',            // Landscape for wide tables
-        'margin_top'    => 12,
-        'margin_bottom' => 14,
-        'margin_left'   => 12,
-        'margin_right'  => 12,
-        'default_font'  => 'Arial',
+        'orientation'   => $type === 'annex_a' ? 'P' : 'L',
+        'margin_top'    => $type === 'annex_a' ? 12.5 : 12,
+        'margin_bottom' => $type === 'annex_a' ? 15 : 14,
+        'margin_left'   => $type === 'annex_a' ? 13.5 : 12,
+        'margin_right'  => $type === 'annex_a' ? 13.5 : 12,
+        'default_font'  => $type === 'annex_a' ? 'timesnewroman' : 'Arial',
         'default_font_size' => 9,
     ]);
 
-    // Landscape is better for Annex A tables.
-    // Switch dimension-only to portrait since it's narrower.
+    // Dimension-only reports use portrait pages since their tables are narrower.
     if ($type === 'dimension') {
         $mpdf = new \Mpdf\Mpdf([
             'mode'          => 'utf-8',
             'format'        => 'A4',
             'orientation'   => 'P',
-          'margin_top'    => 22,
+            'margin_top'    => 22,
             'margin_bottom' => 14,
             'margin_left'   => 15,
             'margin_right'  => 15,
@@ -825,23 +807,28 @@ try {
     }
 
     // Header on every page
-    $mpdf->SetHTMLHeader('
+    if ($type === 'annex_a') {
+        $mpdf->SetHTMLHeader('');
+        $mpdf->SetHTMLFooter('');
+    } else {
+        $mpdf->SetHTMLHeader('
         <div style="font-size:7pt;color:#9CA3AF;text-align:right;
                     border-bottom:1px solid #E5E7EB;padding-bottom:3px;">
             ' . htmlspecialchars($cycle['school_name']) . '
-            &nbsp;·&nbsp; SBM Self-Assessment Report (Annex A)
+            &nbsp;·&nbsp; ' . ($type === 'annex_a' ? 'SBM Assessment Record' : 'SBM Self-Assessment Report (Annex A)') . '
         </div>
-    ');
+        ');
 
-    // Footer on every page
-    $mpdf->SetHTMLFooter('
+        // Footer on every page
+        $mpdf->SetHTMLFooter('
         <div style="font-size:7pt;color:#9CA3AF;text-align:center;
                     border-top:1px solid #E5E7EB;padding-top:3px;">
             Page {PAGENO} of {nbpg}
             &nbsp;·&nbsp; ' . htmlspecialchars(SITE_NAME) . '
             &nbsp;·&nbsp; DepEd Order No. 007, s. 2024
         </div>
-    ');
+        ');
+    }
 
     $mpdf->WriteHTML($html);
 

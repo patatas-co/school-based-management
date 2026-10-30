@@ -39,6 +39,25 @@ if errorlevel 1 (
     exit /b 1
 )
 
+:: Verify CatBoost is available for the suggestion ranker
+python -c "import catboost" 2>nul
+if errorlevel 1 (
+    echo [INFO] CatBoost is missing. Installing ML requirements into venv64...
+    python -m pip install -r requirements.txt --prefer-binary
+    if errorlevel 1 (
+        echo [ERROR] Could not install ML requirements into venv64.
+        pause
+        exit /b 1
+    )
+)
+
+python -c "import catboost" 2>nul
+if errorlevel 1 (
+    echo [ERROR] CatBoost is still unavailable in venv64.
+    pause
+    exit /b 1
+)
+
 echo.
 echo [OK] Starting ML Server on http://127.0.0.1:5001 (64-bit Python + Decision Tree ML)
 echo [OK] Keep this window open while using the system.
