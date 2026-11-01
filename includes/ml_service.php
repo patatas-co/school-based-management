@@ -37,7 +37,7 @@ function ml_post(string $endpoint, array $payload): ?array
             'Content-Type: application/json',
             'X-ML-Secret: ' . ML_SECRET,
         ],
-        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_TIMEOUT        => $endpoint === '/api/parse_form_document' ? 90 : 30,
         CURLOPT_CONNECTTIMEOUT => 5,
     ]);
     $body  = curl_exec($ch);

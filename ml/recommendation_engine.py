@@ -467,37 +467,45 @@ def extract_form_from_document(raw_text: str, backend: str = "groq") -> dict:
     """
     backend = _privacy_safe_backend(backend)
     prompt = _build_form_extraction_prompt(raw_text)
-    error  = None
-    parsed = {"dimensions": []}
-
     try:
-        text = _call_backend(prompt, backend, json_mode=True)
+        def parse_response(text: str) -> dict:
+            cleaned = text.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.strip("`")
+                if cleaned.lower().startswith("json"):
+                    cleaned = cleaned[4:]
+            parsed_response = json.loads(cleaned.strip())
+            if not isinstance(parsed_response, dict) or not isinstance(parsed_response.get("dimensions"), list):
+                raise ValueError("Response JSON missing a dimensions list.")
+            for dimension in parsed_response["dimensions"]:
+                if not isinstance(dimension, dict) or not isinstance(dimension.get("indicators"), list):
+                    raise ValueError("Response JSON contains an invalid dimension.")
+                if any(not isinstance(indicator, dict) for indicator in dimension["indicators"]):
+                    raise ValueError("Response JSON contains an invalid indicator.")
+            return parsed_response
 
-        # Strip markdown code fences if the model added them anyway.
-        cleaned = text.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.strip("`")
-            if cleaned.lower().startswith("json"):
-                cleaned = cleaned[4:]
-        cleaned = cleaned.strip()
-
-        parsed = json.loads(cleaned)
-        if not isinstance(parsed, dict) or "dimensions" not in parsed:
-            raise ValueError("Response JSON missing 'dimensions' key.")
+        try:
+            text = _call_backend(prompt, backend, json_mode=True)
+            parsed = parse_response(text)
+        except Exception:
+            if backend != "groq":
+                raise
+            # Groq can reject otherwise useful generations in constrained JSON mode.
+            parsed = parse_response(_call_backend(prompt, backend, json_mode=False))
 
     except Exception as e:
         import logging
-        import traceback
-        tb = traceback.format_exc()
-        logging.error(f"Error extracting form from document ({backend}): {e}\n{tb}")
-        print(f"[ML ERROR] extract_form_from_document {backend} failed: {e}\n{tb}", flush=True)
-        error = str(e)
-        parsed = {"dimensions": []}
+        logging.error("Error extracting form from document (%s): %s", backend, type(e).__name__)
+        return {
+            "dimensions": [],
+            "backend_used": backend,
+            "error": "The AI could not format this document as a form. Try again or use a clearer/smaller document.",
+        }
 
     return {
         "dimensions": parsed.get("dimensions", []),
         "backend_used": backend,
-        "error": error,
+        "error": None,
     }
 
 

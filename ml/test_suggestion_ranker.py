@@ -12,6 +12,7 @@ from recommendation_engine import (
     _format_dimension_suggestions,
     _parse_dimension_suggestions,
     compute_recommendation_confidence,
+    extract_form_from_document,
     generate_ip_field,
     generate_recommendations,
 )
@@ -28,6 +29,26 @@ from suggestion_ranker import (
 
 
 class SuggestionRankerTests(unittest.TestCase):
+    def test_form_extraction_retries_groq_without_json_mode(self):
+        response = json.dumps({
+            "dimensions": [{
+                "dimension_no": 1,
+                "dimension_name": "Leadership",
+                "indicators": [{"indicator_text": "The school has a plan.", "mov_guide": "Plan"}],
+            }],
+        })
+        with patch(
+            "recommendation_engine._call_backend",
+            side_effect=[RuntimeError("Groq failed to generate JSON"), response],
+        ) as call_backend:
+            result = extract_form_from_document("Dimension 1: Leadership\n1.1 The school has a plan.", "groq")
+
+        self.assertIsNone(result["error"])
+        self.assertEqual(len(result["dimensions"]), 1)
+        self.assertEqual(call_backend.call_count, 2)
+        self.assertTrue(call_backend.call_args_list[0].kwargs["json_mode"])
+        self.assertFalse(call_backend.call_args_list[1].kwargs["json_mode"])
+
     def test_output_formats_precomputed_comparison_and_dimension_sections(self):
         text = _format_dimension_suggestions(
             [

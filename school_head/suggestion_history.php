@@ -4,6 +4,9 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/suggestion_feedback.php';
 requireRole('school_head', 'sbm_coordinator');
 
+header('Location: ai_suggestion_planning.php');
+exit;
+
 $db = getDB();
 $schoolId = (int) ($_SESSION['school_id'] ?? SCHOOL_ID);
 $historyTableStmt = $db->prepare("

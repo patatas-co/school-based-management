@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/sbm_indicators.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/workflow_actions.php';
 requireRole('sbm_coordinator');
 $db = getDB();
 $schoolId = SCHOOL_ID;
@@ -19,6 +20,9 @@ if ($schoolId && $syId) {
   $cycleQuery->execute([$schoolId, $syId]);
   $cycle = $cycleQuery->fetch(PDO::FETCH_ASSOC);
 }
+$missingTeacherEvaluators = $cycle && $cycle['status'] === 'submitted'
+  ? getMissingTeacherEvaluators($db, (int) $cycle['cycle_id'], (int) $schoolId)
+  : [];
 
 $schoolHeadPreview = [];
 $evaluatorPreview = [];
@@ -744,12 +748,22 @@ include __DIR__ . '/../includes/header.php';
 
   <div class="review-footer">
     <div style="font-size:12px;color:var(--n-600,#475569);">
-      <strong style="color:var(--n-800,#1E293B);">Assessment ready for review</strong><br>
-      Review the submitted responses before completing the cycle.
+      <?php if ($missingTeacherEvaluators): ?>
+        <strong style="color:#B45309;">Incomplete teacher evaluations</strong><br>
+        <?= count($missingTeacherEvaluators) ?> assigned teacher<?= count($missingTeacherEvaluators) === 1 ? '' : 's' ?>
+        must submit before this cycle can be completed:
+        <?= e(implode(', ', $missingTeacherEvaluators)) ?>.
+      <?php else: ?>
+        <strong style="color:var(--n-800,#1E293B);">Assessment ready for review</strong><br>
+        Review the submitted responses before completing the cycle.
+      <?php endif; ?>
     </div>
     <div class="review-footer-actions" style="display:flex;gap:8px;">
       <button type="button" class="btn btn-secondary btn-sm" onclick="openReturnCycleModal(<?= (int) $cycle['cycle_id'] ?>)">Return for Revision</button>
-      <button type="button" class="btn btn-primary btn-sm" onclick="validateAndCompleteCycle(<?= (int) $cycle['cycle_id'] ?>)">Validate &amp; Complete Cycle</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="validateAndCompleteCycle(<?= (int) $cycle['cycle_id'] ?>)"
+        <?= $missingTeacherEvaluators ? 'disabled title="Assigned teachers must submit their evaluations first."' : '' ?>>
+        Validate &amp; Complete Cycle
+      </button>
     </div>
   </div>
 

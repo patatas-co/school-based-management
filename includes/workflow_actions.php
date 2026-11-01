@@ -33,6 +33,37 @@ function getCycleStatus(PDO $db, int $cycleId): ?string
     return $row ? $row['status'] : null;
 }
 
+function getMissingTeacherEvaluators(PDO $db, int $cycleId, int $schoolId): array
+{
+    $st = $db->prepare("
+        SELECT u.full_name
+        FROM users u
+        WHERE u.school_id = ? AND u.role = 'teacher' AND u.status = 'active'
+          AND EXISTS (
+              SELECT 1
+              FROM teacher_indicator_assignments tia
+              WHERE tia.teacher_id = u.user_id
+                AND (tia.cycle_id = ? OR tia.cycle_id IS NULL)
+          )
+          AND NOT EXISTS (
+              SELECT 1
+              FROM teacher_submissions ts
+              WHERE ts.cycle_id = ? AND ts.school_id = ? AND ts.teacher_id = u.user_id
+                AND ts.status = 'submitted'
+                AND ts.submission_id = (
+                    SELECT MAX(latest.submission_id)
+                    FROM teacher_submissions latest
+                    WHERE latest.cycle_id = ts.cycle_id
+                      AND latest.school_id = ts.school_id
+                      AND latest.teacher_id = ts.teacher_id
+                )
+          )
+        ORDER BY u.full_name
+    ");
+    $st->execute([$schoolId, $cycleId, $cycleId, $schoolId]);
+    return array_column($st->fetchAll(PDO::FETCH_ASSOC), 'full_name');
+}
+
 function fnAutoGenerateCheckpoints(PDO $db, int $syId, array $phases, bool $fromDB): void
 {
     $schools = $db->query("SELECT school_id FROM schools")->fetchAll(PDO::FETCH_COLUMN);
@@ -709,6 +740,23 @@ function handleWorkflowPost(PDO $db): void
         if ($cycle['status'] !== 'submitted') {
             $db->rollBack();
             echo json_encode(['ok' => false, 'msg' => 'Only a submitted assessment can be validated.']);
+            exit;
+        }
+
+        $missingTeachers = getMissingTeacherEvaluators($db, $cycleId, SCHOOL_ID);
+        if ($missingTeachers) {
+            $db->rollBack();
+            $missingCount = count($missingTeachers);
+            $teacherNames = implode(', ', $missingTeachers);
+            echo json_encode([
+                'ok' => false,
+                'msg' => sprintf(
+                    'This assessment cannot be validated because %d assigned teacher %s not completed the evaluation: %s.',
+                    $missingCount,
+                    $missingCount === 1 ? 'has' : 'have',
+                    $teacherNames
+                )
+            ]);
             exit;
         }
 

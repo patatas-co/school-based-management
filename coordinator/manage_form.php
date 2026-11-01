@@ -69,8 +69,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mlResult = ml_post('/api/parse_form_document', ['text' => $extracted['text']]);
 
         if (!$mlResult || !empty($mlResult['error'])) {
-            $err = $mlResult['error'] ?? 'AI service unavailable. Please try again shortly.';
-            echo json_encode(['ok' => false, 'msg' => 'Could not extract form data: ' . $err]);
+            $message = !$mlResult
+                ? 'The document extraction service is unavailable. Please try again shortly.'
+                : 'The AI could not format this document as a form. Try again or use a clearer/smaller document.';
+            echo json_encode(['ok' => false, 'msg' => $message]);
             exit;
         }
 
@@ -458,21 +460,42 @@ include __DIR__ . '/../includes/header.php';
     bottom: 0; left: 0; right: 0;
     background: #fff;
     border-top: 2px solid #D97706;
-    padding: 16px 28px;
+    padding: 14px 28px;
     display: none;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 20px;
     z-index: 300;
     box-shadow: 0 -8px 24px rgba(0,0,0,.10);
-    flex-wrap: wrap;
 }
 .mf-publish-panel.open { display: flex; }
-#editMode { padding-bottom: 90px; }
+#editMode { padding-bottom: calc(var(--mf-publish-panel-height, 90px) + 24px); }
+.mf-publish-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+}
+.mf-publish-controls #newVersionLabel {
+    box-sizing: border-box;
+    width: 280px;
+    max-width: 30vw;
+}
+.mf-publish-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.mf-publish-actions .btn { white-space: nowrap; }
+.mf-publish-info { min-width: 0; }
+.mf-publish-info > div:last-child { min-width: 0; }
+.mf-publish-info > div:last-child > div:last-child { line-height: 1.45; }
 @media (max-width: 640px) {
-    .mf-publish-panel { padding: 12px 16px; }
-    .mf-publish-panel #newVersionLabel { width: 100% !important; }
-    .mf-publish-warning-note { flex-basis: 100%; }
+    .mf-publish-panel { padding: 12px 16px; gap: 10px; align-items: stretch; flex-direction: column; }
+    .mf-publish-controls { align-items: stretch; flex-direction: column; gap: 8px; }
+    .mf-publish-controls #newVersionLabel { width: 100%; max-width: none; }
+    .mf-publish-warning-note { max-width: none; }
+    .mf-publish-actions { flex-direction: column; align-items: stretch; }
 }
 
 .mf-publish-info {
@@ -484,7 +507,7 @@ include __DIR__ . '/../includes/header.php';
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #D97706;
+    background: #16A34A;
     animation: pulse 1.5s ease-in-out infinite;
 }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
@@ -819,20 +842,19 @@ include __DIR__ . '/../includes/header.php';
         <div class="mf-publish-dot"></div>
         <div>
             <div style="font-size:13.5px;font-weight:700;color:var(--n-900);">Ready to publish</div>
-            <div style="font-size:12px;color:var(--n-500);">This will create a new form version. Old submissions are unaffected.</div>
+            <div style="font-size:12px;color:var(--n-500);">This creates a new form version. It applies to future cycles only. Submitted and in-progress data stay linked to their original version.</div>
         </div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <input type="text" class="fc" id="newVersionLabel" placeholder="Version label (e.g. DO 007 s.2025 Update)"
-               style="width:280px;padding:7px 12px;font-size:13px;">
-        <?php if ($hasSubmittedCycle): ?>
-            <span class="mf-publish-warning-note">This version will apply to future cycles only. Submitted and in-progress data stay linked to their original version.</span>
-        <?php endif; ?>
-        <button class="btn btn-primary" onclick="publishNewVersion()" id="btnPublish">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
-            Publish New Version
-        </button>
-        <button class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+    <div class="mf-publish-controls">
+        <input type="text" class="fc" id="newVersionLabel" placeholder="Version label (optional), e.g. DO 007 s.2025 Update"
+               style="padding:7px 12px;font-size:13px;">
+        <div class="mf-publish-actions">
+            <button class="btn btn-primary" onclick="publishNewVersion()" id="btnPublish">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                Publish New Version
+            </button>
+            <button class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+        </div>
     </div>
 </div>
 
@@ -1018,6 +1040,7 @@ function startEdit() {
     document.getElementById('viewMode').style.display = 'none';
     document.getElementById('editMode').style.display  = '';
     document.getElementById('publishPanel').classList.add('open');
+    syncPublishPanelSpace();
     document.getElementById('btnStartEdit').style.display = 'none';
     renderEditForm();
 }
@@ -1027,7 +1050,23 @@ function cancelEdit() {
     document.getElementById('viewMode').style.display = '';
     document.getElementById('editMode').style.display  = 'none';
     document.getElementById('publishPanel').classList.remove('open');
+    syncPublishPanelSpace();
     document.getElementById('btnStartEdit').style.display = '';
+}
+
+function syncPublishPanelSpace() {
+    const panel = document.getElementById('publishPanel');
+    const editMode = document.getElementById('editMode');
+    if (panel.classList.contains('open')) {
+        editMode.style.setProperty('--mf-publish-panel-height', `${panel.offsetHeight}px`);
+    } else {
+        editMode.style.removeProperty('--mf-publish-panel-height');
+    }
+}
+
+window.addEventListener('resize', syncPublishPanelSpace);
+if ('ResizeObserver' in window) {
+    new ResizeObserver(syncPublishPanelSpace).observe(document.getElementById('publishPanel'));
 }
 
 // ── IMPORT FROM DOCUMENT ────────────────────────────────────────
@@ -1063,9 +1102,15 @@ function setImportStatus(state, message) {
     msg.classList.remove('show', 'loading', 'error', 'success');
     if (!state) { msg.innerHTML = ''; return; }
     msg.classList.add('show', state);
-    msg.innerHTML = state === 'loading'
-        ? `<span class="mf-import-spinner"></span><span>${message}</span>`
-        : `<span>${message}</span>`;
+    msg.replaceChildren();
+    if (state === 'loading') {
+        const spinner = document.createElement('span');
+        spinner.className = 'mf-import-spinner';
+        msg.appendChild(spinner);
+    }
+    const text = document.createElement('span');
+    text.textContent = message;
+    msg.appendChild(text);
 }
 
 (function initImportDropzone() {
@@ -1102,7 +1147,7 @@ async function runDocumentImport() {
 
     btn.disabled = true;
     btn.textContent = 'Extracting…';
-    setImportStatus('loading', 'Reading document and extracting form structure — this may take up to 30 seconds…');
+    setImportStatus('loading', 'Reading the document and extracting its form structure. This may take up to a minute…');
 
     const fd = new FormData();
     fd.append('action', 'import_document');
@@ -1142,6 +1187,7 @@ async function runDocumentImport() {
         document.getElementById('viewMode').style.display = 'none';
         document.getElementById('editMode').style.display  = '';
         document.getElementById('publishPanel').classList.add('open');
+        syncPublishPanelSpace();
         document.getElementById('btnStartEdit').style.display = 'none';
         renderEditForm();
     } catch (err) {
