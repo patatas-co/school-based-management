@@ -64,9 +64,7 @@ access_log
 .Trashes
 ehthumbs.db
 
-# Uploaded user files (evidence, MOV attachments)
-uploads/
-assets/uploads/
+
 
 # Cache
 .cache/
