@@ -75,3 +75,6 @@ ehthumbs.db
 *.temp
 tmp/
 temp/
+
+#root
+*index.php

@@ -300,7 +300,8 @@ include __DIR__.'/../includes/header.php';
 .ts-empty        { text-align:center;padding:40px 20px;color:var(--n400);font-size:13px; }
 
 /* ── Table layout ─────────────────────────────────────── */
-.ts-table        { table-layout:fixed; }
+.ts-table.w-full { width:100%;table-layout:fixed; }
+.ts-table-wrap   { overflow-x:visible; }
 .ts-table.tbl-enhanced thead th { padding:9px 12px; }
 .ts-table.tbl-enhanced tbody td { padding:7px 12px; }
 .ts-table.tbl-enhanced tbody tr:hover td { background:#F9FAFB; }
@@ -311,7 +312,9 @@ include __DIR__.'/../includes/header.php';
 .ts-table th.ts-th-department { width:20%; }
 .ts-table th.ts-th-submitted { width:24%; }
 .ts-table th.ts-th-actions { width:18%;text-align:right; }
-.ts-table td.ts-td-actions { text-align:right;white-space:nowrap; }
+.ts-table td.ts-td-actions { text-align:right; }
+.ts-action-stack { display:flex;flex-direction:column;align-items:flex-end;gap:4px; }
+.ts-reminder-feedback { max-width:180px;font-size:11px;line-height:1.35;text-align:right;overflow-wrap:anywhere; }
 .ts-td-sub      { font-size:12px;color:var(--n500)!important; }
 .ts-neutral-avatar { width:34px;height:34px;border-radius:9px;background:var(--n-100);color:var(--n-600); }
 .ts-department { color:var(--n500);font-size:12px;font-weight:400; }
@@ -348,7 +351,7 @@ include __DIR__.'/../includes/header.php';
 }
 
 @media(max-width:600px){
-  .ts-table { min-width:560px; }
+  .ts-table-wrap { overflow-x:auto; }
   .ts-table th.ts-th-teacher { width:38%; }
   .ts-table th.ts-th-department { width:18%; }
   .ts-table th.ts-th-submitted { width:26%; }
@@ -449,8 +452,8 @@ include __DIR__.'/../includes/header.php';
     <?php endif; ?>
   </div>
   <?php else: ?>
-  <div class="tbl-wrap">
-    <table class="tbl-enhanced ts-table">
+  <div class="tbl-wrap ts-table-wrap">
+    <table class="tbl-enhanced ts-table w-full">
       <thead>
         <tr>
           <th class="ts-th-teacher">Teacher</th>
@@ -495,13 +498,15 @@ include __DIR__.'/../includes/header.php';
           </td>
           <td class="ts-td-actions">
             <?php if (!$submitted && !empty($_COORDINATOR_VIEW) && !empty($t['email'])): ?>
-              <button type="button" class="ts-remind-link"
-                data-reminder-button
-                data-teacher-id="<?= (int) $t['user_id'] ?>"
-                data-cycle-id="<?= (int) $cycle['cycle_id'] ?>"
-                data-csrf="<?= e(csrfToken()) ?>">Remind</button>
-              <span id="reminder-feedback-<?= (int) $t['user_id'] ?>"
-                role="status" aria-live="polite" style="font-size:11px;"></span>
+              <div class="ts-action-stack">
+                <button type="button" class="ts-remind-link"
+                  data-reminder-button
+                  data-teacher-id="<?= (int) $t['user_id'] ?>"
+                  data-cycle-id="<?= (int) $cycle['cycle_id'] ?>"
+                  data-csrf="<?= e(csrfToken()) ?>">Remind</button>
+                <span id="reminder-feedback-<?= (int) $t['user_id'] ?>"
+                  class="ts-reminder-feedback" role="status" aria-live="polite"></span>
+              </div>
             <?php endif; ?>
           </td>
         </tr>

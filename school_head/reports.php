@@ -30,8 +30,8 @@ include __DIR__.'/../includes/header.php';
 <div class="card mb5" style="margin-bottom:18px;">
   <div class="card-body" style="padding:14px 18px;">
     <form method="get" class="flex-c" style="gap:10px;flex-wrap:wrap;align-items:center;">
-      <div style="padding:8px 14px;background:var(--brand-100);border-radius:8px;font-size:13.5px;font-weight:700;color:var(--brand-700);">Dasmariñas Integrated High School</div>
-      <div class="fg" style="margin-bottom:0;">
+  <span style="font-size:14px;font-weight:500;color:#4B5563;">Report Year:</span>
+  <div class="fg" style="margin-bottom:0;">
     <div class="p-select" id="repSySelect" style="width:200px;">
       <input type="hidden" name="sy" id="rep_sy_hidden" value="<?= $syId ?>">
       <div class="p-select-trigger" onclick="togglePSelect(event, 'repSySelect')">
@@ -61,7 +61,10 @@ include __DIR__.'/../includes/header.php';
       <input type="hidden" name="school" value="<?= SCHOOL_ID ?>">
       <button type="submit" class="btn btn-primary">Generate Report</button>
       <?php if($reportData): ?>
-      <a href="<?= baseUrl() ?>/export_pdf.php?cycle_id=<?= $reportData['cycle_id'] ?>&type=dimension" target="_blank" class="btn btn-secondary" style="margin-left:auto;">Download Dimension Report (PDF)</a>
+      <div style="display:flex;gap:10px;margin-left:auto;flex-wrap:wrap;">
+        <a href="<?= baseUrl() ?>/export_pdf.php?cycle_id=<?= $reportData['cycle_id'] ?>&type=dimension" target="_blank" class="btn btn-secondary">Download Dimension Report (PDF)</a>
+        <a href="<?= baseUrl() ?>/export_pdf.php?cycle_id=<?= $reportData['cycle_id'] ?>&type=annex_a" target="_blank" class="btn btn-secondary">Download Annex A Report (PDF)</a>
+      </div>
       <?php endif; ?>
     </form>
   </div>

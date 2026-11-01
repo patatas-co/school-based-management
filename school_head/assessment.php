@@ -95,8 +95,6 @@ include __DIR__ . '/../includes/header.php';
   <div class="card-head">
     <span class="card-title">
       <?= $status ? ucfirst(str_replace('_', ' ', $status)) : 'All Assessments' ?>
-      <span
-        style="font-weight:400;color:var(--n-400);font-family:var(--font-body);font-size:13px;">(<?= count($cycles) ?>)</span>
     </span>
     <div class="search">
       <span class="si"><?= svgIcon('search') ?></span>
@@ -114,7 +112,6 @@ include __DIR__ . '/../includes/header.php';
           <th>Maturity</th>
           <th>Submitted</th>
           <th>Validated By</th>
-          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -151,17 +148,11 @@ include __DIR__ . '/../includes/header.php';
               <?= $c['submitted_at'] ? date('M d, Y', strtotime($c['submitted_at'])) : '—' ?>
             </td>
             <td style="font-size:12.5px;color:var(--n-600);"><?= e($c['validator_name'] ?? '—') ?></td>
-            <td>
-              <div class="flex-c" style="gap:5px;">
-                <a href="view_assessment.php?id=<?= $c['cycle_id'] ?>"
-                  class="btn btn-secondary btn-sm"><?= svgIcon('eye') ?> View</a>
-              </div>
-            </td>
           </tr>
         <?php endforeach; ?>
         <?php if (!$cycles): ?>
           <tr>
-            <td colspan="8">
+            <td colspan="7">
               <div class="empty-state">
                 <div class="empty-icon"><?= svgIcon('check-circle') ?></div>
                 <div class="empty-title">No assessments found</div>
