@@ -2642,10 +2642,10 @@ include __DIR__ . '/../includes/header.php';
           </div>
         </div>
       </div>
-      <div class="chart-card-body" style="position:relative;height:380px;padding:0;display:flex;flex-direction:column;">
-        <div id="dimTrendScrollWrap" style="overflow-x:auto;overflow-y:hidden;width:100%;flex:1;padding:16px 16px 0;box-sizing:border-box;">
-          <div id="dimTrendChartInner" style="position:relative;height:100%;min-width:100%;">
-            <canvas id="anDimTrendChart"></canvas>
+      <div class="chart-card-body" style="position:relative;height:380px;padding:0;display:flex;flex-direction:column;overflow:visible;">
+        <div id="dimTrendScrollWrap" style="overflow-x:auto;overflow-y:visible;width:100%;flex:1;padding:16px 16px 0;box-sizing:border-box;">
+          <div id="dimTrendChartInner" style="position:relative;height:100%;min-width:100%;overflow:visible;">
+            <canvas id="anDimTrendChart" style="overflow:visible;"></canvas>
           </div>
         </div>
       </div>
@@ -3889,10 +3889,13 @@ function renderDimensionTrendChart() {
       scales: {
         y: {
           min: 0,
-          max: 100,
+          max: 105,
           ticks: {
             callback: value => value + '%',
             font: { size: 11 }
+          },
+          afterBuildTicks: axis => {
+            axis.ticks = Array.from({ length: 11 }, (_, index) => ({ value: index * 10 }));
           },
           grid: { color: '#F3F4F6' }
         },
@@ -3904,6 +3907,7 @@ function renderDimensionTrendChart() {
           grid: { display: false }
         }
       },
+      layout: { padding: { top: 12 } },
       plugins: {
         legend: {
           position: 'bottom',

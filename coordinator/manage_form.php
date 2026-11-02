@@ -160,6 +160,140 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // ── Save wording changes to the active version in place ───
+    if ($action === 'save_version_changes') {
+        $payload = json_decode($_POST['payload'] ?? '{}', true);
+        $vId = (int)($_POST['version_id'] ?? 0);
+
+        if (empty($payload['dimensions']) || !is_array($payload['dimensions'])) {
+            echo json_encode(['ok' => false, 'msg' => 'Form cannot be empty.']);
+            exit;
+        }
+
+        $db->beginTransaction();
+        try {
+            $version = $db->prepare("SELECT version_id FROM form_versions WHERE version_id=? AND is_active=1 FOR UPDATE");
+            $version->execute([$vId]);
+            if ($version->fetchColumn() === false) {
+                throw new RuntimeException('Only the currently active version can be edited in place.');
+            }
+
+            $dims = $db->prepare("
+                SELECT dimension_id, dimension_no
+                FROM sbm_dimensions
+                WHERE form_version_id=?
+                ORDER BY dimension_no
+                FOR UPDATE
+            ");
+            $dims->execute([$vId]);
+            $existingDimensions = $dims->fetchAll(PDO::FETCH_ASSOC);
+            $submittedDimensions = array_values($payload['dimensions']);
+            if (count($submittedDimensions) !== count($existingDimensions)) {
+                throw new RuntimeException('Save Changes only supports wording edits. Use Publish New Version for structural changes.');
+            }
+
+            $updateDimension = $db->prepare("
+                UPDATE sbm_dimensions
+                SET dimension_name=?, description=?
+                WHERE dimension_id=? AND form_version_id=?
+            ");
+            $updateIndicator = $db->prepare("
+                UPDATE sbm_indicators
+                SET indicator_text=?, mov_guide=?
+                WHERE indicator_id=? AND dimension_id=? AND form_version_id=? AND is_active=1
+            ");
+
+            foreach ($existingDimensions as $dIdx => $existingDimension) {
+                $dimension = $submittedDimensions[$dIdx];
+                if (!is_array($dimension)) {
+                    throw new RuntimeException('Invalid form data. Please reload and try again.');
+                }
+                if (
+                    (int)($dimension['dimension_id'] ?? 0) !== (int)$existingDimension['dimension_id']
+                    || (int)($dimension['dimension_no'] ?? 0) !== (int)$existingDimension['dimension_no']
+                ) {
+                    throw new RuntimeException('Save Changes only supports wording edits. Use Publish New Version for structural changes.');
+                }
+
+                $existingIndicatorsStmt = $db->prepare("
+                    SELECT indicator_id, rater_role
+                    FROM sbm_indicators
+                    WHERE dimension_id=? AND form_version_id=? AND is_active=1
+                    ORDER BY sort_order
+                    FOR UPDATE
+                ");
+                $existingIndicatorsStmt->execute([$existingDimension['dimension_id'], $vId]);
+                $existingIndicators = $existingIndicatorsStmt->fetchAll(PDO::FETCH_ASSOC);
+                $submittedIndicators = $dimension['indicators'] ?? [];
+                if (!is_array($submittedIndicators)) {
+                    throw new RuntimeException('Save Changes only supports wording edits. Use Publish New Version for structural changes.');
+                }
+                $indicators = array_values($submittedIndicators);
+                if (count($indicators) !== count($existingIndicators)) {
+                    throw new RuntimeException('Save Changes only supports wording edits. Use Publish New Version for structural changes.');
+                }
+
+                if (!is_string($dimension['dimension_name'] ?? null)) {
+                    throw new RuntimeException('All dimensions must have a name.');
+                }
+                $dimensionName = trim($dimension['dimension_name']);
+                if ($dimensionName === '') {
+                    throw new RuntimeException('All dimensions must have a name.');
+                }
+                $description = $dimension['description'] ?? '';
+                if (!is_string($description)) {
+                    throw new RuntimeException('Invalid form data. Please reload and try again.');
+                }
+                $updateDimension->execute([
+                    $dimensionName,
+                    trim($description),
+                    $existingDimension['dimension_id'],
+                    $vId
+                ]);
+
+                foreach ($existingIndicators as $iIdx => $existingIndicator) {
+                    $indicator = $indicators[$iIdx];
+                    if (!is_array($indicator)) {
+                        throw new RuntimeException('Invalid form data. Please reload and try again.');
+                    }
+                    if (
+                        (int)($indicator['indicator_id'] ?? 0) !== (int)$existingIndicator['indicator_id']
+                        || (string)($indicator['rater_role'] ?? '') !== (string)$existingIndicator['rater_role']
+                    ) {
+                        throw new RuntimeException('Save Changes only supports wording edits. Use Publish New Version for structural changes.');
+                    }
+
+                    if (!is_string($indicator['indicator_text'] ?? null)) {
+                        throw new RuntimeException('All indicators must have text.');
+                    }
+                    $indicatorText = trim($indicator['indicator_text']);
+                    if ($indicatorText === '') {
+                        throw new RuntimeException('All indicators must have text.');
+                    }
+                    $movGuide = $indicator['mov_guide'] ?? '';
+                    if (!is_string($movGuide)) {
+                        throw new RuntimeException('Invalid form data. Please reload and try again.');
+                    }
+                    $updateIndicator->execute([
+                        $indicatorText,
+                        trim($movGuide),
+                        $existingIndicator['indicator_id'],
+                        $existingDimension['dimension_id'],
+                        $vId
+                    ]);
+                }
+            }
+
+            $db->commit();
+            logActivity('save_form_version_changes', 'manage_form', "Updated wording in form version ID $vId");
+            echo json_encode(['ok' => true, 'msg' => 'Changes saved to the existing version.']);
+        } catch (Exception $e) {
+            $db->rollBack();
+            echo json_encode(['ok' => false, 'msg' => $e->getMessage()]);
+        }
+        exit;
+    }
+
     // ── Revert active to a previous version ──────────────────
     if ($action === 'revert_version') {
         $vId = (int)($_POST['version_id'] ?? 0);
@@ -479,7 +613,8 @@ include __DIR__ . '/../includes/header.php';
 .mf-publish-controls #newVersionLabel {
     box-sizing: border-box;
     width: 280px;
-    max-width: 30vw;
+    min-width: 240px;
+    max-width: 100%;
 }
 .mf-publish-actions {
     display: flex;
@@ -487,15 +622,17 @@ include __DIR__ . '/../includes/header.php';
     gap: 10px;
 }
 .mf-publish-actions .btn { white-space: nowrap; }
+.mf-publish-actions #btnSaveChanges { background: #fff; }
 .mf-publish-info { min-width: 0; }
 .mf-publish-info > div:last-child { min-width: 0; }
-.mf-publish-info > div:last-child > div:last-child { line-height: 1.45; }
+.mf-publish-info > div:last-child > div:last-child { line-height: 1.45; white-space: nowrap; }
 @media (max-width: 640px) {
     .mf-publish-panel { padding: 12px 16px; gap: 10px; align-items: stretch; flex-direction: column; }
-    .mf-publish-controls { align-items: stretch; flex-direction: column; gap: 8px; }
-    .mf-publish-controls #newVersionLabel { width: 100%; max-width: none; }
+    .mf-publish-controls { width: 100%; align-items: stretch; flex-wrap: wrap; gap: 10px; }
+    .mf-publish-controls #newVersionLabel { width: 100%; max-width: 100%; flex: 0 0 100%; }
     .mf-publish-warning-note { max-width: none; }
-    .mf-publish-actions { flex-direction: column; align-items: stretch; }
+    .mf-publish-actions { flex-wrap: wrap; }
+    .mf-publish-info > div:last-child > div:last-child { white-space: normal; }
 }
 
 .mf-publish-info {
@@ -820,7 +957,7 @@ include __DIR__ . '/../includes/header.php';
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         Edit Mode
                     </span>
-                    <span style="font-size:13px;color:#92400E;">Unsaved changes — publish to save as a new version</span>
+                    <span style="font-size:13px;color:#92400E;">Unsaved changes — save this version or publish a new version</span>
                 </div>
                 <button class="btn btn-secondary btn-sm" onclick="cancelEdit()">Cancel</button>
             </div>
@@ -842,13 +979,18 @@ include __DIR__ . '/../includes/header.php';
         <div class="mf-publish-dot"></div>
         <div>
             <div style="font-size:13.5px;font-weight:700;color:var(--n-900);">Ready to publish</div>
-            <div style="font-size:12px;color:var(--n-500);">This creates a new form version. It applies to future cycles only. Submitted and in-progress data stay linked to their original version.</div>
+            <div style="font-size:12px;color:var(--n-500);">Creates a new version for future cycles only. Existing submissions stay linked to their original version.</div>
         </div>
     </div>
     <div class="mf-publish-controls">
-        <input type="text" class="fc" id="newVersionLabel" placeholder="Version label (optional), e.g. DO 007 s.2025 Update"
+        <input type="text" class="fc" id="newVersionLabel" placeholder="Version label (optional)"
                style="padding:7px 12px;font-size:13px;">
         <div class="mf-publish-actions">
+            <?php if ($activeVersion): ?>
+            <button class="btn btn-secondary" onclick="saveVersionChanges()" id="btnSaveChanges">
+                Save Changes
+            </button>
+            <?php endif; ?>
             <button class="btn btn-primary" onclick="publishNewVersion()" id="btnPublish">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
                 Publish New Version
@@ -919,6 +1061,7 @@ include __DIR__ . '/../includes/header.php';
 // ── STATE ─────────────────────────────────────────────────────
 let _editData   = [];  // [{dimension_no, dimension_name, color_hex, indicators:[{indicator_text,mov_guide}]}]
 let _selectedVersionId = null;
+let _editingVersionId = null;
 let _isEditing  = false;
 
 const DIM_COLORS = ['#2563EB','#16A34A','#7C3AED','#D97706','#DC2626','#0D9488'];
@@ -1016,15 +1159,18 @@ function toggleDimBody(headEl) {
 // ── START EDIT ────────────────────────────────────────────────
 function startEdit() {
     _isEditing = true;
+    _editingVersionId = <?= $activeVersion ? (int)$activeVersion['version_id'] : 'null' ?>;
     // Deep-copy active form data into _editData
     _editData = <?= json_encode(array_map(function($d) {
         return [
+            'dimension_id'   => (int)$d['dimension_id'],
             'dimension_no'   => (int)$d['dimension_no'],
             'dimension_name' => $d['dimension_name'],
             'description'    => $d['description'] ?? '',
             'color_hex'      => $d['color_hex'],
             'icon'           => $d['icon'] ?? 'layers',
             'indicators'     => array_map(fn($i) => [
+                'indicator_id'   => (int)$i['indicator_id'],
                 'indicator_text' => $i['indicator_text'],
                 'mov_guide'      => $i['mov_guide'] ?? '',
                 'rater_role'     => $i['rater_role'] ?? 'SH_TEACHER'
@@ -1042,6 +1188,8 @@ function startEdit() {
     document.getElementById('publishPanel').classList.add('open');
     syncPublishPanelSpace();
     document.getElementById('btnStartEdit').style.display = 'none';
+    const saveButton = document.getElementById('btnSaveChanges');
+    if (saveButton) saveButton.style.display = _editingVersionId ? '' : 'none';
     renderEditForm();
 }
 
@@ -1170,6 +1318,7 @@ async function runDocumentImport() {
 
         // Normalize AI output into the editor's expected shape, then open Edit Mode.
         _isEditing = true;
+        _editingVersionId = null;
         _editData = data.dimensions.map((d, dIdx) => ({
             dimension_no: dIdx + 1,
             dimension_name: d.dimension_name || `Dimension ${dIdx + 1}`,
@@ -1189,6 +1338,8 @@ async function runDocumentImport() {
         document.getElementById('publishPanel').classList.add('open');
         syncPublishPanelSpace();
         document.getElementById('btnStartEdit').style.display = 'none';
+        const saveButton = document.getElementById('btnSaveChanges');
+        if (saveButton) saveButton.style.display = 'none';
         renderEditForm();
     } catch (err) {
         btn.disabled = false;
@@ -1220,9 +1371,8 @@ function renderDimCard(container, dim, dIdx) {
             <div class="mf-edit-num">${dIdx+1}.${iIdx+1}</div>
             <div class="mf-edit-fields">
                 <textarea class="fc ind-text-input" rows="2" placeholder="Indicator text…" style="font-size:13px;resize:vertical;"
-                    onchange="updateIndicator(${dIdx},${iIdx},'indicator_text',this.value)">${_esc(ind.indicator_text)}</textarea>
+                    onchange="updateIndicator(${dIdx},${iIdx},'indicator_text',this.value)"></textarea>
                 <input type="text" class="fc ind-mov-input" placeholder="MOV guide (optional)…" style="font-size:12.5px;"
-                    value="${_esc(ind.mov_guide||'')}"
                     onchange="updateIndicator(${dIdx},${iIdx},'mov_guide',this.value)">
                 <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
                     <label style="font-size:11.5px;color:var(--n-500);white-space:nowrap;">Rated by:</label>
@@ -1257,7 +1407,7 @@ function renderDimCard(container, dim, dIdx) {
                 </div>
             </div>
             <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
-                <input type="text" class="fc" value="${_esc(dim.dimension_name)}"
+                <input type="text" class="fc"
                     placeholder="Dimension name…"
                     style="width:100%;font-size:13.5px;font-weight:700;border-color:transparent;background:transparent;padding:4px 8px;"
                     onclick="event.stopPropagation()"
@@ -1290,6 +1440,11 @@ function renderDimCard(container, dim, dIdx) {
             </div>
         </div>`;
 
+    card.querySelector('.mf-dim-head input[type="text"]').value = dim.dimension_name || '';
+    card.querySelectorAll('.mf-edit-row').forEach((row, iIdx) => {
+        row.querySelector('.ind-text-input').value = dim.indicators[iIdx].indicator_text || '';
+        row.querySelector('.ind-mov-input').value = dim.indicators[iIdx].mov_guide || '';
+    });
     document.getElementById('editDimList').appendChild(card);
 }
 
@@ -1393,7 +1548,9 @@ async function publishNewVersion() {
 
     const label = document.getElementById('newVersionLabel').value.trim();
     const btn = document.getElementById('btnPublish');
+    const saveBtn = document.getElementById('btnSaveChanges');
     btn.disabled = true;
+    if (saveBtn) saveBtn.disabled = true;
     btn.textContent = 'Publishing…';
 
     const fd = new FormData();
@@ -1405,9 +1562,50 @@ async function publishNewVersion() {
     const res = await fetch('manage_form.php', { method:'POST', body: fd });
     const data = await res.json();
     btn.disabled = false;
+    if (saveBtn) saveBtn.disabled = false;
     btn.textContent = 'Publish New Version';
     toast(data.msg, data.ok ? 'ok' : 'err');
     if (data.ok) setTimeout(() => location.reload(), 900);
+}
+
+async function saveVersionChanges() {
+    if (!_editingVersionId) { toast('No existing version selected to update.', 'err'); return; }
+    if (!confirm('This edits the existing version. Use it for typos and wording fixes only.')) return;
+
+    syncEditDataFromDOM();
+    for (const d of _editData) {
+        if (!d.dimension_name.trim()) { toast('All dimensions must have a name.','warning'); return; }
+        for (const ind of d.indicators) {
+            if (!ind.indicator_text.trim()) { toast('All indicators must have text.','warning'); return; }
+        }
+    }
+
+    const btn = document.getElementById('btnSaveChanges');
+    const publishBtn = document.getElementById('btnPublish');
+    btn.disabled = true;
+    publishBtn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    const fd = new FormData();
+    fd.append('action', 'save_version_changes');
+    fd.append('version_id', _editingVersionId);
+    fd.append('payload', JSON.stringify({ dimensions: _editData }));
+    fd.append('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
+
+    try {
+        const res = await fetch('manage_form.php', { method:'POST', body: fd });
+        const data = await res.json();
+        btn.disabled = false;
+        publishBtn.disabled = false;
+        btn.textContent = 'Save Changes';
+        toast(data.msg, data.ok ? 'ok' : 'err');
+        if (data.ok) setTimeout(() => location.reload(), 900);
+    } catch (err) {
+        btn.disabled = false;
+        publishBtn.disabled = false;
+        btn.textContent = 'Save Changes';
+        toast('Unable to save changes. Please try again.', 'err');
+    }
 }
 </script>
 
