@@ -487,28 +487,69 @@ if ($dashboardMaturity !== null && strpos($dashboardMaturity, 'Advanced') === 0)
 
 // Trend data
 $trendQ = $db->prepare("
-    SELECT sy.label AS sy_label, sy.sy_id,
-           d.dimension_no, d.dimension_name, d.color_hex,
+    SELECT sy.label AS sy_label, sy.sy_id, c.cycle_id,
+           d.dimension_id, d.form_version_id, d.dimension_no, d.dimension_name, d.color_hex,
+           COALESCE(NULLIF(fv.label, ''), CONCAT('Version ', fv.version_number)) AS version_label,
            ROUND(AVG(ds.percentage),1) AS avg_pct
     FROM sbm_dimension_scores ds
     JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id
     JOIN school_years sy ON c.sy_id = sy.sy_id
     JOIN sbm_dimensions d ON ds.dimension_id = d.dimension_id
+    LEFT JOIN form_versions fv ON fv.version_id = d.form_version_id
     WHERE c.school_id = ? AND c.overall_score IS NOT NULL
-    GROUP BY sy.sy_id, d.dimension_id
-    ORDER BY sy.date_start ASC, d.dimension_no ASC
+      AND c.status IN ('validated', 'finalized', 'completed')
+    GROUP BY c.cycle_id, sy.sy_id, d.dimension_id, d.form_version_id,
+             d.dimension_no, d.dimension_name, d.color_hex, fv.label, fv.version_number
+    ORDER BY sy.date_start ASC, c.cycle_id ASC, d.dimension_no ASC
 ");
 $trendQ->execute([$schoolId]);
 $trendRows = $trendQ->fetchAll();
-$trendBySY = [];
 $trendByDim = [];
-$trendSYLabels = [];
+$trendDimMeta = [];
+$trendCycles = [];
 foreach ($trendRows as $tr) {
-  $trendSYLabels[$tr['sy_id']] = $tr['sy_label'];
-  $trendBySY[$tr['sy_label']][$tr['dimension_no']] = floatval($tr['avg_pct']);
-  $trendByDim[$tr['dimension_no']][$tr['sy_label']] = floatval($tr['avg_pct']);
+  $versionId = (int) $tr['form_version_id'];
+  $cycleId = (int) $tr['cycle_id'];
+  $trendCycles[$cycleId] = [
+    'cycleId' => $cycleId,
+    'syId' => (int) $tr['sy_id'],
+    'label' => $tr['sy_label'],
+    'versionId' => $versionId,
+  ];
+  $dimKey = $versionId . ':' . $tr['dimension_id'];
+  $versionLabel = $tr['version_label'] ?: ($versionId ? 'Version ' . $versionId : 'Unversioned');
+  $trendDimMeta[$dimKey] = [
+    'key' => $dimKey,
+    'versionId' => $versionId,
+    'no' => (int) $tr['dimension_no'],
+    'name' => $tr['dimension_name'],
+    'version' => $versionLabel,
+    'color' => $tr['color_hex'] ?: '#2563EB',
+  ];
+  $trendByDim[$dimKey][$cycleId] = floatval($tr['avg_pct']);
 }
-$trendSYLabels = array_values($trendSYLabels);
+$trendCycles = array_values($trendCycles);
+$trendVersions = $db->query("
+  SELECT version_id, version_number,
+         COALESCE(NULLIF(label, ''), CONCAT('Version ', version_number)) AS version_label
+  FROM form_versions
+  ORDER BY version_number DESC, version_id DESC
+")->fetchAll(PDO::FETCH_ASSOC);
+$trendCycleVersionIds = array_unique(array_column($trendCycles, 'versionId'));
+$trendCycleVersionIds = array_map('intval', $trendCycleVersionIds);
+$selectedTrendVersionId = $activeFormVersionId;
+$trendVersionFallbackLabel = null;
+$trendVersionFallbackId = null;
+if (!in_array($activeFormVersionId, $trendCycleVersionIds, true)) {
+  foreach ($trendVersions as $trendVersion) {
+    if (in_array((int) $trendVersion['version_id'], $trendCycleVersionIds, true)) {
+      $selectedTrendVersionId = (int) $trendVersion['version_id'];
+      $trendVersionFallbackLabel = $trendVersion['version_label'];
+      $trendVersionFallbackId = $selectedTrendVersionId;
+      break;
+    }
+  }
+}
 
 // Weak indicators
 $weakQ = $db->prepare("
@@ -2594,7 +2635,7 @@ include __DIR__ . '/../includes/header.php';
   <!-- ━━━━━━━━━━━ PROGRESS VIEW ━━━━━━━━━━━ -->
 
  <!-- Dimension trend over time -->
-  <?php if (count($trendSYLabels) >= 1): ?>
+  <?php if (count($trendCycles) >= 1): ?>
     <div class="chart-card" style="margin-bottom:18px;">
       <div class="chart-card-head">
   <span class="chart-card-title">Dimension Trend</span>
@@ -2610,16 +2651,24 @@ include __DIR__ . '/../includes/header.php';
       <option value="0">All cycles</option>
     </select>
 
+    <label for="trendFormVersion1" style="font-size:12px;font-weight:600;color:var(--n-500);">Form version:</label>
+    <select id="trendFormVersion1" onchange="setTrendFormVersion(this.value)"
+      style="height:32px;padding:0 26px 0 9px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+      <?php foreach ($trendVersions as $trendVersion): ?>
+        <option value="<?= (int)$trendVersion['version_id'] ?>" <?= (int)$trendVersion['version_id'] === $selectedTrendVersionId ? 'selected' : '' ?>><?= e($trendVersion['version_label']) ?><?= (int)$trendVersion['version_id'] === $activeFormVersionId ? ' (Active)' : '' ?></option>
+      <?php endforeach; ?>
+    </select>
+
     <span id="trendCustomRangeWrap" style="display:none;align-items:center;gap:6px;">
       <select id="trendRangeFrom" style="height:32px;padding:0 22px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
-        <?php foreach ($trendSYLabels as $lbl): ?>
-          <option value="<?= e($lbl) ?>"><?= e($lbl) ?></option>
+        <?php foreach ($trendCycles as $trendCycle): ?>
+          <option value="<?= (int)$trendCycle['cycleId'] ?>"><?= e($trendCycle['label']) ?></option>
         <?php endforeach; ?>
       </select>
       <span style="font-size:11px;color:var(--n-400);">to</span>
       <select id="trendRangeTo" style="height:32px;padding:0 22px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
-        <?php foreach ($trendSYLabels as $lbl): ?>
-          <option value="<?= e($lbl) ?>" <?= $lbl === end($trendSYLabels) ? 'selected' : '' ?>><?= e($lbl) ?></option>
+        <?php foreach ($trendCycles as $index => $trendCycle): ?>
+          <option value="<?= (int)$trendCycle['cycleId'] ?>" <?= $index === count($trendCycles) - 1 ? 'selected' : '' ?>><?= e($trendCycle['label']) ?></option>
         <?php endforeach; ?>
       </select>
       <button type="button" class="btn btn-ghost btn-sm" onclick="applyTrendCustomRange('trendRangeFrom','trendRangeTo')">Apply</button>
@@ -2649,6 +2698,10 @@ include __DIR__ . '/../includes/header.php';
           </div>
         </div>
       </div>
+      <?php if ($trendVersionFallbackLabel !== null): ?>
+        <div id="trendVersionFallbackNote" style="text-align:center;font-size:10.5px;color:var(--n-400);padding:4px 16px 0;box-sizing:border-box;">No validated cycles yet for the active version. Showing <?= e($trendVersionFallbackLabel) ?>.</div>
+      <?php endif; ?>
+      <div id="dimTrendSingleCycleNote" style="display:none;text-align:center;font-size:10.5px;color:var(--n-400);padding:4px 16px 8px;box-sizing:border-box;"></div>
     </div>
 
     <!-- Indicator Trend Analysis -->
@@ -2662,14 +2715,7 @@ include __DIR__ . '/../includes/header.php';
               style="padding:5px 12px;font-size:12.5px;min-height:32px;">
               <span class="p-select-val">D1: Curriculum and Teaching</span>
             </div>
-            <div class="p-select-menu">
-              <div class="p-select-item selected" onclick="indTrendSelectDim(this, 1, 'D1: Curriculum and Teaching')">D1: Curriculum and Teaching</div>
-              <div class="p-select-item" onclick="indTrendSelectDim(this, 2, 'D2: Learning Environment')">D2: Learning Environment</div>
-              <div class="p-select-item" onclick="indTrendSelectDim(this, 3, 'D3: Leadership')">D3: Leadership</div>
-              <div class="p-select-item" onclick="indTrendSelectDim(this, 4, 'D4: Governance and Accountability')">D4: Governance and Accountability</div>
-              <div class="p-select-item" onclick="indTrendSelectDim(this, 5, 'D5: Human Resources and Team Development')">D5: Human Resources and Team Development</div>
-              <div class="p-select-item" onclick="indTrendSelectDim(this, 6, 'D6: Finance and Resource Management and Mobilization')">D6: Finance and Resource Management and Mobilization</div>
-            </div>
+            <div class="p-select-menu"></div>
           </div>
 
           <label for="anTrendWindowSize2" style="font-size:12px;font-weight:600;color:var(--n-500);white-space:nowrap;">Cycles:</label>
@@ -2681,16 +2727,24 @@ include __DIR__ . '/../includes/header.php';
             <option value="0">All cycles</option>
           </select>
 
+          <label for="trendFormVersion2" style="font-size:12px;font-weight:600;color:var(--n-500);white-space:nowrap;">Form version:</label>
+          <select id="trendFormVersion2" onchange="setTrendFormVersion(this.value)"
+            style="height:32px;padding:0 26px 0 9px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
+            <?php foreach ($trendVersions as $trendVersion): ?>
+              <option value="<?= (int)$trendVersion['version_id'] ?>" <?= (int)$trendVersion['version_id'] === $selectedTrendVersionId ? 'selected' : '' ?>><?= e($trendVersion['version_label']) ?><?= (int)$trendVersion['version_id'] === $activeFormVersionId ? ' (Active)' : '' ?></option>
+            <?php endforeach; ?>
+          </select>
+
           <span id="trendCustomRangeWrap2" style="display:none;align-items:center;gap:6px;">
             <select id="trendRangeFrom2" style="height:32px;padding:0 22px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
-              <?php foreach ($trendSYLabels as $lbl): ?>
-                <option value="<?= e($lbl) ?>"><?= e($lbl) ?></option>
+              <?php foreach ($trendCycles as $trendCycle): ?>
+                <option value="<?= (int)$trendCycle['cycleId'] ?>"><?= e($trendCycle['label']) ?></option>
               <?php endforeach; ?>
             </select>
             <span style="font-size:11px;color:var(--n-400);">to</span>
             <select id="trendRangeTo2" style="height:32px;padding:0 22px 0 8px;border:1px solid var(--n-200);border-radius:7px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;">
-              <?php foreach ($trendSYLabels as $lbl): ?>
-                <option value="<?= e($lbl) ?>" <?= $lbl === end($trendSYLabels) ? 'selected' : '' ?>><?= e($lbl) ?></option>
+              <?php foreach ($trendCycles as $index => $trendCycle): ?>
+                <option value="<?= (int)$trendCycle['cycleId'] ?>" <?= $index === count($trendCycles) - 1 ? 'selected' : '' ?>><?= e($trendCycle['label']) ?></option>
               <?php endforeach; ?>
             </select>
             <button type="button" class="btn btn-ghost btn-sm" onclick="applyTrendCustomRange('trendRangeFrom2','trendRangeTo2')">Apply</button>
@@ -3418,9 +3472,9 @@ include __DIR__ . '/../includes/header.php';
   const anRadarNames = <?= json_encode(array_map(fn($d) => 'D' . $d['dimension_no'] . ': ' . $d['dimension_name'], $anDimAvgs)) ?>;
   const anCycleLabels = <?= json_encode(array_column($cycleHistory, 'sy_label')) ?>;
   const anCycleScores = <?= json_encode(array_map(fn($c) => floatval($c['overall_score']), $cycleHistory)) ?>;
-  const anTrendSYLabels = <?= json_encode($trendSYLabels) ?>;
+  const anTrendCycles = <?= json_encode($trendCycles) ?>;
   const anTrendByDim = <?= json_encode($trendByDim) ?>;
-  const anDimMeta = <?= json_encode(array_map(fn($d) => ['no' => $d['dimension_no'], 'name' => $d['dimension_name'], 'color' => $d['color_hex']], $anDimAvgs)) ?>;
+  const anTrendDimMeta = <?= json_encode(array_values($trendDimMeta)) ?>;
 
   function initAnalyticsCharts() {
     // Radar chart
@@ -3645,12 +3699,15 @@ include __DIR__ . '/../includes/header.php';
       applyCoordinatorTrendRange(0, latestYearIndex);
     }
 
+    syncTrendRangeOptions();
+
     // Dimension trend lines
     renderDimensionTrendChart();
 
     // Indicator Trend chart (initial load)
     if (document.getElementById('anIndTrendChart')) {
-      updateIndicatorTrendChart(1);
+      renderIndicatorDimensionOptions();
+      updateIndicatorTrendChart(anSelectedTrendDim);
     }
 
   }
@@ -3667,13 +3724,14 @@ include __DIR__ . '/../includes/header.php';
       $hasShortTitle = false;
     }
     $shortTitleCol = $hasShortTitle ? "i.short_title," : "NULL AS short_title,";
+    $shortTitleGroup = $hasShortTitle ? "i.short_title," : "";
 
     $indTrendQ = $db->prepare("
-      SELECT sy.label AS sy_label,
+      SELECT sy.label AS sy_label, sy.sy_id, c.cycle_id,
              i.indicator_id, i.indicator_code,
              $shortTitleCol
              i.indicator_text,
-             d.dimension_no,
+             d.dimension_id, d.form_version_id, d.dimension_no, d.dimension_name,
              ROUND((AVG(all_r.rating) / 4) * 100, 1) AS pct
       FROM (
           SELECT cycle_id, indicator_id, rating FROM sbm_responses
@@ -3683,39 +3741,43 @@ include __DIR__ . '/../includes/header.php';
       ) AS all_r
       JOIN sbm_indicators i  ON all_r.indicator_id = i.indicator_id
       JOIN sbm_dimensions d  ON i.dimension_id = d.dimension_id
+                            AND i.form_version_id = d.form_version_id
       JOIN sbm_cycles c      ON all_r.cycle_id = c.cycle_id
       JOIN school_years sy   ON c.sy_id = sy.sy_id
       WHERE c.school_id = ? AND c.overall_score IS NOT NULL
-      GROUP BY sy.sy_id, i.indicator_id
-      ORDER BY sy.date_start ASC, d.dimension_no ASC, i.indicator_code ASC
+        AND c.status IN ('validated', 'finalized', 'completed')
+      GROUP BY c.cycle_id, sy.sy_id, d.form_version_id, d.dimension_id, i.indicator_id,
+               i.indicator_code, $shortTitleGroup i.indicator_text,
+               d.dimension_no, d.dimension_name
+      ORDER BY sy.date_start ASC, c.cycle_id ASC, d.dimension_no ASC, i.indicator_code ASC
     ");
     $indTrendQ->execute([$schoolId]);
     $indTrendRows = $indTrendQ->fetchAll();
     $indTrendByDim = [];
-    $indMetaByDim  = []; // dimension_no => { indicator_code => {code, shortTitle, description} }
+    $indMetaByDim  = [];
     foreach ($indTrendRows as $r) {
-      $did  = (int)$r['dimension_no'];
-      $code = $r['indicator_code'];
-      $lbl  = $r['sy_label'];
-      $pct  = floatval($r['pct']);
-      if (!isset($indTrendByDim[$did][$code])) {
-        $indTrendByDim[$did][$code] = [];
+      $dimKey = (int)$r['form_version_id'] . ':' . $r['dimension_id'];
+      $indicatorId = (int)$r['indicator_id'];
+      $cycleId = (int)$r['cycle_id'];
+      $pct = floatval($r['pct']);
+      if (!isset($indTrendByDim[$dimKey][$indicatorId])) {
+        $indTrendByDim[$dimKey][$indicatorId] = [];
         $fullText = $r['indicator_text'] ?? '';
         $shortTitle = !empty($r['short_title'])
           ? $r['short_title']
           : (mb_strlen($fullText) > 60 ? mb_substr($fullText, 0, 60) . '…' : $fullText);
-        $indMetaByDim[$did][$code] = [
-          'code'        => $code,
+        $indMetaByDim[$dimKey][$indicatorId] = [
+          'id'          => $indicatorId,
+          'code'        => $r['indicator_code'],
           'shortTitle'  => $shortTitle,
           'description' => $fullText,
         ];
       }
-      $indTrendByDim[$did][$code][$lbl] = $pct;
+      $indTrendByDim[$dimKey][$indicatorId][$cycleId] = $pct;
     }
     echo json_encode([
       'byDim'   => $indTrendByDim,
       'metaDim' => $indMetaByDim,
-      'syLabels'=> $trendSYLabels,
     ]);
   ?>;
 
@@ -3726,39 +3788,162 @@ include __DIR__ . '/../includes/header.php';
 
   let anIndTrendChartInstance = null;
 let anDimTrendChartInstance = null;
-let anSelectedTrendDim = 1;
-let anTrendWindowSize = 10;
-let anTrendCustomRange = null; // {start, end} indices into anTrendSYLabels when 'custom' is active
+let anSelectedTrendDim = null;
+let anSelectedTrendVersion = <?= json_encode((string) $selectedTrendVersionId) ?>;
+  let anVisibleTrendDimensions = [];
+  let anTrendWindowSize = 10;
+  let anTrendCustomRange = null;
 
-function getTrendWindow() {
-  const total = anTrendSYLabels.length;
+  function updateSingleCycleTrendNote(chart = anDimTrendChartInstance) {
+    const note = document.getElementById('dimTrendSingleCycleNote');
+    if (!note) return;
 
-  if (anTrendWindowSize === 'custom' && anTrendCustomRange) {
-    const start = Math.max(0, anTrendCustomRange.start);
-    const end = Math.min(total, anTrendCustomRange.end);
-    return {
-      total,
-      size: end - start,
-      start,
-      end,
-      labels: anTrendSYLabels.slice(start, end)
-    };
+    const { cycleIds } = getTrendWindow();
+    const cyclesByVersion = new Map();
+    anVisibleTrendDimensions.forEach((dimension, datasetIndex) => {
+      if (chart?.getDatasetMeta(datasetIndex).hidden) return;
+      const cycles = cyclesByVersion.get(dimension.versionId) || new Set();
+      cycleIds.forEach(cycleId => {
+        if (anTrendByDim[dimension.key]?.[cycleId] != null) cycles.add(cycleId);
+      });
+      cyclesByVersion.set(dimension.versionId, cycles);
+    });
+
+    const singleCycleVersions = anVisibleTrendDimensions
+      .filter((dimension, index, dimensions) =>
+        dimensions.findIndex(item => item.versionId === dimension.versionId) === index
+        && cyclesByVersion.get(dimension.versionId)?.size === 1
+      )
+      .map(dimension => dimension.version);
+
+    note.textContent = singleCycleVersions.length
+      ? `Only 1 cycle of data for ${singleCycleVersions.join(', ')}. Trend lines appear once a second cycle is submitted.`
+      : '';
+    note.style.display = singleCycleVersions.length ? 'block' : 'none';
   }
 
-  const size = anTrendWindowSize === 0
-    ? total
-    : Math.min(anTrendWindowSize, total);
+function setTrendFormVersion(versionId) {
+  anSelectedTrendVersion = String(versionId);
+  ['trendFormVersion1', 'trendFormVersion2'].forEach(id => {
+    const select = document.getElementById(id);
+    if (select) select.value = anSelectedTrendVersion;
+  });
+  anSelectedTrendDim = null;
+  const fallbackNote = document.getElementById('trendVersionFallbackNote');
+  if (fallbackNote) {
+    fallbackNote.style.display = anSelectedTrendVersion === <?= json_encode((string) ($trendVersionFallbackId ?? '')) ?> ? '' : 'none';
+  }
+  anTrendCustomRange = null;
+  syncTrendRangeOptions();
+  renderDimensionTrendChart();
+  renderIndicatorDimensionOptions();
+  updateIndicatorTrendChart(anSelectedTrendDim);
+}
 
-  // Always anchored to the latest cycles — no more paging offset.
-  const start = Math.max(0, total - size);
+function renderIndicatorDimensionOptions() {
+  const menu = document.querySelector('#indTrendDimSelect .p-select-menu');
+  const value = document.querySelector('#indTrendDimSelect .p-select-val');
+  if (!menu || !value) return;
 
+  const selectedVersionCycles = getTrendCycles().map(cycle => cycle.cycleId);
+  const dimensions = anTrendDimMeta.filter(dm =>
+    String(dm.versionId) === anSelectedTrendVersion
+    && selectedVersionCycles.some(cycleId => anTrendByDim[dm.key]?.[cycleId] != null)
+  );
+  menu.innerHTML = '';
+  dimensions.forEach(dm => {
+    const item = document.createElement('div');
+    item.className = 'p-select-item';
+    item.textContent = `D${dm.no}: ${dm.name}`;
+    item.dataset.dimensionKey = dm.key;
+    item.addEventListener('click', () => indTrendSelectDim(item, dm.key));
+    menu.appendChild(item);
+  });
+
+  if (!dimensions.some(dm => dm.key === anSelectedTrendDim)) {
+    anSelectedTrendDim = dimensions[0]?.key ?? null;
+  }
+  const selected = dimensions.find(dm => dm.key === anSelectedTrendDim);
+  value.textContent = selected
+    ? `D${selected.no}: ${selected.name}`
+    : 'No dimensions available';
+  menu.querySelectorAll('.p-select-item').forEach(item => {
+    item.classList.toggle('selected', item.dataset.dimensionKey === anSelectedTrendDim);
+  });
+}
+
+function getTrendCycles() {
+  return anTrendCycles.filter(cycle => String(cycle.versionId) === anSelectedTrendVersion);
+}
+
+function getTrendWindow() {
+  const cycles = getTrendCycles();
+  const total = cycles.length;
+  let start;
+  let end;
+
+  if (anTrendWindowSize === 'custom' && anTrendCustomRange) {
+    start = cycles.findIndex(cycle => String(cycle.cycleId) === anTrendCustomRange.startCycleId);
+    end = cycles.findIndex(cycle => String(cycle.cycleId) === anTrendCustomRange.endCycleId);
+    if (start >= 0 && end >= start) {
+      end += 1;
+    } else {
+      anTrendCustomRange = null;
+    }
+  }
+
+  if (start === undefined || anTrendCustomRange === null) {
+    const size = anTrendWindowSize === 'custom'
+      ? total
+      : (anTrendWindowSize === 0 ? total : Math.min(anTrendWindowSize, total));
+    start = Math.max(0, total - size);
+    end = start + size;
+  }
+
+  const selectedCycles = cycles.slice(start, end);
   return {
     total,
-    size,
+    size: selectedCycles.length,
     start,
-    end: start + size,
-    labels: anTrendSYLabels.slice(start, start + size)
+    end,
+    labels: selectedCycles.map(cycle => cycle.label),
+    cycleIds: selectedCycles.map(cycle => cycle.cycleId)
   };
+}
+
+function syncTrendRangeOptions() {
+  const cycles = getTrendCycles();
+  [['trendRangeFrom', 'trendRangeTo'], ['trendRangeFrom2', 'trendRangeTo2']].forEach(([fromId, toId]) => {
+    const fromSelect = document.getElementById(fromId);
+    const toSelect = document.getElementById(toId);
+    if (!fromSelect || !toSelect) return;
+
+    const previousFrom = fromSelect.value;
+    const previousTo = toSelect.value;
+    [fromSelect, toSelect].forEach((select, selectIndex) => {
+      select.innerHTML = '';
+      cycles.forEach(cycle => {
+        const option = document.createElement('option');
+        option.value = String(cycle.cycleId);
+        option.textContent = cycle.label;
+        select.appendChild(option);
+      });
+      const previous = selectIndex === 0 ? previousFrom : previousTo;
+      const hasPrevious = cycles.some(cycle => String(cycle.cycleId) === previous);
+      if (hasPrevious) {
+        select.value = previous;
+      } else if (cycles.length) {
+        select.value = String(cycles[selectIndex === 0 ? 0 : cycles.length - 1].cycleId);
+      }
+    });
+
+    if (anTrendWindowSize === 'custom' && anTrendCustomRange) {
+      anTrendCustomRange = {
+        startCycleId: fromSelect.value,
+        endCycleId: toSelect.value
+      };
+    }
+  });
 }
 
 function setTrendWindowSize(value, sourceId) {
@@ -3785,6 +3970,7 @@ function setTrendWindowSize(value, sourceId) {
   anTrendWindowSize = parseInt(value, 10);
   anTrendCustomRange = null;
   renderDimensionTrendChart();
+  renderIndicatorDimensionOptions();
   updateIndicatorTrendChart(anSelectedTrendDim);
 }
 
@@ -3793,10 +3979,11 @@ function applyTrendCustomRange(fromId, toId) {
   const toSel = document.getElementById(toId);
   if (!fromSel || !toSel) return;
 
-  const fromLabel = fromSel.value;
-  const toLabel = toSel.value;
-  const fromIdx = anTrendSYLabels.indexOf(fromLabel);
-  const toIdx = anTrendSYLabels.indexOf(toLabel);
+  const fromCycleId = fromSel.value;
+  const toCycleId = toSel.value;
+  const cycles = getTrendCycles();
+  const fromIdx = cycles.findIndex(cycle => String(cycle.cycleId) === fromCycleId);
+  const toIdx = cycles.findIndex(cycle => String(cycle.cycleId) === toCycleId);
 
   if (fromIdx === -1 || toIdx === -1) return;
 
@@ -3806,17 +3993,18 @@ function applyTrendCustomRange(fromId, toId) {
   }
 
   anTrendWindowSize = 'custom';
-  anTrendCustomRange = { start: fromIdx, end: toIdx + 1 };
+  anTrendCustomRange = { startCycleId: fromCycleId, endCycleId: toCycleId };
 
   // Keep the other pair of From/To selects in sync visually.
   const otherFromId = fromId === 'trendRangeFrom' ? 'trendRangeFrom2' : 'trendRangeFrom';
   const otherToId = toId === 'trendRangeTo' ? 'trendRangeTo2' : 'trendRangeTo';
   const otherFromSel = document.getElementById(otherFromId);
   const otherToSel = document.getElementById(otherToId);
-  if (otherFromSel) otherFromSel.value = fromLabel;
-  if (otherToSel) otherToSel.value = toLabel;
+  if (otherFromSel) otherFromSel.value = fromCycleId;
+  if (otherToSel) otherToSel.value = toCycleId;
 
   renderDimensionTrendChart();
+  renderIndicatorDimensionOptions();
   updateIndicatorTrendChart(anSelectedTrendDim);
 }
 
@@ -3858,25 +4046,40 @@ function sizeTrendInner(innerEl, wrapperEl, pointCount) {
 
 function renderDimensionTrendChart() {
   const canvas = document.getElementById('anDimTrendChart');
-  if (!canvas || anTrendSYLabels.length < 1) return;
+  if (!canvas || anTrendCycles.length < 1) return;
 
-  const { labels } = getTrendWindow();
+  const { labels, cycleIds } = getTrendWindow();
   const wrapperEl = document.getElementById('dimTrendScrollWrap');
   const innerEl   = document.getElementById('dimTrendChartInner');
   sizeTrendInner(innerEl, wrapperEl, labels.length);
 
-  const datasets = anDimMeta.map(dm => ({
+  const filteredDimensions = anTrendDimMeta
+    .filter(dm => {
+      const versionMatches = String(dm.versionId) === anSelectedTrendVersion;
+      const hasSelectedCycleData = cycleIds.some(cycleId =>
+        anTrendByDim[dm.key]?.[cycleId] != null
+      );
+      return versionMatches && hasSelectedCycleData;
+    });
+  anVisibleTrendDimensions = filteredDimensions;
+  const datasets = filteredDimensions.map(dm => {
+    const data = cycleIds.map(cycleId => anTrendByDim[dm.key]?.[cycleId] ?? null);
+    const isSinglePoint = data.filter(value => value !== null).length === 1;
+    return {
     label: 'D' + dm.no + ': ' + dm.name,
-    data: labels.map(label => anTrendByDim[dm.no]?.[label] ?? null),
+    data,
     borderColor: dm.color,
     backgroundColor: dm.color + '22',
     pointBackgroundColor: dm.color,
-    pointRadius: labels.length > 1 ? 2 : 3,
-    pointHoverRadius: 5,
+    pointBorderColor: '#fff',
+    pointBorderWidth: isSinglePoint ? 2 : 0,
+    pointRadius: data.map(value => value === null ? 0 : (isSinglePoint ? 6 : (labels.length > 1 ? 2 : 3))),
+    pointHoverRadius: data.map(value => value === null ? 5 : (isSinglePoint ? 8 : 5)),
     borderWidth: 2,
     tension: 0,
-    spanGaps: true
-  }));
+    spanGaps: false
+  };
+  });
 
   if (anDimTrendChartInstance) {
     anDimTrendChartInstance.destroy();
@@ -3900,6 +4103,7 @@ function renderDimensionTrendChart() {
           grid: { color: '#F3F4F6' }
         },
         x: {
+          offset: labels.length === 1,
           ticks: {
             autoSkip: false,
             font: { size: 11, weight: '600' }
@@ -3911,6 +4115,10 @@ function renderDimensionTrendChart() {
       plugins: {
         legend: {
           position: 'bottom',
+          onClick(event, legendItem, legend) {
+            Chart.defaults.plugins.legend.onClick.call(this, event, legendItem, legend);
+            updateSingleCycleTrendNote(legend.chart);
+          },
           labels: {
             font: { size: 11 },
             padding: 10,
@@ -3924,17 +4132,17 @@ function renderDimensionTrendChart() {
       maintainAspectRatio: false
     }
   });
+  updateSingleCycleTrendNote(anDimTrendChartInstance);
 }
 
-  function indTrendSelectDim(el, val, label) {
-  document.querySelector('#indTrendDimSelect .p-select-val').textContent = label;
-  document.querySelectorAll('#indTrendDimSelect .p-select-item').forEach(i => i.classList.remove('selected'));
+function indTrendSelectDim(el, dimensionKey) {
+  document.querySelector('#indTrendDimSelect .p-select-val').textContent = el.textContent;
+  document.querySelectorAll('#indTrendDimSelect .p-select-item').forEach(item => item.classList.remove('selected'));
   el.classList.add('selected');
-  anSelectedTrendDim = val;
-updateIndicatorTrendChart(val);
+  anSelectedTrendDim = dimensionKey;
+  updateIndicatorTrendChart(dimensionKey);
 }
-function updateIndicatorTrendChart(dimId) {
-    dimId = parseInt(dimId);
+function updateIndicatorTrendChart(dimKey) {
     const scrollWrap = document.getElementById('indTrendScrollWrap');
     const legendPanel = document.getElementById('indTrendLegendPanel');
     if (!scrollWrap) return;
@@ -3944,12 +4152,17 @@ function updateIndicatorTrendChart(dimId) {
       anIndTrendChartInstance = null;
     }
 
-    const syLabels  = getTrendWindow().labels;
-    const byDim     = anIndTrendData.byDim[dimId] || {};
-    const metaByDim = anIndTrendData.metaDim[dimId] || {};
-    const codes     = Object.keys(byDim);
+    const { labels: syLabels, cycleIds } = getTrendWindow();
+    const byDim = dimKey ? (anIndTrendData.byDim[dimKey] || {}) : {};
+    const metaByDim = dimKey ? (anIndTrendData.metaDim[dimKey] || {}) : {};
+    const indicatorIds = Object.keys(byDim).filter(indicatorId =>
+      cycleIds.some(cycleId =>
+        byDim[indicatorId][cycleId] != null
+      )
+    );
+    const dimensionMeta = anTrendDimMeta.find(dm => dm.key === dimKey);
 
-    if (!codes.length || syLabels.length < 1) {
+    if (!indicatorIds.length || syLabels.length < 1) {
       if (legendPanel) legendPanel.innerHTML = '';
       scrollWrap.innerHTML =
         '<p style="text-align:center;color:var(--n-400);font-size:13px;padding:48px 0;">No indicator data available for this dimension yet.</p>';
@@ -3962,14 +4175,16 @@ function updateIndicatorTrendChart(dimId) {
     const canvas     = document.getElementById('anIndTrendChart');
     sizeTrendInner(indInnerEl, scrollWrap, syLabels.length);
 
-    const dimNames = {
-      1:'Curriculum and Teaching', 2:'Learning Environment', 3:'Leadership',
-      4:'Governance and Accountability', 5:'Human Resources and Team Development',
-      6:'Finance and Resource Management and Mobilization'
-    };
-
-    const datasets = codes.map((code, i) => {
-      const data = syLabels.map(lbl => byDim[code][lbl] ?? null);
+    const codes = [];
+    const metaByCode = {};
+    const datasets = indicatorIds.map((indicatorId, i) => {
+      const meta = metaByDim[indicatorId] || {};
+      const code = meta.code || indicatorId;
+      codes.push(code);
+      metaByCode[code] = meta;
+      const data = cycleIds.map(cycleId =>
+        byDim[indicatorId][cycleId] ?? null
+      );
       const color = indPalette[i % indPalette.length];
 
       // A line needs 2+ non-null points to draw a segment.
@@ -3977,7 +4192,7 @@ function updateIndicatorTrendChart(dimId) {
       // otherwise render as literally nothing — no line, no point.
       // Force a visible dot only in that isolated case.
       const nonNullCount = data.filter(v => v !== null).length;
-      const isIsolated = nonNullCount <= 1;
+      const isIsolated = nonNullCount === 1;
 
       return {
         label: code,
@@ -3985,11 +4200,13 @@ function updateIndicatorTrendChart(dimId) {
         borderColor: color,
         backgroundColor: color + '18',
         pointBackgroundColor: color,
-        pointRadius: data.map(v => (isIsolated && v !== null) ? 4 : 0),
-        pointHoverRadius: data.map(v => (isIsolated && v !== null) ? 6 : 4),
+        pointBorderColor: '#fff',
+        pointBorderWidth: isIsolated ? 2 : 0,
+        pointRadius: data.map(v => (isIsolated && v !== null) ? 6 : 0),
+        pointHoverRadius: data.map(v => (isIsolated && v !== null) ? 8 : 4),
         borderWidth: 2,
         tension: 0,
-        spanGaps: true,
+        spanGaps: false,
       };
     });
 
@@ -4004,6 +4221,7 @@ function updateIndicatorTrendChart(dimId) {
             grid: { color: '#F3F4F6' }
           },
           x: {
+            offset: syLabels.length === 1,
             ticks: { font: { size: 11, weight: '600' } },
             grid: { display: false }
           }
@@ -4012,8 +4230,8 @@ function updateIndicatorTrendChart(dimId) {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              title: ctx => 'D' + dimId + ' · Indicator ' + ctx[0].dataset.label,
-              beforeBody: ctx => 'Dimension: ' + (dimNames[dimId] || ''),
+              title: ctx => 'D' + (dimensionMeta?.no ?? '') + ' · Indicator ' + ctx[0].dataset.label,
+              beforeBody: () => 'Dimension: ' + (dimensionMeta?.name || ''),
               label: ctx => ' SY ' + ctx.label + ': ' + (ctx.raw !== null ? ctx.raw + '%' : 'No data')
             }
           }
@@ -4024,7 +4242,7 @@ function updateIndicatorTrendChart(dimId) {
       }
     });
 
-    renderIndicatorLegendPanel(codes, indPalette, metaByDim, anIndTrendChartInstance);
+    renderIndicatorLegendPanel(codes, indPalette, metaByCode, anIndTrendChartInstance);
   }
 
   // Escapes HTML-special characters before injecting text into innerHTML.
@@ -4090,7 +4308,7 @@ function updateIndicatorTrendChart(dimId) {
     }
 
     const metaByDim = anIndTrendData.metaDim[anSelectedTrendDim] || {};
-    const meta = metaByDim[code] || {};
+    const meta = Object.values(metaByDim).find(item => item.code === code) || {};
     const popover = document.getElementById('indLegendPopover');
     if (!popover) return;
 

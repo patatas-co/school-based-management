@@ -250,15 +250,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             $placeholders = implode(',', array_fill(0, count($assignedCodes), '?'));
             $countStmt = $db->prepare("
-                SELECT COUNT(*)
-                FROM teacher_responses tr
-                JOIN sbm_indicators i ON tr.indicator_id = i.indicator_id
-                WHERE tr.cycle_id = ? AND tr.school_id = ? AND tr.teacher_id = ?
+                SELECT COUNT(DISTINCT i.indicator_id) AS required_count,
+                       COUNT(DISTINCT CASE WHEN tr.indicator_id IS NOT NULL THEN i.indicator_id END) AS answered_count
+                FROM sbm_indicators i
+                LEFT JOIN teacher_responses tr
+                  ON tr.indicator_id = i.indicator_id
+                 AND tr.cycle_id = ? AND tr.school_id = ? AND tr.teacher_id = ?
+                WHERE i.is_active = 1
+                  AND i.form_version_id = ?
                   AND i.indicator_code IN ($placeholders)
             ");
-            $countStmt->execute(array_merge([$cycleId, $schoolId, $uid], $assignedCodes));
-            $answered = (int) $countStmt->fetchColumn();
-            $required = count($assignedCodes);
+            $countStmt->execute(array_merge([$cycleId, $schoolId, $uid, $activeFormVersionId], $assignedCodes));
+            $counts = $countStmt->fetch(PDO::FETCH_ASSOC);
+            $answered = (int) $counts['answered_count'];
+            $required = (int) $counts['required_count'];
+            if ($required === 0) {
+                $db->rollBack();
+                echo json_encode([
+                    'ok' => false,
+                    'msg' => 'No active indicators are assigned to you for this assessment. Please contact your School Head or SBM Coordinator.'
+                ]);
+                exit;
+            }
             if ($answered < $required) {
                 $db->rollBack();
                 echo json_encode([
@@ -409,11 +422,19 @@ $cycle = $cycle->fetch();
 
 // This teacher's own responses
 $responses = [];
+$visibleIndicatorIds = array_fill_keys(
+    array_map(static fn(array $indicator): int => (int) $indicator['indicator_id'], $indicators),
+    true
+);
 if ($cycle) {
     $r = $db->prepare("SELECT * FROM teacher_responses WHERE cycle_id=? AND school_id=? AND teacher_id=?");
     $r->execute([$cycle['cycle_id'], $schoolId, $uid]);
-    foreach ($r->fetchAll() as $row)
-        $responses[$row['indicator_id']] = $row;
+    foreach ($r->fetchAll() as $row) {
+        $indicatorId = (int) $row['indicator_id'];
+        if (isset($visibleIndicatorIds[$indicatorId])) {
+            $responses[$indicatorId] = $row;
+        }
+    }
 }
 
 $grouped = [];

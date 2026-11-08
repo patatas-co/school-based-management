@@ -754,13 +754,30 @@ foreach ($planList as $p) {
   $canAddPlan = !$isSubmitted && !$isReturned && !$isFinalized;
 // ── History of past improvement plans (shown when the new SY has no cycle/data yet) ──
 $historyPlans = [];
+$historyYears = [];
+$historySyId = isset($_GET['history_sy']) ? (int) $_GET['history_sy'] : -1;
 if (!$cycle && $schoolId) {
+    $historyYearsQ = $db->prepare("
+        SELECT DISTINCT sy.sy_id, sy.label
+        FROM improvement_plans ip
+        JOIN sbm_cycles c ON ip.cycle_id = c.cycle_id
+        JOIN school_years sy ON c.sy_id = sy.sy_id
+        WHERE ip.school_id = ?
+        ORDER BY sy.date_start DESC, sy.sy_id DESC
+    ");
+    $historyYearsQ->execute([$schoolId]);
+    $historyYears = $historyYearsQ->fetchAll(PDO::FETCH_ASSOC);
+    $availableHistoryYears = array_map(static fn(array $year): int => (int) $year['sy_id'], $historyYears);
+    if ($historyYears && ($historySyId < 0 || ($historySyId > 0 && !in_array($historySyId, $availableHistoryYears, true)))) {
+      $historySyId = (int) $historyYears[0]['sy_id'];
+    }
+
     $histQ = $db->prepare("
         SELECT ip.*, d.dimension_no, d.dimension_name, d.color_hex,
                COALESCE(plan_indicators.indicator_code, i.indicator_code) AS indicator_code,
                COALESCE(plan_indicators.indicator_text, i.indicator_text) AS indicator_text,
                u.full_name AS submitted_by_name,
-               sy.label AS sy_label
+               sy.label AS sy_label, sy.sy_id
         FROM improvement_plans ip
         JOIN sbm_cycles c        ON ip.cycle_id = c.cycle_id
         JOIN school_years sy     ON c.sy_id = sy.sy_id
@@ -775,10 +792,10 @@ if (!$cycle && $schoolId) {
           GROUP BY pii.plan_id
         ) plan_indicators ON plan_indicators.plan_id = ip.plan_id
         LEFT JOIN users u        ON ip.submitted_by = u.user_id
-        WHERE ip.school_id = ?
-        ORDER BY sy.sy_id DESC, FIELD(ip.priority_level,'High','Medium','Low'), ip.created_at DESC
+        WHERE ip.school_id = ? AND (? = 0 OR sy.sy_id = ?)
+        ORDER BY sy.date_start DESC, sy.sy_id DESC, FIELD(ip.priority_level,'High','Medium','Low'), ip.created_at DESC
     ");
-    $histQ->execute([$schoolId]);
+    $histQ->execute([$schoolId, $historySyId, $historySyId]);
     $historyPlans = $histQ->fetchAll();
 }
 
@@ -1009,8 +1026,22 @@ include __DIR__.'/../includes/header.php';
 </div>
 
 <div class="card" style="margin-bottom:18px;">
-  <div class="card-head">
-    <span class="card-title">Improvement Plan History</span>
+  <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <?php if ($historyYears): ?>
+      <form method="get" style="display:flex;align-items:center;gap:8px;margin:0;">
+        <input type="hidden" name="sy" value="<?= (int) $syId ?>">
+        <label for="historySchoolYear" style="font-size:12px;color:var(--n-500);">School Year</label>
+        <select id="historySchoolYear" name="history_sy" onchange="this.form.submit()"
+          style="padding:7px 10px;border:1px solid var(--n-200);border-radius:8px;background:#fff;color:var(--n-700);font-size:12px;">
+          <option value="0" <?= $historySyId === 0 ? 'selected' : '' ?>>All years</option>
+          <?php foreach ($historyYears as $year): ?>
+            <option value="<?= (int) $year['sy_id'] ?>" <?= $historySyId === (int) $year['sy_id'] ? 'selected' : '' ?>>
+              SY <?= e($year['label']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </form>
+    <?php endif; ?>
   </div>
   <?php if (empty($historyPlans)): ?>
     <div class="card-body" style="padding:20px 24px;">
