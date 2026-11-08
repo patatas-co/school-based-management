@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 20, 2026 at 01:53 PM
+-- Generation Time: Nov 08, 2026 at 06:04 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -348,7 +348,7 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (304, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-10-11 14:39:08'),
 (305, 37, 'login', 'auth', 'User logged in', '::1', '2026-10-16 10:18:48'),
 (306, 37, 'login', 'auth', 'User logged in', '::1', '2026-10-16 10:19:00'),
-(307, 85, 'login', 'auth', 'User logged in', '::1', '2026-10-16 13:00:37'),
+(307, NULL, 'login', 'auth', 'User logged in', '::1', '2026-10-16 13:00:37'),
 (308, 37, 'login', 'auth', 'User logged in', '::1', '2026-10-16 16:40:46'),
 (309, 15, 'login', 'auth', 'User logged in', '::1', '2026-10-16 16:40:55'),
 (310, 15, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 15 submitted for cycle 16', '::1', '2026-10-16 16:41:33'),
@@ -657,7 +657,162 @@ INSERT INTO `activity_log` (`log_id`, `user_id`, `action`, `module`, `details`, 
 (612, 15, 'login', 'auth', 'User logged in', '::1', '2026-10-20 00:19:15'),
 (613, 15, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 15 submitted for cycle 30', '::1', '2026-10-20 00:19:40'),
 (614, 37, 'login', 'auth', 'User logged in', '::1', '2026-10-20 00:19:51'),
-(615, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-20 00:20:05');
+(615, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-20 00:20:05'),
+(616, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-20 19:15:04'),
+(617, NULL, 'self_register', 'users', 'Registration submitted: James', '::1', '2026-10-20 19:49:34'),
+(618, 74, 'login', 'auth', 'User logged in', '::1', '2026-10-20 19:49:41'),
+(619, 74, 'approve_user', 'users', 'Approved registration for user ID:87 (status=active)', '::1', '2026-10-20 19:50:00'),
+(620, NULL, 'password_set', 'auth', 'User set password via invite link', '::1', '2026-10-20 19:52:43'),
+(621, NULL, 'login', 'auth', 'User logged in', '::1', '2026-10-20 19:53:01'),
+(622, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-20 19:53:15'),
+(623, 46, 'send_teacher_assessment_reminder', 'teacher_status', 'Teacher ID 87; cycle ID 30; delivery sent', '::1', '2026-10-20 19:53:32'),
+(624, NULL, 'login', 'auth', 'User logged in', '::1', '2026-10-20 19:55:44'),
+(625, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-20 19:56:32'),
+(626, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-23 08:36:17'),
+(627, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-23 08:50:10'),
+(628, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-23 08:52:14'),
+(629, 74, 'login', 'auth', 'User logged in', '::1', '2026-10-23 10:08:57'),
+(630, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-23 10:11:40'),
+(631, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-23 19:01:16'),
+(632, 37, 'login', 'auth', 'User logged in', '::1', '2026-10-25 09:44:12'),
+(633, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-25 10:08:38'),
+(634, 37, 'login', 'auth', 'User logged in', '::1', '2026-10-25 10:09:25'),
+(635, 37, 'login', 'auth', 'User logged in', '::1', '2026-10-27 12:56:43'),
+(636, 37, 'login', 'auth', 'User logged in', '::1', '2026-10-29 21:50:29'),
+(637, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-29 22:10:47'),
+(638, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-30 12:06:11'),
+(639, 46, 'send_teacher_assessment_reminder', 'teacher_status', 'Teacher ID 87; cycle ID 30; delivery sent', '::1', '2026-10-30 12:10:45'),
+(640, 37, 'login', 'auth', 'User logged in', '::1', '2026-10-30 12:49:47'),
+(641, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-30 12:50:16'),
+(642, 37, 'login', 'auth', 'User logged in', '::1', '2026-10-30 12:50:58'),
+(643, 46, 'login', 'auth', 'User logged in', '::1', '2026-10-30 23:43:46'),
+(644, 37, 'login', 'auth', 'User logged in', '::1', '2026-10-30 23:51:05'),
+(645, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-01 10:11:54'),
+(646, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-11-01 10:12:21'),
+(647, 37, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-11-01 10:12:33'),
+(648, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-01 10:13:05'),
+(649, 46, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-11-01 10:13:24'),
+(650, 2, 'login', 'auth', 'User logged in', '::1', '2026-11-01 10:13:39'),
+(651, 2, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-11-01 10:13:59'),
+(652, 12, 'login', 'auth', 'User logged in', '::1', '2026-11-01 10:14:12'),
+(653, 12, 'update_profile', 'profile', 'User updated their profile', '::1', '2026-11-01 10:14:22'),
+(654, 74, 'login', 'auth', 'User logged in', '::1', '2026-11-01 10:14:36'),
+(655, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-01 10:16:06'),
+(656, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-01 11:16:59'),
+(657, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-01 12:06:47'),
+(658, 46, 'import_form_document', 'manage_form', 'Imported form draft from uploaded document (docx)', '::1', '2026-11-01 18:57:49'),
+(659, 46, 'import_form_document', 'manage_form', 'Imported form draft from uploaded document (docx)', '::1', '2026-11-01 19:04:54'),
+(660, 46, 'import_form_document', 'manage_form', 'Imported form draft from uploaded document (docx)', '::1', '2026-11-01 19:07:12'),
+(661, 46, 'import_form_document', 'manage_form', 'Imported form draft from uploaded document (docx)', '::1', '2026-11-01 19:13:31'),
+(662, 46, 'publish_form_version', 'manage_form', 'Published form version 2 (ID: 6)', '::1', '2026-11-01 19:13:57'),
+(663, 46, 'revert_form_version', 'manage_form', 'Reverted active form to version ID 5', '::1', '2026-11-01 19:14:45'),
+(664, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-01 19:41:02'),
+(665, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-01 19:41:29'),
+(666, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-02 04:27:06'),
+(667, 74, 'login', 'auth', 'User logged in', '::1', '2026-11-02 04:27:20'),
+(668, 74, 'login', 'auth', 'User logged in', '::1', '2026-11-02 04:34:05'),
+(669, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-02 04:34:16'),
+(670, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-11-02 04:36:02'),
+(671, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-02 04:38:00'),
+(672, 46, 'import_form_document', 'manage_form', 'Imported form draft from uploaded document (docx)', '::1', '2026-11-02 04:39:03'),
+(673, 46, 'publish_form_version', 'manage_form', 'Published form version 2 (ID: 7)', '::1', '2026-11-02 04:39:22'),
+(674, 46, 'assign_indicators', 'coordinator', 'Assigned 22 indicators to teacher ID 15', '::1', '2026-11-02 04:40:04'),
+(675, 46, 'assign_indicators', 'coordinator', 'Assigned 22 indicators to teacher ID 2', '::1', '2026-11-02 04:41:07'),
+(676, 46, 'assign_indicators', 'coordinator', 'Assigned 22 indicators to teacher ID 13', '::1', '2026-11-02 04:41:25'),
+(677, 46, 'assign_indicators', 'coordinator', 'Assigned 10 indicators to teacher ID 12', '::1', '2026-11-02 04:42:13'),
+(678, 46, 'publish_form_version', 'manage_form', 'Published form version 3 (ID: 8)', '::1', '2026-11-02 04:43:07'),
+(679, 46, 'revert_form_version', 'manage_form', 'Reverted active form to version ID 7', '::1', '2026-11-02 04:43:48'),
+(680, 46, 'save_form_version_changes', 'manage_form', 'Updated wording in form version ID 7', '::1', '2026-11-02 04:55:21'),
+(681, 46, 'assign_indicators', 'coordinator', 'Assigned 22 indicators to teacher ID 12', '::1', '2026-11-02 04:55:49'),
+(682, 46, 'assign_indicators', 'coordinator', 'Assigned 22 indicators to teacher ID 15', '::1', '2026-11-02 04:56:01'),
+(683, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-02 04:56:10'),
+(684, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-11-02 04:56:15'),
+(685, 15, 'login', 'auth', 'User logged in', '::1', '2026-11-02 04:56:30'),
+(686, 74, 'login', 'auth', 'User logged in', '::1', '2026-11-02 10:21:44'),
+(687, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-02 10:22:40'),
+(688, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-02 10:24:01'),
+(689, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-02 10:24:13'),
+(690, 46, 'revert_form_version', 'manage_form', 'Reverted active form to version ID 5', '::1', '2026-11-02 10:24:20'),
+(691, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-02 10:24:31'),
+(692, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-02 10:38:01'),
+(693, 46, 'import_form_document', 'manage_form', 'Imported form draft from uploaded document (docx)', '::1', '2026-11-02 10:38:53'),
+(694, 46, 'publish_form_version', 'manage_form', 'Published form version 2 (ID: 9)', '::1', '2026-11-02 10:39:40'),
+(695, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-02 10:39:52'),
+(696, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-02 10:51:57'),
+(697, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-02 10:53:20'),
+(698, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-11-02 10:53:27'),
+(699, 15, 'login', 'auth', 'User logged in', '::1', '2026-11-02 10:58:07'),
+(700, 15, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 15 submitted for cycle 33', '::1', '2026-11-02 10:58:54'),
+(701, 2, 'login', 'auth', 'User logged in', '::1', '2026-11-02 10:59:06'),
+(702, 2, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 2 submitted for cycle 33', '::1', '2026-11-02 10:59:49'),
+(703, 12, 'login', 'auth', 'User logged in', '::1', '2026-11-02 10:59:59'),
+(704, 12, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 12 submitted for cycle 33', '::1', '2026-11-02 11:02:38'),
+(705, 13, 'login', 'auth', 'User logged in', '::1', '2026-11-02 11:02:50'),
+(706, 13, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 13 submitted for cycle 33', '::1', '2026-11-02 11:03:42'),
+(707, 14, 'login', 'auth', 'User logged in', '::1', '2026-11-02 11:03:53'),
+(708, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-02 11:04:19'),
+(709, 46, 'assign_indicators', 'coordinator', 'Assigned 22 indicators to teacher ID 14', '::1', '2026-11-02 11:04:30'),
+(710, 14, 'login', 'auth', 'User logged in', '::1', '2026-11-02 11:04:39'),
+(711, 14, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 14 submitted for cycle 33', '::1', '2026-11-02 11:05:14'),
+(712, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-02 11:05:26'),
+(713, 37, 'submit_assessment', 'self_assessment', 'Submitted SBM assessment cycle 33', '::1', '2026-11-02 11:06:15'),
+(714, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-02 11:06:25'),
+(715, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-02 11:08:20'),
+(716, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-02 12:03:01'),
+(717, 46, 'revert_form_version', 'manage_form', 'Reverted active form to version ID 5', '::1', '2026-11-02 12:03:09'),
+(718, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:24:59'),
+(719, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:33:42'),
+(720, 74, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:34:15'),
+(721, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:34:28'),
+(722, 37, 'start_assessment', 'self_assessment', 'Started SBM assessment cycle for the current school year.', '::1', '2026-11-05 04:34:38'),
+(723, 15, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:35:21'),
+(724, 15, 'upload_evidence', 'attachment', 'Uploaded evidence for indicator 180 cycle 34', '::1', '2026-11-05 04:36:25'),
+(725, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:37:25'),
+(726, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:37:33'),
+(727, 15, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:37:57'),
+(728, 15, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 15 submitted for cycle 34', '::1', '2026-11-05 04:53:11'),
+(729, 2, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:53:35'),
+(730, 2, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:54:09'),
+(731, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:54:20'),
+(732, 2, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:54:38'),
+(733, 2, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 2 submitted for cycle 34', '::1', '2026-11-05 04:58:05'),
+(734, 12, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:58:19'),
+(735, 12, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 12 submitted for cycle 34', '::1', '2026-11-05 04:59:37'),
+(736, 13, 'login', 'auth', 'User logged in', '::1', '2026-11-05 04:59:55'),
+(737, 13, 'teacher_submit_assessment', 'teacher_self_assessment', 'Teacher ID 13 submitted for cycle 34', '::1', '2026-11-05 05:01:09'),
+(738, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 05:01:43'),
+(739, 2, 'login', 'auth', 'User logged in', '::1', '2026-11-05 05:03:34'),
+(740, 15, 'login', 'auth', 'User logged in', '::1', '2026-11-05 05:03:44'),
+(741, 14, 'login', 'auth', 'User logged in', '::1', '2026-11-05 05:04:05'),
+(742, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 05:04:54'),
+(743, 37, 'submit_assessment', 'self_assessment', 'Submitted SBM assessment cycle 34', '::1', '2026-11-05 05:07:57'),
+(744, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-05 05:11:32'),
+(745, 46, 'assign_indicators', 'coordinator', 'Assigned 5 indicators to teacher ID 14', '::1', '2026-11-05 05:18:12'),
+(746, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 07:39:20'),
+(747, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-05 07:45:15'),
+(748, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-05 07:47:09'),
+(749, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 07:47:39'),
+(750, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-05 07:48:56'),
+(751, 74, 'login', 'auth', 'User logged in', '::1', '2026-11-05 08:38:51'),
+(752, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 08:41:28'),
+(753, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-05 08:46:44'),
+(754, 2, 'login', 'auth', 'User logged in', '::1', '2026-11-05 08:50:08'),
+(755, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 08:51:02'),
+(756, 74, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:02:21'),
+(757, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:06:48'),
+(758, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:08:45'),
+(759, 74, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:09:32'),
+(760, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:10:01'),
+(761, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:11:55'),
+(762, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:13:07'),
+(763, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:15:14'),
+(764, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:15:52'),
+(765, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:20:25'),
+(766, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:22:45'),
+(767, 74, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:22:51'),
+(768, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:23:51'),
+(769, 37, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:24:11'),
+(770, 46, 'login', 'auth', 'User logged in', '::1', '2026-11-05 09:24:31');
 
 -- --------------------------------------------------------
 
@@ -721,7 +876,9 @@ INSERT INTO `ai_suggestion_generations` (`generation_id`, `user_id`, `school_id`
 (206, 37, 1, 26, '2026-10-18 12:14:51', 0, 'openai/gpt-oss-20b', '1b5afe0dee9a86af4436d388315c4c40fe40c32d84f045cd1619f3dca9ca8795'),
 (207, 37, 1, 27, '2026-10-18 12:47:51', 0, 'openai/gpt-oss-20b', 'e78b64f8a92d63cb3aef3900f12b58cd615c7caa44b2df45acf6c616690d39fe'),
 (208, 37, 1, 28, '2026-10-18 13:49:29', 0, 'openai/gpt-oss-20b', 'fad92d836f4718763f3d4cbc9378b509add08a6acedbb0e739c0eb50c96eddc9'),
-(209, 37, 1, 29, '2026-10-18 14:09:00', 0, 'openai/gpt-oss-20b', '71f5054f008eafe897b8a8b7e47426e5249559153495d9361b3b04c058b21e08');
+(209, 37, 1, 29, '2026-10-18 14:09:00', 0, 'openai/gpt-oss-20b', '71f5054f008eafe897b8a8b7e47426e5249559153495d9361b3b04c058b21e08'),
+(213, 37, 1, 34, '2026-11-05 13:09:11', 0, 'openai/gpt-oss-20b', '43cc8d48a32fbc79c94768489e8cd9a5c7f524714def16c882cab5f7fd733de3'),
+(214, 37, 1, 34, '2026-11-05 15:47:54', 0, 'rule_based_local_fallback', '9f88a11669d8800e27d1e0c4de227d2a538a6cf9425a586e84c1aaff26539579');
 
 -- --------------------------------------------------------
 
@@ -1022,7 +1179,36 @@ INSERT INTO `ai_suggestion_history` (`id`, `school_id`, `school_year`, `dimensio
 (261, 1, '2024-2025', 27, 'D3 Leadership', '- School Head to facilitate a monthly strategic planning session (3.1) with the leadership team, setting measurable goals and assigning owners, and circulate a concise action plan within 30 days.\n- Leadership Team Lead to convene a bi‑weekly school‑community planning meeting (3.2) to gather community input, document action items, and share a summary with stakeholders every month.\n- Student Government Chair to organize a quarterly student leadership workshop (3.3) focusing on governance skills, and submit a brief reflection report to the Head within 30 days after each workshop.', 'Last cycle: “D3 Leadership”; Result: score improved by 0.7 from 93.1% to 93.8%, and no improvement plan was created.', 'Low', 'high', 'sufficient', 93.80, 'openai/gpt-oss-20b', 1, 0, 272, 37, '2026-10-18 14:09:00', 0),
 (262, 1, '2024-2025', 29, 'D5 Human Resource and Team Development', '- HR Manager to implement a monthly performance review cycle (5.2) for all staff, ensuring feedback forms are completed and discussed within 30 days of each review.\n- Professional Development Coordinator to schedule a bi‑monthly learning action cell (5.3) for teachers, covering identified needs, and circulate a brief summary of outcomes every month.\n- School Head to establish a quarterly recognition program (5.5) celebrating milestone achievements, and publish a brief announcement to staff within 30 days after each quarter.', 'Last cycle: “D5 Human Resource and Team Development”; Result: score improved by 0.8 from 89.6% to 90.4%, and no improvement plan was created.', 'Low', 'high', 'sufficient', 90.40, 'openai/gpt-oss-20b', 1, 0, NULL, 37, '2026-10-18 14:09:00', 0),
 (263, 1, '2024-2025', 25, 'D1 Curriculum and Teaching', '- Curriculum Lead to design a monthly lesson audit (1.2) focusing on 21st‑century skills integration, and share a concise audit report with teachers within 30 days.\n- ALS Coordinator to organize a quarterly certification preparation session (1.3) for ALS learners, and distribute a brief progress update to the Head within 30 days after each session.\n- Teacher Lead to conduct a bi‑weekly peace and values integration workshop (1.6) for staff, and compile a short reflection report to the Head every month.', 'Last cycle: “D1 Curriculum and Teaching”; Result: score improved by 2.5 from 89.4% to 91.9%, and no improvement plan was created.', 'Low', 'high', 'sufficient', 91.90, 'openai/gpt-oss-20b', 1, 0, NULL, 37, '2026-10-18 14:09:00', 0),
-(264, 1, '2024-2025', 30, 'D6 Finance and Resource Management and Mobilization', '- Finance Officer to perform a monthly inspection of infrastructure and facilities (6.1), document findings, and assign corrective actions to relevant staff within 30 days.\n- Facilities Manager to initiate a quarterly improvement plan (6.2) for identified infrastructure gaps, and report progress to the Head within 30 days after each quarter.\n- Library Coordinator to conduct a bi‑monthly library audit (6.3), assess resource availability, and circulate a brief summary of needs to the Head every month.', 'Last cycle: “D6 Finance and Resource Management and Mobilization”; Result: score improved by 5.0 from 95.0% to 100.0%, and no improvement plan was created.', 'Low', 'high', 'sufficient', 100.00, 'openai/gpt-oss-20b', 1, 0, NULL, 37, '2026-10-18 14:09:00', 0);
+(264, 1, '2024-2025', 30, 'D6 Finance and Resource Management and Mobilization', '- Finance Officer to perform a monthly inspection of infrastructure and facilities (6.1), document findings, and assign corrective actions to relevant staff within 30 days.\n- Facilities Manager to initiate a quarterly improvement plan (6.2) for identified infrastructure gaps, and report progress to the Head within 30 days after each quarter.\n- Library Coordinator to conduct a bi‑monthly library audit (6.3), assess resource availability, and circulate a brief summary of needs to the Head every month.', 'Last cycle: “D6 Finance and Resource Management and Mobilization”; Result: score improved by 5.0 from 95.0% to 100.0%, and no improvement plan was created.', 'Low', 'high', 'sufficient', 100.00, 'openai/gpt-oss-20b', 1, 0, NULL, 37, '2026-10-18 14:09:00', 0),
+(265, 1, '2025-2026', 27, 'D3 Leadership', '- School Principal to convene a strategic planning workshop with the Leadership Team, focusing on indicator 3.1, and draft a revised strategic plan within 30 days.\n- Leadership Team to establish a community planning committee by the end of the first quarter, ensuring indicator 3.2 is addressed, and hold monthly meetings.\n- Principal to pilot an innovation showcase for frontline services, targeting indicator 3.4, and report progress to the board every month.', 'Last cycle: “D3 Leadership”; Result: score change unavailable, and an improvement plan was created.', 'Medium', 'low', 'sufficient', 80.60, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-10-30 06:08:53', 0),
+(266, 1, '2025-2026', 25, 'D1 Curriculum and Teaching', '- Curriculum Coordinator to partner with local industries to enhance TLE-TV L offerings (indicator 1.8) and secure agreements within 30 days.\n- TLE Teacher to integrate industry case studies into Grade 10 curriculum, aiming to improve NAT proficiency (indicator 1.2), and review progress at the end of the first quarter.\n- ALS Coordinator to develop a certification pathway for ALS learners (indicator 1.3) and conduct a progress review every month.', 'Last cycle: “D1 Curriculum and Teaching”; Result: score change unavailable, and no improvement plan was created.', 'Low', 'high', 'sufficient', 85.30, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-10-30 06:08:53', 0),
+(267, 1, '2025-2026', 29, 'D5 Human Resource and Team Development', '- HR Manager to conduct an office performance audit (indicator 5.2) and present findings within 30 days.\n- Learning & Development Officer to design and launch Learning Action Cells (indicator 5.3) and monitor participation monthly.\n- Payroll Officer to verify timely salary disbursement (indicator 5.6) and provide a compliance report every month.', 'Last cycle: “D5 Human Resource and Team Development”; Result: score change unavailable, and no improvement plan was created.', 'Low', 'high', 'sufficient', 88.60, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-10-30 06:08:53', 0),
+(268, 1, '2025-2026', 26, 'D2 Learning Environment', '- Facilities Manager to assess and improve access for disadvantaged learners (indicator 2.5) and complete the assessment within 30 days.\n- Special Education Coordinator to audit and upgrade PWD-friendly facilities (indicator 2.10) and submit improvements by the end of the first quarter.\n- Wellness Coordinator to establish a mental wellness support mechanism (indicator 2.9) and hold monthly support sessions.', 'Last cycle: “D2 Learning Environment”; Result: score change unavailable, and no improvement plan was created.', 'Low', 'high', 'sufficient', 96.00, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-10-30 06:08:53', 0),
+(269, 1, '2025-2026', 28, 'D4 Governance and Accountability', '- PTA Chair to formalize the PTA structure (indicator 4.3) and hold a kickoff meeting within 30 days.\n- Governance Officer to implement a program monitoring framework (indicator 4.5) and report quarterly.\n- Stakeholder Liaison to conduct satisfaction surveys (indicator 4.6) and share results monthly.', 'Last cycle: “D4 Governance and Accountability”; Result: score change unavailable, and an improvement plan was created.', 'Low', 'high', 'sufficient', 87.50, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-10-30 06:08:53', 0),
+(270, 1, '2025-2026', 30, 'D6 Finance and Resource Management and Mobilization', '- Finance Officer to conduct a comprehensive infrastructure inspection (indicator 6.1) and document findings within 30 days.\n- Facilities Manager to initiate a facility improvement plan (indicator 6.2) and present progress by the end of the first quarter.\n- Library Manager to audit library resources (indicator 6.3) and schedule monthly refresh sessions.', 'Last cycle: “D6 Finance and Resource Management and Mobilization”; Result: score change unavailable, and no improvement plan was created.', 'Low', 'high', 'sufficient', 100.00, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-10-30 06:08:53', 0),
+(271, 1, '2025-2026', 27, 'D3 Leadership', '- School Principal to draft a concise strategic plan addressing indicator 3.1, to be finalized within 30 days.\n- Head of School Community Relations to establish a functional planning team for indicator 3.2, with monthly progress reviews.\n- Vice Principal to pilot an innovation workshop for frontline service delivery, targeting indicator 3.4, to be conducted by the end of the first quarter.', 'Last cycle: “D3 Leadership”; Result: score change unavailable, and an improvement plan was created.', 'Medium', 'low', 'sufficient', 80.60, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-01 19:23:50', 0),
+(272, 1, '2025-2026', 25, 'D1 Curriculum and Teaching', '- Curriculum Coordinator to partner with local industries to enhance TLE-TV L courses, addressing indicator 1.8, with a partnership proposal submitted within 30 days.\n- Grade 6, 10, and 12 teachers to align lesson plans with NAT proficiency standards, targeting indicator 1.2, with a curriculum alignment workshop every month.\n- ALS Program Lead to design a certification pathway for elementary and junior high learners, addressing indicator 1.3, to be rolled out by the end of the first quarter.', 'Last cycle: “D1 Curriculum and Teaching”; Result: score change unavailable, and no improvement plan was created.', 'Low', 'high', 'sufficient', 85.30, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-01 19:23:50', 0),
+(273, 1, '2025-2026', 29, 'D5 Human Resource and Team Development', '- HR Manager to conduct a performance review meeting to ensure office performance commitment meets indicator 5.2, with a review session scheduled within 30 days.\n- Learning & Development Coordinator to organize needs-based learning action cells, addressing indicator 5.3, with a quarterly session plan.\n- Finance Officer to verify timely salary and allowance disbursement, targeting indicator 5.6, with a monthly audit check.', 'Last cycle: “D5 Human Resource and Team Development”; Result: score change unavailable, and no improvement plan was created.', 'Low', 'high', 'sufficient', 88.60, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-01 19:23:50', 0),
+(274, 1, '2025-2026', 26, 'D2 Learning Environment', '- Facilities Manager to create inclusive learning spaces for disadvantaged learners, addressing indicator 2.5, with a design plan submitted within 30 days.\n- Special Education Coordinator to upgrade PWD-friendly facilities, targeting indicator 2.10, with a renovation schedule every month.\n- Wellness Officer to establish a mental wellness support mechanism, addressing indicator 2.9, with a pilot program launched by the end of the first quarter.', 'Last cycle: “D2 Learning Environment”; Result: score change unavailable, and no improvement plan was created.', 'Low', 'high', 'sufficient', 96.00, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-01 19:23:50', 0),
+(275, 1, '2025-2026', 28, 'D4 Governance and Accountability', '- PTA Chair to formalize PTA operations, addressing indicator 4.3, with a charter drafted within 30 days.\n- School Auditor to set up a monitoring and evaluation framework for programs, targeting indicator 4.5, with a quarterly reporting schedule.\n- Stakeholder Liaison to gather stakeholder feedback to maintain satisfactory ratings, addressing indicator 4.6, with a bi-monthly survey.', 'Last cycle: “D4 Governance and Accountability”; Result: score change unavailable, and an improvement plan was created.', 'Low', 'high', 'sufficient', 87.50, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-01 19:23:50', 0),
+(276, 1, '2025-2026', 30, 'D6 Finance and Resource Management and Mobilization', '- Finance Officer to conduct a comprehensive infrastructure inspection, addressing indicator 6.1, with a report due within 30 days.\n- Facilities Manager to initiate improvement projects for infrastructure, targeting indicator 6.2, with a project plan every month.\n- Library Director to ensure functional library services, addressing indicator 6.3, with a monthly usage audit.', 'Last cycle: “D6 Finance and Resource Management and Mobilization”; Result: score change unavailable, and no improvement plan was created.', 'Low', 'high', 'sufficient', 100.00, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-01 19:23:50', 0),
+(277, 1, '2025-2026', 45, 'D3 Accountability and Continuous Improvement', '- School Improvement Team, led by the Principal, conducts a quarterly review of the performance accountability system to recognize goal achievements and adjust targets, referencing indicator 3.2, within 30 days.\n- Community Liaison Officer coordinates monthly community forums to discuss accountability system enhancements, citing indicator 3.3, every month.\n- Data Analyst compiles participatory assessment reports after each assessment cycle, ensuring community input is recorded per indicator 3.5, by the end of the first quarter.', 'Last cycle: “D3 Leadership”; Result: score declined by 25.3 from 93.8% to 68.5%, and an improvement plan was created.', 'High', 'low', 'sufficient', 68.50, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-02 19:41:49', 0),
+(278, 1, '2025-2026', 44, 'D2 Curriculum and Learning', '- Curriculum Coordinator collaborates with local experts to localize curriculum materials, addressing indicator 2.2, every month.\n- Learning Managers conduct bi‑weekly reflective sessions to align teaching behaviors with the school\'s vision, referencing indicator 2.6, every two weeks.\n- Stakeholder Committee evaluates teaching content and methods quarterly, citing indicator 2.3, within 30 days.', 'Last cycle: “D2 Learning Environment”; Result: score declined by 24.1 from 97.3% to 73.2%, and no improvement plan was created.', 'Medium', 'low', 'sufficient', 73.20, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-02 19:41:49', 0),
+(279, 1, '2025-2026', 43, 'D1 Leadership and Governance', '- Leadership Committee meets monthly to review and update the development plan, ensuring responsiveness to emerging needs, per indicator 1.2, every month.\n- HR Officer drafts clear role descriptions and work arrangements, shared with all staff, addressing indicator 1.3, by the end of the first quarter.\n- Communication Officer facilitates a leadership network meeting every month to improve communication among school and community leaders, referencing indicator 1.4, every month.', 'Last cycle: “D1 Curriculum and Teaching”; Result: score declined by 22.9 from 91.9% to 69.0%, and no improvement plan was created.', 'Medium', 'low', 'sufficient', 69.00, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-02 19:41:49', 0),
+(280, 1, '2025-2026', 46, 'D4 Management of Resources', '- Resource Manager implements a community‑developed resource management system, tracking usage and effectiveness, referencing indicator 4.3, every month.\n- Planning Officer leads a regular dialogue for resource programming, engaging stakeholders, per indicator 4.2, every month.\n- Monitoring Officer establishes collaborative monitoring and evaluation processes for resource management, citing indicator 4.4, quarterly reviews.', 'Last cycle: “D4 Governance and Accountability”; Result: score declined by 17.5 from 87.5% to 70.0%, and an improvement plan was created.', 'Medium', 'low', 'sufficient', 70.00, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-02 19:41:49', 0),
+(281, 1, '2025-2026', 30, 'D6 Finance and Resource Management and Mobilization', '- Indicator 6.1: School Principal and Facilities Manager to conduct a comprehensive inspection of all classrooms and common areas, documenting findings and action items within 30 days.\n- Indicator 6.3: Library Coordinator to establish a monthly book acquisition and circulation audit, ensuring all materials meet curriculum relevance, by the end of the first quarter.\n- Indicator 6.5: ICT Lead to schedule a quarterly review of computer lab equipment and software updates, ensuring 100% functionality, within 60 days.', 'Last cycle: “D6 Finance and Resource Management and Mobilization”; Result: score change unavailable, and no improvement plan was created.', 'High', 'low', 'sufficient', 60.70, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-05 13:09:11', 0),
+(282, 1, '2025-2026', 26, 'D2 Learning Environment', '- Indicator 2.4: School Counselor, with the Student Welfare Committee, to design and implement a culture-sensitive activity series, launching within the next month.\n- Indicator 2.5: Head of Special Education to create a resource pool for disadvantaged, OSY, and adult learners, with first set of materials ready by the end of the first quarter.\n- Indicator 2.9: Mental Health Officer to set up a bi-monthly wellness support session for students and staff, starting within 30 days.', 'Last cycle: “D2 Learning Environment”; Result: score change unavailable, and no improvement plan was created.', 'High', 'low', 'sufficient', 64.70, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-05 13:09:11', 0),
+(283, 1, '2025-2026', 25, 'D1 Curriculum and Teaching', '- Indicator 1.6: Lead Teacher, with Curriculum Committee, to integrate peace and DepEd core values into lesson plans, with pilot lessons delivered within 30 days.\n- Indicator 1.7: Assessment Coordinator to conduct test item analysis after each unit assessment, sharing insights with teachers every month.\n- Indicator 1.4: Subject Teachers to develop contextualized learning materials tailored to local context, with first drafts submitted within 60 days.', 'Last cycle: “D1 Curriculum and Teaching”; Result: score change unavailable, and no improvement plan was created.', 'High', 'low', 'sufficient', 60.90, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-05 13:09:11', 0),
+(284, 1, '2025-2026', 28, 'D4 Governance and Accountability', '- Indicator 4.2: School Principal to convene the School Governance Council for the first meeting in the next month, establishing terms of reference.\n- Indicator 4.4: Partnership Officer to initiate collaboration with at least one neighboring school for joint projects, with partnership agreement signed by end of first quarter.\n- Indicator 4.5: Monitoring Officer to implement a quarterly evaluation of programs and projects, publishing a report within 30 days of each quarter.', 'Last cycle: “D4 Governance and Accountability”; Result: score change unavailable, and an improvement plan was created.', 'High', 'low', 'sufficient', 62.50, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-05 13:09:11', 0),
+(285, 1, '2025-2026', 27, 'D3 Leadership', '- Indicator 3.4: School Principal to pilot an innovative frontline service (e.g., mobile learning hub) for stakeholders, launching within 60 days.\n- Indicator 3.2: Community Planning Team Lead to develop a stakeholder engagement plan, with first draft ready by end of first quarter.\n- Indicator 3.1: Strategic Planning Officer to update the school strategic plan, incorporating new initiatives, with revised plan submitted within 90 days.', 'Last cycle: “D3 Leadership”; Result: score change unavailable, and an improvement plan was created.', 'High', 'low', 'sufficient', 69.60, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-05 13:09:11', 0),
+(286, 1, '2025-2026', 29, 'D5 Human Resource and Team Development', '- Indicator 5.4: Human Resources Lead to organize a professional development workshop series on continuous learning, starting within 30 days.\n- Indicator 5.2: Office Manager to conduct a performance review cycle, ensuring all staff receive feedback within 60 days of evaluation.\n- Indicator 5.6: Finance Officer to streamline salary and allowance processing, guaranteeing timely disbursement within 30 days of payroll date.', 'Last cycle: “D5 Human Resource and Team Development”; Result: score change unavailable, and no improvement plan was created.', 'Medium', 'low', 'sufficient', 67.90, 'openai/gpt-oss-20b', 0, 0, NULL, 37, '2026-11-05 13:09:11', 0);
+INSERT INTO `ai_suggestion_history` (`id`, `school_id`, `school_year`, `dimension_id`, `suggestion_title`, `suggestion_text`, `last_cycle_note`, `priority_label`, `decline_risk`, `data_status`, `score_at_time`, `model_version`, `is_final`, `needs_review`, `adopted_plan_id`, `generated_by`, `generated_at`, `is_sample`) VALUES
+(287, 1, '2025-2026', 30, 'D6 Finance and Resource Management and Mobilization', '- The Dimension Coordinator will review Finance and Resource Management and Mobilization evidence (indicator 6.1) and set one priority action by the end of this month.\n- The School Head will assign an owner and measurable target (indicator 6.3) before the next monthly meeting.\n- The assigned team will record progress (indicator 6.5) and report to the School Head at the end of each quarter.', 'Last cycle: “D6 Finance and Resource Management and Mobilization”; Result: score change unavailable, and no improvement plan was created.', 'High', 'low', 'sufficient', 60.70, 'rule_based_local_fallback', 1, 1, NULL, 37, '2026-11-05 15:47:54', 0),
+(288, 1, '2025-2026', 26, 'D2 Learning Environment', '- The Dimension Coordinator will review Learning Environment evidence (indicator 2.4) and set one priority action by the end of this month.\n- The School Head will assign an owner and measurable target (indicator 2.5) before the next monthly meeting.\n- The assigned team will record progress (indicator 2.9) and report to the School Head at the end of each quarter.', 'Last cycle: “D2 Learning Environment”; Result: score change unavailable, and no improvement plan was created.', 'High', 'low', 'sufficient', 64.70, 'rule_based_local_fallback', 1, 1, NULL, 37, '2026-11-05 15:47:54', 0),
+(289, 1, '2025-2026', 25, 'D1 Curriculum and Teaching', '- The Dimension Coordinator will review Curriculum and Teaching evidence (indicator 1.6) and set one priority action by the end of this month.\n- The School Head will assign an owner and measurable target (indicator 1.7) before the next monthly meeting.\n- The assigned team will record progress (indicator 1.4) and report to the School Head at the end of each quarter.', 'Last cycle: “D1 Curriculum and Teaching”; Result: score change unavailable, and no improvement plan was created.', 'High', 'low', 'sufficient', 60.90, 'rule_based_local_fallback', 1, 1, NULL, 37, '2026-11-05 15:47:54', 0),
+(290, 1, '2025-2026', 28, 'D4 Governance and Accountability', '- The Dimension Coordinator will review Governance and Accountability evidence (indicator 4.2) and set one priority action by the end of this month.\n- The School Head will assign an owner and measurable target (indicator 4.4) before the next monthly meeting.\n- The assigned team will record progress (indicator 4.5) and report to the School Head at the end of each quarter.', 'Last cycle: “D4 Governance and Accountability”; Result: score change unavailable, and an improvement plan was created.', 'High', 'low', 'sufficient', 62.50, 'rule_based_local_fallback', 1, 1, NULL, 37, '2026-11-05 15:47:54', 0),
+(291, 1, '2025-2026', 27, 'D3 Leadership', '- The Dimension Coordinator will review Leadership evidence (indicator 3.4) and set one priority action by the end of this month.\n- The School Head will assign an owner and measurable target (indicator 3.2) before the next monthly meeting.\n- The assigned team will record progress (indicator 3.1) and report to the School Head at the end of each quarter.', 'Last cycle: “D3 Leadership”; Result: score change unavailable, and an improvement plan was created.', 'High', 'low', 'sufficient', 69.60, 'rule_based_local_fallback', 1, 1, NULL, 37, '2026-11-05 15:47:54', 0),
+(292, 1, '2025-2026', 29, 'D5 Human Resource and Team Development', '- The Dimension Coordinator will review Human Resource and Team Development evidence (indicator 5.4) and set one priority action by the end of this month.\n- The School Head will assign an owner and measurable target (indicator 5.2) before the next monthly meeting.\n- The assigned team will record progress (indicator 5.6) and report to the School Head at the end of each quarter.', 'Last cycle: “D5 Human Resource and Team Development”; Result: score change unavailable, and no improvement plan was created.', 'Medium', 'low', 'sufficient', 67.90, 'rule_based_local_fallback', 1, 1, NULL, 37, '2026-11-05 15:47:54', 0);
 
 -- --------------------------------------------------------
 
@@ -1339,7 +1525,21 @@ INSERT INTO `ai_suggestion_items` (`item_id`, `generation_id`, `item_index`, `so
 (542, 209, 3, 'llm', NULL, 'D3 Leadership', '93.8% · +0.7 pts vs last year\nWeakest indicators: 3.2 (avg 3.0), 3.1 (avg 4.0), 3.3 (avg 4.0)\n- School Head to facilitate a monthly strategic planning session (3.1) with the leadership team, setting measurable goals and assigning owners, and circulate a concise action plan within 30 days.\n- Leadership Team Lead to convene a bi‑weekly school‑community planning meeting (3.2) to gather community input, document action items, and share a summary with stakeholders every month.\n- Student Government Chair to organize a quarterly student leadership workshop (3.3) focusing on governance skills, and submit a brief reflection report to the Head within 30 days after each workshop.', '[\"3.1\",\"3.2\",\"3.3\"]', 81.70, NULL, NULL, '2026-10-18 14:09:00'),
 (543, 209, 4, 'llm', NULL, 'D5 Human Resource and Team Development', '90.4% · +0.8 pts vs last year\nWeakest indicators: 5.2 (avg 3.0), 5.3 (avg 3.3), 5.5 (avg 3.3)\n- HR Manager to implement a monthly performance review cycle (5.2) for all staff, ensuring feedback forms are completed and discussed within 30 days of each review.\n- Professional Development Coordinator to schedule a bi‑monthly learning action cell (5.3) for teachers, covering identified needs, and circulate a brief summary of outcomes every month.\n- School Head to establish a quarterly recognition program (5.5) celebrating milestone achievements, and publish a brief announcement to staff within 30 days after each quarter.', '[\"5.2\",\"5.3\",\"5.5\"]', 100.00, NULL, NULL, '2026-10-18 14:09:00'),
 (544, 209, 5, 'llm', NULL, 'D1 Curriculum and Teaching', '91.9% · +2.5 pts vs last year\nWeakest indicators: 1.2 (avg 3.3), 1.3 (avg 3.3), 1.6 (avg 3.3)\n- Curriculum Lead to design a monthly lesson audit (1.2) focusing on 21st‑century skills integration, and share a concise audit report with teachers within 30 days.\n- ALS Coordinator to organize a quarterly certification preparation session (1.3) for ALS learners, and distribute a brief progress update to the Head within 30 days after each session.\n- Teacher Lead to conduct a bi‑weekly peace and values integration workshop (1.6) for staff, and compile a short reflection report to the Head every month.', '[\"1.2\",\"1.3\",\"1.6\"]', 100.00, NULL, NULL, '2026-10-18 14:09:00'),
-(545, 209, 6, 'llm', NULL, 'D6 Finance and Resource Management and Mobilization', '100.0% · +5.0 pts vs last year\nWeakest indicators: 6.1 (avg 4.0), 6.2 (avg 4.0), 6.3 (avg 4.0)\n- Finance Officer to perform a monthly inspection of infrastructure and facilities (6.1), document findings, and assign corrective actions to relevant staff within 30 days.\n- Facilities Manager to initiate a quarterly improvement plan (6.2) for identified infrastructure gaps, and report progress to the Head within 30 days after each quarter.\n- Library Coordinator to conduct a bi‑monthly library audit (6.3), assess resource availability, and circulate a brief summary of needs to the Head every month.', '[\"6.1\",\"6.2\",\"6.3\"]', 87.60, NULL, NULL, '2026-10-18 14:09:00');
+(545, 209, 6, 'llm', NULL, 'D6 Finance and Resource Management and Mobilization', '100.0% · +5.0 pts vs last year\nWeakest indicators: 6.1 (avg 4.0), 6.2 (avg 4.0), 6.3 (avg 4.0)\n- Finance Officer to perform a monthly inspection of infrastructure and facilities (6.1), document findings, and assign corrective actions to relevant staff within 30 days.\n- Facilities Manager to initiate a quarterly improvement plan (6.2) for identified infrastructure gaps, and report progress to the Head within 30 days after each quarter.\n- Library Coordinator to conduct a bi‑monthly library audit (6.3), assess resource availability, and circulate a brief summary of needs to the Head every month.', '[\"6.1\",\"6.2\",\"6.3\"]', 87.60, NULL, NULL, '2026-10-18 14:09:00'),
+(565, 213, 0, 'llm', NULL, 'AI suggestion', 'The current school year (SY 2025-2026) overall SBM score is 64.0%, compared with 93.8% in SY 2024-2025 (−29.8 percentage points). Biggest decline: D6 Finance and Resource Management and Mobilization (−39.3 percentage points). No dimension improvements were recorded.', '[]', NULL, NULL, NULL, '2026-11-05 13:09:11'),
+(566, 213, 1, 'llm', NULL, 'D6 Finance and Resource Management and Mobilization', '60.7% · −39.3 pts vs last year\nWeakest indicators: 6.1 (avg 1.0), 6.3 (avg 2.0), 6.5 (avg 2.0)\n- Indicator 6.1: School Principal and Facilities Manager to conduct a comprehensive inspection of all classrooms and common areas, documenting findings and action items within 30 days.\n- Indicator 6.3: Library Coordinator to establish a monthly book acquisition and circulation audit, ensuring all materials meet curriculum relevance, by the end of the first quarter.\n- Indicator 6.5: ICT Lead to schedule a quarterly review of computer lab equipment and software updates, ensuring 100% functionality, within 60 days.', '[\"6.1\",\"6.3\",\"6.5\"]', 73.30, NULL, NULL, '2026-11-05 13:09:11'),
+(567, 213, 2, 'llm', NULL, 'D2 Learning Environment', '64.7% · −32.6 pts vs last year\nWeakest indicators: 2.4 (avg 1.8), 2.5 (avg 2.0), 2.9 (avg 2.0)\n- Indicator 2.4: School Counselor, with the Student Welfare Committee, to design and implement a culture-sensitive activity series, launching within the next month.\n- Indicator 2.5: Head of Special Education to create a resource pool for disadvantaged, OSY, and adult learners, with first set of materials ready by the end of the first quarter.\n- Indicator 2.9: Mental Health Officer to set up a bi-monthly wellness support session for students and staff, starting within 30 days.', '[\"2.4\",\"2.5\",\"2.9\"]', 92.00, NULL, NULL, '2026-11-05 13:09:11'),
+(568, 213, 3, 'llm', NULL, 'D1 Curriculum and Teaching', '60.9% · −31.0 pts vs last year\nWeakest indicators: 1.6 (avg 1.0), 1.7 (avg 2.0), 1.4 (avg 2.4)\n- Indicator 1.6: Lead Teacher, with Curriculum Committee, to integrate peace and DepEd core values into lesson plans, with pilot lessons delivered within 30 days.\n- Indicator 1.7: Assessment Coordinator to conduct test item analysis after each unit assessment, sharing insights with teachers every month.\n- Indicator 1.4: Subject Teachers to develop contextualized learning materials tailored to local context, with first drafts submitted within 60 days.', '[\"1.4\",\"1.6\",\"1.7\"]', 90.00, NULL, NULL, '2026-11-05 13:09:11'),
+(569, 213, 4, 'llm', NULL, 'D4 Governance and Accountability', '62.5% · −25.0 pts vs last year\nWeakest indicators: 4.2 (avg 1.6), 4.4 (avg 2.2), 4.5 (avg 2.4)\n- Indicator 4.2: School Principal to convene the School Governance Council for the first meeting in the next month, establishing terms of reference.\n- Indicator 4.4: Partnership Officer to initiate collaboration with at least one neighboring school for joint projects, with partnership agreement signed by end of first quarter.\n- Indicator 4.5: Monitoring Officer to implement a quarterly evaluation of programs and projects, publishing a report within 30 days of each quarter.', '[\"4.2\",\"4.4\",\"4.5\"]', 95.60, NULL, NULL, '2026-11-05 13:09:11'),
+(570, 213, 5, 'llm', NULL, 'D3 Leadership', '69.6% · −24.2 pts vs last year\nWeakest indicators: 3.4 (avg 1.8), 3.2 (avg 2.6), 3.1 (avg 2.8)\n- Indicator 3.4: School Principal to pilot an innovative frontline service (e.g., mobile learning hub) for stakeholders, launching within 60 days.\n- Indicator 3.2: Community Planning Team Lead to develop a stakeholder engagement plan, with first draft ready by end of first quarter.\n- Indicator 3.1: Strategic Planning Officer to update the school strategic plan, incorporating new initiatives, with revised plan submitted within 90 days.', '[\"3.1\",\"3.2\",\"3.4\"]', 100.00, NULL, NULL, '2026-11-05 13:09:11'),
+(571, 213, 6, 'llm', NULL, 'D5 Human Resource and Team Development', '67.9% · −22.5 pts vs last year\nWeakest indicators: 5.4 (avg 1.0), 5.2 (avg 2.0), 5.6 (avg 2.0)\n- Indicator 5.4: Human Resources Lead to organize a professional development workshop series on continuous learning, starting within 30 days.\n- Indicator 5.2: Office Manager to conduct a performance review cycle, ensuring all staff receive feedback within 60 days of evaluation.\n- Indicator 5.6: Finance Officer to streamline salary and allowance processing, guaranteeing timely disbursement within 30 days of payroll date.', '[\"5.2\",\"5.4\",\"5.6\"]', 73.30, NULL, NULL, '2026-11-05 13:09:11'),
+(572, 214, 0, 'llm', NULL, 'AI suggestion', 'The current school year (SY 2025-2026) overall SBM score is 64.0%, compared with 93.8% in SY 2024-2025 (−29.8 percentage points). Biggest decline: D6 Finance and Resource Management and Mobilization (−39.3 percentage points). No dimension improvements were recorded.', '[]', NULL, NULL, NULL, '2026-11-05 15:47:54'),
+(573, 214, 1, 'llm', NULL, 'D6 Finance and Resource Management and Mobilization', '60.7% · −39.3 pts vs last year\nWeakest indicators: 6.1 (avg 1.0), 6.3 (avg 2.0), 6.5 (avg 2.0)\n- The Dimension Coordinator will review Finance and Resource Management and Mobilization evidence (indicator 6.1) and set one priority action by the end of this month.\n- The School Head will assign an owner and measurable target (indicator 6.3) before the next monthly meeting.\n- The assigned team will record progress (indicator 6.5) and report to the School Head at the end of each quarter.', '[\"6.1\",\"6.3\",\"6.5\"]', 73.30, NULL, NULL, '2026-11-05 15:47:54'),
+(574, 214, 2, 'llm', NULL, 'D2 Learning Environment', '64.7% · −32.6 pts vs last year\nWeakest indicators: 2.4 (avg 1.8), 2.5 (avg 2.0), 2.9 (avg 2.0)\n- The Dimension Coordinator will review Learning Environment evidence (indicator 2.4) and set one priority action by the end of this month.\n- The School Head will assign an owner and measurable target (indicator 2.5) before the next monthly meeting.\n- The assigned team will record progress (indicator 2.9) and report to the School Head at the end of each quarter.', '[\"2.4\",\"2.5\",\"2.9\"]', 92.00, NULL, NULL, '2026-11-05 15:47:54'),
+(575, 214, 3, 'llm', NULL, 'D1 Curriculum and Teaching', '60.9% · −31.0 pts vs last year\nWeakest indicators: 1.6 (avg 1.0), 1.7 (avg 2.0), 1.4 (avg 2.4)\n- The Dimension Coordinator will review Curriculum and Teaching evidence (indicator 1.6) and set one priority action by the end of this month.\n- The School Head will assign an owner and measurable target (indicator 1.7) before the next monthly meeting.\n- The assigned team will record progress (indicator 1.4) and report to the School Head at the end of each quarter.', '[\"1.4\",\"1.6\",\"1.7\"]', 90.00, NULL, NULL, '2026-11-05 15:47:54'),
+(576, 214, 4, 'llm', NULL, 'D4 Governance and Accountability', '62.5% · −25.0 pts vs last year\nWeakest indicators: 4.2 (avg 1.6), 4.4 (avg 2.2), 4.5 (avg 2.4)\n- The Dimension Coordinator will review Governance and Accountability evidence (indicator 4.2) and set one priority action by the end of this month.\n- The School Head will assign an owner and measurable target (indicator 4.4) before the next monthly meeting.\n- The assigned team will record progress (indicator 4.5) and report to the School Head at the end of each quarter.', '[\"4.2\",\"4.4\",\"4.5\"]', 95.60, NULL, NULL, '2026-11-05 15:47:54'),
+(577, 214, 5, 'llm', NULL, 'D3 Leadership', '69.6% · −24.2 pts vs last year\nWeakest indicators: 3.4 (avg 1.8), 3.2 (avg 2.6), 3.1 (avg 2.8)\n- The Dimension Coordinator will review Leadership evidence (indicator 3.4) and set one priority action by the end of this month.\n- The School Head will assign an owner and measurable target (indicator 3.2) before the next monthly meeting.\n- The assigned team will record progress (indicator 3.1) and report to the School Head at the end of each quarter.', '[\"3.1\",\"3.2\",\"3.4\"]', 100.00, NULL, NULL, '2026-11-05 15:47:54'),
+(578, 214, 6, 'llm', NULL, 'D5 Human Resource and Team Development', '67.9% · −22.5 pts vs last year\nWeakest indicators: 5.4 (avg 1.0), 5.2 (avg 2.0), 5.6 (avg 2.0)\n- The Dimension Coordinator will review Human Resource and Team Development evidence (indicator 5.4) and set one priority action by the end of this month.\n- The School Head will assign an owner and measurable target (indicator 5.2) before the next monthly meeting.\n- The assigned team will record progress (indicator 5.6) and report to the School Head at the end of each quarter.', '[\"5.2\",\"5.4\",\"5.6\"]', 73.30, NULL, NULL, '2026-11-05 15:47:54');
 
 -- --------------------------------------------------------
 
@@ -1360,7 +1560,7 @@ CREATE TABLE `ai_suggestion_usage` (
 --
 
 INSERT INTO `ai_suggestion_usage` (`user_id`, `usage_count`, `last_generated_at`, `last_recommendation`, `reset_date`) VALUES
-(37, 15, '2026-10-18 06:08:56', '{\"text\":\"The current school year (SY 2024-2025) overall SBM score is 93.8%, compared with 93.4% in SY 2023-2024 (+0.4 percentage points). Biggest decline: D4 Governance and Accountability (−8.3 percentage points). Biggest improvement: D6 Finance and Resource Management and Mobilization (+5.0 percentage points).\\n\\n**D4 Governance and Accountability**\\n87.5% · −8.3 pts vs last year\\nWeakest indicators: 4.2 (avg 3.0), 4.3 (avg 3.0), 4.4 (avg 3.0)\\n- School Head to convene a monthly meeting with the School Governance Council (SGC) to review policy implementation (4.2) and set action items, ensuring all council members submit a brief progress report within 30 days of each meeting.\\n- Parent-Teacher Association (PTA) Chair to organize a quarterly workshop on partnership strategies (4.3), inviting parents and community leaders, and circulate a summary of agreed actions within 30 days after the workshop.\\n- School Head to establish a bi‑monthly stakeholder collaboration forum (4.4) with local NGOs and government units, documenting partnership outcomes and sharing a brief report with the school board every month.\\n\\n**D2 Learning Environment**\\n97.3% · +0.5 pts vs last year\\nWeakest indicators: 2.5 (avg 3.0), 2.10 (avg 3.3), 2.9 (avg 3.8)\\n- School Head to coordinate a bi‑monthly audit of learning spaces (2.5) to identify accessibility gaps for disadvantaged learners, and assign the Facilities Manager to implement corrective actions within 30 days of each audit.\\n- Special Education Coordinator to schedule a monthly training for teachers on inclusive classroom practices (2.10) and track attendance and application of strategies, reporting progress to the Head every month.\\n- Mental Wellness Officer to launch a quarterly support program (2.9) for students and staff, including counseling sessions and wellness activities, and circulate a brief impact report within 30 days after each quarter.\\n\\n**D3 Leadership**\\n93.8% · +0.7 pts vs last year\\nWeakest indicators: 3.2 (avg 3.0), 3.1 (avg 4.0), 3.3 (avg 4.0)\\n- School Head to facilitate a monthly strategic planning session (3.1) with the leadership team, setting measurable goals and assigning owners, and circulate a concise action plan within 30 days.\\n- Leadership Team Lead to convene a bi‑weekly school‑community planning meeting (3.2) to gather community input, document action items, and share a summary with stakeholders every month.\\n- Student Government Chair to organize a quarterly student leadership workshop (3.3) focusing on governance skills, and submit a brief reflection report to the Head within 30 days after each workshop.\\n\\n**D5 Human Resource and Team Development**\\n90.4% · +0.8 pts vs last year\\nWeakest indicators: 5.2 (avg 3.0), 5.3 (avg 3.3), 5.5 (avg 3.3)\\n- HR Manager to implement a monthly performance review cycle (5.2) for all staff, ensuring feedback forms are completed and discussed within 30 days of each review.\\n- Professional Development Coordinator to schedule a bi‑monthly learning action cell (5.3) for teachers, covering identified needs, and circulate a brief summary of outcomes every month.\\n- School Head to establish a quarterly recognition program (5.5) celebrating milestone achievements, and publish a brief announcement to staff within 30 days after each quarter.\\n\\n**D1 Curriculum and Teaching**\\n91.9% · +2.5 pts vs last year\\nWeakest indicators: 1.2 (avg 3.3), 1.3 (avg 3.3), 1.6 (avg 3.3)\\n- Curriculum Lead to design a monthly lesson audit (1.2) focusing on 21st‑century skills integration, and share a concise audit report with teachers within 30 days.\\n- ALS Coordinator to organize a quarterly certification preparation session (1.3) for ALS learners, and distribute a brief progress update to the Head within 30 days after each session.\\n- Teacher Lead to conduct a bi‑weekly peace and values integration workshop (1.6) for staff, and compile a short reflection report to the Head every month.\\n\\n**D6 Finance and Resource Management and Mobilization**\\n100.0% · +5.0 pts vs last year\\nWeakest indicators: 6.1 (avg 4.0), 6.2 (avg 4.0), 6.3 (avg 4.0)\\n- Finance Officer to perform a monthly inspection of infrastructure and facilities (6.1), document findings, and assign corrective actions to relevant staff within 30 days.\\n- Facilities Manager to initiate a quarterly improvement plan (6.2) for identified infrastructure gaps, and report progress to the Head within 30 days after each quarter.\\n- Library Coordinator to conduct a bi‑monthly library audit (6.3), assess resource availability, and circulate a brief summary of needs to the Head every month.\",\"blocks\":[{\"action_count\":3,\"body_text\":\"- School Head to convene a monthly meeting with the School Governance Council (SGC) to review policy implementation (4.2) and set action items, ensuring all council members submit a brief progress report within 30 days of each meeting.\\n- Parent-Teacher Association (PTA) Chair to organize a quarterly workshop on partnership strategies (4.3), inviting parents and community leaders, and circulate a summary of agreed actions within 30 days after the workshop.\\n- School Head to establish a bi‑monthly stakeholder collaboration forum (4.4) with local NGOs and government units, documenting partnership outcomes and sharing a brief report with the school board every month.\",\"confidence_level\":\"Moderate Confidence\",\"confidence_pct\":73.3,\"dimension_id\":28,\"dimension_name\":\"Governance and Accountability\",\"dimension_no\":4,\"factors\":[\"Dimension response coverage: 100.0% (6 of 6 active indicators)\",\"Dimension indicators with responses: 6 of 6 (100.0%)\",\"Responses behind dimension indicators: 6 total (1.0 per rated indicator; response-depth score capped at 5 per indicator)\"],\"indicator_codes\":[\"4.2\",\"4.3\",\"4.4\"],\"insufficient_data\":false,\"model_version\":\"openai/gpt-oss-20b\",\"needs_review\":false,\"review_reason\":null,\"title\":\"D4 Governance and Accountability\",\"suggestion_item_id\":540},{\"action_count\":3,\"body_text\":\"- School Head to coordinate a bi‑monthly audit of learning spaces (2.5) to identify accessibility gaps for disadvantaged learners, and assign the Facilities Manager to implement corrective actions within 30 days of each audit.\\n- Special Education Coordinator to schedule a monthly training for teachers on inclusive classroom practices (2.10) and track attendance and application of strategies, reporting progress to the Head every month.\\n- Mental Wellness Officer to launch a quarterly support program (2.9) for students and staff, including counseling sessions and wellness activities, and circulate a brief impact report within 30 days after each quarter.\",\"confidence_level\":\"High Confidence\",\"confidence_pct\":93.3,\"dimension_id\":26,\"dimension_name\":\"Learning Environment\",\"dimension_no\":2,\"factors\":[\"Dimension response coverage: 100.0% (10 of 10 active indicators)\",\"Dimension indicators with responses: 10 of 10 (100.0%)\",\"Responses behind dimension indicators: 40 total (4.0 per rated indicator; response-depth score capped at 5 per indicator)\"],\"indicator_codes\":[\"2.10\",\"2.5\",\"2.9\"],\"insufficient_data\":false,\"model_version\":\"openai/gpt-oss-20b\",\"needs_review\":false,\"review_reason\":null,\"title\":\"D2 Learning Environment\",\"suggestion_item_id\":541},{\"action_count\":3,\"body_text\":\"- School Head to facilitate a monthly strategic planning session (3.1) with the leadership team, setting measurable goals and assigning owners, and circulate a concise action plan within 30 days.\\n- Leadership Team Lead to convene a bi‑weekly school‑community planning meeting (3.2) to gather community input, document action items, and share a summary with stakeholders every month.\\n- Student Government Chair to organize a quarterly student leadership workshop (3.3) focusing on governance skills, and submit a brief reflection report to the Head within 30 days after each workshop.\",\"confidence_level\":\"High Confidence\",\"confidence_pct\":81.7,\"dimension_id\":27,\"dimension_name\":\"Leadership\",\"dimension_no\":3,\"factors\":[\"Dimension response coverage: 100.0% (4 of 4 active indicators)\",\"Dimension indicators with responses: 4 of 4 (100.0%)\",\"Responses behind dimension indicators: 9 total (2.2 per rated indicator; response-depth score capped at 5 per indicator)\"],\"indicator_codes\":[\"3.1\",\"3.2\",\"3.3\"],\"insufficient_data\":false,\"model_version\":\"openai/gpt-oss-20b\",\"needs_review\":false,\"review_reason\":null,\"title\":\"D3 Leadership\",\"suggestion_item_id\":542},{\"action_count\":3,\"body_text\":\"- HR Manager to implement a monthly performance review cycle (5.2) for all staff, ensuring feedback forms are completed and discussed within 30 days of each review.\\n- Professional Development Coordinator to schedule a bi‑monthly learning action cell (5.3) for teachers, covering identified needs, and circulate a brief summary of outcomes every month.\\n- School Head to establish a quarterly recognition program (5.5) celebrating milestone achievements, and publish a brief announcement to staff within 30 days after each quarter.\",\"confidence_level\":\"High Confidence\",\"confidence_pct\":100,\"dimension_id\":29,\"dimension_name\":\"Human Resource and Team Development\",\"dimension_no\":5,\"factors\":[\"Dimension response coverage: 100.0% (7 of 7 active indicators)\",\"Dimension indicators with responses: 7 of 7 (100.0%)\",\"Responses behind dimension indicators: 37 total (5.3 per rated indicator; response-depth score capped at 5 per indicator)\"],\"indicator_codes\":[\"5.2\",\"5.3\",\"5.5\"],\"insufficient_data\":false,\"model_version\":\"openai/gpt-oss-20b\",\"needs_review\":false,\"review_reason\":null,\"title\":\"D5 Human Resource and Team Development\",\"suggestion_item_id\":543},{\"action_count\":3,\"body_text\":\"- Curriculum Lead to design a monthly lesson audit (1.2) focusing on 21st‑century skills integration, and share a concise audit report with teachers within 30 days.\\n- ALS Coordinator to organize a quarterly certification preparation session (1.3) for ALS learners, and distribute a brief progress update to the Head within 30 days after each session.\\n- Teacher Lead to conduct a bi‑weekly peace and values integration workshop (1.6) for staff, and compile a short reflection report to the Head every month.\",\"confidence_level\":\"High Confidence\",\"confidence_pct\":100,\"dimension_id\":25,\"dimension_name\":\"Curriculum and Teaching\",\"dimension_no\":1,\"factors\":[\"Dimension response coverage: 100.0% (8 of 8 active indicators)\",\"Dimension indicators with responses: 8 of 8 (100.0%)\",\"Responses behind dimension indicators: 43 total (5.4 per rated indicator; response-depth score capped at 5 per indicator)\"],\"indicator_codes\":[\"1.2\",\"1.3\",\"1.6\"],\"insufficient_data\":false,\"model_version\":\"openai/gpt-oss-20b\",\"needs_review\":false,\"review_reason\":null,\"title\":\"D1 Curriculum and Teaching\",\"suggestion_item_id\":544},{\"action_count\":3,\"body_text\":\"- Finance Officer to perform a monthly inspection of infrastructure and facilities (6.1), document findings, and assign corrective actions to relevant staff within 30 days.\\n- Facilities Manager to initiate a quarterly improvement plan (6.2) for identified infrastructure gaps, and report progress to the Head within 30 days after each quarter.\\n- Library Coordinator to conduct a bi‑monthly library audit (6.3), assess resource availability, and circulate a brief summary of needs to the Head every month.\",\"confidence_level\":\"High Confidence\",\"confidence_pct\":87.6,\"dimension_id\":30,\"dimension_name\":\"Finance and Resource Management and Mobilization\",\"dimension_no\":6,\"factors\":[\"Dimension response coverage: 100.0% (7 of 7 active indicators)\",\"Dimension indicators with responses: 7 of 7 (100.0%)\",\"Responses behind dimension indicators: 22 total (3.1 per rated indicator; response-depth score capped at 5 per indicator)\"],\"indicator_codes\":[\"6.1\",\"6.2\",\"6.3\"],\"insufficient_data\":false,\"model_version\":\"openai/gpt-oss-20b\",\"needs_review\":false,\"review_reason\":null,\"title\":\"D6 Finance and Resource Management and Mobilization\",\"suggestion_item_id\":545}],\"suggestion_ranking\":{\"active\":false,\"demo_data\":false,\"model_source\":\"rule_fallback\",\"reason\":\"No validated CatBoost suggestion ranker is saved.\"}}', '2026-10-18');
+(37, 2, '2026-11-05 07:47:46', '{\"text\":\"The current school year (SY 2025-2026) overall SBM score is 64.0%, compared with 93.8% in SY 2024-2025 (−29.8 percentage points). Biggest decline: D6 Finance and Resource Management and Mobilization (−39.3 percentage points). No dimension improvements were recorded.\\n\\n**D6 Finance and Resource Management and Mobilization**\\n60.7% · −39.3 pts vs last year\\nWeakest indicators: 6.1 (avg 1.0), 6.3 (avg 2.0), 6.5 (avg 2.0)\\n- The Dimension Coordinator will review Finance and Resource Management and Mobilization evidence (indicator 6.1) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 6.3) before the next monthly meeting.\\n- The assigned team will record progress (indicator 6.5) and report to the School Head at the end of each quarter.\\n\\n**D2 Learning Environment**\\n64.7% · −32.6 pts vs last year\\nWeakest indicators: 2.4 (avg 1.8), 2.5 (avg 2.0), 2.9 (avg 2.0)\\n- The Dimension Coordinator will review Learning Environment evidence (indicator 2.4) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 2.5) before the next monthly meeting.\\n- The assigned team will record progress (indicator 2.9) and report to the School Head at the end of each quarter.\\n\\n**D1 Curriculum and Teaching**\\n60.9% · −31.0 pts vs last year\\nWeakest indicators: 1.6 (avg 1.0), 1.7 (avg 2.0), 1.4 (avg 2.4)\\n- The Dimension Coordinator will review Curriculum and Teaching evidence (indicator 1.6) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 1.7) before the next monthly meeting.\\n- The assigned team will record progress (indicator 1.4) and report to the School Head at the end of each quarter.\\n\\n**D4 Governance and Accountability**\\n62.5% · −25.0 pts vs last year\\nWeakest indicators: 4.2 (avg 1.6), 4.4 (avg 2.2), 4.5 (avg 2.4)\\n- The Dimension Coordinator will review Governance and Accountability evidence (indicator 4.2) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 4.4) before the next monthly meeting.\\n- The assigned team will record progress (indicator 4.5) and report to the School Head at the end of each quarter.\\n\\n**D3 Leadership**\\n69.6% · −24.2 pts vs last year\\nWeakest indicators: 3.4 (avg 1.8), 3.2 (avg 2.6), 3.1 (avg 2.8)\\n- The Dimension Coordinator will review Leadership evidence (indicator 3.4) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 3.2) before the next monthly meeting.\\n- The assigned team will record progress (indicator 3.1) and report to the School Head at the end of each quarter.\\n\\n**D5 Human Resource and Team Development**\\n67.9% · −22.5 pts vs last year\\nWeakest indicators: 5.4 (avg 1.0), 5.2 (avg 2.0), 5.6 (avg 2.0)\\n- The Dimension Coordinator will review Human Resource and Team Development evidence (indicator 5.4) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 5.2) before the next monthly meeting.\\n- The assigned team will record progress (indicator 5.6) and report to the School Head at the end of each quarter.\",\"blocks\":[{\"action_count\":3,\"body_text\":\"- The Dimension Coordinator will review Finance and Resource Management and Mobilization evidence (indicator 6.1) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 6.3) before the next monthly meeting.\\n- The assigned team will record progress (indicator 6.5) and report to the School Head at the end of each quarter.\",\"confidence_level\":\"Moderate Confidence\",\"confidence_pct\":73.3,\"dimension_id\":30,\"dimension_name\":\"Finance and Resource Management and Mobilization\",\"dimension_no\":6,\"factors\":[\"Dimension response coverage: 100.0% (7 of 7 active indicators)\",\"Dimension indicators with responses: 7 of 7 (100.0%)\",\"Responses behind dimension indicators: 7 total (1.0 per rated indicator; response-depth score capped at 5 per indicator)\"],\"indicator_codes\":[\"6.1\",\"6.3\",\"6.5\"],\"insufficient_data\":false,\"model_version\":\"rule_based_local_fallback\",\"needs_review\":true,\"review_reason\":\"groq was unavailable; verify and expand this suggestion.\",\"title\":\"D6 Finance and Resource Management and Mobilization\",\"suggestion_item_id\":573},{\"action_count\":3,\"body_text\":\"- The Dimension Coordinator will review Learning Environment evidence (indicator 2.4) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 2.5) before the next monthly meeting.\\n- The assigned team will record progress (indicator 2.9) and report to the School Head at the end of each quarter.\",\"confidence_level\":\"High Confidence\",\"confidence_pct\":92,\"dimension_id\":26,\"dimension_name\":\"Learning Environment\",\"dimension_no\":2,\"factors\":[\"Dimension response coverage: 100.0% (10 of 10 active indicators)\",\"Dimension indicators with responses: 10 of 10 (100.0%)\",\"Responses behind dimension indicators: 38 total (3.8 per rated indicator; response-depth score capped at 5 per indicator)\"],\"indicator_codes\":[\"2.4\",\"2.5\",\"2.9\"],\"insufficient_data\":false,\"model_version\":\"rule_based_local_fallback\",\"needs_review\":true,\"review_reason\":\"groq was unavailable; verify and expand this suggestion.\",\"title\":\"D2 Learning Environment\",\"suggestion_item_id\":574},{\"action_count\":3,\"body_text\":\"- The Dimension Coordinator will review Curriculum and Teaching evidence (indicator 1.6) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 1.7) before the next monthly meeting.\\n- The assigned team will record progress (indicator 1.4) and report to the School Head at the end of each quarter.\",\"confidence_level\":\"High Confidence\",\"confidence_pct\":90,\"dimension_id\":25,\"dimension_name\":\"Curriculum and Teaching\",\"dimension_no\":1,\"factors\":[\"Dimension response coverage: 100.0% (8 of 8 active indicators)\",\"Dimension indicators with responses: 8 of 8 (100.0%)\",\"Responses behind dimension indicators: 28 total (3.5 per rated indicator; response-depth score capped at 5 per indicator)\"],\"indicator_codes\":[\"1.4\",\"1.6\",\"1.7\"],\"insufficient_data\":false,\"model_version\":\"rule_based_local_fallback\",\"needs_review\":true,\"review_reason\":\"groq was unavailable; verify and expand this suggestion.\",\"title\":\"D1 Curriculum and Teaching\",\"suggestion_item_id\":575},{\"action_count\":3,\"body_text\":\"- The Dimension Coordinator will review Governance and Accountability evidence (indicator 4.2) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 4.4) before the next monthly meeting.\\n- The assigned team will record progress (indicator 4.5) and report to the School Head at the end of each quarter.\",\"confidence_level\":\"High Confidence\",\"confidence_pct\":95.6,\"dimension_id\":28,\"dimension_name\":\"Governance and Accountability\",\"dimension_no\":4,\"factors\":[\"Dimension response coverage: 100.0% (6 of 6 active indicators)\",\"Dimension indicators with responses: 6 of 6 (100.0%)\",\"Responses behind dimension indicators: 26 total (4.3 per rated indicator; response-depth score capped at 5 per indicator)\"],\"indicator_codes\":[\"4.2\",\"4.4\",\"4.5\"],\"insufficient_data\":false,\"model_version\":\"rule_based_local_fallback\",\"needs_review\":true,\"review_reason\":\"groq was unavailable; verify and expand this suggestion.\",\"title\":\"D4 Governance and Accountability\",\"suggestion_item_id\":576},{\"action_count\":3,\"body_text\":\"- The Dimension Coordinator will review Leadership evidence (indicator 3.4) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 3.2) before the next monthly meeting.\\n- The assigned team will record progress (indicator 3.1) and report to the School Head at the end of each quarter.\",\"confidence_level\":\"High Confidence\",\"confidence_pct\":100,\"dimension_id\":27,\"dimension_name\":\"Leadership\",\"dimension_no\":3,\"factors\":[\"Dimension response coverage: 100.0% (4 of 4 active indicators)\",\"Dimension indicators with responses: 4 of 4 (100.0%)\",\"Responses behind dimension indicators: 20 total (5.0 per rated indicator; response-depth score capped at 5 per indicator)\"],\"indicator_codes\":[\"3.1\",\"3.2\",\"3.4\"],\"insufficient_data\":false,\"model_version\":\"rule_based_local_fallback\",\"needs_review\":true,\"review_reason\":\"groq was unavailable; verify and expand this suggestion.\",\"title\":\"D3 Leadership\",\"suggestion_item_id\":577},{\"action_count\":3,\"body_text\":\"- The Dimension Coordinator will review Human Resource and Team Development evidence (indicator 5.4) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 5.2) before the next monthly meeting.\\n- The assigned team will record progress (indicator 5.6) and report to the School Head at the end of each quarter.\",\"confidence_level\":\"Moderate Confidence\",\"confidence_pct\":73.3,\"dimension_id\":29,\"dimension_name\":\"Human Resource and Team Development\",\"dimension_no\":5,\"factors\":[\"Dimension response coverage: 100.0% (7 of 7 active indicators)\",\"Dimension indicators with responses: 7 of 7 (100.0%)\",\"Responses behind dimension indicators: 7 total (1.0 per rated indicator; response-depth score capped at 5 per indicator)\"],\"indicator_codes\":[\"5.2\",\"5.4\",\"5.6\"],\"insufficient_data\":false,\"model_version\":\"rule_based_local_fallback\",\"needs_review\":true,\"review_reason\":\"groq was unavailable; verify and expand this suggestion.\",\"title\":\"D5 Human Resource and Team Development\",\"suggestion_item_id\":578}],\"suggestion_ranking\":{\"active\":false,\"demo_data\":false,\"model_source\":\"rule_fallback\",\"reason\":\"No validated CatBoost suggestion ranker is saved.\"}}', '2026-11-05');
 
 -- --------------------------------------------------------
 
@@ -1555,7 +1755,7 @@ CREATE TABLE `doc_import_usage` (
 --
 
 INSERT INTO `doc_import_usage` (`user_id`, `usage_count`, `reset_date`) VALUES
-(46, 3, '2026-10-11');
+(46, 7, '2026-11-02');
 
 -- --------------------------------------------------------
 
@@ -1581,8 +1781,7 @@ INSERT INTO `email_logs` (`log_id`, `user_id`, `email_type`, `recipient_email`, 
 (1, 37, 'assessment_returned', 'schoolhead@gmail.com', 'sent', NULL, '2026-10-11 05:42:53'),
 (2, 37, 'assessment_returned', 'schoolhead@gmail.com', 'sent', NULL, '2026-10-11 05:44:23'),
 (3, 37, 'assessment_returned', 'schoolhead@gmail.com', 'sent', NULL, '2026-10-11 11:41:09'),
-(4, 37, 'assessment_returned', 'schoolhead@gmail.com', 'sent', NULL, '2026-10-11 14:32:49'),
-(5, 85, 'password_reset', 'dozenjames54@gmail.com', 'sent', NULL, '2026-10-18 07:35:51');
+(4, 37, 'assessment_returned', 'schoolhead@gmail.com', 'sent', NULL, '2026-10-11 14:32:49');
 
 -- --------------------------------------------------------
 
@@ -1620,7 +1819,8 @@ INSERT INTO `evidence_audit_log` (`audit_id`, `attachment_id`, `cycle_id`, `indi
 (9, 9, 14, 185, 1, 37, 'school_head', 'upload', 'v1, category: document', '::1', '2026-10-11 13:49:22'),
 (10, 10, 16, 201, 1, 13, 'teacher', 'upload', 'v1, category: photo', '::1', '2026-10-16 16:44:40'),
 (11, 11, 18, 173, 1, 14, 'teacher', 'upload', 'v1, category: document', '::1', '2026-10-17 15:03:22'),
-(12, 12, 22, 171, 1, 37, 'school_head', 'upload', 'v1, category: photo', '::1', '2026-10-17 18:44:07');
+(12, 12, 22, 171, 1, 37, 'school_head', 'upload', 'v1, category: photo', '::1', '2026-10-17 18:44:07'),
+(13, 13, 34, 180, 1, 15, 'teacher', 'upload', 'v1, category: document', '::1', '2026-11-05 04:36:25');
 
 -- --------------------------------------------------------
 
@@ -1811,7 +2011,8 @@ INSERT INTO `improvement_plans` (`plan_id`, `school_id`, `cycle_id`, `dimension_
 (269, 1, 27, 30, 202, 'Low', '- The Finance Officer will audit the computer laboratory’s equipment usage monthly, citing indicator 6.5, and produce a maintenance schedule within 30 days.\r\n- The Facilities Manager will inspect water, electric, and internet facilities every month, referencing indicator 6.4, and report any deficiencies to the Principal within 30 days.\r\n- The School Administration will conduct a bi-monthly infrastructure inspection, citing indicator 6.1, and update the maintenance log within 30 days of each inspection.', 'Implement and monitor this recommendation with the responsible SBM team, then review the dimension score in the next assessment cycle.', NULL, NULL, NULL, NULL, 'planned', 'finalized', NULL, NULL, 46, '2026-10-18 12:52:12', NULL, 37, 37, '2026-10-18 12:51:49', 46, '2026-10-18 12:52:08', 46, '2026-10-18 12:52:12', '2026-10-18 04:50:42', '2026-10-18 04:52:12', NULL, NULL, 0),
 (270, 1, 28, 28, 189, 'Low', '- Principal to convene the PTA (indicator 4.3) for a monthly meeting, ensuring transparent communication of school plans and budgets.\r\n- Principal to develop an implementation plan for the strategic plan (indicator 4.1) and conduct a quarterly review with the SGC.\r\n- Principal to hold monthly SGC meetings (indicator 4.2) to discuss governance issues and track action items.', 'Implement and monitor this recommendation with the responsible SBM team, then review the dimension score in the next assessment cycle.', NULL, NULL, NULL, NULL, 'planned', 'finalized', NULL, NULL, 46, '2026-10-18 13:52:11', NULL, 37, 37, '2026-10-18 13:51:55', 46, '2026-10-18 13:52:08', 46, '2026-10-18 13:52:11', '2026-10-18 05:51:45', '2026-10-18 05:52:11', NULL, NULL, 0),
 (271, 1, 29, 28, 190, 'Low', '- School Head to convene a monthly meeting with the School Governance Council (SGC) to review policy implementation (4.2) and set action items, ensuring all council members submit a brief progress report within 30 days of each meeting.\r\n- Parent-Teacher Association (PTA) Chair to organize a quarterly workshop on partnership strategies (4.3), inviting parents and community leaders, and circulate a summary of agreed actions within 30 days after the workshop.\r\n- School Head to establish a bi‑monthly stakeholder collaboration forum (4.4) with local NGOs and government units, documenting partnership outcomes and sharing a brief report with the school board every month.', 'Implement and monitor this recommendation with the responsible SBM team, then review the dimension score in the next assessment cycle.', NULL, NULL, NULL, NULL, 'planned', 'finalized', NULL, NULL, 46, '2026-10-18 14:13:13', NULL, 37, 37, '2026-10-18 14:12:52', 46, '2026-10-18 14:13:10', 46, '2026-10-18 14:13:13', '2026-10-18 06:09:38', '2026-10-18 06:13:13', NULL, NULL, 0),
-(272, 1, 29, 27, 185, 'Low', '- School Head to facilitate a monthly strategic planning session (3.1) with the leadership team, setting measurable goals and assigning owners, and circulate a concise action plan within 30 days.\r\n- Leadership Team Lead to convene a bi‑weekly school‑community planning meeting (3.2) to gather community input, document action items, and share a summary with stakeholders every month.\r\n- Student Government Chair to organize a quarterly student leadership workshop (3.3) focusing on governance skills, and submit a brief reflection report to the Head within 30 days after each workshop.', 'Implement and monitor this recommendation with the responsible SBM team, then review the dimension score in the next assessment cycle.', NULL, NULL, NULL, NULL, 'planned', 'finalized', NULL, NULL, 46, '2026-10-18 14:13:13', NULL, 37, 37, '2026-10-18 14:12:52', 46, '2026-10-18 14:13:10', 46, '2026-10-18 14:13:13', '2026-10-18 06:10:52', '2026-10-18 06:13:13', NULL, NULL, 0);
+(272, 1, 29, 27, 185, 'Low', '- School Head to facilitate a monthly strategic planning session (3.1) with the leadership team, setting measurable goals and assigning owners, and circulate a concise action plan within 30 days.\r\n- Leadership Team Lead to convene a bi‑weekly school‑community planning meeting (3.2) to gather community input, document action items, and share a summary with stakeholders every month.\r\n- Student Government Chair to organize a quarterly student leadership workshop (3.3) focusing on governance skills, and submit a brief reflection report to the Head within 30 days after each workshop.', 'Implement and monitor this recommendation with the responsible SBM team, then review the dimension score in the next assessment cycle.', NULL, NULL, NULL, NULL, 'planned', 'finalized', NULL, NULL, 46, '2026-10-18 14:13:13', NULL, 37, 37, '2026-10-18 14:12:52', 46, '2026-10-18 14:13:10', 46, '2026-10-18 14:13:13', '2026-10-18 06:10:52', '2026-10-18 06:13:13', NULL, NULL, 0),
+(273, 1, 34, 28, 190, 'Medium', 'By the end of the academic year, the school will establish a fully functional School Governance Council, evidenced by holding monthly meetings, maintaining documented minutes, and ensuring active participation of all council members to strengthen governance and accountability.', 'The Dimension Coordinator will review current evidence of the School Governance Council’s functionality and identify one priority action by the end of the month. The School Head will assign an owner and set a measurable target for the SGC’s operations before the next monthly meeting. The assigned team will record progress toward the target and report results to the School Head at the end of each quarter.', 'SBM Coordinator', '2026-02-01', NULL, NULL, 'planned', 'resubmitted_to_coordinator', 'sbm_coordinator', NULL, 37, '2026-11-05 17:15:45', 'test', 37, 37, '2026-11-05 17:15:45', NULL, NULL, NULL, NULL, '2026-11-05 09:12:48', '2026-11-05 09:15:45', 576, '62.5% · −25.0 pts vs last year\nWeakest indicators: 4.2 (avg 1.6), 4.4 (avg 2.2), 4.5 (avg 2.4)\n- The Dimension Coordinator will review Governance and Accountability evidence (indicator 4.2) and set one priority action by the end of this month.\n- The School Head will assign an owner and measurable target (indicator 4.4) before the next monthly meeting.\n- The assigned team will record progress (indicator 4.5) and report to the School Head at the end of each quarter.', 0);
 
 -- --------------------------------------------------------
 
@@ -2308,7 +2509,13 @@ INSERT INTO `improvement_plan_history` (`history_id`, `plan_id`, `version_no`, `
 (425, 271, 3, 'coordinator_approved', 'submitted', 'approved', 46, NULL, '{\"plan_id\":271,\"school_id\":1,\"cycle_id\":29,\"dimension_id\":28,\"indicator_id\":190,\"priority_level\":\"Low\",\"objective\":\"- School Head to convene a monthly meeting with the School Governance Council (SGC) to review policy implementation (4.2) and set action items, ensuring all council members submit a brief progress report within 30 days of each meeting.\\r\\n- Parent-Teacher Association (PTA) Chair to organize a quarterly workshop on partnership strategies (4.3), inviting parents and community leaders, and circulate a summary of agreed actions within 30 days after the workshop.\\r\\n- School Head to establish a bi‑monthly stakeholder collaboration forum (4.4) with local NGOs and government units, documenting partnership outcomes and sharing a brief report with the school board every month.\",\"strategy\":\"Implement and monitor this recommendation with the responsible SBM team, then review the dimension score in the next assessment cycle.\",\"person_responsible\":null,\"target_date\":null,\"resources_needed\":null,\"expected_output\":null,\"status\":\"planned\",\"workflow_status\":\"approved\",\"current_owner_role\":\"sbm_coordinator\",\"current_owner_user_id\":null,\"last_action_by\":46,\"last_action_at\":\"2026-10-18 14:13:10\",\"remarks\":null,\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-10-18 14:12:52\",\"approved_by\":46,\"approved_at\":\"2026-10-18 14:13:10\",\"validated_by\":null,\"validated_at\":null,\"created_at\":\"2026-10-18 14:09:38\",\"updated_at\":\"2026-10-18 14:13:10\",\"suggestion_item_id\":null,\"suggestion_baseline_text\":null,\"is_sample\":0}', '2026-10-18 06:13:10'),
 (426, 272, 3, 'coordinator_approved', 'submitted', 'approved', 46, NULL, '{\"plan_id\":272,\"school_id\":1,\"cycle_id\":29,\"dimension_id\":27,\"indicator_id\":185,\"priority_level\":\"Low\",\"objective\":\"- School Head to facilitate a monthly strategic planning session (3.1) with the leadership team, setting measurable goals and assigning owners, and circulate a concise action plan within 30 days.\\r\\n- Leadership Team Lead to convene a bi‑weekly school‑community planning meeting (3.2) to gather community input, document action items, and share a summary with stakeholders every month.\\r\\n- Student Government Chair to organize a quarterly student leadership workshop (3.3) focusing on governance skills, and submit a brief reflection report to the Head within 30 days after each workshop.\",\"strategy\":\"Implement and monitor this recommendation with the responsible SBM team, then review the dimension score in the next assessment cycle.\",\"person_responsible\":null,\"target_date\":null,\"resources_needed\":null,\"expected_output\":null,\"status\":\"planned\",\"workflow_status\":\"approved\",\"current_owner_role\":\"sbm_coordinator\",\"current_owner_user_id\":null,\"last_action_by\":46,\"last_action_at\":\"2026-10-18 14:13:10\",\"remarks\":null,\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-10-18 14:12:52\",\"approved_by\":46,\"approved_at\":\"2026-10-18 14:13:10\",\"validated_by\":null,\"validated_at\":null,\"created_at\":\"2026-10-18 14:10:52\",\"updated_at\":\"2026-10-18 14:13:10\",\"suggestion_item_id\":null,\"suggestion_baseline_text\":null,\"is_sample\":0}', '2026-10-18 06:13:10'),
 (427, 271, 4, 'coordinator_validated', 'approved', 'finalized', 46, NULL, '{\"plan_id\":271,\"school_id\":1,\"cycle_id\":29,\"dimension_id\":28,\"indicator_id\":190,\"priority_level\":\"Low\",\"objective\":\"- School Head to convene a monthly meeting with the School Governance Council (SGC) to review policy implementation (4.2) and set action items, ensuring all council members submit a brief progress report within 30 days of each meeting.\\r\\n- Parent-Teacher Association (PTA) Chair to organize a quarterly workshop on partnership strategies (4.3), inviting parents and community leaders, and circulate a summary of agreed actions within 30 days after the workshop.\\r\\n- School Head to establish a bi‑monthly stakeholder collaboration forum (4.4) with local NGOs and government units, documenting partnership outcomes and sharing a brief report with the school board every month.\",\"strategy\":\"Implement and monitor this recommendation with the responsible SBM team, then review the dimension score in the next assessment cycle.\",\"person_responsible\":null,\"target_date\":null,\"resources_needed\":null,\"expected_output\":null,\"status\":\"planned\",\"workflow_status\":\"finalized\",\"current_owner_role\":null,\"current_owner_user_id\":null,\"last_action_by\":46,\"last_action_at\":\"2026-10-18 14:13:13\",\"remarks\":null,\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-10-18 14:12:52\",\"approved_by\":46,\"approved_at\":\"2026-10-18 14:13:10\",\"validated_by\":46,\"validated_at\":\"2026-10-18 14:13:13\",\"created_at\":\"2026-10-18 14:09:38\",\"updated_at\":\"2026-10-18 14:13:13\",\"suggestion_item_id\":null,\"suggestion_baseline_text\":null,\"is_sample\":0}', '2026-10-18 06:13:13'),
-(428, 272, 4, 'coordinator_validated', 'approved', 'finalized', 46, NULL, '{\"plan_id\":272,\"school_id\":1,\"cycle_id\":29,\"dimension_id\":27,\"indicator_id\":185,\"priority_level\":\"Low\",\"objective\":\"- School Head to facilitate a monthly strategic planning session (3.1) with the leadership team, setting measurable goals and assigning owners, and circulate a concise action plan within 30 days.\\r\\n- Leadership Team Lead to convene a bi‑weekly school‑community planning meeting (3.2) to gather community input, document action items, and share a summary with stakeholders every month.\\r\\n- Student Government Chair to organize a quarterly student leadership workshop (3.3) focusing on governance skills, and submit a brief reflection report to the Head within 30 days after each workshop.\",\"strategy\":\"Implement and monitor this recommendation with the responsible SBM team, then review the dimension score in the next assessment cycle.\",\"person_responsible\":null,\"target_date\":null,\"resources_needed\":null,\"expected_output\":null,\"status\":\"planned\",\"workflow_status\":\"finalized\",\"current_owner_role\":null,\"current_owner_user_id\":null,\"last_action_by\":46,\"last_action_at\":\"2026-10-18 14:13:13\",\"remarks\":null,\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-10-18 14:12:52\",\"approved_by\":46,\"approved_at\":\"2026-10-18 14:13:10\",\"validated_by\":46,\"validated_at\":\"2026-10-18 14:13:13\",\"created_at\":\"2026-10-18 14:10:52\",\"updated_at\":\"2026-10-18 14:13:13\",\"suggestion_item_id\":null,\"suggestion_baseline_text\":null,\"is_sample\":0}', '2026-10-18 06:13:13');
+(428, 272, 4, 'coordinator_validated', 'approved', 'finalized', 46, NULL, '{\"plan_id\":272,\"school_id\":1,\"cycle_id\":29,\"dimension_id\":27,\"indicator_id\":185,\"priority_level\":\"Low\",\"objective\":\"- School Head to facilitate a monthly strategic planning session (3.1) with the leadership team, setting measurable goals and assigning owners, and circulate a concise action plan within 30 days.\\r\\n- Leadership Team Lead to convene a bi‑weekly school‑community planning meeting (3.2) to gather community input, document action items, and share a summary with stakeholders every month.\\r\\n- Student Government Chair to organize a quarterly student leadership workshop (3.3) focusing on governance skills, and submit a brief reflection report to the Head within 30 days after each workshop.\",\"strategy\":\"Implement and monitor this recommendation with the responsible SBM team, then review the dimension score in the next assessment cycle.\",\"person_responsible\":null,\"target_date\":null,\"resources_needed\":null,\"expected_output\":null,\"status\":\"planned\",\"workflow_status\":\"finalized\",\"current_owner_role\":null,\"current_owner_user_id\":null,\"last_action_by\":46,\"last_action_at\":\"2026-10-18 14:13:13\",\"remarks\":null,\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-10-18 14:12:52\",\"approved_by\":46,\"approved_at\":\"2026-10-18 14:13:10\",\"validated_by\":46,\"validated_at\":\"2026-10-18 14:13:13\",\"created_at\":\"2026-10-18 14:10:52\",\"updated_at\":\"2026-10-18 14:13:13\",\"suggestion_item_id\":null,\"suggestion_baseline_text\":null,\"is_sample\":0}', '2026-10-18 06:13:13'),
+(429, 273, 1, 'created', NULL, 'draft', 37, NULL, '{\"plan_id\":273,\"school_id\":1,\"cycle_id\":34,\"dimension_id\":28,\"indicator_id\":190,\"priority_level\":\"Medium\",\"objective\":\"By the end of the academic year, the school will establish a fully functional School Governance Council, evidenced by holding monthly meetings, maintaining documented minutes, and ensuring active participation of all council members to strengthen governance and accountability.\",\"strategy\":\"The Dimension Coordinator will review current evidence of the School Governance Council’s functionality and identify one priority action by the end of the month. The School Head will assign an owner and set a measurable target for the SGC’s operations before the next monthly meeting. The assigned team will record progress toward the target and report results to the School Head at the end of each quarter.\",\"person_responsible\":\"SBM Coordinator\",\"target_date\":null,\"resources_needed\":null,\"expected_output\":null,\"status\":\"planned\",\"workflow_status\":\"draft\",\"current_owner_role\":\"school_head\",\"current_owner_user_id\":37,\"last_action_by\":37,\"last_action_at\":\"2026-11-05 17:12:48\",\"remarks\":null,\"created_by\":37,\"submitted_by\":null,\"submitted_at\":null,\"approved_by\":null,\"approved_at\":null,\"validated_by\":null,\"validated_at\":null,\"created_at\":\"2026-11-05 17:12:48\",\"updated_at\":\"2026-11-05 17:12:48\",\"suggestion_item_id\":576,\"suggestion_baseline_text\":\"62.5% · −25.0 pts vs last year\\nWeakest indicators: 4.2 (avg 1.6), 4.4 (avg 2.2), 4.5 (avg 2.4)\\n- The Dimension Coordinator will review Governance and Accountability evidence (indicator 4.2) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 4.4) before the next monthly meeting.\\n- The assigned team will record progress (indicator 4.5) and report to the School Head at the end of each quarter.\",\"is_sample\":0}', '2026-11-05 09:12:48'),
+(430, 273, 2, 'school_head_submitted', 'draft', 'submitted', 37, NULL, '{\"plan_id\":273,\"school_id\":1,\"cycle_id\":34,\"dimension_id\":28,\"indicator_id\":190,\"priority_level\":\"Medium\",\"objective\":\"By the end of the academic year, the school will establish a fully functional School Governance Council, evidenced by holding monthly meetings, maintaining documented minutes, and ensuring active participation of all council members to strengthen governance and accountability.\",\"strategy\":\"The Dimension Coordinator will review current evidence of the School Governance Council’s functionality and identify one priority action by the end of the month. The School Head will assign an owner and set a measurable target for the SGC’s operations before the next monthly meeting. The assigned team will record progress toward the target and report results to the School Head at the end of each quarter.\",\"person_responsible\":\"SBM Coordinator\",\"target_date\":null,\"resources_needed\":null,\"expected_output\":null,\"status\":\"planned\",\"workflow_status\":\"submitted\",\"current_owner_role\":\"sbm_coordinator\",\"current_owner_user_id\":null,\"last_action_by\":37,\"last_action_at\":\"2026-11-05 17:12:58\",\"remarks\":null,\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-11-05 17:12:58\",\"approved_by\":null,\"approved_at\":null,\"validated_by\":null,\"validated_at\":null,\"created_at\":\"2026-11-05 17:12:48\",\"updated_at\":\"2026-11-05 17:12:58\",\"suggestion_item_id\":576,\"suggestion_baseline_text\":\"62.5% · −25.0 pts vs last year\\nWeakest indicators: 4.2 (avg 1.6), 4.4 (avg 2.2), 4.5 (avg 2.4)\\n- The Dimension Coordinator will review Governance and Accountability evidence (indicator 4.2) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 4.4) before the next monthly meeting.\\n- The assigned team will record progress (indicator 4.5) and report to the School Head at the end of each quarter.\",\"is_sample\":0}', '2026-11-05 09:12:58'),
+(431, 273, 3, 'coordinator_returned', 'submitted', 'returned_to_school_head', 46, 'test', '{\"plan_id\":273,\"school_id\":1,\"cycle_id\":34,\"dimension_id\":28,\"indicator_id\":190,\"priority_level\":\"Medium\",\"objective\":\"By the end of the academic year, the school will establish a fully functional School Governance Council, evidenced by holding monthly meetings, maintaining documented minutes, and ensuring active participation of all council members to strengthen governance and accountability.\",\"strategy\":\"The Dimension Coordinator will review current evidence of the School Governance Council’s functionality and identify one priority action by the end of the month. The School Head will assign an owner and set a measurable target for the SGC’s operations before the next monthly meeting. The assigned team will record progress toward the target and report results to the School Head at the end of each quarter.\",\"person_responsible\":\"SBM Coordinator\",\"target_date\":null,\"resources_needed\":null,\"expected_output\":null,\"status\":\"planned\",\"workflow_status\":\"returned_to_school_head\",\"current_owner_role\":\"school_head\",\"current_owner_user_id\":null,\"last_action_by\":46,\"last_action_at\":\"2026-11-05 17:15:05\",\"remarks\":\"test\",\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-11-05 17:12:58\",\"approved_by\":null,\"approved_at\":null,\"validated_by\":null,\"validated_at\":null,\"created_at\":\"2026-11-05 17:12:48\",\"updated_at\":\"2026-11-05 17:15:05\",\"suggestion_item_id\":576,\"suggestion_baseline_text\":\"62.5% · −25.0 pts vs last year\\nWeakest indicators: 4.2 (avg 1.6), 4.4 (avg 2.2), 4.5 (avg 2.4)\\n- The Dimension Coordinator will review Governance and Accountability evidence (indicator 4.2) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 4.4) before the next monthly meeting.\\n- The assigned team will record progress (indicator 4.5) and report to the School Head at the end of each quarter.\",\"is_sample\":0}', '2026-11-05 09:15:05'),
+(432, 273, 4, 'school_head_revision', 'returned_to_school_head', 'returned_to_school_head', 37, NULL, '{\"plan_id\":273,\"school_id\":1,\"cycle_id\":34,\"dimension_id\":28,\"indicator_id\":190,\"priority_level\":\"Medium\",\"objective\":\"By the end of the academic year, the school will establish a fully functional School Governance Council, evidenced by holding monthly meetings, maintaining documented minutes, and ensuring active participation of all council members to strengthen governance and accountability.\",\"strategy\":\"The Dimension Coordinator will review current evidence of the School Governance Council’s functionality and identify one priority action by the end of the month. The School Head will assign an owner and set a measurable target for the SGC’s operations before the next monthly meeting. The assigned team will record progress toward the target and report results to the School Head at the end of each quarter.\",\"person_responsible\":\"SBM Coordinator\",\"target_date\":\"2026-02-01\",\"resources_needed\":null,\"expected_output\":null,\"status\":\"planned\",\"workflow_status\":\"returned_to_school_head\",\"current_owner_role\":\"school_head\",\"current_owner_user_id\":null,\"last_action_by\":37,\"last_action_at\":\"2026-11-05 17:15:41\",\"remarks\":\"test\",\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-11-05 17:12:58\",\"approved_by\":null,\"approved_at\":null,\"validated_by\":null,\"validated_at\":null,\"created_at\":\"2026-11-05 17:12:48\",\"updated_at\":\"2026-11-05 17:15:41\",\"suggestion_item_id\":576,\"suggestion_baseline_text\":\"62.5% · −25.0 pts vs last year\\nWeakest indicators: 4.2 (avg 1.6), 4.4 (avg 2.2), 4.5 (avg 2.4)\\n- The Dimension Coordinator will review Governance and Accountability evidence (indicator 4.2) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 4.4) before the next monthly meeting.\\n- The assigned team will record progress (indicator 4.5) and report to the School Head at the end of each quarter.\",\"is_sample\":0}', '2026-11-05 09:15:41');
+INSERT INTO `improvement_plan_history` (`history_id`, `plan_id`, `version_no`, `action`, `from_status`, `to_status`, `actor_id`, `remarks`, `snapshot_json`, `created_at`) VALUES
+(433, 273, 5, 'school_head_resubmitted', 'returned_to_school_head', 'resubmitted_to_coordinator', 37, NULL, '{\"plan_id\":273,\"school_id\":1,\"cycle_id\":34,\"dimension_id\":28,\"indicator_id\":190,\"priority_level\":\"Medium\",\"objective\":\"By the end of the academic year, the school will establish a fully functional School Governance Council, evidenced by holding monthly meetings, maintaining documented minutes, and ensuring active participation of all council members to strengthen governance and accountability.\",\"strategy\":\"The Dimension Coordinator will review current evidence of the School Governance Council’s functionality and identify one priority action by the end of the month. The School Head will assign an owner and set a measurable target for the SGC’s operations before the next monthly meeting. The assigned team will record progress toward the target and report results to the School Head at the end of each quarter.\",\"person_responsible\":\"SBM Coordinator\",\"target_date\":\"2026-02-01\",\"resources_needed\":null,\"expected_output\":null,\"status\":\"planned\",\"workflow_status\":\"resubmitted_to_coordinator\",\"current_owner_role\":\"sbm_coordinator\",\"current_owner_user_id\":null,\"last_action_by\":37,\"last_action_at\":\"2026-11-05 17:15:45\",\"remarks\":\"test\",\"created_by\":37,\"submitted_by\":37,\"submitted_at\":\"2026-11-05 17:15:45\",\"approved_by\":null,\"approved_at\":null,\"validated_by\":null,\"validated_at\":null,\"created_at\":\"2026-11-05 17:12:48\",\"updated_at\":\"2026-11-05 17:15:45\",\"suggestion_item_id\":576,\"suggestion_baseline_text\":\"62.5% · −25.0 pts vs last year\\nWeakest indicators: 4.2 (avg 1.6), 4.4 (avg 2.2), 4.5 (avg 2.4)\\n- The Dimension Coordinator will review Governance and Accountability evidence (indicator 4.2) and set one priority action by the end of this month.\\n- The School Head will assign an owner and measurable target (indicator 4.4) before the next monthly meeting.\\n- The assigned team will record progress (indicator 4.5) and report to the School Head at the end of each quarter.\",\"is_sample\":0}', '2026-11-05 09:15:45');
 
 -- --------------------------------------------------------
 
@@ -2483,7 +2690,8 @@ INSERT INTO `improvement_plan_indicators` (`plan_id`, `indicator_id`) VALUES
 (271, 192),
 (272, 185),
 (272, 186),
-(272, 187);
+(272, 187),
+(273, 190);
 
 -- --------------------------------------------------------
 
@@ -2517,8 +2725,8 @@ CREATE TABLE `ip_field_usage` (
 --
 
 INSERT INTO `ip_field_usage` (`user_id`, `field_type`, `usage_count`, `reset_date`) VALUES
-(37, 'objective', 2, '2026-10-17'),
-(37, 'strategy', 2, '2026-10-17');
+(37, 'objective', 1, '2026-11-05'),
+(37, 'strategy', 1, '2026-11-05');
 
 -- --------------------------------------------------------
 
@@ -2611,13 +2819,6 @@ CREATE TABLE `password_setup_tokens` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `password_setup_tokens`
---
-
-INSERT INTO `password_setup_tokens` (`token_id`, `user_id`, `token`, `type`, `expires_at`, `used_at`, `created_at`) VALUES
-(1, 85, '5c826b125ad8372fc12d9a4eaf67f56a56e58508136c5be81b4c5eedbc5e87d2', 'reset', '2026-10-18 16:05:47', NULL, '2026-10-18 07:35:47');
-
 -- --------------------------------------------------------
 
 --
@@ -2686,7 +2887,8 @@ INSERT INTO `response_attachments` (`attachment_id`, `version`, `parent_attachme
 (9, 1, NULL, 14, 185, 1, 37, 'school_head', 'document', 1, 'BSIS-CourseModules-GEC2000-SIGNED.pdf', 'acbe1afb97275db7d5a457e1ef93179f.pdf', 2159469, 'application/pdf', '2026-10-11 21:49:22', NULL, NULL, NULL),
 (10, 1, NULL, 16, 201, 1, 13, 'teacher', 'photo', 1, 'Agos Farmer Support Associate Hiring Flyer.png', '85812fe1e38ea7db74d6afcdffe9870a.png', 1878828, 'image/png', '2026-10-17 00:44:40', NULL, NULL, NULL),
 (11, 1, NULL, 18, 173, 1, 14, 'teacher', 'document', 1, 'CAPSTONE1-PROPOSAL-DEFENSE-RUBRICS-NEW-FORMAT.pdf', 'e5358b4be95a8116160a5954af019ed1.pdf', 267008, 'application/pdf', '2026-10-17 23:03:22', NULL, NULL, NULL),
-(12, 1, NULL, 22, 171, 1, 37, 'school_head', 'photo', 1, 'Introduction to Cybersecurity (Badge).png', '90d2f8de664b8cb03afde2c7855a8772.png', 42164, 'image/png', '2026-10-18 02:44:07', NULL, NULL, NULL);
+(12, 1, NULL, 22, 171, 1, 37, 'school_head', 'photo', 1, 'Introduction to Cybersecurity (Badge).png', '90d2f8de664b8cb03afde2c7855a8772.png', 42164, 'image/png', '2026-10-18 02:44:07', NULL, NULL, NULL),
+(13, 1, NULL, 34, 180, 1, 15, 'teacher', 'document', 1, 'DO 083 s2012.docx', '50097dac5a2f3f2d2f845175ff4370df.docx', 10397, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '2026-11-05 12:36:25', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -2777,7 +2979,7 @@ INSERT INTO `sbm_cycles` (`cycle_id`, `sy_id`, `school_id`, `status`, `overall_s
 (27, 26, 1, 'finalized', 91.37, 'Advanced (Accredited', '2026-10-18 12:35:20', '2026-10-18 12:46:58', '2026-10-18 12:47:12', 46, '', 0, NULL, NULL, '2026-10-18 12:47:12', NULL, NULL, NULL, '2026-10-18 04:35:20', NULL, NULL, NULL, NULL),
 (28, 27, 1, 'finalized', 93.39, 'Advanced (Accredited', '2026-10-18 13:01:48', '2026-10-18 13:48:59', '2026-10-18 13:49:09', 46, '', 0, NULL, NULL, '2026-10-18 13:49:09', NULL, NULL, NULL, '2026-10-18 05:01:48', NULL, NULL, NULL, NULL),
 (29, 28, 1, 'finalized', 93.81, 'Advanced (Accredited', '2026-10-18 13:53:46', '2026-10-18 14:08:25', '2026-10-18 14:08:37', 46, '', 0, NULL, NULL, '2026-10-18 14:08:37', NULL, NULL, NULL, '2026-10-18 05:53:46', NULL, NULL, NULL, NULL),
-(30, 29, 1, 'submitted', 90.71, 'Advanced (Accredited', '2026-10-18 21:25:00', '2026-10-20 07:11:53', NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-10-18 06:18:38', NULL, NULL, NULL, NULL);
+(34, 29, 1, 'submitted', 63.99, 'Advanced (Accredited', '2026-11-05 12:34:38', '2026-11-05 13:07:57', NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-11-05 04:34:19', NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -2830,7 +3032,23 @@ INSERT INTO `sbm_dimensions` (`dimension_id`, `dimension_no`, `dimension_name`, 
 (27, 3, 'Leadership', 'The school develops a strategic plan.', '#7C3AED', 'layers', 4, 5),
 (28, 4, 'Governance and Accountability', 'The school\'s strategic plan is operationalized through an implementation plan.', '#D97706', 'layers', 6, 5),
 (29, 5, 'Human Resource and Team Development', 'School personnel achieve an average rating of very satisfactory in the individual performance commitment and review.', '#DC2626', 'layers', 7, 5),
-(30, 6, 'Finance and Resource Management and Mobilization', 'The school inspects its infrastructure and facilities.', '#0D9488', 'layers', 7, 5);
+(30, 6, 'Finance and Resource Management and Mobilization', 'The school inspects its infrastructure and facilities.', '#0D9488', 'layers', 7, 5),
+(31, 1, 'Leadership and Governance', 'The school has a Development Plan (e.g. School Improvement Plan) collaboratively developed by school and community stakeholders.', '#2563EB', 'layers', 5, 6),
+(32, 2, 'Curriculum and Learning', 'The curriculum provides for the development needs of all types of learners in the school community.', '#16A34A', 'layers', 7, 6),
+(33, 3, 'Accountability and Continuous Improvement', 'Roles and responsibilities of the accountable person/s and collective body/ies are clearly defined and agreed upon by the school community.', '#7C3AED', 'layers', 5, 6),
+(34, 4, 'Management of Resources', 'Regular resource inventory is undertaken collaboratively by learning stakeholders and used as basis for resource allocation and mobilization.', '#D97706', 'layers', 5, 6),
+(35, 1, 'Leadership and Governance', 'The school has a Development Plan (e.g. School Improvement Plan) collaboratively developed by school and community stakeholders.', '#2563EB', 'layers', 5, 7),
+(36, 2, 'Curriculum and Learning', 'The curriculum provides for the development needs of all types of learners in the school community.', '#16A34A', 'layers', 7, 7),
+(37, 3, 'Accountability and Continuous Improvement', 'Roles and responsibilities of the accountable person/s and collective body/ies are clearly defined and agreed upon by the school community.', '#7C3AED', 'layers', 5, 7),
+(38, 4, 'Management of Resources', 'Regular resource inventory is undertaken collaboratively by learning stakeholders and used as basis for resource allocation and mobilization.', '#D97706', 'layers', 5, 7),
+(39, 1, 'Leadership and Governance', 'The school has a Development Plan (e.g. School Improvement Plan) collaboratively developed by school and community stakeholders.', '#2563EB', 'layers', 5, 8),
+(40, 2, 'Curriculum and Learning', 'The curriculum provides for the development needs of all types of learners in the school community.', '#16A34A', 'layers', 7, 8),
+(41, 3, 'Accountability and Continuous Improvement', 'Roles and responsibilities of the accountable person/s and collective body/ies are clearly defined and agreed upon by the school community.', '#7C3AED', 'layers', 5, 8),
+(42, 4, 'Management of Resources', 'Regular resource inventory is undertaken collaboratively by learning stakeholders and used as basis for resource allocation and mobilization.', '#D97706', 'layers', 5, 8),
+(43, 1, 'Leadership and Governance', 'The school has a Development Plan (e.g. School Improvement Plan) collaboratively developed by school and community stakeholders.', '#2563EB', 'layers', 5, 9),
+(44, 2, 'Curriculum and Learning', 'The curriculum provides for the development needs of all types of learners in the school community.', '#16A34A', 'layers', 7, 9),
+(45, 3, 'Accountability and Continuous Improvement', 'Roles and responsibilities of the accountable person/s and collective body/ies are clearly defined and agreed upon by the school community.', '#7C3AED', 'layers', 5, 9),
+(46, 4, 'Management of Resources', 'Regular resource inventory is undertaken collaboratively by learning stakeholders and used as basis for resource allocation and mobilization.', '#D97706', 'layers', 5, 9);
 
 -- --------------------------------------------------------
 
@@ -2998,12 +3216,12 @@ INSERT INTO `sbm_dimension_scores` (`score_id`, `cycle_id`, `school_id`, `dimens
 (1329, 29, 1, 28, 21.00, 24.00, 87.50, '2026-10-18 06:08:25'),
 (1330, 29, 1, 29, 25.30, 28.00, 90.36, '2026-10-18 06:08:25'),
 (1331, 29, 1, 30, 28.00, 28.00, 100.00, '2026-10-18 06:08:25'),
-(1381, 30, 1, 25, 27.30, 32.00, 85.31, '2026-10-20 00:19:40'),
-(1382, 30, 1, 26, 38.40, 40.00, 96.00, '2026-10-20 00:19:40'),
-(1383, 30, 1, 27, 12.90, 16.00, 80.63, '2026-10-20 00:19:40'),
-(1384, 30, 1, 28, 21.00, 24.00, 87.50, '2026-10-20 00:19:40'),
-(1385, 30, 1, 29, 24.80, 28.00, 88.57, '2026-10-20 00:19:40'),
-(1386, 30, 1, 30, 28.00, 28.00, 100.00, '2026-10-20 00:19:40');
+(1488, 34, 1, 25, 19.50, 32.00, 60.94, '2026-11-05 05:07:57'),
+(1489, 34, 1, 26, 25.88, 40.00, 64.70, '2026-11-05 05:07:57'),
+(1490, 34, 1, 27, 11.13, 16.00, 69.56, '2026-11-05 05:07:57'),
+(1491, 34, 1, 28, 15.00, 24.00, 62.50, '2026-11-05 05:07:57'),
+(1492, 34, 1, 29, 19.00, 28.00, 67.86, '2026-11-05 05:07:57'),
+(1493, 34, 1, 30, 17.00, 28.00, 60.71, '2026-11-05 05:07:57');
 
 -- --------------------------------------------------------
 
@@ -3236,7 +3454,96 @@ INSERT INTO `sbm_indicators` (`indicator_id`, `dimension_id`, `indicator_code`, 
 (205, 30, '6.4', 'The school has functional water, electric, and internet facilities.', NULL, 'Utility inspection records, service/maintenance reports, and facility functionality checklists.', 4, 'SH_TEACHER', 1, 5),
 (206, 30, '6.5', 'The school has a functional computer laboratory/classroom.', NULL, 'Computer inventory, laboratory schedules, maintenance records, and usage logs.', 5, 'SH_TEACHER', 1, 5),
 (207, 30, '6.6', 'The school achieves a 75–100% utilization rate of its Maintenance and Other Operating Expenses (MOOE).', NULL, 'MOOE utilization reports, financial statements, obligation/disbursement records, and supporting documents.', 6, 'SH_TEACHER', 1, 5),
-(208, 30, '6.7', 'The school liquidates 100% of its utilized MOOE.', NULL, 'Liquidation reports, receipts and supporting documents, and financial accountability records.', 7, 'SH_TEACHER', 1, 5);
+(208, 30, '6.7', 'The school liquidates 100% of its utilized MOOE.', NULL, 'Liquidation reports, receipts and supporting documents, and financial accountability records.', 7, 'SH_TEACHER', 1, 5),
+(209, 31, '1.1', 'The school has a Development Plan (e.g. School Improvement Plan) collaboratively developed by school and community stakeholders.', NULL, 'School Improvement Plan (SIP), minutes of planning sessions, attendance sheets, and stakeholder consultation records.', 1, 'SH_TEACHER', 1, 6),
+(210, 31, '1.2', 'The development plan is regularly reviewed by the school community to keep it responsive to emerging needs, challenges, and opportunities.', NULL, 'Review reports, updated SIP versions, and minutes of review meetings.', 2, 'SH_TEACHER', 1, 6),
+(211, 31, '1.3', 'The school is organized by a clear structure and work arrangements that promote shared leadership and define the roles and responsibilities of stakeholders.', NULL, 'Organizational chart, terms of reference, and designation orders.', 3, 'SH_TEACHER', 1, 6),
+(212, 31, '1.4', 'A leadership network facilitates communication between and among school and community leaders for informed decision-making and problem-solving.', NULL, 'Communication records, minutes of joint school-community meetings, and network directory.', 4, 'SH_TEACHER', 1, 6),
+(213, 31, '1.5', 'A long-term training and development program is in operation that addresses the needs of school and community leaders.', NULL, 'Training plan, training reports, and certificates of participation.', 5, 'SH_TEACHER', 1, 6),
+(214, 32, '2.1', 'The curriculum provides for the development needs of all types of learners in the school community.', NULL, 'Learner needs assessment, learner profiles, and curriculum plans.', 1, 'SH_TEACHER', 1, 6),
+(215, 32, '2.2', 'The implemented curriculum is localized to make it more meaningful and applicable to the learners and the community.', NULL, 'Localized/contextualized lesson plans and localization guidelines.', 2, 'SH_TEACHER', 1, 6),
+(216, 32, '2.3', 'A representative team of school and community stakeholders assesses the content and methods used in teaching.', NULL, 'Assessment team composition and curriculum evaluation reports.', 3, 'SH_TEACHER', 1, 6),
+(217, 32, '2.4', 'The learning systems are regularly and collaboratively monitored by stakeholders to ensure the holistic development of learners.', NULL, 'Monitoring tools, feedback records, and monitoring reports.', 4, 'SH_TEACHER', 1, 6),
+(218, 32, '2.5', 'Appropriate assessment tools for teaching and learning are continuously reviewed and improved.', NULL, 'Assessment tools, minutes of review sessions, and test results.', 5, 'SH_TEACHER', 1, 6),
+(219, 32, '2.6', 'Learning managers and facilitators demonstrate behaviors consistent with the organization\'s vision, mission, and goals.', NULL, 'Code of conduct, classroom/school observation records.', 6, 'SH_TEACHER', 1, 6),
+(220, 32, '2.7', 'Methods and resources are learner-friendly, community-friendly, and aimed at developing self-directed learners.', NULL, 'Learning materials, self-directed learning tools, and instructional resources.', 7, 'SH_TEACHER', 1, 6),
+(221, 33, '3.1', 'Roles and responsibilities of the accountable person/s and collective body/ies are clearly defined and agreed upon by the school community.', NULL, 'Accountability framework document and designation memos.', 1, 'SH_TEACHER', 1, 6),
+(222, 33, '3.2', 'Achievement of goals is recognized based on a collaboratively developed performance accountability system.', NULL, 'Performance accountability reports and recognition records.', 2, 'SH_TEACHER', 1, 6),
+(223, 33, '3.3', 'The accountability system is owned by the community and continuously enhanced to respond to emerging needs.', NULL, 'Community feedback records and system enhancement documentation.', 3, 'SH_TEACHER', 1, 6),
+(224, 33, '3.4', 'Accountability criteria, tools, and validation processes are developed and agreed upon collaboratively.', NULL, 'Accountability assessment tools and validation records.', 4, 'SH_TEACHER', 1, 6),
+(225, 33, '3.5', 'Participatory assessment of performance is done regularly with the participation of the community.', NULL, 'Performance assessment reports and stakeholder participation records.', 5, 'SH_TEACHER', 1, 6);
+INSERT INTO `sbm_indicators` (`indicator_id`, `dimension_id`, `indicator_code`, `indicator_text`, `short_title`, `mov_guide`, `sort_order`, `rater_role`, `is_active`, `form_version_id`) VALUES
+(226, 34, '4.1', 'Regular resource inventory is undertaken collaboratively by learning stakeholders and used as basis for resource allocation and mobilization.', NULL, 'Resource inventory reports and resource allocation records.', 1, 'SH_TEACHER', 1, 6),
+(227, 34, '4.2', 'A regular dialogue for planning and resource programming continuously engages stakeholders and supports implementation of community education plans.', NULL, 'Minutes of resource planning dialogues and community education plans.', 2, 'SH_TEACHER', 1, 6),
+(228, 34, '4.3', 'A community-developed resource management system is in place that drives judicious, appropriate, and effective use of resources.', NULL, 'Resource management system documentation and resource utilization reports.', 3, 'SH_TEACHER', 1, 6),
+(229, 34, '4.4', 'Regular monitoring, evaluation, and reporting processes of resource management are collaboratively developed and implemented.', NULL, 'Monitoring and evaluation reports, financial/resource utilization reports.', 4, 'SH_TEACHER', 1, 6),
+(230, 34, '4.5', 'A network manages partnerships and linkages which strengthen and sustain resource management.', NULL, 'Memoranda of Agreement (MOAs), partnership records, and resource mobilization reports.', 5, 'SH_TEACHER', 1, 6),
+(231, 35, '1.1', 'The school has a Development Plan (e.g. School Improvement Plan) collaboratively developed by school and community stakeholders.', NULL, 'School Improvement Plan (SIP), minutes of planning sessions, attendance sheets, and stakeholder consultation records.', 1, 'SH_TEACHER', 1, 7),
+(232, 35, '1.2', 'The development plan is regularly reviewed by the school community to keep it responsive to emerging needs, challenges, and opportunities.', NULL, 'Review reports, updated SIP versions, and minutes of review meetings.', 2, 'SH_TEACHER', 1, 7),
+(233, 35, '1.3', 'The school is organized by a clear structure and work arrangements that promote shared leadership and define the roles and responsibilities of stakeholders.', NULL, 'Organizational chart, terms of reference, and designation orders.', 3, 'SH_TEACHER', 1, 7),
+(234, 35, '1.4', 'A leadership network facilitates communication between and among school and community leaders for informed decision-making and problem-solving.', NULL, 'Communication records, minutes of joint school-community meetings, and network directory.', 4, 'SH_TEACHER', 1, 7),
+(235, 35, '1.5', 'A long-term training and development program is in operation that addresses the needs of school and community leaders.', NULL, 'Training plan, training reports, and certificates of participation.', 5, 'SH_TEACHER', 1, 7),
+(236, 36, '2.1', 'The curriculum provides for the development needs of all types of learners in the school community.', NULL, 'Learner needs assessment, learner profiles, and curriculum plans.', 1, 'SH_TEACHER', 1, 7),
+(237, 36, '2.2', 'The implemented curriculum is localized to make it more meaningful and applicable to the learners and the community.', NULL, 'Localized/contextualized lesson plans and localization guidelines.', 2, 'SH_TEACHER', 1, 7),
+(238, 36, '2.3', 'A representative team of school and community stakeholders assesses the content and methods used in teaching.', NULL, 'Assessment team composition and curriculum evaluation reports.', 3, 'SH_TEACHER', 1, 7),
+(239, 36, '2.4', 'The learning systems are regularly and collaboratively monitored by stakeholders to ensure the holistic development of learners.', NULL, 'Monitoring tools, feedback records, and monitoring reports.', 4, 'SH_TEACHER', 1, 7),
+(240, 36, '2.5', 'Appropriate assessment tools for teaching and learning are continuously reviewed and improved.', NULL, 'Assessment tools, minutes of review sessions, and test results.', 5, 'SH_TEACHER', 1, 7),
+(241, 36, '2.6', 'Learning managers and facilitators demonstrate behaviors consistent with the organization\'s vision, mission, and goals.', NULL, 'Code of conduct, classroom/school observation records.', 6, 'SH_TEACHER', 1, 7),
+(242, 36, '2.7', 'Methods and resources are learner-friendly, community-friendly, and aimed at developing self-directed learners.', NULL, 'Learning materials, self-directed learning tools, and instructional resources.', 7, 'SH_TEACHER', 1, 7),
+(243, 37, '3.1', 'Roles and responsibilities of the accountable person/s and collective body/ies are clearly defined and agreed upon by the school community.', NULL, 'Accountability framework document and designation memos.', 1, 'SH_TEACHER', 1, 7),
+(244, 37, '3.2', 'Achievement of goals is recognized based on a collaboratively developed performance accountability system.', NULL, 'Performance accountability reports and recognition records.', 2, 'SH_TEACHER', 1, 7),
+(245, 37, '3.3', 'The accountability system is owned by the community and continuously enhanced to respond to emerging needs.', NULL, 'Community feedback records and system enhancement documentation.', 3, 'SH_TEACHER', 1, 7),
+(246, 37, '3.4', 'Accountability criteria, tools, and validation processes are developed and agreed upon collaboratively.', NULL, 'Accountability assessment tools and validation records.', 4, 'SH_TEACHER', 1, 7),
+(247, 37, '3.5', 'Participatory assessment of performance is done regularly with the participation of the community.', NULL, 'Performance assessment reports and stakeholder participation records.', 5, 'SH_TEACHER', 1, 7),
+(248, 38, '4.1', 'Regular resource inventory is undertaken collaboratively by learning stakeholders and used as basis for resource allocation and mobilization.', NULL, 'Resource inventory reports and resource allocation records.', 1, 'SH_TEACHER', 1, 7),
+(249, 38, '4.2', 'A regular dialogue for planning and resource programming continuously engages stakeholders and supports implementation of community education plans.', NULL, 'Minutes of resource planning dialogues and community education plans.', 2, 'SH_TEACHER', 1, 7),
+(250, 38, '4.3', 'A community-developed resource management system is in place that drives judicious, appropriate, and effective use of resources.', NULL, 'Resource management system documentation and resource utilization reports.', 3, 'SH_TEACHER', 1, 7),
+(251, 38, '4.4', 'Regular monitoring, evaluation, and reporting processes of resource management are collaboratively developed and implemented.', NULL, 'Monitoring and evaluation reports, financial/resource utilization reports.', 4, 'SH_TEACHER', 1, 7),
+(252, 38, '4.5', 'A network manages partnerships and linkages which strengthen and sustain resource management.', NULL, 'Memoranda of Agreement (MOAs), partnership records, and resource mobilization reports.', 5, 'SH_TEACHER', 1, 7),
+(253, 39, '1.1', 'The school has a Development Plan (e.g. School Improvement Plan) collaboratively developed by school and community stakeholders.', NULL, 'School Improvement Plan (SIP), minutes of planning sessions, attendance sheets, and stakeholder consultation records.', 1, 'SH_TEACHER', 1, 8),
+(254, 39, '1.2', 'The development plan is regularly reviewed by the school community to keep it responsive to emerging needs, challenges, and opportunities.', NULL, 'Review reports, updated SIP versions, and minutes of review meetings.', 2, 'SH_TEACHER', 1, 8),
+(255, 39, '1.3', 'The school is organized by a clear structure and work arrangements that promote shared leadership and define the roles and responsibilities of stakeholders.', NULL, 'Organizational chart, terms of reference, and designation orders.', 3, 'SH_TEACHER', 1, 8),
+(256, 39, '1.4', 'A leadership network facilitates communication between and among school and community leaders for informed decision-making and problem-solving.', NULL, 'Communication records, minutes of joint school-community meetings, and network directory.', 4, 'SH_TEACHER', 1, 8),
+(257, 39, '1.5', 'A long-term training and development program is in operation that addresses the needs of school and community leaders.', NULL, 'Training plan, training reports, and certificates of participation.', 5, 'SH_TEACHER', 1, 8),
+(258, 40, '2.1', 'The curriculum provides for the development needs of all types of learners in the school community.', NULL, 'Learner needs assessment, learner profiles, and curriculum plans.', 1, 'SH_TEACHER', 1, 8),
+(259, 40, '2.2', 'The implemented curriculum is localized to make it more meaningful and applicable to the learners and the community.', NULL, 'Localized/contextualized lesson plans and localization guidelines.', 2, 'SH_TEACHER', 1, 8),
+(260, 40, '2.3', 'A representative team of school and community stakeholders assesses the content and methods used in teaching.', NULL, 'Assessment team composition and curriculum evaluation reports.', 3, 'SH_TEACHER', 1, 8),
+(261, 40, '2.4', 'The learning systems are regularly and collaboratively monitored by stakeholders to ensure the holistic development of learners.', NULL, 'Monitoring tools, feedback records, and monitoring reports.', 4, 'SH_TEACHER', 1, 8),
+(262, 40, '2.5', 'Appropriate assessment tools for teaching and learning are continuously reviewed and improved.', NULL, 'Assessment tools, minutes of review sessions, and test results.', 5, 'SH_TEACHER', 1, 8),
+(263, 40, '2.6', 'Learning managers and facilitators demonstrate behaviors consistent with the organization\'s vision, mission, and goals.', NULL, 'Code of conduct, classroom/school observation records.', 6, 'SH_TEACHER', 1, 8),
+(264, 40, '2.7', 'Methods and resources are learner-friendly, community-friendly, and aimed at developing self-directed learners.', NULL, 'Learning materials, self-directed learning tools, and instructional resources.', 7, 'SH_TEACHER', 1, 8),
+(265, 41, '3.1', 'Roles and responsibilities of the accountable person/s and collective body/ies are clearly defined and agreed upon by the school community.', NULL, 'Accountability framework document and designation memos.', 1, 'SH_TEACHER', 1, 8),
+(266, 41, '3.2', 'Achievement of goals is recognized based on a collaboratively developed performance accountability system.', NULL, 'Performance accountability reports and recognition records.', 2, 'SH_TEACHER', 1, 8),
+(267, 41, '3.3', 'The accountability system is owned by the community and continuously enhanced to respond to emerging needs.', NULL, 'Community feedback records and system enhancement documentation.', 3, 'SH_TEACHER', 1, 8),
+(268, 41, '3.4', 'Accountability criteria, tools, and validation processes are developed and agreed upon collaboratively.', NULL, 'Accountability assessment tools and validation records.', 4, 'SH_TEACHER', 1, 8),
+(269, 41, '3.5', 'Participatory assessment of performance is done regularly with the participation of the community.', NULL, 'Performance assessment reports and stakeholder participation records.', 5, 'SH_TEACHER', 1, 8),
+(270, 42, '4.1', 'Regular resource inventory is undertaken collaboratively by learning stakeholders and used as basis for resource allocation and mobilization.', NULL, 'Resource inventory reports and resource allocation records.', 1, 'SH_TEACHER', 1, 8),
+(271, 42, '4.2', 'A regular dialogue for planning and resource programming continuously engages stakeholders and supports implementation of community education plans.', NULL, 'Minutes of resource planning dialogues and community education plans.', 2, 'SH_TEACHER', 1, 8),
+(272, 42, '4.3', 'A community-developed resource management system is in place that drives judicious, appropriate, and effective use of resources.', NULL, 'Resource management system documentation and resource utilization reports.', 3, 'SH_TEACHER', 1, 8),
+(273, 42, '4.4', 'Regular monitoring, evaluation, and reporting processes of resource management are collaboratively developed and implemented.', NULL, 'Monitoring and evaluation reports, financial/resource utilization reports.', 4, 'SH_TEACHER', 1, 8),
+(274, 42, '4.5', 'A network manages partnerships and linkages which strengthen and sustain resource management.', NULL, 'Memoranda of Agreement (MOAs), partnership records, and resource mobilization reports.', 5, 'SH_TEACHER', 1, 8),
+(275, 43, '1.1', 'The school has a Development Plan (e.g. School Improvement Plan) collaboratively developed by school and community stakeholders.', NULL, 'School Improvement Plan (SIP), minutes of planning sessions, attendance sheets, and stakeholder consultation records.', 1, 'SH_TEACHER', 1, 9),
+(276, 43, '1.2', 'The development plan is regularly reviewed by the school community to keep it responsive to emerging needs, challenges, and opportunities.', NULL, 'Review reports, updated SIP versions, and minutes of review meetings.', 2, 'SH_TEACHER', 1, 9),
+(277, 43, '1.3', 'The school is organized by a clear structure and work arrangements that promote shared leadership and define the roles and responsibilities of stakeholders.', NULL, 'Organizational chart, terms of reference, and designation orders.', 3, 'SH_TEACHER', 1, 9),
+(278, 43, '1.4', 'A leadership network facilitates communication between and among school and community leaders for informed decision-making and problem-solving.', NULL, 'Communication records, minutes of joint school-community meetings, and network directory.', 4, 'SH_TEACHER', 1, 9),
+(279, 43, '1.5', 'A long-term training and development program is in operation that addresses the needs of school and community leaders.', NULL, 'Training plan, training reports, and certificates of participation.', 5, 'SH_TEACHER', 1, 9),
+(280, 44, '2.1', 'The curriculum provides for the development needs of all types of learners in the school community.', NULL, 'Learner needs assessment, learner profiles, and curriculum plans.', 1, 'SH_TEACHER', 1, 9),
+(281, 44, '2.2', 'The implemented curriculum is localized to make it more meaningful and applicable to the learners and the community.', NULL, 'Localized/contextualized lesson plans and localization guidelines.', 2, 'SH_TEACHER', 1, 9),
+(282, 44, '2.3', 'A representative team of school and community stakeholders assesses the content and methods used in teaching.', NULL, 'Assessment team composition and curriculum evaluation reports.', 3, 'SH_TEACHER', 1, 9),
+(283, 44, '2.4', 'The learning systems are regularly and collaboratively monitored by stakeholders to ensure the holistic development of learners.', NULL, 'Monitoring tools, feedback records, and monitoring reports.', 4, 'SH_TEACHER', 1, 9),
+(284, 44, '2.5', 'Appropriate assessment tools for teaching and learning are continuously reviewed and improved.', NULL, 'Assessment tools, minutes of review sessions, and test results.', 5, 'SH_TEACHER', 1, 9),
+(285, 44, '2.6', 'Learning managers and facilitators demonstrate behaviors consistent with the organization’s vision, mission, and goals.', NULL, 'Code of conduct, classroom/school observation records.', 6, 'SH_TEACHER', 1, 9),
+(286, 44, '2.7', 'Methods and resources are learner-friendly, community-friendly, and aimed at developing self-directed learners.', NULL, 'Learning materials, self-directed learning tools, and instructional resources.', 7, 'SH_TEACHER', 1, 9),
+(287, 45, '3.1', 'Roles and responsibilities of the accountable person/s and collective body/ies are clearly defined and agreed upon by the school community.', NULL, 'Accountability framework document and designation memos.', 1, 'SH_TEACHER', 1, 9),
+(288, 45, '3.2', 'Achievement of goals is recognized based on a collaboratively developed performance accountability system.', NULL, 'Performance accountability reports and recognition records.', 2, 'SH_TEACHER', 1, 9),
+(289, 45, '3.3', 'The accountability system is owned by the community and continuously enhanced to respond to emerging needs.', NULL, 'Community feedback records and system enhancement documentation.', 3, 'SH_TEACHER', 1, 9),
+(290, 45, '3.4', 'Accountability criteria, tools, and validation processes are developed and agreed upon collaboratively.', NULL, 'Accountability assessment tools and validation records.', 4, 'SH_TEACHER', 1, 9),
+(291, 45, '3.5', 'Participatory assessment of performance is done regularly with the participation of the community.', NULL, 'Performance assessment reports and stakeholder participation records.', 5, 'SH_TEACHER', 1, 9),
+(292, 46, '4.1', 'Regular resource inventory is undertaken collaboratively by learning stakeholders and used as basis for resource allocation and mobilization.', NULL, 'Resource inventory reports and resource allocation records.', 1, 'SH_TEACHER', 1, 9),
+(293, 46, '4.2', 'A regular dialogue for planning and resource programming continuously engages stakeholders and supports implementation of community education plans.', NULL, 'Minutes of resource planning dialogues and community education plans.', 2, 'SH_TEACHER', 1, 9),
+(294, 46, '4.3', 'A community-developed resource management system is in place that drives judicious, appropriate, and effective use of resources.', NULL, 'Resource management system documentation and resource utilization reports.', 3, 'SH_TEACHER', 1, 9),
+(295, 46, '4.4', 'Regular monitoring, evaluation, and reporting processes of resource management are collaboratively developed and implemented.', NULL, 'Monitoring and evaluation reports, financial/resource utilization reports.', 4, 'SH_TEACHER', 1, 9),
+(296, 46, '4.5', 'A network manages partnerships and linkages which strengthen and sustain resource management.', NULL, 'Memoranda of Agreement (MOAs), partnership records, and resource mobilization reports.', 5, 'SH_TEACHER', 1, 9);
 
 -- --------------------------------------------------------
 
@@ -4269,48 +4576,48 @@ INSERT INTO `sbm_responses` (`response_id`, `cycle_id`, `indicator_id`, `school_
 (1036, 29, 206, 1, 4, '', 37, '2026-10-18 06:08:19'),
 (1037, 29, 207, 1, 4, '', 37, '2026-10-18 06:08:21'),
 (1038, 29, 208, 1, 4, '', 37, '2026-10-18 06:08:22'),
-(1039, 30, 167, 1, 4, '', 37, '2026-10-19 23:10:07'),
-(1040, 30, 168, 1, 3, '', 37, '2026-10-19 23:10:08'),
-(1041, 30, 169, 1, 3, '', 37, '2026-10-19 23:10:10'),
-(1042, 30, 170, 1, 4, '', 37, '2026-10-19 23:10:11'),
-(1043, 30, 171, 1, 4, '', 37, '2026-10-19 23:10:12'),
-(1044, 30, 172, 1, 3, '', 37, '2026-10-19 23:10:14'),
-(1045, 30, 173, 1, 4, '', 37, '2026-10-19 23:10:15'),
-(1046, 30, 174, 1, 3, '', 37, '2026-10-19 23:10:16'),
-(1048, 30, 175, 1, 4, '', 37, '2026-10-19 23:10:19'),
-(1049, 30, 176, 1, 4, '', 37, '2026-10-19 23:10:21'),
-(1051, 30, 177, 1, 4, '', 37, '2026-10-19 23:10:24'),
-(1052, 30, 178, 1, 4, '', 37, '2026-10-19 23:10:25'),
-(1053, 30, 179, 1, 3, '', 37, '2026-10-19 23:10:27'),
-(1054, 30, 180, 1, 4, '', 37, '2026-10-19 23:10:28'),
-(1055, 30, 181, 1, 4, '', 37, '2026-10-19 23:10:29'),
-(1056, 30, 182, 1, 4, '', 37, '2026-10-19 23:10:30'),
-(1057, 30, 183, 1, 4, '', 37, '2026-10-19 23:10:31'),
-(1058, 30, 184, 1, 4, '', 37, '2026-10-19 23:10:33'),
-(1059, 30, 185, 1, 3, '', 37, '2026-10-19 23:10:37'),
-(1061, 30, 186, 1, 3, '', 37, '2026-10-19 23:10:38'),
-(1062, 30, 187, 1, 4, '', 37, '2026-10-19 23:10:40'),
-(1063, 30, 188, 1, 3, '', 37, '2026-10-19 23:10:41'),
-(1064, 30, 189, 1, 4, '', 37, '2026-10-19 23:10:43'),
-(1065, 30, 190, 1, 4, '', 37, '2026-10-19 23:10:46'),
-(1066, 30, 191, 1, 3, '', 37, '2026-10-19 23:10:46'),
-(1067, 30, 192, 1, 4, '', 37, '2026-10-19 23:10:48'),
-(1068, 30, 193, 1, 3, '', 37, '2026-10-19 23:10:49'),
-(1069, 30, 194, 1, 3, '', 37, '2026-10-19 23:10:50'),
-(1070, 30, 195, 1, 4, '', 37, '2026-10-19 23:10:53'),
-(1071, 30, 196, 1, 3, '', 37, '2026-10-19 23:10:55'),
-(1072, 30, 197, 1, 4, '', 37, '2026-10-19 23:10:56'),
-(1073, 30, 198, 1, 4, '', 37, '2026-10-19 23:10:57'),
-(1074, 30, 199, 1, 4, '', 37, '2026-10-19 23:10:59'),
-(1075, 30, 200, 1, 3, '', 37, '2026-10-19 23:11:01'),
-(1076, 30, 201, 1, 4, '', 37, '2026-10-19 23:11:02'),
-(1077, 30, 202, 1, 4, '', 37, '2026-10-19 23:11:04'),
-(1078, 30, 203, 1, 4, '', 37, '2026-10-19 23:11:05'),
-(1079, 30, 204, 1, 4, '', 37, '2026-10-19 23:11:06'),
-(1080, 30, 205, 1, 4, '', 37, '2026-10-19 23:11:08'),
-(1081, 30, 206, 1, 4, '', 37, '2026-10-19 23:11:09'),
-(1082, 30, 207, 1, 4, '', 37, '2026-10-19 23:11:11'),
-(1083, 30, 208, 1, 4, '', 37, '2026-10-19 23:11:12');
+(1109, 34, 169, 1, 3, '', 37, '2026-11-05 05:05:50'),
+(1110, 34, 170, 1, 2, '', 37, '2026-11-05 05:05:52'),
+(1111, 34, 171, 1, 4, '', 37, '2026-11-05 05:05:54'),
+(1112, 34, 172, 1, 1, '', 37, '2026-11-05 05:05:57'),
+(1113, 34, 173, 1, 2, '', 37, '2026-11-05 05:05:59'),
+(1114, 34, 174, 1, 3, '', 37, '2026-11-05 05:06:00'),
+(1115, 34, 175, 1, 4, '', 37, '2026-11-05 05:06:04'),
+(1116, 34, 176, 1, 2, '', 37, '2026-11-05 05:06:06'),
+(1117, 34, 177, 1, 4, '', 37, '2026-11-05 05:06:07'),
+(1118, 34, 178, 1, 1, '', 37, '2026-11-05 05:06:10'),
+(1119, 34, 179, 1, 2, '', 37, '2026-11-05 05:06:11'),
+(1120, 34, 180, 1, 4, '', 37, '2026-11-05 05:06:13'),
+(1121, 34, 181, 1, 1, '', 37, '2026-11-05 05:06:15'),
+(1122, 34, 182, 1, 3, '', 37, '2026-11-05 05:06:16'),
+(1123, 34, 183, 1, 2, '', 37, '2026-11-05 05:06:18'),
+(1124, 34, 184, 1, 3, '', 37, '2026-11-05 05:06:20'),
+(1125, 34, 185, 1, 4, '', 37, '2026-11-05 05:06:31'),
+(1126, 34, 186, 1, 2, '', 37, '2026-11-05 05:06:32'),
+(1127, 34, 187, 1, 3, '', 37, '2026-11-05 05:06:36'),
+(1128, 34, 188, 1, 2, '', 37, '2026-11-05 05:06:40'),
+(1129, 34, 167, 1, 3, '', 37, '2026-11-05 05:06:49'),
+(1130, 34, 168, 1, 2, '', 37, '2026-11-05 05:06:51'),
+(1131, 34, 189, 1, 3, '', 37, '2026-11-05 05:07:03'),
+(1132, 34, 190, 1, 2, '', 37, '2026-11-05 05:07:04'),
+(1133, 34, 191, 1, 4, '', 37, '2026-11-05 05:07:07'),
+(1134, 34, 192, 1, 2, '', 37, '2026-11-05 05:07:12'),
+(1135, 34, 193, 1, 1, '', 37, '2026-11-05 05:07:13'),
+(1136, 34, 194, 1, 3, '', 37, '2026-11-05 05:07:15'),
+(1137, 34, 195, 1, 4, '', 37, '2026-11-05 05:07:20'),
+(1138, 34, 196, 1, 2, '', 37, '2026-11-05 05:07:22'),
+(1139, 34, 197, 1, 3, '', 37, '2026-11-05 05:07:24'),
+(1140, 34, 198, 1, 1, '', 37, '2026-11-05 05:07:26'),
+(1141, 34, 199, 1, 4, '', 37, '2026-11-05 05:07:28'),
+(1142, 34, 200, 1, 2, '', 37, '2026-11-05 05:07:34'),
+(1143, 34, 201, 1, 3, '', 37, '2026-11-05 05:07:36'),
+(1144, 34, 202, 1, 1, '', 37, '2026-11-05 05:07:40'),
+(1145, 34, 203, 1, 3, '', 37, '2026-11-05 05:07:42'),
+(1146, 34, 204, 1, 2, '', 37, '2026-11-05 05:07:43'),
+(1147, 34, 205, 1, 4, '', 37, '2026-11-05 05:07:45'),
+(1148, 34, 206, 1, 2, '', 37, '2026-11-05 05:07:46'),
+(1149, 34, 207, 1, 3, '', 37, '2026-11-05 05:07:49'),
+(1150, 34, 208, 1, 2, '', 37, '2026-11-05 05:07:51');
 
 -- --------------------------------------------------------
 
@@ -4590,7 +4897,8 @@ CREATE TABLE `system_settings` (
 --
 
 INSERT INTO `system_settings` (`setting_key`, `setting_value`, `updated_at`) VALUES
-('active_school_year_override', '29', '2026-10-18 06:14:20');
+('active_school_year_override', '29', '2026-10-18 06:14:20'),
+('form_indicator_entities_decoded_v1', '1', '2026-11-02 05:39:59');
 
 -- --------------------------------------------------------
 
@@ -4612,121 +4920,121 @@ CREATE TABLE `teacher_indicator_assignments` (
 --
 
 INSERT INTO `teacher_indicator_assignments` (`assignment_id`, `cycle_id`, `teacher_id`, `indicator_code`, `assigned_by`, `created_at`) VALUES
-(43, NULL, 2, '1.1', 46, '2026-10-11 03:57:43'),
-(44, NULL, 2, '1.2', 46, '2026-10-11 03:57:44'),
-(45, NULL, 2, '1.3', 46, '2026-10-11 03:57:44'),
-(46, NULL, 2, '1.4', 46, '2026-10-11 03:57:44'),
-(47, NULL, 2, '1.5', 46, '2026-10-11 03:57:44'),
-(48, NULL, 2, '1.6', 46, '2026-10-11 03:57:44'),
-(49, NULL, 2, '1.7', 46, '2026-10-11 03:57:44'),
-(50, NULL, 2, '2.1', 46, '2026-10-11 03:57:44'),
-(51, NULL, 2, '2.2', 46, '2026-10-11 03:57:44'),
-(52, NULL, 2, '2.3', 46, '2026-10-11 03:57:44'),
-(53, NULL, 2, '2.4', 46, '2026-10-11 03:57:44'),
-(54, NULL, 2, '2.9', 46, '2026-10-11 03:57:44'),
-(55, NULL, 2, '2.10', 46, '2026-10-11 03:57:44'),
-(56, NULL, 2, '3.3', 46, '2026-10-11 03:57:44'),
-(57, NULL, 2, '5.1', 46, '2026-10-11 03:57:44'),
-(58, NULL, 2, '5.3', 46, '2026-10-11 03:57:44'),
-(59, NULL, 2, '5.4', 46, '2026-10-11 03:57:44'),
-(60, NULL, 2, '5.5', 46, '2026-10-11 03:57:44'),
-(61, NULL, 2, '5.6', 46, '2026-10-11 03:57:44'),
-(62, NULL, 2, '5.7', 46, '2026-10-11 03:57:44'),
-(63, NULL, 2, '6.3', 46, '2026-10-11 03:57:44'),
-(64, NULL, 2, '6.4', 46, '2026-10-11 03:57:44'),
-(65, NULL, 2, '6.5', 46, '2026-10-11 03:57:44'),
-(66, NULL, 12, '1.1', 46, '2026-10-11 03:57:44'),
-(67, NULL, 12, '1.2', 46, '2026-10-11 03:57:44'),
-(68, NULL, 12, '1.3', 46, '2026-10-11 03:57:44'),
-(69, NULL, 12, '1.4', 46, '2026-10-11 03:57:44'),
-(70, NULL, 12, '1.5', 46, '2026-10-11 03:57:44'),
-(71, NULL, 12, '1.6', 46, '2026-10-11 03:57:44'),
-(72, NULL, 12, '1.7', 46, '2026-10-11 03:57:44'),
-(73, NULL, 12, '2.1', 46, '2026-10-11 03:57:44'),
-(74, NULL, 12, '2.2', 46, '2026-10-11 03:57:44'),
-(75, NULL, 12, '2.3', 46, '2026-10-11 03:57:44'),
-(76, NULL, 12, '2.4', 46, '2026-10-11 03:57:44'),
-(77, NULL, 12, '2.9', 46, '2026-10-11 03:57:44'),
-(78, NULL, 12, '2.10', 46, '2026-10-11 03:57:44'),
-(79, NULL, 12, '3.3', 46, '2026-10-11 03:57:44'),
-(80, NULL, 12, '5.1', 46, '2026-10-11 03:57:44'),
-(81, NULL, 12, '5.3', 46, '2026-10-11 03:57:44'),
-(82, NULL, 12, '5.4', 46, '2026-10-11 03:57:44'),
-(83, NULL, 12, '5.5', 46, '2026-10-11 03:57:44'),
-(84, NULL, 12, '5.6', 46, '2026-10-11 03:57:44'),
-(85, NULL, 12, '5.7', 46, '2026-10-11 03:57:44'),
-(86, NULL, 12, '6.3', 46, '2026-10-11 03:57:44'),
-(87, NULL, 12, '6.4', 46, '2026-10-11 03:57:44'),
-(88, NULL, 12, '6.5', 46, '2026-10-11 03:57:44'),
-(89, NULL, 13, '1.1', 46, '2026-10-11 03:57:44'),
-(90, NULL, 13, '1.2', 46, '2026-10-11 03:57:44'),
-(91, NULL, 13, '1.3', 46, '2026-10-11 03:57:44'),
-(92, NULL, 13, '1.4', 46, '2026-10-11 03:57:44'),
-(93, NULL, 13, '1.5', 46, '2026-10-11 03:57:44'),
-(94, NULL, 13, '1.6', 46, '2026-10-11 03:57:44'),
-(95, NULL, 13, '1.7', 46, '2026-10-11 03:57:44'),
-(96, NULL, 13, '2.1', 46, '2026-10-11 03:57:44'),
-(97, NULL, 13, '2.2', 46, '2026-10-11 03:57:44'),
-(98, NULL, 13, '2.3', 46, '2026-10-11 03:57:44'),
-(99, NULL, 13, '2.4', 46, '2026-10-11 03:57:44'),
-(100, NULL, 13, '2.9', 46, '2026-10-11 03:57:44'),
-(101, NULL, 13, '2.10', 46, '2026-10-11 03:57:44'),
-(102, NULL, 13, '3.3', 46, '2026-10-11 03:57:44'),
-(103, NULL, 13, '5.1', 46, '2026-10-11 03:57:44'),
-(104, NULL, 13, '5.3', 46, '2026-10-11 03:57:44'),
-(105, NULL, 13, '5.4', 46, '2026-10-11 03:57:44'),
-(106, NULL, 13, '5.5', 46, '2026-10-11 03:57:44'),
-(107, NULL, 13, '5.6', 46, '2026-10-11 03:57:44'),
-(108, NULL, 13, '5.7', 46, '2026-10-11 03:57:44'),
-(109, NULL, 13, '6.3', 46, '2026-10-11 03:57:44'),
-(110, NULL, 13, '6.4', 46, '2026-10-11 03:57:44'),
-(111, NULL, 13, '6.5', 46, '2026-10-11 03:57:44'),
-(112, NULL, 14, '1.1', 46, '2026-10-11 03:57:44'),
-(113, NULL, 14, '1.2', 46, '2026-10-11 03:57:44'),
-(114, NULL, 14, '1.3', 46, '2026-10-11 03:57:44'),
-(115, NULL, 14, '1.4', 46, '2026-10-11 03:57:44'),
-(116, NULL, 14, '1.5', 46, '2026-10-11 03:57:44'),
-(117, NULL, 14, '1.6', 46, '2026-10-11 03:57:44'),
-(118, NULL, 14, '1.7', 46, '2026-10-11 03:57:44'),
-(119, NULL, 14, '2.1', 46, '2026-10-11 03:57:44'),
-(120, NULL, 14, '2.2', 46, '2026-10-11 03:57:44'),
-(121, NULL, 14, '2.3', 46, '2026-10-11 03:57:44'),
-(122, NULL, 14, '2.4', 46, '2026-10-11 03:57:44'),
-(123, NULL, 14, '2.9', 46, '2026-10-11 03:57:44'),
-(124, NULL, 14, '2.10', 46, '2026-10-11 03:57:44'),
-(125, NULL, 14, '3.3', 46, '2026-10-11 03:57:44'),
-(126, NULL, 14, '5.1', 46, '2026-10-11 03:57:44'),
-(127, NULL, 14, '5.3', 46, '2026-10-11 03:57:44'),
-(128, NULL, 14, '5.4', 46, '2026-10-11 03:57:44'),
-(129, NULL, 14, '5.5', 46, '2026-10-11 03:57:44'),
-(130, NULL, 14, '5.6', 46, '2026-10-11 03:57:44'),
-(131, NULL, 14, '5.7', 46, '2026-10-11 03:57:44'),
-(132, NULL, 14, '6.3', 46, '2026-10-11 03:57:44'),
-(133, NULL, 14, '6.4', 46, '2026-10-11 03:57:44'),
-(134, NULL, 14, '6.5', 46, '2026-10-11 03:57:44'),
-(135, NULL, 15, '1.1', 46, '2026-10-11 03:57:44'),
-(136, NULL, 15, '1.2', 46, '2026-10-11 03:57:44'),
-(137, NULL, 15, '1.3', 46, '2026-10-11 03:57:44'),
-(138, NULL, 15, '1.4', 46, '2026-10-11 03:57:44'),
-(139, NULL, 15, '1.5', 46, '2026-10-11 03:57:44'),
-(140, NULL, 15, '1.6', 46, '2026-10-11 03:57:44'),
-(141, NULL, 15, '1.7', 46, '2026-10-11 03:57:44'),
-(142, NULL, 15, '2.1', 46, '2026-10-11 03:57:44'),
-(143, NULL, 15, '2.2', 46, '2026-10-11 03:57:44'),
-(144, NULL, 15, '2.3', 46, '2026-10-11 03:57:44'),
-(145, NULL, 15, '2.4', 46, '2026-10-11 03:57:44'),
-(146, NULL, 15, '2.9', 46, '2026-10-11 03:57:44'),
-(147, NULL, 15, '2.10', 46, '2026-10-11 03:57:44'),
-(148, NULL, 15, '3.3', 46, '2026-10-11 03:57:44'),
-(149, NULL, 15, '5.1', 46, '2026-10-11 03:57:44'),
-(150, NULL, 15, '5.3', 46, '2026-10-11 03:57:44'),
-(151, NULL, 15, '5.4', 46, '2026-10-11 03:57:44'),
-(152, NULL, 15, '5.5', 46, '2026-10-11 03:57:44'),
-(153, NULL, 15, '5.6', 46, '2026-10-11 03:57:44'),
-(154, NULL, 15, '5.7', 46, '2026-10-11 03:57:44'),
-(155, NULL, 15, '6.3', 46, '2026-10-11 03:57:44'),
-(156, NULL, 15, '6.4', 46, '2026-10-11 03:57:44'),
-(157, NULL, 15, '6.5', 46, '2026-10-11 03:57:44');
+(180, NULL, 2, '1.1', 46, '2026-11-02 04:41:07'),
+(181, NULL, 2, '1.2', 46, '2026-11-02 04:41:07'),
+(182, NULL, 2, '1.3', 46, '2026-11-02 04:41:07'),
+(183, NULL, 2, '1.4', 46, '2026-11-02 04:41:07'),
+(184, NULL, 2, '1.5', 46, '2026-11-02 04:41:07'),
+(185, NULL, 2, '2.1', 46, '2026-11-02 04:41:07'),
+(186, NULL, 2, '2.2', 46, '2026-11-02 04:41:07'),
+(187, NULL, 2, '2.3', 46, '2026-11-02 04:41:07'),
+(188, NULL, 2, '2.4', 46, '2026-11-02 04:41:07'),
+(189, NULL, 2, '2.5', 46, '2026-11-02 04:41:07'),
+(190, NULL, 2, '2.6', 46, '2026-11-02 04:41:07'),
+(191, NULL, 2, '2.7', 46, '2026-11-02 04:41:07'),
+(192, NULL, 2, '3.1', 46, '2026-11-02 04:41:07'),
+(193, NULL, 2, '3.2', 46, '2026-11-02 04:41:07'),
+(194, NULL, 2, '3.3', 46, '2026-11-02 04:41:07'),
+(195, NULL, 2, '3.4', 46, '2026-11-02 04:41:07'),
+(196, NULL, 2, '3.5', 46, '2026-11-02 04:41:07'),
+(197, NULL, 2, '4.1', 46, '2026-11-02 04:41:07'),
+(198, NULL, 2, '4.2', 46, '2026-11-02 04:41:07'),
+(199, NULL, 2, '4.3', 46, '2026-11-02 04:41:07'),
+(200, NULL, 2, '4.4', 46, '2026-11-02 04:41:07'),
+(201, NULL, 2, '4.5', 46, '2026-11-02 04:41:07'),
+(202, NULL, 13, '1.1', 46, '2026-11-02 04:41:25'),
+(203, NULL, 13, '1.2', 46, '2026-11-02 04:41:25'),
+(204, NULL, 13, '1.3', 46, '2026-11-02 04:41:25'),
+(205, NULL, 13, '1.4', 46, '2026-11-02 04:41:25'),
+(206, NULL, 13, '1.5', 46, '2026-11-02 04:41:25'),
+(207, NULL, 13, '2.1', 46, '2026-11-02 04:41:25'),
+(208, NULL, 13, '2.2', 46, '2026-11-02 04:41:25'),
+(209, NULL, 13, '2.3', 46, '2026-11-02 04:41:25'),
+(210, NULL, 13, '2.4', 46, '2026-11-02 04:41:25'),
+(211, NULL, 13, '2.5', 46, '2026-11-02 04:41:25'),
+(212, NULL, 13, '2.6', 46, '2026-11-02 04:41:25'),
+(213, NULL, 13, '2.7', 46, '2026-11-02 04:41:25'),
+(214, NULL, 13, '3.1', 46, '2026-11-02 04:41:25'),
+(215, NULL, 13, '3.2', 46, '2026-11-02 04:41:25'),
+(216, NULL, 13, '3.3', 46, '2026-11-02 04:41:25'),
+(217, NULL, 13, '3.4', 46, '2026-11-02 04:41:25'),
+(218, NULL, 13, '3.5', 46, '2026-11-02 04:41:25'),
+(219, NULL, 13, '4.1', 46, '2026-11-02 04:41:25'),
+(220, NULL, 13, '4.2', 46, '2026-11-02 04:41:25'),
+(221, NULL, 13, '4.3', 46, '2026-11-02 04:41:25'),
+(222, NULL, 13, '4.4', 46, '2026-11-02 04:41:25'),
+(223, NULL, 13, '4.5', 46, '2026-11-02 04:41:25'),
+(234, NULL, 12, '1.1', 46, '2026-11-02 04:55:49'),
+(235, NULL, 12, '1.2', 46, '2026-11-02 04:55:49'),
+(236, NULL, 12, '1.3', 46, '2026-11-02 04:55:49'),
+(237, NULL, 12, '1.4', 46, '2026-11-02 04:55:49'),
+(238, NULL, 12, '1.5', 46, '2026-11-02 04:55:49'),
+(239, NULL, 12, '2.1', 46, '2026-11-02 04:55:49'),
+(240, NULL, 12, '2.2', 46, '2026-11-02 04:55:49'),
+(241, NULL, 12, '2.3', 46, '2026-11-02 04:55:49'),
+(242, NULL, 12, '2.4', 46, '2026-11-02 04:55:49'),
+(243, NULL, 12, '2.5', 46, '2026-11-02 04:55:49'),
+(244, NULL, 12, '2.6', 46, '2026-11-02 04:55:49'),
+(245, NULL, 12, '2.7', 46, '2026-11-02 04:55:49'),
+(246, NULL, 12, '3.1', 46, '2026-11-02 04:55:49'),
+(247, NULL, 12, '3.2', 46, '2026-11-02 04:55:49'),
+(248, NULL, 12, '3.3', 46, '2026-11-02 04:55:49'),
+(249, NULL, 12, '3.4', 46, '2026-11-02 04:55:49'),
+(250, NULL, 12, '3.5', 46, '2026-11-02 04:55:49'),
+(251, NULL, 12, '4.1', 46, '2026-11-02 04:55:49'),
+(252, NULL, 12, '4.2', 46, '2026-11-02 04:55:49'),
+(253, NULL, 12, '4.3', 46, '2026-11-02 04:55:49'),
+(254, NULL, 12, '4.4', 46, '2026-11-02 04:55:49'),
+(255, NULL, 12, '4.5', 46, '2026-11-02 04:55:49'),
+(256, NULL, 15, '1.1', 46, '2026-11-02 04:56:01'),
+(257, NULL, 15, '1.2', 46, '2026-11-02 04:56:01'),
+(258, NULL, 15, '1.3', 46, '2026-11-02 04:56:01'),
+(259, NULL, 15, '1.4', 46, '2026-11-02 04:56:01'),
+(260, NULL, 15, '1.5', 46, '2026-11-02 04:56:01'),
+(261, NULL, 15, '2.1', 46, '2026-11-02 04:56:01'),
+(262, NULL, 15, '2.2', 46, '2026-11-02 04:56:01'),
+(263, NULL, 15, '2.3', 46, '2026-11-02 04:56:01'),
+(264, NULL, 15, '2.4', 46, '2026-11-02 04:56:01'),
+(265, NULL, 15, '2.5', 46, '2026-11-02 04:56:01'),
+(266, NULL, 15, '2.6', 46, '2026-11-02 04:56:01'),
+(267, NULL, 15, '2.7', 46, '2026-11-02 04:56:01'),
+(268, NULL, 15, '3.1', 46, '2026-11-02 04:56:01'),
+(269, NULL, 15, '3.2', 46, '2026-11-02 04:56:01'),
+(270, NULL, 15, '3.3', 46, '2026-11-02 04:56:01'),
+(271, NULL, 15, '3.4', 46, '2026-11-02 04:56:01'),
+(272, NULL, 15, '3.5', 46, '2026-11-02 04:56:01'),
+(273, NULL, 15, '4.1', 46, '2026-11-02 04:56:01'),
+(274, NULL, 15, '4.2', 46, '2026-11-02 04:56:01'),
+(275, NULL, 15, '4.3', 46, '2026-11-02 04:56:01'),
+(276, NULL, 15, '4.4', 46, '2026-11-02 04:56:01'),
+(277, NULL, 15, '4.5', 46, '2026-11-02 04:56:01'),
+(278, 33, 14, '1.1', 46, '2026-11-02 11:04:30'),
+(279, 33, 14, '1.2', 46, '2026-11-02 11:04:30'),
+(280, 33, 14, '1.3', 46, '2026-11-02 11:04:30'),
+(281, 33, 14, '1.4', 46, '2026-11-02 11:04:30'),
+(282, 33, 14, '1.5', 46, '2026-11-02 11:04:30'),
+(283, 33, 14, '2.1', 46, '2026-11-02 11:04:30'),
+(284, 33, 14, '2.2', 46, '2026-11-02 11:04:30'),
+(285, 33, 14, '2.3', 46, '2026-11-02 11:04:30'),
+(286, 33, 14, '2.4', 46, '2026-11-02 11:04:30'),
+(287, 33, 14, '2.5', 46, '2026-11-02 11:04:30'),
+(288, 33, 14, '2.6', 46, '2026-11-02 11:04:30'),
+(289, 33, 14, '2.7', 46, '2026-11-02 11:04:30'),
+(290, 33, 14, '3.1', 46, '2026-11-02 11:04:30'),
+(291, 33, 14, '3.2', 46, '2026-11-02 11:04:30'),
+(292, 33, 14, '3.3', 46, '2026-11-02 11:04:30'),
+(293, 33, 14, '3.4', 46, '2026-11-02 11:04:30'),
+(294, 33, 14, '3.5', 46, '2026-11-02 11:04:30'),
+(295, 33, 14, '4.1', 46, '2026-11-02 11:04:30'),
+(296, 33, 14, '4.2', 46, '2026-11-02 11:04:30'),
+(297, 33, 14, '4.3', 46, '2026-11-02 11:04:30'),
+(298, 33, 14, '4.4', 46, '2026-11-02 11:04:30'),
+(299, 33, 14, '4.5', 46, '2026-11-02 11:04:30'),
+(300, 34, 14, '1.1', 46, '2026-11-05 05:18:12'),
+(301, 34, 14, '1.2', 46, '2026-11-05 05:18:12'),
+(302, 34, 14, '1.3', 46, '2026-11-05 05:18:12'),
+(303, 34, 14, '1.4', 46, '2026-11-05 05:18:12'),
+(304, 34, 14, '1.5', 46, '2026-11-05 05:18:12');
 
 -- --------------------------------------------------------
 
@@ -7518,121 +7826,90 @@ INSERT INTO `teacher_responses` (`tr_id`, `cycle_id`, `indicator_id`, `school_id
 (2991, 29, 204, 1, 14, 4, '', 'submitted', NULL, '2026-10-18 06:07:02', '2026-10-18 06:07:07'),
 (2992, 29, 205, 1, 14, 4, '', 'submitted', NULL, '2026-10-18 06:07:04', '2026-10-18 06:07:07'),
 (2993, 29, 206, 1, 14, 4, '', 'submitted', NULL, '2026-10-18 06:07:05', '2026-10-18 06:07:07'),
-(2994, 30, 167, 1, 15, 3, '', 'submitted', NULL, '2026-10-19 23:06:52', '2026-10-20 00:19:40'),
-(2995, 30, 168, 1, 15, 3, '', 'submitted', NULL, '2026-10-19 23:06:53', '2026-10-20 00:19:40'),
-(2996, 30, 169, 1, 15, 3, '', 'submitted', NULL, '2026-10-19 23:06:54', '2026-10-20 00:19:40'),
-(2997, 30, 170, 1, 15, 3, '', 'submitted', NULL, '2026-10-19 23:06:55', '2026-10-20 00:19:40'),
-(2998, 30, 171, 1, 15, 4, '', 'submitted', NULL, '2026-10-19 23:06:56', '2026-10-20 00:19:40'),
-(2999, 30, 172, 1, 15, 4, '', 'submitted', NULL, '2026-10-19 23:06:57', '2026-10-20 00:19:40'),
-(3000, 30, 173, 1, 15, 3, '', 'submitted', NULL, '2026-10-19 23:06:58', '2026-10-20 00:19:40'),
-(3001, 30, 175, 1, 15, 4, '', 'submitted', NULL, '2026-10-19 23:07:01', '2026-10-20 00:19:40'),
-(3002, 30, 176, 1, 15, 4, '', 'submitted', NULL, '2026-10-19 23:07:01', '2026-10-20 00:19:40'),
-(3003, 30, 177, 1, 15, 3, '', 'submitted', NULL, '2026-10-19 23:07:03', '2026-10-20 00:19:40'),
-(3004, 30, 178, 1, 15, 4, '', 'submitted', NULL, '2026-10-19 23:07:04', '2026-10-20 00:19:40'),
-(3005, 30, 183, 1, 15, 3, '', 'submitted', NULL, '2026-10-19 23:07:05', '2026-10-20 00:19:40'),
-(3006, 30, 184, 1, 15, 3, '', 'submitted', NULL, '2026-10-19 23:07:06', '2026-10-20 00:19:40'),
-(3007, 30, 187, 1, 15, 4, '', 'submitted', NULL, '2026-10-19 23:07:08', '2026-10-20 00:19:40'),
-(3008, 30, 195, 1, 15, 4, '', 'submitted', NULL, '2026-10-19 23:07:10', '2026-10-20 00:19:40'),
-(3009, 30, 197, 1, 15, 3, '', 'submitted', NULL, '2026-10-19 23:07:11', '2026-10-20 00:19:40'),
-(3010, 30, 198, 1, 15, 4, '', 'submitted', NULL, '2026-10-19 23:07:12', '2026-10-20 00:19:40'),
-(3011, 30, 199, 1, 15, 3, '', 'submitted', NULL, '2026-10-19 23:07:13', '2026-10-20 00:19:40'),
-(3012, 30, 200, 1, 15, 3, '', 'submitted', NULL, '2026-10-19 23:07:14', '2026-10-20 00:19:40'),
-(3013, 30, 201, 1, 15, 4, '', 'submitted', NULL, '2026-10-19 23:07:15', '2026-10-20 00:19:40'),
-(3014, 30, 204, 1, 15, 4, '', 'submitted', NULL, '2026-10-19 23:07:17', '2026-10-20 00:19:40'),
-(3015, 30, 205, 1, 15, 4, '', 'submitted', NULL, '2026-10-19 23:07:18', '2026-10-20 00:19:40'),
-(3016, 30, 206, 1, 15, 4, '', 'submitted', NULL, '2026-10-19 23:07:19', '2026-10-20 00:19:40'),
-(3017, 30, 167, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:28', '2026-10-19 23:07:56'),
-(3018, 30, 168, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:29', '2026-10-19 23:07:56'),
-(3019, 30, 169, 1, 2, 3, '', 'submitted', NULL, '2026-10-19 23:07:30', '2026-10-19 23:07:56'),
-(3020, 30, 170, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:31', '2026-10-19 23:07:56'),
-(3021, 30, 171, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:32', '2026-10-19 23:07:56'),
-(3022, 30, 172, 1, 2, 3, '', 'submitted', NULL, '2026-10-19 23:07:34', '2026-10-19 23:07:56'),
-(3023, 30, 173, 1, 2, 3, '', 'submitted', NULL, '2026-10-19 23:07:34', '2026-10-19 23:07:56'),
-(3024, 30, 175, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:37', '2026-10-19 23:07:56'),
-(3025, 30, 176, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:38', '2026-10-19 23:07:56'),
-(3026, 30, 177, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:39', '2026-10-19 23:07:56'),
-(3027, 30, 178, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:40', '2026-10-19 23:07:56'),
-(3028, 30, 183, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:41', '2026-10-19 23:07:56'),
-(3029, 30, 184, 1, 2, 3, '', 'submitted', NULL, '2026-10-19 23:07:42', '2026-10-19 23:07:56'),
-(3030, 30, 187, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:44', '2026-10-19 23:07:56'),
-(3031, 30, 195, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:45', '2026-10-19 23:07:56'),
-(3032, 30, 197, 1, 2, 3, '', 'submitted', NULL, '2026-10-19 23:07:46', '2026-10-19 23:07:56'),
-(3033, 30, 198, 1, 2, 3, '', 'submitted', NULL, '2026-10-19 23:07:47', '2026-10-19 23:07:56'),
-(3034, 30, 199, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:49', '2026-10-19 23:07:56'),
-(3035, 30, 200, 1, 2, 3, '', 'submitted', NULL, '2026-10-19 23:07:50', '2026-10-19 23:07:56'),
-(3036, 30, 201, 1, 2, 3, '', 'submitted', NULL, '2026-10-19 23:07:51', '2026-10-19 23:07:56'),
-(3037, 30, 204, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:53', '2026-10-19 23:07:56'),
-(3038, 30, 205, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:53', '2026-10-19 23:07:56'),
-(3039, 30, 206, 1, 2, 4, '', 'submitted', NULL, '2026-10-19 23:07:54', '2026-10-19 23:07:56'),
-(3040, 30, 167, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:04', '2026-10-19 23:08:32'),
-(3041, 30, 168, 1, 12, 3, '', 'submitted', NULL, '2026-10-19 23:08:05', '2026-10-19 23:08:32'),
-(3042, 30, 169, 1, 12, 3, '', 'submitted', NULL, '2026-10-19 23:08:06', '2026-10-19 23:08:32'),
-(3043, 30, 170, 1, 12, 3, '', 'submitted', NULL, '2026-10-19 23:08:07', '2026-10-19 23:08:32'),
-(3044, 30, 171, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:08', '2026-10-19 23:08:32'),
-(3045, 30, 172, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:08', '2026-10-19 23:08:32'),
-(3046, 30, 173, 1, 12, 3, '', 'submitted', NULL, '2026-10-19 23:08:10', '2026-10-19 23:08:32'),
-(3047, 30, 175, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:12', '2026-10-19 23:08:32'),
-(3048, 30, 176, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:13', '2026-10-19 23:08:32'),
-(3049, 30, 177, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:14', '2026-10-19 23:08:32'),
-(3050, 30, 178, 1, 12, 3, '', 'submitted', NULL, '2026-10-19 23:08:15', '2026-10-19 23:08:32'),
-(3051, 30, 183, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:16', '2026-10-19 23:08:32'),
-(3052, 30, 184, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:17', '2026-10-19 23:08:32'),
-(3053, 30, 187, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:19', '2026-10-19 23:08:32'),
-(3054, 30, 195, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:21', '2026-10-19 23:08:32'),
-(3055, 30, 197, 1, 12, 3, '', 'submitted', NULL, '2026-10-19 23:08:21', '2026-10-19 23:08:32'),
-(3056, 30, 198, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:23', '2026-10-19 23:08:32'),
-(3057, 30, 199, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:24', '2026-10-19 23:08:32'),
-(3058, 30, 200, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:25', '2026-10-19 23:08:32'),
-(3059, 30, 201, 1, 12, 3, '', 'submitted', NULL, '2026-10-19 23:08:26', '2026-10-19 23:08:32'),
-(3060, 30, 204, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:28', '2026-10-19 23:08:32'),
-(3061, 30, 205, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:29', '2026-10-19 23:08:32'),
-(3062, 30, 206, 1, 12, 4, '', 'submitted', NULL, '2026-10-19 23:08:31', '2026-10-19 23:08:32'),
-(3063, 30, 167, 1, 13, 4, '', 'submitted', NULL, '2026-10-19 23:08:43', '2026-10-19 23:09:13'),
-(3064, 30, 168, 1, 13, 3, '', 'submitted', NULL, '2026-10-19 23:08:43', '2026-10-19 23:09:13'),
-(3065, 30, 169, 1, 13, 3, '', 'submitted', NULL, '2026-10-19 23:08:44', '2026-10-19 23:09:13'),
-(3066, 30, 170, 1, 13, 3, '', 'submitted', NULL, '2026-10-19 23:08:46', '2026-10-19 23:09:13'),
-(3067, 30, 171, 1, 13, 4, '', 'submitted', NULL, '2026-10-19 23:08:47', '2026-10-19 23:09:13'),
-(3068, 30, 172, 1, 13, 3, '', 'submitted', NULL, '2026-10-19 23:08:48', '2026-10-19 23:09:13'),
-(3070, 30, 173, 1, 13, 4, '', 'submitted', NULL, '2026-10-19 23:08:49', '2026-10-19 23:09:13'),
-(3071, 30, 175, 1, 13, 4, '', 'submitted', NULL, '2026-10-19 23:08:51', '2026-10-19 23:09:13'),
-(3072, 30, 176, 1, 13, 4, '', 'submitted', NULL, '2026-10-19 23:08:52', '2026-10-19 23:09:13'),
-(3073, 30, 177, 1, 13, 3, '', 'submitted', NULL, '2026-10-19 23:08:53', '2026-10-19 23:09:13'),
-(3074, 30, 178, 1, 13, 4, '', 'submitted', NULL, '2026-10-19 23:08:55', '2026-10-19 23:09:13'),
-(3075, 30, 183, 1, 13, 4, '', 'submitted', NULL, '2026-10-19 23:08:55', '2026-10-19 23:09:13'),
-(3076, 30, 184, 1, 13, 3, '', 'submitted', NULL, '2026-10-19 23:08:57', '2026-10-19 23:09:13'),
-(3077, 30, 187, 1, 13, 4, '', 'submitted', NULL, '2026-10-19 23:08:59', '2026-10-19 23:09:13'),
-(3078, 30, 195, 1, 13, 4, '', 'submitted', NULL, '2026-10-19 23:09:01', '2026-10-19 23:09:13'),
-(3079, 30, 197, 1, 13, 3, '', 'submitted', NULL, '2026-10-19 23:09:02', '2026-10-19 23:09:13'),
-(3080, 30, 198, 1, 13, 3, '', 'submitted', NULL, '2026-10-19 23:09:03', '2026-10-19 23:09:13'),
-(3081, 30, 199, 1, 13, 3, '', 'submitted', NULL, '2026-10-19 23:09:04', '2026-10-19 23:09:13'),
-(3082, 30, 200, 1, 13, 4, '', 'submitted', NULL, '2026-10-19 23:09:05', '2026-10-19 23:09:13'),
-(3083, 30, 201, 1, 13, 3, '', 'submitted', NULL, '2026-10-19 23:09:06', '2026-10-19 23:09:13'),
-(3084, 30, 204, 1, 13, 4, '', 'submitted', NULL, '2026-10-19 23:09:09', '2026-10-19 23:09:13'),
-(3085, 30, 205, 1, 13, 4, '', 'submitted', NULL, '2026-10-19 23:09:09', '2026-10-19 23:09:13'),
-(3086, 30, 206, 1, 13, 4, '', 'submitted', NULL, '2026-10-19 23:09:11', '2026-10-19 23:09:13'),
-(3087, 30, 167, 1, 14, 4, '', 'submitted', NULL, '2026-10-19 23:09:28', '2026-10-19 23:09:58'),
-(3088, 30, 168, 1, 14, 3, '', 'submitted', NULL, '2026-10-19 23:09:28', '2026-10-19 23:09:58'),
-(3089, 30, 169, 1, 14, 4, '', 'submitted', NULL, '2026-10-19 23:09:30', '2026-10-19 23:09:58'),
-(3090, 30, 170, 1, 14, 3, '', 'submitted', NULL, '2026-10-19 23:09:32', '2026-10-19 23:09:58'),
-(3091, 30, 171, 1, 14, 3, '', 'submitted', NULL, '2026-10-19 23:09:32', '2026-10-19 23:09:58'),
-(3092, 30, 172, 1, 14, 4, '', 'submitted', NULL, '2026-10-19 23:09:34', '2026-10-19 23:09:58'),
-(3093, 30, 173, 1, 14, 2, '', 'submitted', NULL, '2026-10-19 23:09:35', '2026-10-19 23:09:58'),
-(3094, 30, 175, 1, 14, 4, '', 'submitted', NULL, '2026-10-19 23:09:37', '2026-10-19 23:09:58'),
-(3095, 30, 176, 1, 14, 4, '', 'submitted', NULL, '2026-10-19 23:09:38', '2026-10-19 23:09:58'),
-(3096, 30, 177, 1, 14, 4, '', 'submitted', NULL, '2026-10-19 23:09:39', '2026-10-19 23:09:58'),
-(3097, 30, 178, 1, 14, 4, '', 'submitted', NULL, '2026-10-19 23:09:40', '2026-10-19 23:09:58'),
-(3098, 30, 183, 1, 14, 2, '', 'submitted', NULL, '2026-10-19 23:09:42', '2026-10-19 23:09:58'),
-(3100, 30, 184, 1, 14, 4, '', 'submitted', NULL, '2026-10-19 23:09:44', '2026-10-19 23:09:58'),
-(3101, 30, 187, 1, 14, 3, '', 'submitted', NULL, '2026-10-19 23:09:47', '2026-10-19 23:09:58'),
-(3102, 30, 195, 1, 14, 4, '', 'submitted', NULL, '2026-10-19 23:09:48', '2026-10-19 23:09:58'),
-(3103, 30, 197, 1, 14, 3, '', 'submitted', NULL, '2026-10-19 23:09:49', '2026-10-19 23:09:58'),
-(3104, 30, 198, 1, 14, 3, '', 'submitted', NULL, '2026-10-19 23:09:50', '2026-10-19 23:09:58'),
-(3105, 30, 199, 1, 14, 4, '', 'submitted', NULL, '2026-10-19 23:09:51', '2026-10-19 23:09:58'),
-(3106, 30, 200, 1, 14, 3, '', 'submitted', NULL, '2026-10-19 23:09:52', '2026-10-19 23:09:58'),
-(3107, 30, 201, 1, 14, 3, '', 'submitted', NULL, '2026-10-19 23:09:53', '2026-10-19 23:09:58'),
-(3108, 30, 204, 1, 14, 4, '', 'submitted', NULL, '2026-10-19 23:09:55', '2026-10-19 23:09:58'),
-(3109, 30, 205, 1, 14, 4, '', 'submitted', NULL, '2026-10-19 23:09:56', '2026-10-19 23:09:58'),
-(3110, 30, 206, 1, 14, 4, '', 'submitted', NULL, '2026-10-19 23:09:57', '2026-10-19 23:09:58');
+(3223, 34, 167, 1, 15, 3, '', 'submitted', NULL, '2026-11-05 04:35:38', '2026-11-05 04:53:11'),
+(3224, 34, 168, 1, 15, 3, '', 'submitted', NULL, '2026-11-05 04:35:39', '2026-11-05 04:53:11'),
+(3225, 34, 169, 1, 15, 4, '', 'submitted', NULL, '2026-11-05 04:35:41', '2026-11-05 04:53:11'),
+(3226, 34, 170, 1, 15, 2, '', 'submitted', NULL, '2026-11-05 04:35:42', '2026-11-05 04:53:11'),
+(3227, 34, 171, 1, 15, 3, '', 'submitted', NULL, '2026-11-05 04:35:46', '2026-11-05 04:53:11'),
+(3228, 34, 175, 1, 15, 3, '', 'submitted', NULL, '2026-11-05 04:35:49', '2026-11-05 04:53:11'),
+(3229, 34, 176, 1, 15, 3, '', 'submitted', NULL, '2026-11-05 04:35:50', '2026-11-05 04:53:11'),
+(3230, 34, 177, 1, 15, 2, '', 'submitted', NULL, '2026-11-05 04:35:52', '2026-11-05 04:53:11'),
+(3231, 34, 178, 1, 15, 3, '', 'submitted', NULL, '2026-11-05 04:35:54', '2026-11-05 04:53:11'),
+(3232, 34, 179, 1, 15, 3, '', 'submitted', NULL, '2026-11-05 04:35:55', '2026-11-05 04:53:11'),
+(3233, 34, 180, 1, 15, 2, '', 'submitted', NULL, '2026-11-05 04:35:58', '2026-11-05 04:53:11'),
+(3234, 34, 181, 1, 15, 3, '', 'submitted', NULL, '2026-11-05 04:36:29', '2026-11-05 04:53:11'),
+(3235, 34, 185, 1, 15, 3, '', 'submitted', NULL, '2026-11-05 04:36:33', '2026-11-05 04:53:11'),
+(3236, 34, 186, 1, 15, 3, '', 'submitted', NULL, '2026-11-05 04:36:34', '2026-11-05 04:53:11'),
+(3237, 34, 187, 1, 15, 2, '', 'submitted', NULL, '2026-11-05 04:36:36', '2026-11-05 04:53:11'),
+(3238, 34, 188, 1, 15, 2, '', 'submitted', NULL, '2026-11-05 04:36:38', '2026-11-05 04:53:11'),
+(3239, 34, 189, 1, 15, 3, '', 'submitted', NULL, '2026-11-05 04:36:41', '2026-11-05 04:53:11'),
+(3240, 34, 190, 1, 15, 2, '', 'submitted', NULL, '2026-11-05 04:36:42', '2026-11-05 04:53:11'),
+(3241, 34, 191, 1, 15, 2, '', 'submitted', NULL, '2026-11-05 04:36:44', '2026-11-05 04:53:11'),
+(3242, 34, 192, 1, 15, 2, '', 'submitted', NULL, '2026-11-05 04:36:46', '2026-11-05 04:53:11'),
+(3243, 34, 193, 1, 15, 3, '', 'submitted', NULL, '2026-11-05 04:36:49', '2026-11-05 04:53:11'),
+(3244, 34, 167, 1, 2, 2, '', 'submitted', NULL, '2026-11-05 04:54:49', '2026-11-05 04:58:05'),
+(3246, 34, 168, 1, 2, 3, '', 'submitted', NULL, '2026-11-05 04:54:55', '2026-11-05 04:58:05'),
+(3247, 34, 169, 1, 2, 2, '', 'submitted', NULL, '2026-11-05 04:55:04', '2026-11-05 04:58:05'),
+(3248, 34, 170, 1, 2, 3, '', 'submitted', NULL, '2026-11-05 04:55:14', '2026-11-05 04:58:05'),
+(3249, 34, 171, 1, 2, 3, '', 'submitted', NULL, '2026-11-05 04:55:28', '2026-11-05 04:58:05'),
+(3250, 34, 175, 1, 2, 2, '', 'submitted', NULL, '2026-11-05 04:56:48', '2026-11-05 04:58:05'),
+(3252, 34, 176, 1, 2, 3, '', 'submitted', NULL, '2026-11-05 04:56:57', '2026-11-05 04:58:05'),
+(3253, 34, 177, 1, 2, 4, '', 'submitted', NULL, '2026-11-05 04:56:59', '2026-11-05 04:58:05'),
+(3255, 34, 178, 1, 2, 2, '', 'submitted', NULL, '2026-11-05 04:57:08', '2026-11-05 04:58:05'),
+(3256, 34, 179, 1, 2, 1, '', 'submitted', NULL, '2026-11-05 04:57:11', '2026-11-05 04:58:05'),
+(3257, 34, 180, 1, 2, 4, '', 'submitted', NULL, '2026-11-05 04:57:14', '2026-11-05 04:58:05'),
+(3258, 34, 181, 1, 2, 3, '', 'submitted', NULL, '2026-11-05 04:57:15', '2026-11-05 04:58:05'),
+(3259, 34, 185, 1, 2, 2, '', 'submitted', NULL, '2026-11-05 04:57:19', '2026-11-05 04:58:05'),
+(3260, 34, 186, 1, 2, 3, '', 'submitted', NULL, '2026-11-05 04:57:21', '2026-11-05 04:58:05'),
+(3261, 34, 187, 1, 2, 3, '', 'submitted', NULL, '2026-11-05 04:57:23', '2026-11-05 04:58:05'),
+(3262, 34, 188, 1, 2, 2, '', 'submitted', NULL, '2026-11-05 04:57:25', '2026-11-05 04:58:05'),
+(3263, 34, 189, 1, 2, 4, '', 'submitted', NULL, '2026-11-05 04:57:31', '2026-11-05 04:58:05'),
+(3264, 34, 190, 1, 2, 1, '', 'submitted', NULL, '2026-11-05 04:57:33', '2026-11-05 04:58:05'),
+(3265, 34, 191, 1, 2, 2, '', 'submitted', NULL, '2026-11-05 04:57:35', '2026-11-05 04:58:05'),
+(3266, 34, 192, 1, 2, 3, '', 'submitted', NULL, '2026-11-05 04:57:42', '2026-11-05 04:58:05'),
+(3267, 34, 193, 1, 2, 3, '', 'submitted', NULL, '2026-11-05 04:57:44', '2026-11-05 04:58:05'),
+(3268, 34, 167, 1, 12, 2, '', 'submitted', NULL, '2026-11-05 04:58:23', '2026-11-05 04:59:37'),
+(3269, 34, 168, 1, 12, 3, '', 'submitted', NULL, '2026-11-05 04:58:25', '2026-11-05 04:59:37'),
+(3270, 34, 169, 1, 12, 2, '', 'submitted', NULL, '2026-11-05 04:58:27', '2026-11-05 04:59:37'),
+(3271, 34, 170, 1, 12, 4, '', 'submitted', NULL, '2026-11-05 04:58:29', '2026-11-05 04:59:37'),
+(3272, 34, 171, 1, 12, 1, '', 'submitted', NULL, '2026-11-05 04:58:30', '2026-11-05 04:59:37'),
+(3273, 34, 175, 1, 12, 4, '', 'submitted', NULL, '2026-11-05 04:58:36', '2026-11-05 04:59:37'),
+(3274, 34, 176, 1, 12, 2, '', 'submitted', NULL, '2026-11-05 04:58:37', '2026-11-05 04:59:37'),
+(3275, 34, 177, 1, 12, 3, '', 'submitted', NULL, '2026-11-05 04:58:39', '2026-11-05 04:59:37'),
+(3276, 34, 178, 1, 12, 1, '', 'submitted', NULL, '2026-11-05 04:58:41', '2026-11-05 04:59:37'),
+(3277, 34, 179, 1, 12, 3, '', 'submitted', NULL, '2026-11-05 04:58:43', '2026-11-05 04:59:37'),
+(3278, 34, 180, 1, 12, 2, '', 'submitted', NULL, '2026-11-05 04:58:45', '2026-11-05 04:59:37'),
+(3279, 34, 181, 1, 12, 4, '', 'submitted', NULL, '2026-11-05 04:58:49', '2026-11-05 04:59:37'),
+(3280, 34, 185, 1, 12, 2, '', 'submitted', NULL, '2026-11-05 04:58:54', '2026-11-05 04:59:37'),
+(3281, 34, 186, 1, 12, 3, '', 'submitted', NULL, '2026-11-05 04:58:56', '2026-11-05 04:59:37'),
+(3284, 34, 187, 1, 12, 4, '', 'submitted', NULL, '2026-11-05 04:59:04', '2026-11-05 04:59:37'),
+(3285, 34, 188, 1, 12, 2, '', 'submitted', NULL, '2026-11-05 04:59:06', '2026-11-05 04:59:37'),
+(3286, 34, 189, 1, 12, 3, '', 'submitted', NULL, '2026-11-05 04:59:19', '2026-11-05 04:59:37'),
+(3287, 34, 190, 1, 12, 1, '', 'submitted', NULL, '2026-11-05 04:59:21', '2026-11-05 04:59:37'),
+(3288, 34, 191, 1, 12, 2, '', 'submitted', NULL, '2026-11-05 04:59:23', '2026-11-05 04:59:37'),
+(3289, 34, 192, 1, 12, 3, '', 'submitted', NULL, '2026-11-05 04:59:26', '2026-11-05 04:59:37'),
+(3290, 34, 193, 1, 12, 2, '', 'submitted', NULL, '2026-11-05 04:59:30', '2026-11-05 04:59:37'),
+(3291, 34, 167, 1, 13, 3, '', 'submitted', NULL, '2026-11-05 04:59:59', '2026-11-05 05:01:09'),
+(3292, 34, 168, 1, 13, 2, '', 'submitted', NULL, '2026-11-05 05:00:01', '2026-11-05 05:01:09'),
+(3293, 34, 169, 1, 13, 4, '', 'submitted', NULL, '2026-11-05 05:00:02', '2026-11-05 05:01:09'),
+(3294, 34, 170, 1, 13, 1, '', 'submitted', NULL, '2026-11-05 05:00:04', '2026-11-05 05:01:09'),
+(3295, 34, 171, 1, 13, 2, '', 'submitted', NULL, '2026-11-05 05:00:05', '2026-11-05 05:01:09'),
+(3296, 34, 175, 1, 13, 4, '', 'submitted', NULL, '2026-11-05 05:00:09', '2026-11-05 05:01:09'),
+(3297, 34, 176, 1, 13, 2, '', 'submitted', NULL, '2026-11-05 05:00:11', '2026-11-05 05:01:09'),
+(3298, 34, 177, 1, 13, 3, '', 'submitted', NULL, '2026-11-05 05:00:13', '2026-11-05 05:01:09'),
+(3299, 34, 178, 1, 13, 2, '', 'submitted', NULL, '2026-11-05 05:00:15', '2026-11-05 05:01:09'),
+(3300, 34, 179, 1, 13, 1, '', 'submitted', NULL, '2026-11-05 05:00:17', '2026-11-05 05:01:09'),
+(3301, 34, 180, 1, 13, 2, '', 'submitted', NULL, '2026-11-05 05:00:34', '2026-11-05 05:01:09'),
+(3302, 34, 181, 1, 13, 3, '', 'submitted', NULL, '2026-11-05 05:00:36', '2026-11-05 05:01:09'),
+(3303, 34, 185, 1, 13, 3, '', 'submitted', NULL, '2026-11-05 05:00:41', '2026-11-05 05:01:09'),
+(3304, 34, 186, 1, 13, 2, '', 'submitted', NULL, '2026-11-05 05:00:43', '2026-11-05 05:01:09'),
+(3305, 34, 187, 1, 13, 4, '', 'submitted', NULL, '2026-11-05 05:00:46', '2026-11-05 05:01:09'),
+(3306, 34, 188, 1, 13, 1, '', 'submitted', NULL, '2026-11-05 05:00:49', '2026-11-05 05:01:09'),
+(3307, 34, 189, 1, 13, 4, '', 'submitted', NULL, '2026-11-05 05:00:53', '2026-11-05 05:01:09'),
+(3308, 34, 190, 1, 13, 2, '', 'submitted', NULL, '2026-11-05 05:00:55', '2026-11-05 05:01:09'),
+(3309, 34, 191, 1, 13, 3, '', 'submitted', NULL, '2026-11-05 05:00:58', '2026-11-05 05:01:09'),
+(3310, 34, 192, 1, 13, 1, '', 'submitted', NULL, '2026-11-05 05:01:01', '2026-11-05 05:01:09'),
+(3311, 34, 193, 1, 13, 3, '', 'submitted', NULL, '2026-11-05 05:01:02', '2026-11-05 05:01:09');
 
 -- --------------------------------------------------------
 
@@ -7776,11 +8053,10 @@ INSERT INTO `teacher_submissions` (`submission_id`, `cycle_id`, `school_id`, `sy
 (122, 29, 1, 28, 12, 'submitted', '2026-10-18 14:05:34', 23),
 (123, 29, 1, 28, 13, 'submitted', '2026-10-18 14:06:27', 23),
 (124, 29, 1, 28, 14, 'submitted', '2026-10-18 14:07:07', 23),
-(125, 30, 1, 29, 15, 'submitted', '2026-10-20 08:19:40', 23),
-(126, 30, 1, 29, 2, 'submitted', '2026-10-20 07:07:56', 23),
-(127, 30, 1, 29, 12, 'submitted', '2026-10-20 07:08:32', 23),
-(128, 30, 1, 29, 13, 'submitted', '2026-10-20 07:09:13', 23),
-(129, 30, 1, 29, 14, 'submitted', '2026-10-20 07:09:58', 23);
+(135, 34, 1, 29, 15, 'submitted', '2026-11-05 12:53:11', 21),
+(136, 34, 1, 29, 2, 'submitted', '2026-11-05 12:58:05', 21),
+(137, 34, 1, 29, 12, 'submitted', '2026-11-05 12:59:37', 21),
+(138, 34, 1, 29, 13, 'submitted', '2026-11-05 13:01:09', 21);
 
 -- --------------------------------------------------------
 
@@ -7844,15 +8120,14 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `full_name`, `role`, `status`, `school_id`, `employee_id`, `department`, `last_login`, `created_at`, `email_verified`, `reset_token`, `token_expiry`, `email_sent_at`, `force_password_change`, `contact_number`, `profile_picture`, `rejection_reason`, `reviewed_by`, `reviewed_at`) VALUES
-(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, 'English', '2026-10-20 07:07:26', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, 'English', '2026-10-20 07:08:02', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-10-20 07:08:40', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-10-20 07:09:26', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-10-20 08:19:15', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-10-20 08:19:51', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09412568901', 'uploads/avatars/avatar_37_1780853466.jpg', NULL, NULL, NULL),
-(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-10-20 08:20:05', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, NULL, 'uploads/avatars/avatar_46_1790480979.jpg', NULL, NULL, NULL),
-(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-10-19 21:14:44', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
-(85, 'eval_9b3f24d0', '$2y$10$IO0eLX/c7WW0.9wxrunK4Og6Ar0PlxzroPBsSU.ggPUaGdFt4n.rm', 'dozenjames54@gmail.com', 'James Dozen', 'external_stakeholder', 'active', 1, NULL, NULL, '2026-10-16 21:00:37', '2026-10-08 18:52:59', 0, NULL, NULL, '2026-10-09 02:53:03', 0, NULL, NULL, NULL, NULL, NULL),
+(2, 'Denise Alia', '$2y$10$ee68u47egveVq9Z4Yq/V9OBaCgjX0SdGlvVlt66Pv5EeVelt92A.a', 'daasernande@dihs.edu.ph', 'Denise Alia Sernande', 'teacher', 'active', 1, NULL, 'English', '2026-11-05 16:50:08', '2026-03-11 16:31:59', 0, NULL, NULL, NULL, 0, NULL, 'uploads/avatars/avatar_2_1793528039.jpg', NULL, NULL, NULL),
+(12, 'Julia', '$2y$10$X.wdMmmf0e4mYYVoRx9jquyA8cHJzj.y29Om9a04rWwRDap2mizOy', 'jcfornal@dihs.edu.com', 'Julia Chloe Fornal', 'teacher', 'active', 1, NULL, 'English', '2026-11-05 12:58:19', '2026-03-15 11:19:35', 0, NULL, NULL, NULL, 0, NULL, 'uploads/avatars/avatar_12_1793528062.jpg', NULL, NULL, NULL),
+(13, 'Juan', '$2y$10$wbZBIW1za0UZ7eD6GYUzAuncRsdG.TO1pB/66yuF30HhkpLxKQcSa', 'jdela@dihs.edu.com', 'Juan Dela', 'teacher', 'active', 1, NULL, 'English', '2026-11-05 12:59:55', '2026-03-15 11:20:09', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(14, 'Justine', '$2y$10$.9PKQlpP8KRtUGiAwrtiLOyxdvKjszyIXxZ.B.pjNSdDd7Vf3vjl.', 'jobien@dihs.edu.com', 'Justine Obien', 'teacher', 'active', 1, NULL, 'Filipino', '2026-11-05 13:04:05', '2026-03-15 11:20:53', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(15, 'Axl', '$2y$10$luvaOJeOb3AxCGfqCtSkN.GGLdKxZxhg/zOT6PZC.koJIKO00PkM.', 'amacabecha@dihs.edu.com', 'Axl Macabecha', 'teacher', 'active', 1, NULL, 'English', '2026-11-05 13:03:44', '2026-03-15 11:21:39', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
+(37, 'schoolhead', '$2y$10$gr5msAhfrcZobx/4yCcTPu9bBsl8WQCylqVSrxGjmBptxY8G9N.cO', 'schoolhead@gmail.com', 'Ryza Evangelio', 'school_head', 'active', 1, NULL, 'Guidance', '2026-11-05 17:24:11', '2026-03-29 09:06:55', 0, NULL, NULL, NULL, 0, '09922842414', 'uploads/avatars/avatar_37_1793527941.jpg', NULL, NULL, NULL),
+(46, 'Charles', '$2y$10$9QWVYCP/gNj9kS9vZ72OpeK8BsICHhNjMndKyzi4ZBxQ00A3Mw1WS', 'mendozacharles11011@gmail.com', 'Charles Patrick Arias', 'sbm_coordinator', 'active', 1, NULL, 'Filipino', '2026-11-05 17:24:31', '2026-04-01 02:35:08', 0, NULL, NULL, '2026-04-01 10:35:53', 0, '09518299482', 'uploads/avatars/avatar_46_1793528004.jpg', NULL, NULL, NULL),
+(74, 'charlesarias', '$2y$10$Zamu/arxPs7ldX8oJ9e27u95NJ4XqgJvWrOb9EggmsAOjOtyMIS3S', 'ariascharles00@gmail.com', 'Charles Arias', 'system_admin', 'active', 1, NULL, 'Information Technology', '2026-11-05 17:22:51', '2026-06-10 16:00:00', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL),
 (86, 'Joseph', NULL, 'josesaint957@gmail.com', 'Jose San Jose', NULL, 'pending', 1, '2023-2-005011', NULL, NULL, '2026-10-18 07:44:19', 0, NULL, NULL, NULL, 1, NULL, 'uploads/avatars/avatar_86_1792309459.jpg', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
@@ -8398,25 +8673,25 @@ ALTER TABLE `workflow_milestones`
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=616;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=771;
 
 --
 -- AUTO_INCREMENT for table `ai_suggestion_generations`
 --
 ALTER TABLE `ai_suggestion_generations`
-  MODIFY `generation_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=210;
+  MODIFY `generation_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=215;
 
 --
 -- AUTO_INCREMENT for table `ai_suggestion_history`
 --
 ALTER TABLE `ai_suggestion_history`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=265;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=293;
 
 --
 -- AUTO_INCREMENT for table `ai_suggestion_items`
 --
 ALTER TABLE `ai_suggestion_items`
-  MODIFY `item_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=546;
+  MODIFY `item_id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=579;
 
 --
 -- AUTO_INCREMENT for table `analytics_snapshots`
@@ -8428,7 +8703,7 @@ ALTER TABLE `analytics_snapshots`
 -- AUTO_INCREMENT for table `cycle_audit_log`
 --
 ALTER TABLE `cycle_audit_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
 
 --
 -- AUTO_INCREMENT for table `cycle_evaluators`
@@ -8458,19 +8733,19 @@ ALTER TABLE `departments`
 -- AUTO_INCREMENT for table `email_logs`
 --
 ALTER TABLE `email_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `evidence_audit_log`
 --
 ALTER TABLE `evidence_audit_log`
-  MODIFY `audit_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `audit_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `form_versions`
 --
 ALTER TABLE `form_versions`
-  MODIFY `version_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `version_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `grading_periods`
@@ -8482,7 +8757,7 @@ ALTER TABLE `grading_periods`
 -- AUTO_INCREMENT for table `improvement_plans`
 --
 ALTER TABLE `improvement_plans`
-  MODIFY `plan_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=273;
+  MODIFY `plan_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=274;
 
 --
 -- AUTO_INCREMENT for table `improvement_plans_backup_20261009_214920`
@@ -8494,7 +8769,7 @@ ALTER TABLE `improvement_plans_backup_20261009_214920`
 -- AUTO_INCREMENT for table `improvement_plan_history`
 --
 ALTER TABLE `improvement_plan_history`
-  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=429;
+  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=434;
 
 --
 -- AUTO_INCREMENT for table `indicator_evidence_requirements`
@@ -8530,7 +8805,7 @@ ALTER TABLE `ml_training_snapshots`
 -- AUTO_INCREMENT for table `password_setup_tokens`
 --
 ALTER TABLE `password_setup_tokens`
-  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `registration_requests`
@@ -8542,7 +8817,7 @@ ALTER TABLE `registration_requests`
 -- AUTO_INCREMENT for table `response_attachments`
 --
 ALTER TABLE `response_attachments`
-  MODIFY `attachment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `attachment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `roles`
@@ -8554,31 +8829,31 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `sbm_cycles`
 --
 ALTER TABLE `sbm_cycles`
-  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `cycle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
 -- AUTO_INCREMENT for table `sbm_dimensions`
 --
 ALTER TABLE `sbm_dimensions`
-  MODIFY `dimension_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `dimension_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
 
 --
 -- AUTO_INCREMENT for table `sbm_dimension_scores`
 --
 ALTER TABLE `sbm_dimension_scores`
-  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1444;
+  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1542;
 
 --
 -- AUTO_INCREMENT for table `sbm_indicators`
 --
 ALTER TABLE `sbm_indicators`
-  MODIFY `indicator_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=209;
+  MODIFY `indicator_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=297;
 
 --
 -- AUTO_INCREMENT for table `sbm_responses`
 --
 ALTER TABLE `sbm_responses`
-  MODIFY `response_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1084;
+  MODIFY `response_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1151;
 
 --
 -- AUTO_INCREMENT for table `sbm_workflow_phases`
@@ -8644,19 +8919,19 @@ ALTER TABLE `system_config`
 -- AUTO_INCREMENT for table `teacher_indicator_assignments`
 --
 ALTER TABLE `teacher_indicator_assignments`
-  MODIFY `assignment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=158;
+  MODIFY `assignment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=305;
 
 --
 -- AUTO_INCREMENT for table `teacher_responses`
 --
 ALTER TABLE `teacher_responses`
-  MODIFY `tr_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3112;
+  MODIFY `tr_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3312;
 
 --
 -- AUTO_INCREMENT for table `teacher_submissions`
 --
 ALTER TABLE `teacher_submissions`
-  MODIFY `submission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=130;
+  MODIFY `submission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=139;
 
 --
 -- AUTO_INCREMENT for table `teacher_submission_history`
@@ -8668,7 +8943,7 @@ ALTER TABLE `teacher_submission_history`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=87;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=88;
 
 --
 -- AUTO_INCREMENT for table `workflow_checkpoints`
