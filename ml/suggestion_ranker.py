@@ -19,7 +19,14 @@ from typing import Any
 import joblib
 import numpy as np
 import pandas as pd
-from catboost import CatBoostError
+try:
+    from catboost import CatBoostError
+    CATBOOST_AVAILABLE = True
+except ImportError:
+    CATBOOST_AVAILABLE = False
+
+    class CatBoostError(Exception):
+        pass
 from sklearn.dummy import DummyClassifier
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.model_selection import GroupKFold
@@ -331,6 +338,13 @@ def rank_suggestions(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     use_demo_model = os.getenv("SUGGESTION_RANKER_USE_DEMO") == "1"
     model_path = DEMO_MODEL_PATH if use_demo_model else MODEL_PATH
+    if not CATBOOST_AVAILABLE:
+        return suggestions, {
+            "model_source": "rule_fallback",
+            "active": False,
+            "demo_data": False,
+            "reason": "CatBoost is not installed on this server.",
+        }
     if not model_path.is_file():
         return suggestions, {
             "model_source": "rule_fallback",

@@ -31,7 +31,7 @@ from sklearn.tree import DecisionTreeClassifier
 
 logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(BASE_DIR / ".env", override=True)
+load_dotenv(BASE_DIR / ".env", override=True, encoding="utf-8-sig")
 load_dotenv(BASE_DIR.parent / ".env", override=True)
 MODEL_PATH = BASE_DIR / "models" / "dimension_improvement.joblib"
 DATA_BRIDGE = BASE_DIR / "dimension_history_data.php"

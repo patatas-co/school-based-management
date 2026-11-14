@@ -18,7 +18,7 @@ from teacher_outlier import (
 
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env", override=True)
-load_dotenv(BASE_DIR.parent / ".env", override=True)
+load_dotenv(BASE_DIR / ".env", override=True, encoding="utf-8-sig")
 
 from ml_classifier import dimension_model_metadata, predict_dimension_outlook
 _backend = os.getenv("LLM_BACKEND", "groq")
@@ -217,4 +217,4 @@ def full_pipeline():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5001, debug=True)
+    app.run(host="127.0.0.1", port=5001, debug=False)
