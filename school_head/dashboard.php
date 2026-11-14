@@ -255,9 +255,9 @@ $compareSyId = $compareSyIds[0] ?? 0;
 // -- Analytics dimension averages ------------------------------
 $anDimAvgQ = $db->prepare("
     SELECT d.dimension_id, d.dimension_no, d.dimension_name, d.color_hex,
-           ROUND(AVG(ds.percentage),1) AS avg_pct,
-           SUM(ds.raw_score)           AS sum_raw,
-           SUM(ds.max_score)           AS sum_max
+           ROUND(AVG(CASE WHEN c.cycle_id IS NOT NULL THEN ds.percentage END),1) AS avg_pct,
+           SUM(CASE WHEN c.cycle_id IS NOT NULL THEN ds.raw_score ELSE 0 END) AS sum_raw,
+           SUM(CASE WHEN c.cycle_id IS NOT NULL THEN ds.max_score ELSE 0 END) AS sum_max
     FROM sbm_dimensions d
     LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
     LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
@@ -448,6 +448,11 @@ $anAllPcts = array_filter(array_column($anDimAvgs, 'avg_pct'), fn($v) => $v !== 
 $_anTotalRaw = array_sum(array_column($anDimAvgs, 'sum_raw'));
 $_anTotalMax = array_sum(array_column($anDimAvgs, 'sum_max'));
 $anAvgOverall = $_anTotalMax > 0 ? round(($_anTotalRaw / $_anTotalMax) * 100, 1) : null;
+$anOverallStage = $anAvgOverall !== null ? sbmMaturityLevel((float) $anAvgOverall) : null;
+$anOverallStageNames = [1 => 'Developing', 2 => 'Maturing', 3 => 'Advanced'];
+$anOverallStageLabel = $anOverallStage
+  ? (($anOverallStageNames[(int) $anOverallStage['level']] ?? $anOverallStage['label']) . ' · Level ' . (int) $anOverallStage['level'])
+  : '—';
 $anTopDim = !empty($anAllPcts) ? $anDimAvgs[array_search(max($anAllPcts), array_column($anDimAvgs, 'avg_pct'))] : null;
 $anWeakDim = !empty($anAllPcts) ? $anDimAvgs[array_search(min($anAllPcts), array_column($anDimAvgs, 'avg_pct'))] : null;
 
@@ -2561,7 +2566,37 @@ include __DIR__ . '/../includes/header.php';
     </div>
   <?php endif; ?>
 
-  <?php $anCompareView = $_GET['view'] ?? 'progress'; ?>
+  <div class="an-insight-strip" style="margin-bottom:18px;">
+    <div class="an-insight-card">
+      <div class="an-insight-val"><?= $anAvgOverall !== null ? e((string)$anAvgOverall) . '%' : '—' ?></div>
+      <div class="an-insight-lbl">Overall SBM Stage</div>
+      <div class="an-insight-delta"><?= e($anOverallStageLabel) ?></div>
+    </div>
+    <div class="an-insight-card">
+      <?php if ($anTopDim): ?>
+        <div class="an-insight-val">
+          <?= e($anTopDim['dimension_name']) ?>
+        </div>
+        <div class="an-insight-lbl">Strongest SBM Principle</div>
+        <div class="an-insight-delta up"><?= e((string)$anTopDim['avg_pct']) ?>% average</div>
+      <?php else: ?>
+        <div class="an-insight-val">—</div>
+        <div class="an-insight-lbl">Strongest SBM Principle</div>
+      <?php endif; ?>
+    </div>
+    <div class="an-insight-card">
+      <?php if ($anWeakDim): ?>
+        <div class="an-insight-val">
+          <?= e($anWeakDim['dimension_name']) ?>
+        </div>
+        <div class="an-insight-lbl">Weakest SBM Principle</div>
+        <div class="an-insight-delta down"><?= e((string)$anWeakDim['avg_pct']) ?>% average</div>
+      <?php else: ?>
+        <div class="an-insight-val">—</div>
+        <div class="an-insight-lbl">Weakest SBM Principle</div>
+      <?php endif; ?>
+    </div>
+  </div>
 <!-- ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  MAIN GRID ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━  -->
 
 <!-- Charts row -->

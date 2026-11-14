@@ -23,7 +23,7 @@ $compareSyId = (int) ($_GET['compare_sy'] ?? 0);
 // ── Current SY dimension averages ─────────────────────────
 $dimAvgQ = $db->prepare("
     SELECT d.dimension_no, d.dimension_name, d.color_hex,
-           ROUND(AVG(ds.percentage),1) AS avg_pct
+           ROUND(AVG(CASE WHEN c.cycle_id IS NOT NULL THEN ds.percentage END),1) AS avg_pct
     FROM sbm_dimensions d
     LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
     LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
@@ -614,11 +614,11 @@ include __DIR__ . '/../includes/header.php';
         <?= svgIcon(getDimensionIcon((int)$weakDim['dimension_no']), '', 'width:20px;height:20px;') ?>
         <?= e($weakDim['dimension_name']) ?>
       </div>
-      <div class="insight-lbl">Needs Work (Weakest)</div>
+      <div class="insight-lbl">Weakest SBM Principle</div>
       <div class="insight-delta down"><?= $weakDim['avg_pct'] ?>% average</div>
     <?php else: ?>
       <div class="insight-val">—</div>
-      <div class="insight-lbl">Weakest Dimension</div>
+      <div class="insight-lbl">Weakest SBM Principle</div>
     <?php endif; ?>
   </div>
 </div>

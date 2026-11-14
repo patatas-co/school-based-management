@@ -416,9 +416,9 @@ $compareSyId = $compareSyIds[0] ?? 0;
 // Analytics dimension averages
 $anDimAvgQ = $db->prepare("
     SELECT d.dimension_id, d.dimension_no, d.dimension_name, d.color_hex,
-           ROUND(AVG(ds.percentage),1) AS avg_pct,
-           SUM(ds.raw_score)           AS sum_raw,
-           SUM(ds.max_score)           AS sum_max
+           ROUND(AVG(CASE WHEN c.cycle_id IS NOT NULL THEN ds.percentage END),1) AS avg_pct,
+           SUM(CASE WHEN c.cycle_id IS NOT NULL THEN ds.raw_score ELSE 0 END) AS sum_raw,
+           SUM(CASE WHEN c.cycle_id IS NOT NULL THEN ds.max_score ELSE 0 END) AS sum_max
     FROM sbm_dimensions d
     LEFT JOIN sbm_dimension_scores ds ON d.dimension_id = ds.dimension_id
     LEFT JOIN sbm_cycles c ON ds.cycle_id = c.cycle_id AND c.sy_id = ? AND c.school_id = ?
@@ -2621,18 +2621,36 @@ include __DIR__ . '/../includes/header.php';
         </div>
       </div>
     </div>
-  <?php elseif ($cycle && in_array($cycle['status'], ['validated', 'finalized', 'completed'])): ?>
-    <div class="card" style="margin-bottom:20px;border:1px solid var(--green-200);background:var(--green-50);">
-      <div class="card-body" style="padding:16px;">
-        <div style="font-size:14px;font-weight:800;color:var(--green-700);">Assessment Validated & Locked</div>
-        <div style="font-size:12.5px;color:var(--green-700);margin-top:3px;">
-          This assessment cycle is complete. No further edits are allowed.
-        </div>
-      </div>
-    </div>
   <?php endif; ?>
 
   <!-- ━━━━━━━━━━━ PROGRESS VIEW ━━━━━━━━━━━ -->
+
+  <div class="an-insight-strip" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:18px;">
+    <div class="an-insight-card">
+      <?php if ($anTopDim): ?>
+        <div class="an-insight-val">
+          <?= e($anTopDim['dimension_name']) ?>
+        </div>
+        <div class="an-insight-lbl">Strongest SBM Principle</div>
+        <div class="an-insight-delta up"><?= e((string)$anTopDim['avg_pct']) ?>% · SY <?= e($syLabel) ?></div>
+      <?php else: ?>
+        <div class="an-insight-val">—</div>
+        <div class="an-insight-lbl">Strongest SBM Principle</div>
+      <?php endif; ?>
+    </div>
+    <div class="an-insight-card">
+      <?php if ($anWeakDim): ?>
+        <div class="an-insight-val">
+          <?= e($anWeakDim['dimension_name']) ?>
+        </div>
+        <div class="an-insight-lbl">Weakest SBM Principle</div>
+        <div class="an-insight-delta down"><?= e((string)$anWeakDim['avg_pct']) ?>% · SY <?= e($syLabel) ?></div>
+      <?php else: ?>
+        <div class="an-insight-val">—</div>
+        <div class="an-insight-lbl">Weakest SBM Principle</div>
+      <?php endif; ?>
+    </div>
+  </div>
 
  <!-- Dimension trend over time -->
   <?php if (count($trendCycles) >= 1): ?>

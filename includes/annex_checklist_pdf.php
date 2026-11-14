@@ -20,11 +20,6 @@ $annexRowClasses = [
 <?php foreach ($annexPages as $pageIndex => $dimensionNumbers): ?>
   <?php if ($pageIndex > 0): ?><pagebreak /><?php endif; ?>
   <section class="annex-page<?= $pageIndex === 0 ? ' annex-page-one' : '' ?>">
-    <?php if ($type === 'annex_a' && $pageIndex === 0): ?>
-      <div class="report-letterhead" style="margin-bottom:5mm;">
-        <img src="<?= htmlspecialchars($reportHeaderImage, ENT_QUOTES, 'UTF-8') ?>" alt="Department of Education Region VIII header" style="display:block;width:100%;height:auto;" />
-      </div>
-    <?php endif; ?>
     <h1 class="annex-page-title">Annex A: School-Based Management (SBM) Self-Assessment Checklist</h1>
     <?php if ($pageIndex === 0): ?>
       <p class="annex-intro">

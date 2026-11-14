@@ -192,8 +192,7 @@ function getMaturityLabel(float $pct): array {
 }
 
 $overallMat = getMaturityLabel((float)($cycle['overall_score'] ?? 0));
-$reportHeaderImage = str_replace('\\', '/', __DIR__) . '/assets/deped_report_header.png';
-$reportFooterImage = str_replace('\\', '/', __DIR__) . '/assets/deped_report_footer.png';
+$reportLogoImage = str_replace('\\', '/', __DIR__) . '/assets/seal.png';
 $annexDimensionDescriptions = [
     1 => 'School personnel and stakeholders work collaboratively to enhance learning standards to continually build a relevant and inclusive learning community and achieve improved learning outcomes.',
     2 => 'The school and its community work collaboratively to ensure equitable access to a learner-centered, motivating, healthy, safe, secure, inclusive, resilient, and enabling learning environment and to achieve improved learning outcomes.',
@@ -244,10 +243,43 @@ ob_start();
     text-align: center;
     margin-bottom: 8px;
   }
-  .report-letterhead img {
-    display: block;
-    width: 100%;
-    height: auto;
+  .letterhead-table {
+    width: 96%;
+    margin: 0 auto;
+    border-collapse: collapse;
+  }
+  .letterhead-logo {
+    width: 24mm;
+    text-align: left;
+    vertical-align: middle;
+    padding-right: 2mm;
+  }
+  .letterhead-text {
+    text-align: left;
+    vertical-align: middle;
+  }
+  .lh-agency {
+    font-family: dejavusanscondensed;
+    font-size: 8pt;
+    color: #111111;
+    text-transform: uppercase;
+  }
+  .lh-school {
+    font-family: dejavusanscondensed;
+    font-size: 19pt;
+    font-weight: bold;
+    color: #2D6A0F;
+    text-transform: uppercase;
+    text-decoration: underline;
+    line-height: 1.15;
+  }
+  .lh-address {
+    font-family: dejavusanscondensed;
+    font-size: 7.5pt;
+    font-style: italic;
+    color: #111111;
+    margin-top: 4px;
+    padding-left: 22mm;
   }
 
   /* ── School info table ── */
@@ -427,14 +459,20 @@ ob_start();
     text-align: center;
   }
   .dimension-report-footer {
-    margin-top: 30px;
+    margin-top: 100px;
     width: 100%;
+    text-align: center;
   }
-  .dimension-report-footer img {
-    display: block;
-    width: 86%;
-    margin-left: 7%;
-    height: auto;
+  .dimension-report-footer .motto {
+    margin: 0 0 2px;
+    color: #426B1F;
+    font-size: 9pt;
+    font-weight: bold;
+  }
+  .dimension-report-footer .contact {
+    margin: 0;
+    color: #111827;
+    font-size: 9pt;
   }
   .signature-block {
     width: 100%;
@@ -558,7 +596,20 @@ ob_start();
 <div class="page-header">
   <?php if($type === 'dimension'): ?>
   <div class="report-letterhead">
-    <img src="<?= htmlspecialchars($reportHeaderImage, ENT_QUOTES, 'UTF-8') ?>" alt="Department of Education Region VIII header">
+    <table class="letterhead-table">
+      <tr>
+        <td class="letterhead-logo">
+          <img src="<?= htmlspecialchars($reportLogoImage, ENT_QUOTES, 'UTF-8') ?>" width="21mm" height="21mm" alt="DIHS Logo">
+        </td>
+        <td class="letterhead-text">
+          <table style="border-collapse:collapse;">
+            <tr><td class="lh-agency">Department of Education | Region IV – A Calabarzon | City Schools Division of Dasmariñas</td></tr>
+            <tr><td class="lh-school">Dasmariñas Integrated High School</td></tr>
+            <tr><td class="lh-address">Congressional South Avenue, Burol 1, City of Dasmariñas, Cavite</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </div>
   <?php else: ?>
   <p style="font-size:8pt;color:#6B7280;margin-bottom:4px;">
@@ -784,7 +835,8 @@ ob_start();
 
 <?php if($type === 'dimension'): ?>
 <div class="dimension-report-footer">
-  <img src="<?= htmlspecialchars($reportFooterImage, ENT_QUOTES, 'UTF-8') ?>" alt="Department of Education Region VIII footer">
+  <p class="motto">“TAGA-DIHS AKO: Disiplina at Kalinisan nasa Puso Ko”</p>
+  <p class="contact">E-mail: <u>dasmarinas.ihs@depedcalabarzon.edu.ph</u> &nbsp;|&nbsp; Phone: 506-1208 / 416-0498</p>
 </div>
 <?php else: ?>
 <!-- ── Footer ── -->
