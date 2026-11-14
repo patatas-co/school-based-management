@@ -941,17 +941,17 @@ include __DIR__.'/../includes/header.php';
         ><?= e($tab['label']) ?><span class="ip-plan-tab-count"><?= (int) $tab['count'] ?></span></button>
       <?php endforeach; ?>
     </div>
-    <div class="tbl-wrap">
-      <table>
+    <div class="tbl-wrap ip-plan-table-wrap">
+      <table class="ip-plan-summary-table">
         <thead>
           <tr>
-            <th style="width:70px;">Dimension</th>
-            <th style="width:90px;">Indicator</th>
-            <th>Objective</th>
-            <th style="width:90px;">Priority</th>
-            <th style="width:110px;">Target Date</th>
-            <th style="width:100px;">Status</th>
-            <th style="width:150px;">Actions</th>
+            <th class="ip-plan-dimension-col">Dimension</th>
+            <th class="ip-plan-indicator-col">Indicator</th>
+            <th class="ip-plan-objective-col">Objective</th>
+            <th class="ip-plan-priority-col">Priority</th>
+            <th class="ip-plan-date-col">Target Date</th>
+            <th class="ip-plan-status-col">Status</th>
+            <th class="ip-plan-actions-col">Actions</th>
           </tr>
         </thead>
         <tbody id="ipPlanTableBody">
@@ -962,11 +962,41 @@ include __DIR__.'/../includes/header.php';
               IP_STATUS_FINALIZED => 'finalized',
               default => 'submitted',
             };
+            $drawerPlan = [
+              'plan_id' => (int) $p['plan_id'],
+              'dimension_no' => (int) $p['dimension_no'],
+              'dimension_name' => $p['dimension_name'],
+              'color_hex' => $p['color_hex'],
+              'indicator_code' => $p['indicator_code'],
+              'indicator_text' => $p['indicator_text'],
+              'priority_level' => $p['priority_level'],
+              'target_date' => $p['target_date'],
+              'objective' => $p['objective'],
+              'objective_html' => ipRenderPlanObjective((string) $p['objective']),
+              'strategy' => $p['strategy'],
+              'person_responsible' => $p['person_responsible'],
+              'resources_needed' => $p['resources_needed'],
+              'expected_output' => $p['expected_output'],
+              'workflow_status' => $p['workflow_status'],
+              'status_label' => ipStatusLabel($p['workflow_status']),
+              'can_edit' => $p['workflow_status'] === IP_STATUS_RETURNED
+                || ($p['workflow_status'] === IP_STATUS_DRAFT && !$isSubmitted && !$isFinalized),
+              'can_delete' => $p['workflow_status'] === IP_STATUS_DRAFT,
+              'can_view_history' => true,
+            ];
           ?>
-            <tr data-plan-status="<?= e($planTab) ?>"<?= $activePlanTab !== $planTab ? ' hidden' : '' ?>>
+            <tr
+              class="ip-plan-summary-row"
+              data-plan-status="<?= e($planTab) ?>"
+              data-plan-detail="<?= e(json_encode($drawerPlan, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG)) ?>"
+              tabindex="0"
+              aria-haspopup="dialog"
+              aria-label="View details for dimension D<?= (int) $p['dimension_no'] ?>, indicator <?= e($p['indicator_code'] ?? '—') ?>"
+              <?= $activePlanTab !== $planTab ? 'hidden' : '' ?>
+            >
               <td><strong style="font-size:12px;color:<?= e($p['color_hex'] ?? 'var(--n-600)') ?>;">D<?= (int)$p['dimension_no'] ?></strong></td>
               <td style="font-size:12px;color:var(--n-600);"><?= e($p['indicator_code'] ?? '—') ?></td>
-              <td class="ip-objective-cell"><?= ipRenderPlanObjective((string) $p['objective']) ?></td>
+              <td class="ip-objective-cell"><div class="ip-objective-summary"><?= e($p['objective']) ?></div></td>
               <td>
                 <span style="display:inline-flex;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;
                   background:<?= $p['priority_level']==='High' ? '#fee2e2' : ($p['priority_level']==='Low' ? '#f1f5f9' : '#fef3c7') ?>;
@@ -983,27 +1013,9 @@ include __DIR__.'/../includes/header.php';
                 </span>
               </td>
               <td>
-                <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;white-space:nowrap;">
-                  <button class="ip-icon-btn" title="Preview" onclick='openViewPlan(<?= json_encode(array_merge($p, ['objective_html' => ipRenderPlanObjective((string) $p['objective'])]), JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  </button>
-                  <button class="ip-icon-btn" title="History" onclick="openPlanHistory(<?= (int)$p['plan_id'] ?>)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 3 3 9 9 9"/><path d="M12 7v5l3 2"/></svg>
-                  </button>
-                  <?php if (
-                    $p['workflow_status'] === IP_STATUS_RETURNED
-                    || ($p['workflow_status'] === IP_STATUS_DRAFT && !$isSubmitted && !$isFinalized)
-                  ): ?>
-                    <button class="ip-icon-btn" title="Edit" onclick='openEditPlan(<?= json_encode($p, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    <?php if ($p['workflow_status'] === IP_STATUS_DRAFT): ?>
-                    <button class="ip-icon-btn ip-icon-btn-danger" title="Delete" onclick="deletePlan(<?= (int)$p['plan_id'] ?>)">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    </button>
-                    <?php endif; ?>
-                  <?php endif; ?>
-                </div>
+                <button type="button" class="ip-icon-btn ip-plan-view-button" data-view-plan title="View details" aria-label="View details for D<?= (int) $p['dimension_no'] ?>, indicator <?= e($p['indicator_code'] ?? '—') ?>">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -1048,27 +1060,55 @@ include __DIR__.'/../includes/header.php';
       <p style="font-size:13px;color:var(--n-500);">No past improvement plans found for this school.</p>
     </div>
   <?php else: ?>
-    <div class="tbl-wrap">
-      <table>
+    <div class="tbl-wrap ip-plan-table-wrap">
+      <table class="ip-plan-summary-table ip-plan-history-summary-table">
         <thead>
           <tr>
-            <th style="width:80px;">School Year</th>
-            <th style="width:70px;">Dimension</th>
-            <th style="width:90px;">Indicator</th>
-            <th>Objective</th>
-            <th style="width:90px;">Priority</th>
-            <th style="width:110px;">Target Date</th>
-            <th style="width:100px;">Status</th>
-            <th style="width:70px;">Actions</th>
+            <th style="width:12%;">School Year</th>
+            <th style="width:8%;">Dimension</th>
+            <th style="width:9%;">Indicator</th>
+            <th style="width:30%;">Objective</th>
+            <th style="width:10%;">Priority</th>
+            <th style="width:12%;">Target Date</th>
+            <th style="width:10%;">Status</th>
+            <th style="width:9%;">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($historyPlans as $p): ?>
-            <tr>
+          <?php foreach ($historyPlans as $p):
+            $historyDrawerPlan = [
+              'plan_id' => (int) $p['plan_id'],
+              'dimension_no' => (int) $p['dimension_no'],
+              'dimension_name' => $p['dimension_name'],
+              'color_hex' => $p['color_hex'],
+              'indicator_code' => $p['indicator_code'],
+              'indicator_text' => $p['indicator_text'],
+              'priority_level' => $p['priority_level'],
+              'target_date' => $p['target_date'],
+              'objective' => $p['objective'],
+              'objective_html' => ipRenderPlanObjective((string) $p['objective']),
+              'strategy' => $p['strategy'],
+              'person_responsible' => $p['person_responsible'],
+              'resources_needed' => $p['resources_needed'],
+              'expected_output' => $p['expected_output'],
+              'workflow_status' => $p['workflow_status'],
+              'status_label' => ipStatusLabel($p['workflow_status']),
+              'can_edit' => false,
+              'can_delete' => false,
+              'can_view_history' => false,
+            ];
+          ?>
+            <tr
+              class="ip-plan-summary-row"
+              data-plan-detail="<?= e(json_encode($historyDrawerPlan, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG)) ?>"
+              tabindex="0"
+              aria-haspopup="dialog"
+              aria-label="View details for school year <?= e($p['sy_label']) ?>, dimension D<?= (int) $p['dimension_no'] ?>"
+            >
               <td style="font-size:12px;color:var(--n-600);">SY <?= e($p['sy_label']) ?></td>
               <td><strong style="font-size:12px;color:<?= e($p['color_hex'] ?? 'var(--n-600)') ?>;">D<?= (int)$p['dimension_no'] ?></strong></td>
               <td style="font-size:12px;color:var(--n-600);"><?= e($p['indicator_code'] ?? '—') ?></td>
-              <td class="ip-objective-cell"><?= ipRenderPlanObjective((string) $p['objective']) ?></td>
+              <td class="ip-objective-cell"><div class="ip-objective-summary"><?= e($p['objective']) ?></div></td>
               <td>
                 <span style="display:inline-flex;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;
                   background:<?= $p['priority_level']==='High' ? '#fee2e2' : ($p['priority_level']==='Low' ? '#f1f5f9' : '#fef3c7') ?>;
@@ -1085,7 +1125,7 @@ include __DIR__.'/../includes/header.php';
                 </span>
               </td>
               <td>
-                <button class="ip-icon-btn" title="Preview" onclick='openViewPlan(<?= json_encode(array_merge($p, ['objective_html' => ipRenderPlanObjective((string) $p['objective'])]), JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+                <button type="button" class="ip-icon-btn ip-plan-view-button" data-view-plan title="View details" aria-label="View details for school year <?= e($p['sy_label']) ?>, dimension D<?= (int) $p['dimension_no'] ?>">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
               </td>
@@ -1211,25 +1251,6 @@ include __DIR__.'/../includes/header.php';
   </div>
 </div>
 
-<!-- ── VIEW (PREVIEW) IMPROVEMENT PLAN MODAL — read-only ── -->
-<div id="viewPlanModal" class="modal-overlay">
-  <div class="modal-content">
-    <div class="modal-form-side">
-      <div class="modal-header">
-        <div class="modal-title">Improvement Plan</div>
-        <button class="btn btn-ghost" style="padding:4px;" onclick="closeViewPlanModal()">&times;</button>
-      </div>
-      <div class="modal-body" id="viewPlanBody" style="font-size:13.5px;line-height:1.7;color:var(--n-800);">
-        <!-- Populated via JS -->
-      </div>
-      <div class="modal-footer">
-        <div style="flex:1"></div>
-        <button class="btn-secondary" onclick="closeViewPlanModal()">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- ── IMPROVEMENT PLAN MODAL ── -->
 <div id="improvementPlanModal" class="modal-overlay">
   <div class="modal-content">
@@ -1328,6 +1349,16 @@ include __DIR__.'/../includes/header.php';
 </div>
 
 <?php endif; ?>
+<div id="viewPlanModal" class="ip-plan-drawer-backdrop" role="dialog" aria-modal="true" aria-labelledby="viewPlanTitle" aria-hidden="true">
+  <section class="ip-plan-drawer" tabindex="-1">
+    <div class="ip-plan-drawer-header">
+      <h2 class="modal-title" id="viewPlanTitle">Improvement Plan</h2>
+      <button type="button" class="btn btn-ghost ip-plan-drawer-close" onclick="closeViewPlanModal()" aria-label="Close improvement plan details">&times;</button>
+    </div>
+    <div class="ip-plan-drawer-body" id="viewPlanBody"></div>
+    <footer class="ip-plan-drawer-footer" id="viewPlanActions"></footer>
+  </section>
+</div>
 <style>
 .ai-suggest-content {
   font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
@@ -1479,7 +1510,171 @@ include __DIR__.'/../includes/header.php';
 .ip-objective-cell {
   font-size: 12.5px;
   line-height: 1.5;
-  min-width: 280px;
+  min-width: 0;
+}
+.ip-plan-summary-table {
+  width: 100%;
+  table-layout: fixed;
+}
+.ip-plan-summary-table thead th,
+.ip-plan-summary-table tbody td {
+  padding-right: 10px;
+  padding-left: 10px;
+}
+.ip-plan-summary-table thead th {
+  white-space: normal;
+}
+.ip-plan-table-wrap {
+  overflow-x: hidden;
+}
+.ip-plan-dimension-col { width: 8%; }
+.ip-plan-indicator-col { width: 10%; }
+.ip-plan-objective-col { width: 35%; }
+.ip-plan-priority-col { width: 11%; }
+.ip-plan-date-col { width: 14%; }
+.ip-plan-status-col { width: 13%; }
+.ip-plan-actions-col { width: 9%; }
+.ip-objective-summary {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.ip-plan-summary-row {
+  cursor: pointer;
+  transition: background-color .15s ease;
+}
+.ip-plan-summary-row:hover > td {
+  background: var(--n-50);
+}
+.ip-plan-summary-row:focus-visible > td {
+  outline: 2px solid var(--brand-600, #16a34a);
+  outline-offset: -2px;
+}
+.ip-plan-view-button {
+  white-space: nowrap;
+}
+.ip-plan-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: none;
+  align-items: stretch;
+  justify-content: flex-end;
+  background: rgba(15, 23, 42, .38);
+  backdrop-filter: blur(2px);
+}
+.ip-plan-drawer-backdrop.open {
+  display: flex;
+}
+.ip-plan-drawer {
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100vw);
+  height: 100%;
+  background: #fff;
+  box-shadow: -16px 0 42px rgba(15, 23, 42, .18);
+  transform: translateX(100%);
+  transition: transform .22s ease-out;
+}
+.ip-plan-drawer-backdrop.open .ip-plan-drawer {
+  transform: translateX(0);
+}
+.ip-plan-drawer-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--n-200);
+}
+.ip-plan-drawer-header .modal-title {
+  margin: 0;
+}
+.ip-plan-drawer-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 20px;
+  color: var(--n-800);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.ip-plan-detail-row {
+  margin-bottom: 16px;
+}
+.ip-plan-detail-row:last-child {
+  margin-bottom: 0;
+}
+.ip-plan-detail-label {
+  margin-bottom: 4px;
+  color: var(--n-500);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+.ip-plan-detail-value {
+  color: var(--n-800);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ip-plan-drawer-footer {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--n-200);
+  background: #fff;
+}
+.ip-plan-drawer-footer:empty {
+  display: none;
+}
+.ip-plan-delete-action {
+  color: #b91c1c;
+}
+.ip-plan-delete-action:hover {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+.ip-plan-history-entry {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--n-200);
+}
+.ip-plan-history-entry:last-child {
+  border-bottom: 0;
+}
+.ip-plan-history-meta {
+  color: var(--n-500);
+}
+.ip-plan-history-entry p {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+}
+@media (max-width: 760px) {
+  .ip-plan-table-wrap {
+    overflow-x: auto;
+  }
+  .ip-plan-summary-table {
+    min-width: 720px;
+  }
+  .ip-plan-drawer {
+    width: 100%;
+    max-width: none;
+    box-shadow: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ip-plan-summary-row,
+  .ip-plan-drawer {
+    transition: none;
+  }
 }
 .ip-objective-cell p,
 .ip-objective-preview p {
@@ -1941,9 +2136,10 @@ function initImprovementPlanTabs() {
     });
   });
 }
-if (IS_IMPROVEMENT_PLANS_PAGE) {
-  document.addEventListener('DOMContentLoaded', initImprovementPlanTabs);
-}
+document.addEventListener('DOMContentLoaded', () => {
+  if (IS_IMPROVEMENT_PLANS_PAGE) initImprovementPlanTabs();
+  if (document.querySelector('.ip-plan-summary-row')) initImprovementPlanDrawer();
+});
 
 /** Renders AI text as a formal, structured report (Claude-style formatting) */
 function renderConfidenceBadge(block) {
@@ -2624,12 +2820,16 @@ async function openPlanHistory(planId) {
     const res = await fetch(window.location.href, { method: 'POST', body: new URLSearchParams({ action: 'get_improvement_plan_history', plan_id: planId }) });
     const data = await res.json();
     const rows = data.history || [];
-    document.querySelector('#viewPlanModal .modal-title').textContent = 'Improvement Plan History';
-    document.getElementById('viewPlanBody').innerHTML = rows.length
-      ? rows.map(h => `<div style="padding:12px 0;border-bottom:1px solid var(--n-200);"><strong>Version ${h.version_no}: ${ipEscape(h.action.replaceAll('_', ' '))}</strong><br><span style="color:var(--n-500);">${ipEscape(h.actor_name)} · ${ipEscape(h.from_status || 'new')} → ${ipEscape(h.to_status || '—')} · ${ipEscape(h.created_at)}</span>${h.remarks ? `<p style="margin:6px 0 0;">${ipEscape(h.remarks)}</p>` : ''}</div>`).join('')
-      : '<p>No history recorded.</p>';
-    document.getElementById('viewPlanModal').style.display = 'flex';
-  } catch (err) { alert('Unable to load improvement plan history.'); }
+    if (!document.getElementById('viewPlanModal').classList.contains('open')
+      || !currentPlanDrawerData
+      || String(currentPlanDrawerData.plan_id) !== String(planId)) return;
+    renderPlanDrawerHistory(rows);
+    const backButton = document.querySelector('#viewPlanActions [data-drawer-action="details"]');
+    if (backButton) backButton.focus();
+  } catch (err) {
+    console.error(err);
+    alert('Unable to load improvement plan history.');
+  }
 }
 
 async function saveEditPlan(e) {
@@ -2681,34 +2881,186 @@ function ipEscape(str) {
 }
 
 function ipViewRow(label, value) {
-  return `<div style="margin-bottom:14px;">
-    <div style="font-size:11.5px;font-weight:600;color:var(--n-500);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">${label}</div>
-    <div>${value || '<span style="color:var(--n-400);">—</span>'}</div>
+  return `<div class="ip-plan-detail-row">
+    <div class="ip-plan-detail-label">${label}</div>
+    <div class="ip-plan-detail-value">${value || '<span style="color:var(--n-400);">—</span>'}</div>
   </div>`;
 }
 
-function openViewPlan(plan) {
-  const dimLabel = 'D' + plan.dimension_no + ' — ' + plan.dimension_name + (plan.indicator_code ? ' · ' + plan.indicator_code : '');
+let currentPlanDrawerData = null;
+let planDrawerReturnFocus = null;
+let planDrawerPreviousBodyOverflow = '';
+
+function initImprovementPlanDrawer() {
+  const drawer = document.getElementById('viewPlanModal');
+  const actions = document.getElementById('viewPlanActions');
+  if (!drawer || !actions) return;
+
+  document.querySelectorAll('.ip-plan-summary-row').forEach(row => {
+    row.addEventListener('click', event => {
+      if (event.target.closest('button, a, input, select, textarea')) return;
+      openViewPlan(JSON.parse(row.dataset.planDetail), row);
+    });
+    row.addEventListener('keydown', event => {
+      if ((event.key !== 'Enter' && event.key !== ' ') || event.target !== row) return;
+      event.preventDefault();
+      openViewPlan(JSON.parse(row.dataset.planDetail), row);
+    });
+  });
+
+  document.querySelectorAll('[data-view-plan]').forEach(button => {
+    button.addEventListener('click', event => {
+      event.stopPropagation();
+      const row = button.closest('.ip-plan-summary-row');
+      if (row) openViewPlan(JSON.parse(row.dataset.planDetail), button);
+    });
+  });
+
+  actions.addEventListener('click', event => {
+    const button = event.target.closest('[data-drawer-action]');
+    if (!button || !currentPlanDrawerData) return;
+
+    switch (button.dataset.drawerAction) {
+      case 'history':
+        openPlanHistory(currentPlanDrawerData.plan_id);
+        break;
+      case 'edit': {
+        const plan = currentPlanDrawerData;
+        closeViewPlanModal();
+        openEditPlan(plan);
+        break;
+      }
+      case 'delete':
+        deletePlan(currentPlanDrawerData.plan_id);
+        break;
+      case 'details': {
+        renderPlanDrawerDetails(currentPlanDrawerData);
+        const historyButton = actions.querySelector('[data-drawer-action="history"]');
+        const closeButton = actions.querySelector('[data-drawer-action="close"]');
+        (historyButton || closeButton).focus();
+        break;
+      }
+      case 'close':
+        closeViewPlanModal();
+        break;
+    }
+  });
+
+  drawer.addEventListener('click', event => {
+    if (event.target === drawer) closeViewPlanModal();
+  });
+
+  document.addEventListener('keydown', event => {
+    if (!drawer.classList.contains('open')) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeViewPlanModal();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const focusable = [...drawer.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      .filter(element => element.offsetParent !== null);
+    if (!focusable.length) {
+      event.preventDefault();
+      const drawerPanel = drawer.querySelector('.ip-plan-drawer');
+      if (drawerPanel) drawerPanel.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && (document.activeElement === first || !drawer.contains(document.activeElement))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !drawer.contains(document.activeElement))) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+}
+
+function addPlanDrawerAction(actions, label, action, extraClass = '') {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `btn btn-secondary btn-sm ${extraClass}`.trim();
+  button.dataset.drawerAction = action;
+  button.textContent = label;
+  actions.appendChild(button);
+}
+
+function renderPlanDrawerActions(plan, mode = 'details') {
+  const actions = document.getElementById('viewPlanActions');
+  actions.innerHTML = '';
+  if (mode === 'history') {
+    addPlanDrawerAction(actions, 'Back to plan details', 'details');
+    addPlanDrawerAction(actions, 'Close', 'close');
+    return;
+  }
+  if (plan.can_view_history) addPlanDrawerAction(actions, 'History', 'history');
+  if (plan.can_edit) addPlanDrawerAction(actions, 'Edit', 'edit');
+  if (plan.can_delete) addPlanDrawerAction(actions, 'Delete', 'delete', 'ip-plan-delete-action');
+  addPlanDrawerAction(actions, 'Close', 'close');
+}
+
+function renderPlanDrawerDetails(plan) {
+  document.getElementById('viewPlanTitle').textContent = 'Improvement Plan';
+  const dimensionColor = /^#[0-9a-f]{3,8}$/i.test(plan.color_hex || '')
+    ? plan.color_hex
+    : 'var(--n-600)';
+  const indicator = [
+    ipEscape(plan.indicator_code || '—'),
+    plan.indicator_text ? `<div>${ipEscape(plan.indicator_text)}</div>` : '',
+  ].filter(Boolean).join('');
   const targetDate = plan.target_date
     ? new Date(plan.target_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     : null;
 
   document.getElementById('viewPlanBody').innerHTML =
-    ipViewRow('Dimension / Indicator', ipEscape(dimLabel)) +
-    ipViewRow('Priority', ipEscape(plan.priority_level)) +
-    ipViewRow('Target Date', targetDate ? ipEscape(targetDate) : null) +
+    ipViewRow('Dimension', `<span style="color:${dimensionColor};font-weight:700;">D${ipEscape(String(plan.dimension_no))}</span> — ${ipEscape(plan.dimension_name)}`) +
+    ipViewRow('Indicator', indicator) +
     ipViewRow('Objective', `<div class="ip-objective-preview">${plan.objective_html || ipEscape(plan.objective)}</div>`) +
     ipViewRow('Strategy', ipEscape(plan.strategy)) +
     ipViewRow('Person Responsible', ipEscape(plan.person_responsible)) +
     ipViewRow('Resources Needed', ipEscape(plan.resources_needed)) +
     ipViewRow('Expected Output', ipEscape(plan.expected_output)) +
-    ipViewRow('Status', ipEscape(plan.workflow_status ? plan.workflow_status.charAt(0).toUpperCase() + plan.workflow_status.slice(1) : null));
+    ipViewRow('Priority', ipEscape(plan.priority_level)) +
+    ipViewRow('Target Date', targetDate ? ipEscape(targetDate) : null) +
+    ipViewRow('Status', ipEscape(plan.status_label || (plan.workflow_status ? plan.workflow_status.charAt(0).toUpperCase() + plan.workflow_status.slice(1) : null)));
+  renderPlanDrawerActions(plan);
+}
 
-  document.getElementById('viewPlanModal').style.display = 'flex';
+function openViewPlan(plan, triggerElement = document.activeElement) {
+  const drawer = document.getElementById('viewPlanModal');
+  currentPlanDrawerData = plan;
+  planDrawerReturnFocus = triggerElement;
+  renderPlanDrawerDetails(plan);
+  drawer.setAttribute('aria-hidden', 'false');
+  drawer.classList.add('open');
+  planDrawerPreviousBodyOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => {
+    const closeButton = drawer.querySelector('.ip-plan-drawer-close');
+    if (closeButton) closeButton.focus();
+  });
 }
 
 function closeViewPlanModal() {
-  document.getElementById('viewPlanModal').style.display = 'none';
+  const drawer = document.getElementById('viewPlanModal');
+  drawer.classList.remove('open');
+  drawer.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = planDrawerPreviousBodyOverflow;
+  if (planDrawerReturnFocus && planDrawerReturnFocus.isConnected && !planDrawerReturnFocus.closest('[hidden]')) {
+    planDrawerReturnFocus.focus();
+  }
+  planDrawerReturnFocus = null;
+}
+
+function renderPlanDrawerHistory(rows) {
+  document.getElementById('viewPlanTitle').textContent = 'Improvement Plan History';
+  document.getElementById('viewPlanBody').innerHTML = rows.length
+    ? rows.map(history => `<div class="ip-plan-history-entry"><strong>Version ${ipEscape(history.version_no)}: ${ipEscape((history.action || '').replaceAll('_', ' '))}</strong><br><span class="ip-plan-history-meta">${ipEscape(history.actor_name)} · ${ipEscape(history.from_status || 'new')} → ${ipEscape(history.to_status || '—')} · ${ipEscape(history.created_at)}</span>${history.remarks ? `<p>${ipEscape(history.remarks)}</p>` : ''}</div>`).join('')
+    : '<p>No history recorded.</p>';
+  renderPlanDrawerActions(currentPlanDrawerData, 'history');
 }
 
 // ── DELETE IMPROVEMENT PLAN ──────────────────────────────────────

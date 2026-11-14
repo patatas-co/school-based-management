@@ -121,17 +121,17 @@ include __DIR__ . '/../includes/header.php';
         ><?= e($tabLabel) ?><span class="ip-review-tab-count"><?= (int) $planTabCounts[$tabKey] ?></span></button>
       <?php endforeach; ?>
     </div>
-    <div class="tbl-wrap" style="overflow-x:auto;">
-      <table style="min-width:1320px;">
+    <div class="tbl-wrap ip-review-table-wrap">
+      <table class="ip-review-summary-table">
         <thead>
           <tr>
-            <th>Review Stage</th>
-            <th>Dimension</th>
-            <th>Indicator</th>
-            <th>Priority</th>
-            <th>Target</th>
-            <th>Responsible Person</th>
-            <th>Actions</th>
+            <th class="ip-review-stage-col">Review Stage</th>
+            <th class="ip-review-dimension-col">Dimension</th>
+            <th class="ip-review-indicator-col">Indicator</th>
+            <th class="ip-review-objective-col">Objective</th>
+            <th class="ip-review-priority-col">Priority</th>
+            <th class="ip-review-date-col">Target Date</th>
+            <th class="ip-review-actions-col">Actions</th>
           </tr>
         </thead>
         <tbody id="ipReviewTableBody">
@@ -147,30 +147,56 @@ include __DIR__ . '/../includes/header.php';
                 IP_STATUS_RETURNED => 'returned',
                 default => null,
             };
+            $stageOwner = $status === IP_STATUS_RETURNED ? 'School Head'
+                : ($status === IP_STATUS_FINALIZED ? 'Completed' : 'SBM Coordinator');
+            $reviewDrawerPlan = [
+              'plan_id' => (int) $plan['plan_id'],
+              'dimension_no' => (int) $plan['dimension_no'],
+              'dimension_name' => $plan['dimension_name'],
+              'indicator_code' => $plan['indicator_code'] ?: 'General',
+              'indicator_text' => $plan['indicator_text'] ?: '',
+              'objective' => $plan['objective'],
+              'strategy' => $plan['strategy'],
+              'person_responsible' => $plan['person_responsible'],
+              'resources_needed' => $plan['resources_needed'],
+              'expected_output' => $plan['expected_output'],
+              'priority_level' => $plan['priority_level'],
+              'target_date' => $plan['target_date'],
+              'workflow_status' => $status,
+              'status_label' => ipStatusLabel($status),
+              'stage_owner' => $stageOwner,
+              'validated_by_name' => $plan['validated_by_name'],
+              'validated_at' => $plan['validated_at'],
+              'can_return' => $canReview,
+              'can_approve' => $canReview,
+              'can_validate' => $canValidate,
+            ];
         ?>
-          <tr class="ip-plan-row"<?= $planTab !== null ? ' data-review-status="' . e($planTab) . '"' : '' ?><?= $planTab === null || $activePlanTab !== $planTab ? ' hidden' : '' ?>>
+          <tr
+            class="ip-plan-row ip-review-summary-row"
+            <?= $planTab !== null ? 'data-review-status="' . e($planTab) . '"' : '' ?>
+            data-plan-detail="<?= e(json_encode($reviewDrawerPlan, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG)) ?>"
+            tabindex="0"
+            aria-haspopup="dialog"
+            aria-label="View details for dimension D<?= (int) $plan['dimension_no'] ?>, indicator <?= e($plan['indicator_code'] ?: 'General') ?>"
+            <?= $planTab === null || $activePlanTab !== $planTab ? 'hidden' : '' ?>
+          >
             <td>
               <span class="ip-stage-label"><?= e(ipStatusLabel($status)) ?></span><br>
-              <small><?= $status === IP_STATUS_RETURNED ? 'School Head' : ($status === IP_STATUS_FINALIZED ? 'Completed' : 'SBM Coordinator') ?></small>
-                <?php if ($status === IP_STATUS_FINALIZED && $plan['validated_by_name']): ?><br><small>Validated by <?= e($plan['validated_by_name']) ?><br><?= e($plan['validated_at']) ?></small><?php endif; ?>
+              <small><?= e($stageOwner) ?></small>
             </td>
             <td><span class="ip-dimension-cell">D<?= (int) $plan['dimension_no'] ?></span><br><small><?= e($plan['dimension_name']) ?></small></td>
-            <td><span class="ip-indicator-cell"><?= e($plan['indicator_code'] ?: 'General') ?></span><br><small><?= e(mb_strimwidth($plan['indicator_text'] ?: '', 0, 72, '…')) ?></small></td>
+            <td>
+              <span class="ip-indicator-cell"><?= e($plan['indicator_code'] ?: 'General') ?></span>
+              <div class="ip-review-indicator-summary"><?= e($plan['indicator_text'] ?: '') ?></div>
+            </td>
+            <td class="ip-review-objective-cell"><div class="ip-review-objective-summary"><?= e($plan['objective']) ?></div></td>
             <td><span class="priority-pill priority-<?= e(strtolower($plan['priority_level'])) ?>"><?= e($plan['priority_level']) ?></span></td>
             <td><?= $plan['target_date'] ? e(date('M j, Y', strtotime($plan['target_date']))) : '—' ?></td>
-            <td><?= e($plan['person_responsible'] ?: '—') ?></td>
-            <td style="min-width:220px; text-align:center;">
-              <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:nowrap;">
-                <button type="button" class="btn btn-secondary btn-sm full-plan-trigger" onclick='openFullPlanModal(<?= json_encode([
-                  "objective" => $plan["objective"],
-                  "strategy" => $plan["strategy"],
-                  "resources" => $plan["resources_needed"] ?: "—",
-                  "expectedOutput" => $plan["expected_output"] ?: "—",
-                ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>View Plan</button>
-                <?php if ($canReview): ?><button type="button" class="btn btn-secondary btn-sm return-plan" title="Return the plan without changing its content." data-id="<?= (int) $plan['plan_id'] ?>" data-dimension="D<?= (int) $plan['dimension_no'] ?>" data-indicator="<?= e($plan['indicator_code'] ?: 'General') ?>">Return</button><?php endif; ?>
-                <?php if ($canReview): ?><button class="btn btn-success btn-sm approve-plan" title="Approve means the content is accepted and ready for the separate validation step." data-id="<?= (int) $plan['plan_id'] ?>">Approve</button><?php endif; ?>
-                <?php if ($canValidate): ?><button class="btn btn-success btn-sm validate-plan" title="Validate records the final validation event and moves the plan to Finalized." data-id="<?= (int) $plan['plan_id'] ?>">Validate</button><?php endif; ?>
-              </div>
+            <td class="ip-review-actions-cell">
+              <button type="button" class="full-plan-trigger ip-review-view-button" data-view-plan title="View plan details" aria-label="View details for dimension D<?= (int) $plan['dimension_no'] ?>, indicator <?= e($plan['indicator_code'] ?: 'General') ?>">
+                View Plan
+              </button>
             </td>
           </tr>
         <?php endforeach; ?>
@@ -185,25 +211,15 @@ include __DIR__ . '/../includes/header.php';
   <div id="historyPopoverList" class="history-popover-list"></div>
 </div>
 
-<div id="fullPlanModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="fullPlanModalTitle">
-  <div class="modal-content full-plan-modal-content">
-    <div class="modal-form-side">
-      <div class="modal-header">
-        <div class="modal-title" id="fullPlanModalTitle">Full Improvement Plan</div>
-        <button type="button" class="btn btn-ghost" style="padding:4px;" onclick="closeFullPlanModal()" aria-label="Close">&times;</button>
-      </div>
-      <div class="modal-body full-plan-modal-body">
-        <div class="full-plan-modal-section"><strong>Objective</strong><div id="fullPlanObjective"></div></div>
-        <div class="full-plan-modal-section"><strong>Strategy</strong><div id="fullPlanStrategy"></div></div>
-        <div class="full-plan-modal-section"><strong>Resources</strong><div id="fullPlanResources"></div></div>
-        <div class="full-plan-modal-section"><strong>Expected Output</strong><div id="fullPlanExpectedOutput"></div></div>
-      </div>
-      <div class="modal-footer">
-        <div style="flex:1"></div>
-        <button type="button" class="btn-secondary" onclick="closeFullPlanModal()">Close</button>
-      </div>
+<div id="planDetailsDrawer" class="ip-review-drawer-backdrop" role="dialog" aria-modal="true" aria-labelledby="planDetailsTitle" aria-hidden="true">
+  <section class="ip-review-drawer" tabindex="-1">
+    <div class="ip-review-drawer-header">
+      <h2 class="modal-title" id="planDetailsTitle">Improvement Plan</h2>
+      <button type="button" class="btn btn-ghost ip-review-drawer-close" onclick="closePlanDetailsDrawer()" aria-label="Close improvement plan details">&times;</button>
     </div>
-  </div>
+    <div class="ip-review-drawer-body" id="planDetailsBody"></div>
+    <footer class="ip-review-drawer-footer" id="planDetailsActions"></footer>
+  </section>
 </div>
 
 <div id="returnRemarksModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="returnRemarksTitle" aria-describedby="returnRemarksHelp">
@@ -258,6 +274,45 @@ include __DIR__ . '/../includes/header.php';
  .full-plan-trigger{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:7px 12px;border:1px solid var(--n-300);border-radius:8px;background:#fff;color:var(--n-700);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;line-height:1.2;transition:background .15s,border-color .15s,box-shadow .15s,transform .15s}.full-plan-trigger:hover{background:var(--n-50);border-color:var(--n-400);box-shadow:0 2px 6px rgba(15,23,42,.06)}.full-plan-trigger:focus-visible{outline:3px solid rgba(22,163,74,.18);outline-offset:2px}.full-plan-modal-content{max-width:620px}.full-plan-modal-body{font-size:13.5px;line-height:1.6;color:var(--n-800)}.full-plan-modal-section{margin-bottom:16px}.full-plan-modal-section:last-child{margin-bottom:0}.full-plan-modal-section strong{display:block;margin-bottom:4px;color:var(--n-900);font-weight:700}.full-plan-modal-section div{white-space:pre-wrap;font-weight:400}
  .return-remarks-modal-content{max-width:520px}.return-remarks-modal-content form{display:flex;flex-direction:column;min-height:0}.return-remarks-modal-content .modal-body{max-height:none}.return-plan-context{margin:0 0 16px;padding:10px 12px;border:1px solid var(--n-200);border-radius:8px;background:var(--n-50);color:var(--n-700);font-size:12.5px;font-weight:600}.return-remarks-label{display:block;margin-bottom:5px;color:var(--n-800);font-size:13px;font-weight:700}.return-remarks-help{margin:0 0 9px;color:var(--n-500);font-size:12px;line-height:1.5}.return-remarks-input{display:block;width:100%;min-height:140px;padding:11px 13px;border:1px solid var(--n-300);border-radius:9px;background:#fff;color:var(--n-800);font:inherit;font-size:13px;line-height:1.55;box-sizing:border-box;resize:vertical;outline:none;transition:border-color .15s,box-shadow .15s}.return-remarks-input::placeholder{color:var(--n-400);opacity:1}.return-remarks-input:hover{border-color:var(--n-400)}.return-remarks-input:focus{border-color:var(--brand-600);box-shadow:0 0 0 3px rgba(22,163,74,.12)}.return-remarks-error{min-height:0;margin-top:6px;color:#dc2626;font-size:12px}.return-remarks-error:empty{display:none}.return-remarks-modal-content .return-cancel-button,.return-remarks-modal-content .return-submit-button{min-height:38px;padding:8px 16px;border-radius:8px;font:inherit;font-size:12.5px;font-weight:700;line-height:1.2;cursor:pointer;transition:background .15s,border-color .15s,color .15s,box-shadow .15s,transform .15s}.return-remarks-modal-content .return-cancel-button{border:1px solid var(--n-300);background:#fff;color:var(--n-700)}.return-remarks-modal-content .return-cancel-button:hover{border-color:var(--n-400);background:var(--n-50)}.return-remarks-modal-content .return-submit-button{border:1px solid var(--green-700,#15803d);background:var(--green-700,#15803d);color:#fff;box-shadow:0 1px 2px rgba(15,23,42,.12)}.return-remarks-modal-content .return-submit-button:hover:not(:disabled){border-color:var(--green-800,#166534);background:var(--green-800,#166534);box-shadow:0 3px 8px rgba(21,128,61,.22);transform:translateY(-1px)}.return-remarks-modal-content .return-submit-button:focus-visible,.return-remarks-modal-content .return-cancel-button:focus-visible{outline:3px solid rgba(22,163,74,.25);outline-offset:2px}.return-remarks-modal-content .return-submit-button:disabled{cursor:wait;opacity:.65;box-shadow:none;transform:none}
 thead th{text-transform:none;font-size:11px;font-weight:500;letter-spacing:0.01em} thead th:last-child{text-align:center}.ip-status-badge{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#fef3c7;color:#b45309;white-space:nowrap}.ip-status-badge.finalized{background:#dcfce7;color:#15803d}.ip-status-badge.approved{background:#dbeafe;color:#1d4ed8}.ip-status-badge.returned{background:#ffedd5;color:#c2410c}.btn-sm{padding:5px 9px;font-size:11px;margin:2px 0}.action-help{display:block;color:var(--n-500);font-size:10px;line-height:1.3;margin:0 0 5px}.priority-pill{display:inline-flex;padding:3px 7px;border-radius:999px;font-size:11px;font-weight:600;box-shadow:none;line-height:1.3}.priority-high{background:#fef2f2;color:#b91c1c}.priority-medium{background:#fef3c7;color:#b45309}.priority-low{background:#e0f2fe;color:#0369a1}.plan-clamp{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:4px 0 8px;color:var(--n-700);font-weight:400}.plan-detail{display:grid;gap:11px}.plan-detail-row{margin:0}.plan-detail-label{display:block;font-size:11px;font-weight:700;color:var(--n-700);text-transform:none;letter-spacing:0.01em}.plan-detail-copy{display:block;color:var(--n-700);font-weight:400;line-height:1.55}.full-plan summary{cursor:pointer;color:var(--n-700);font-size:11px;margin-top:6px}.full-plan div{max-width:340px;padding:10px;background:var(--n-50);border-radius:6px;margin-top:5px}.full-plan p{margin:3px 0 9px;line-height:1.45}.full-plan .plan-detail-block{margin:0 0 9px}.full-plan .plan-detail-copy{margin-top:4px}.history-summary{cursor:pointer;color:var(--n-700);font-size:11px}.history-panel{margin-top:8px}.plan-history-list{margin-top:7px;font-size:11px;line-height:1.45}.history-item{padding:6px 0;border-bottom:1px solid var(--n-200);color:var(--n-500)}.history-current{border-left:2px solid var(--n-500);padding-left:7px;color:var(--n-800);background:transparent}.history-muted{color:var(--n-500)}.history-person{color:var(--n-500)}.history-remark{color:var(--n-600)}.history-version{font-weight:700;color:var(--n-900)}.history-current .history-version{font-weight:700}.ip-plan-row{background:#fff}.ip-plan-row td{border-top:1px solid var(--n-200)}.ip-plan-row .ip-dimension-cell,.ip-plan-row .ip-indicator-cell{font-size:12px;font-weight:700;color:var(--n-800);text-decoration:none}.ip-plan-row .ip-indicator-cell{color:var(--n-800)}.ip-stage-label{font-size:11px;color:var(--n-800);font-weight:600;white-space:nowrap}.ip-date-input{min-width:142px;color-scheme:light}.plan-detail-label,.plan-detail-block .plan-detail-label{font-weight:700}.plan-detail-copy{font-weight:400}.history-current strong{font-weight:700}.history-muted strong{font-weight:600}.history-item .history-person,.history-item .history-remark{font-weight:400}
+</style>
+<style>
+.ip-review-table-wrap{overflow-x:hidden}
+.ip-review-summary-table{width:100%;table-layout:fixed}
+.ip-review-summary-table th,.ip-review-summary-table td{padding-left:10px;padding-right:10px}
+.ip-review-summary-table thead th{white-space:normal}
+.ip-review-stage-col{width:17%}
+.ip-review-dimension-col{width:11%}
+.ip-review-indicator-col{width:14%}
+.ip-review-objective-col{width:28%}
+.ip-review-priority-col{width:10%}
+.ip-review-date-col{width:11%}
+.ip-review-actions-col{width:9%}
+.ip-review-summary-row{cursor:pointer;transition:background-color .15s ease}
+.ip-review-summary-row:hover>td{background:var(--n-50)}
+.ip-review-summary-row:focus-visible>td{outline:2px solid var(--brand-600,#16a34a);outline-offset:-2px}
+.ip-review-summary-row .ip-stage-label{white-space:normal;overflow-wrap:anywhere}
+.ip-review-summary-row td:nth-child(2){overflow-wrap:anywhere}
+.ip-review-indicator-summary,.ip-review-objective-summary{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere;line-height:1.45}
+.ip-review-indicator-summary{margin-top:2px;color:var(--n-600);font-size:11px}
+.ip-review-objective-cell{font-size:12px}
+.ip-review-actions-cell{text-align:center;padding-left:6px!important;padding-right:6px!important}
+.ip-review-view-button{min-width:84px;padding:7px 12px;white-space:nowrap}
+.ip-review-drawer-backdrop{position:fixed;inset:0;z-index:2100;display:none;align-items:stretch;justify-content:flex-end;background:rgba(15,23,42,.38);backdrop-filter:blur(2px)}
+.ip-review-drawer-backdrop.open{display:flex}
+.ip-review-drawer{display:flex;flex-direction:column;width:min(560px,100vw);height:100%;background:#fff;box-shadow:-16px 0 42px rgba(15,23,42,.18);transform:translateX(100%);transition:transform .22s ease-out}
+.ip-review-drawer-backdrop.open .ip-review-drawer{transform:translateX(0)}
+.ip-review-drawer-header{display:flex;flex:0 0 auto;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:#f8fafc;border-bottom:1px solid var(--n-200)}
+.ip-review-drawer-header .modal-title{margin:0}
+.ip-review-drawer-body{flex:1 1 auto;overflow-y:auto;padding:20px;color:var(--n-800);font-size:13.5px;line-height:1.6}
+.ip-review-detail-row{margin-bottom:16px}
+.ip-review-detail-row:last-child{margin-bottom:0}
+.ip-review-detail-label{margin-bottom:4px;color:var(--n-500);font-size:11.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+.ip-review-detail-value{color:var(--n-800);white-space:pre-wrap;overflow-wrap:anywhere}
+.ip-review-drawer-footer{display:flex;flex:0 0 auto;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;padding:14px 20px;border-top:1px solid var(--n-200);background:#fff}
+.ip-review-drawer-footer:empty{display:none}
+.ip-review-drawer .ip-stage-label{white-space:normal}
+@media(max-width:760px){.ip-review-table-wrap{overflow-x:auto}.ip-review-summary-table{min-width:720px}.ip-review-drawer{width:100%;max-width:none;box-shadow:none}}
+@media(prefers-reduced-motion:reduce){.ip-review-summary-row,.ip-review-drawer{transition:none}}
 </style>
 <script>
 let openHistoryTrigger = null;
@@ -382,17 +437,205 @@ document.addEventListener('keydown', event => {
 
 window.addEventListener('resize', closeHistoryPopover);
 
-function openFullPlanModal(plan) {
-  document.getElementById('fullPlanObjective').textContent = plan.objective || '—';
-  document.getElementById('fullPlanStrategy').textContent = plan.strategy || '—';
-  document.getElementById('fullPlanResources').textContent = plan.resources || '—';
-  document.getElementById('fullPlanExpectedOutput').textContent = plan.expectedOutput || '—';
-  document.getElementById('fullPlanModal').style.display = 'flex';
+function ipReviewEscape(value) {
+  const element = document.createElement('div');
+  element.textContent = value == null ? '' : String(value);
+  return element.innerHTML;
 }
 
-function closeFullPlanModal() {
-  document.getElementById('fullPlanModal').style.display = 'none';
+function ipReviewDetailRow(label, value) {
+  return `<div class="ip-review-detail-row">
+    <div class="ip-review-detail-label">${label}</div>
+    <div class="ip-review-detail-value">${value || '<span style="color:var(--n-400);">—</span>'}</div>
+  </div>`;
 }
+
+let currentReviewPlan = null;
+let reviewDrawerReturnFocus = null;
+let reviewDrawerPreviousBodyOverflow = '';
+
+function addReviewDrawerAction(actions, label, action, className = '') {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = className || 'btn btn-secondary btn-sm';
+  button.dataset.drawerAction = action;
+  button.textContent = label;
+  actions.appendChild(button);
+  return button;
+}
+
+function renderReviewDrawerActions(plan) {
+  const actions = document.getElementById('planDetailsActions');
+  actions.innerHTML = '';
+  if (plan.can_return) {
+    const button = addReviewDrawerAction(actions, 'Return', 'return', 'btn btn-secondary btn-sm');
+    button.title = 'Return the plan without changing its content.';
+    button.dataset.id = plan.plan_id;
+    button.dataset.dimension = `D${plan.dimension_no}`;
+    button.dataset.indicator = plan.indicator_code || 'General';
+  }
+  if (plan.can_approve) {
+    const button = addReviewDrawerAction(actions, 'Approve', 'approve', 'btn btn-success btn-sm');
+    button.title = 'Approve the content and move it to the separate validation step.';
+  }
+  if (plan.can_validate) {
+    const button = addReviewDrawerAction(actions, 'Validate', 'validate', 'btn btn-success btn-sm');
+    button.title = 'Record final validation and move the plan to Finalized.';
+  }
+  addReviewDrawerAction(actions, 'Close', 'close', 'btn btn-secondary btn-sm');
+}
+
+function renderReviewPlanDetails(plan) {
+  document.getElementById('planDetailsTitle').textContent = 'Improvement Plan Details';
+  const indicator = [
+    ipReviewEscape(plan.indicator_code || 'General'),
+    plan.indicator_text ? `<div>${ipReviewEscape(plan.indicator_text)}</div>` : '',
+  ].join('');
+  const priorityClass = {
+    High: 'priority-high',
+    Medium: 'priority-medium',
+    Low: 'priority-low',
+  }[plan.priority_level] || '';
+  const targetDate = plan.target_date
+    ? new Date(plan.target_date + 'T00:00:00').toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})
+    : null;
+  const status = [
+    `<span class="ip-stage-label">${ipReviewEscape(plan.status_label)}</span>`,
+    `<div>Current stage: ${ipReviewEscape(plan.stage_owner)}</div>`,
+    plan.validated_by_name
+      ? `<div>Validated by ${ipReviewEscape(plan.validated_by_name)}${plan.validated_at ? ` · ${ipReviewEscape(plan.validated_at)}` : ''}</div>`
+      : '',
+  ].join('');
+
+  document.getElementById('planDetailsBody').innerHTML =
+    ipReviewDetailRow('Dimension', `D${ipReviewEscape(plan.dimension_no)} — ${ipReviewEscape(plan.dimension_name)}`) +
+    ipReviewDetailRow('Indicator', indicator) +
+    ipReviewDetailRow('Objective', ipReviewEscape(plan.objective)) +
+    ipReviewDetailRow('Strategy', ipReviewEscape(plan.strategy)) +
+    ipReviewDetailRow('Person Responsible', ipReviewEscape(plan.person_responsible)) +
+    ipReviewDetailRow('Resources Needed', ipReviewEscape(plan.resources_needed)) +
+    ipReviewDetailRow('Expected Output', ipReviewEscape(plan.expected_output)) +
+    ipReviewDetailRow('Priority', `<span class="priority-pill ${priorityClass}">${ipReviewEscape(plan.priority_level)}</span>`) +
+    ipReviewDetailRow('Target Date', targetDate ? ipReviewEscape(targetDate) : null) +
+    ipReviewDetailRow('Status', status);
+  renderReviewDrawerActions(plan);
+}
+
+function openPlanDetailsDrawer(plan, triggerElement) {
+  const drawer = document.getElementById('planDetailsDrawer');
+  currentReviewPlan = plan;
+  reviewDrawerReturnFocus = triggerElement || document.activeElement;
+  renderReviewPlanDetails(plan);
+  drawer.setAttribute('aria-hidden', 'false');
+  drawer.classList.add('open');
+  reviewDrawerPreviousBodyOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => {
+    const closeButton = drawer.querySelector('.ip-review-drawer-close');
+    if (closeButton) closeButton.focus();
+  });
+}
+
+function closePlanDetailsDrawer() {
+  const drawer = document.getElementById('planDetailsDrawer');
+  drawer.classList.remove('open');
+  drawer.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = reviewDrawerPreviousBodyOverflow;
+  if (reviewDrawerReturnFocus && reviewDrawerReturnFocus.isConnected && !reviewDrawerReturnFocus.closest('[hidden]')) {
+    reviewDrawerReturnFocus.focus();
+  }
+  reviewDrawerReturnFocus = null;
+}
+
+function initPlanDetailsDrawer() {
+  const drawer = document.getElementById('planDetailsDrawer');
+  const actions = document.getElementById('planDetailsActions');
+  if (!drawer || !actions) return;
+
+  document.querySelectorAll('.ip-review-summary-row').forEach(row => {
+    row.addEventListener('click', event => {
+      if (event.target.closest('button, a, input, select, textarea')) return;
+      openPlanDetailsDrawer(JSON.parse(row.dataset.planDetail), row);
+    });
+    row.addEventListener('keydown', event => {
+      if ((event.key !== 'Enter' && event.key !== ' ') || event.target !== row) return;
+      event.preventDefault();
+      openPlanDetailsDrawer(JSON.parse(row.dataset.planDetail), row);
+    });
+  });
+
+  document.querySelectorAll('[data-view-plan]').forEach(button => {
+    button.addEventListener('click', event => {
+      event.stopPropagation();
+      const row = button.closest('.ip-review-summary-row');
+      if (row) openPlanDetailsDrawer(JSON.parse(row.dataset.planDetail), button);
+    });
+  });
+
+  actions.addEventListener('click', event => {
+    const button = event.target.closest('[data-drawer-action]');
+    if (!button || !currentReviewPlan) return;
+
+    switch (button.dataset.drawerAction) {
+      case 'return': {
+        const returnFocus = reviewDrawerReturnFocus;
+        closePlanDetailsDrawer();
+        openReturnRemarksModal(button, returnFocus);
+        break;
+      }
+      case 'approve': {
+        const planId = currentReviewPlan.plan_id;
+        const returnFocus = reviewDrawerReturnFocus;
+        closePlanDetailsDrawer();
+        openPlanActionConfirm('coordinator_approve_improvement_plan', planId, returnFocus);
+        break;
+      }
+      case 'validate': {
+        const planId = currentReviewPlan.plan_id;
+        const returnFocus = reviewDrawerReturnFocus;
+        closePlanDetailsDrawer();
+        openPlanActionConfirm('coordinator_validate_improvement_plan', planId, returnFocus);
+        break;
+      }
+      case 'close':
+        closePlanDetailsDrawer();
+        break;
+    }
+  });
+
+  drawer.addEventListener('click', event => {
+    if (event.target === drawer) closePlanDetailsDrawer();
+  });
+
+  document.addEventListener('keydown', event => {
+    if (!drawer.classList.contains('open')) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closePlanDetailsDrawer();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const focusable = [...drawer.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      .filter(element => element.offsetParent !== null);
+    if (!focusable.length) {
+      event.preventDefault();
+      const panel = drawer.querySelector('.ip-review-drawer');
+      if (panel) panel.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && (document.activeElement === first || !drawer.contains(document.activeElement))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !drawer.contains(document.activeElement))) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded', initPlanDetailsDrawer);
 
 async function postPlanAction(action, planId, remarks = '') {
   const body = new URLSearchParams({action, plan_id: planId, remarks});
@@ -402,9 +645,11 @@ async function postPlanAction(action, planId, remarks = '') {
   return data;
 }
 let returnPlanId = null;
+let returnModalReturnFocus = null;
 
-function openReturnRemarksModal(button) {
+function openReturnRemarksModal(button, returnFocus = document.activeElement) {
   returnPlanId = button.dataset.id;
+  returnModalReturnFocus = returnFocus;
   document.getElementById('returnPlanContext').textContent =
     `${button.dataset.dimension} · Indicator ${button.dataset.indicator}`;
   document.getElementById('returnRemarksForm').reset();
@@ -418,11 +663,11 @@ function closeReturnRemarksModal() {
   if (modal.dataset.submitting === 'true') return;
   modal.style.display = 'none';
   returnPlanId = null;
+  if (returnModalReturnFocus && returnModalReturnFocus.isConnected && !returnModalReturnFocus.closest('[hidden]')) {
+    returnModalReturnFocus.focus();
+  }
+  returnModalReturnFocus = null;
 }
-
-document.querySelectorAll('.return-plan').forEach(button => button.addEventListener('click', () => {
-  openReturnRemarksModal(button);
-}));
 
 document.getElementById('returnRemarksModal').addEventListener('click', event => {
   if (event.target === event.currentTarget) closeReturnRemarksModal();
@@ -466,10 +711,12 @@ document.getElementById('returnRemarksForm').addEventListener('submit', async ev
 });
 let pendingPlanAction = null;
 let pendingPlanId = null;
+let planActionReturnFocus = null;
 
-function openPlanActionConfirm(action, planId) {
+function openPlanActionConfirm(action, planId, returnFocus = document.activeElement) {
   pendingPlanAction = action;
   pendingPlanId = planId;
+  planActionReturnFocus = returnFocus;
   document.getElementById('planActionConfirmTitle').textContent =
     action === 'coordinator_approve_improvement_plan' ? 'Approve this Improvement Plan?' : 'Validate this Improvement Plan?';
   document.getElementById('planActionConfirmMessage').textContent =
@@ -490,11 +737,16 @@ function closePlanActionConfirm() {
   modal.style.display = 'none';
   pendingPlanAction = null;
   pendingPlanId = null;
+  if (planActionReturnFocus && planActionReturnFocus.isConnected && !planActionReturnFocus.closest('[hidden]')) {
+    planActionReturnFocus.focus();
+  }
+  planActionReturnFocus = null;
 }
 
-function openApproveAllConfirm(planCount) {
+function openApproveAllConfirm(planCount, returnFocus = document.activeElement) {
   pendingPlanAction = 'coordinator_approve_all_improvement_plans';
   pendingPlanId = null;
+  planActionReturnFocus = returnFocus;
   document.getElementById('planActionConfirmTitle').textContent = 'Approve all plans?';
   document.getElementById('planActionConfirmMessage').textContent =
     `Approve all ${planCount} plans currently in the Review queue? Each plan will still require separate validation.`;
@@ -506,9 +758,10 @@ function openApproveAllConfirm(planCount) {
   confirmButton.focus();
 }
 
-function openValidateAllConfirm(planCount) {
+function openValidateAllConfirm(planCount, returnFocus = document.activeElement) {
   pendingPlanAction = 'coordinator_validate_all_improvement_plans';
   pendingPlanId = null;
+  planActionReturnFocus = returnFocus;
   document.getElementById('planActionConfirmTitle').textContent = 'Validate all plans?';
   document.getElementById('planActionConfirmMessage').textContent =
     `Validate all ${planCount} approved plans? This will finalize them.`;
@@ -557,19 +810,12 @@ async function confirmPlanAction() {
   }
 }
 
-document.querySelectorAll('.approve-plan').forEach(button => button.addEventListener('click', () => {
-  openPlanActionConfirm('coordinator_approve_improvement_plan', button.dataset.id);
-}));
-document.querySelectorAll('.validate-plan').forEach(button => button.addEventListener('click', () => {
-  openPlanActionConfirm('coordinator_validate_improvement_plan', button.dataset.id);
-}));
-
 const approveAllPlansButton = document.getElementById('approveAllPlansButton');
 if (approveAllPlansButton) {
   approveAllPlansButton.addEventListener('click', async () => {
     const planCount = Number(approveAllPlansButton.dataset.count);
     if (!Number.isInteger(planCount) || planCount < 1) return;
-    openApproveAllConfirm(planCount);
+    openApproveAllConfirm(planCount, approveAllPlansButton);
   });
 }
 
@@ -578,7 +824,7 @@ if (validateAllPlansButton) {
   validateAllPlansButton.addEventListener('click', () => {
     const planCount = Number(validateAllPlansButton.dataset.count);
     if (!Number.isInteger(planCount) || planCount < 1) return;
-    openValidateAllConfirm(planCount);
+    openValidateAllConfirm(planCount, validateAllPlansButton);
   });
 }
 </script>
